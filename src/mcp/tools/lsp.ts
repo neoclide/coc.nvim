@@ -13,7 +13,7 @@ import {
   SymbolKind,
   WorkspaceSymbol
 } from 'vscode-languageserver-types'
-import { SignatureHelpTriggerKind } from 'vscode-languageserver-protocol'
+import { LSPErrorCodes, ResponseError, SignatureHelpTriggerKind } from 'vscode-languageserver-protocol'
 import commandManager from '../../commands'
 import diagnosticManager from '../../diagnostic/manager'
 import languages, { ProviderName } from '../../languages'
@@ -21,15 +21,18 @@ import { createLogger } from '../../logger'
 import type Document from '../../model/document'
 import { asDocumentSymbolTree } from '../../provider/documentSymbolManager'
 import services from '../../services'
-import { CancellationToken, Trace } from '../../util/protocol'
+import { CancellationToken, Disposable, Trace } from '../../util/protocol'
 import { LocationWithTarget } from '../../types'
 import { equals } from '../../util/object'
 import workspace from '../../workspace'
 import { McpTool, McpToolResult, ToolContext } from './index'
+import { QueryCache } from './queryCache'
 import { collectEditUris, errorResult, resolveDocument, textResult } from './util'
 const logger = createLogger('mcp-lsp')
 
 const MAX_RESULTS_HARD_LIMIT = 1000
+const QUERY_CACHE_TTL_MS = 5000
+const QUERY_CACHE_MAX_ENTRIES = 200
 
 export function maxResultsFromArgs(args: any, fallback: number): number {
   let n = args?.maxResults
@@ -160,28 +163,132 @@ export function disableLanguageTrace(doc: Document): void {
 }
 
 /**
+ * Short-TTL LRU cache for idempotent LSP queries, keyed by document uri,
+ * query variant (method + configured service), document version and
+ * position. Repeated agent queries at the same spot (Codex re-queries the
+ * same symbol often) are served from the cache. Entries are dropped when
+ * the document changes or the buffer closes, and otherwise expire after a
+ * few seconds.
+ */
+export const lspQueryCache = new QueryCache<any>({
+  maxEntries: QUERY_CACHE_MAX_ENTRIES,
+  ttlMs: QUERY_CACHE_TTL_MS
+})
+
+export function queryCacheKey(variant: string, doc: Document, pos: Position | null): string {
+  let version = doc.version
+  if (pos) {
+    return `${doc.uri}\0${variant}\0${version}\0${pos.line}\0${pos.character}`
+  }
+  return `${doc.uri}\0${variant}\0${version}\0-1\0-1`
+}
+
+function queryVariant(method: string, serviceId: string | undefined): string {
+  return `${method}:${serviceId ?? ''}`
+}
+
+function isErrorResult(result: any): boolean {
+  return result && typeof result === 'object' && 'error' in result
+}
+
+async function withQueryCache<T>(variant: string, doc: Document, pos: Position | null, fetch: () => Promise<T>): Promise<T> {
+  let key = queryCacheKey(variant, doc, pos)
+  let cached = lspQueryCache.get(key)
+  if (cached !== undefined) return cached
+  let result = await fetch()
+  if (!isErrorResult(result)) lspQueryCache.set(key, result)
+  return result
+}
+
+export function invalidateLspQueryCache(uri: string): void {
+  lspQueryCache.deleteUri(uri)
+}
+
+// document changes invalidate cached results so they can never go stale
+workspace.onDidChangeTextDocument(e => invalidateLspQueryCache(e.textDocument.uri))
+workspace.onDidCloseTextDocument(doc => invalidateLspQueryCache(doc.uri))
+
+/**
  * Per-service semaphore limiting how many LSP requests are in flight to one
  * language server at the same time. Different servers have different
  * capacity, so the limit is configurable (`mcp.maxConcurrentRequests`,
- * 0 = unlimited).
+ * 0 = unlimited). When an MCP request is abandoned (timeout or
+ * notifications/cancelled) its queued task is dropped so abandoned calls
+ * cannot pile up, and a task that is already running counts as stuck until
+ * the language server actually responds.
  */
+interface WaitingTask {
+  run: () => void
+  cancelled: boolean
+}
+
 export class ServiceLimiter {
   private active = 0
-  private waiting: (() => void)[] = []
+  private waiting: WaitingTask[] = []
+  private abandoned = 0
 
   constructor(public limit: number) {}
 
-  public run<T>(fn: () => Promise<T>): Promise<T> {
+  /**
+   * Running requests that were cancelled but have not settled yet. When
+   * every slot is occupied by stuck requests the language server is
+   * effectively unresponsive, so new queries fail fast instead of queueing
+   * behind them forever.
+   */
+  public get stuckCount(): number {
+    return this.abandoned
+  }
+
+  public run<T>(fn: () => Promise<T>, token?: CancellationToken): Promise<T> {
     return new Promise<T>((resolve, reject) => {
-      this.waiting.push(() => {
+      if (token?.isCancellationRequested) {
+        reject(new ResponseError(LSPErrorCodes.RequestCancelled, 'Request got cancelled'))
+        return
+      }
+      let task: WaitingTask = { cancelled: false, run: () => {} }
+      let settled = false
+      let stuck = false
+      let disposable: Disposable | undefined
+      if (token) {
+        disposable = token.onCancellationRequested(() => {
+          if (task.cancelled || settled) return
+          task.cancelled = true
+          let idx = this.waiting.indexOf(task)
+          if (idx !== -1) {
+            // still queued: drop it so abandoned MCP calls do not pile up
+            this.waiting.splice(idx, 1)
+            if (disposable) disposable.dispose()
+            reject(new ResponseError(LSPErrorCodes.RequestCancelled, 'Request got cancelled'))
+          } else {
+            // already running: the server still holds the request, count it
+            // as stuck until it settles
+            this.abandoned++
+            stuck = true
+          }
+        })
+      }
+      task.run = () => {
+        let cleanup = (): void => {
+          settled = true
+          this.active--
+          if (stuck) this.abandoned--
+          if (disposable) disposable.dispose()
+          this.pump()
+        }
         Promise.resolve()
           .then(fn)
-          .then(resolve, reject)
-          .finally(() => {
-            this.active--
-            this.pump()
-          })
-      })
+          .then(
+            value => {
+              cleanup()
+              resolve(value)
+            },
+            error => {
+              cleanup()
+              reject(error)
+            }
+          )
+      }
+      this.waiting.push(task)
       this.pump()
     })
   }
@@ -189,19 +296,14 @@ export class ServiceLimiter {
   private pump(): void {
     while (this.active < this.limit && this.waiting.length > 0) {
       this.active++
-      this.waiting.shift()!()
+      this.waiting.shift()!.run()
     }
   }
 }
 
 const serviceLimiters = new Map<string, ServiceLimiter>()
 
-/**
- * Run `fn` under the per-service concurrency limit for `serviceId`.
- * `limit <= 0` disables the limit.
- */
-export function withServiceLimit<T>(serviceId: string, limit: number, fn: () => Promise<T>): Promise<T> {
-  if (limit <= 0) return fn()
+export function getServiceLimiter(serviceId: string, limit: number): ServiceLimiter {
   let limiter = serviceLimiters.get(serviceId)
   if (!limiter) {
     limiter = new ServiceLimiter(limit)
@@ -209,7 +311,18 @@ export function withServiceLimit<T>(serviceId: string, limit: number, fn: () => 
   } else {
     limiter.limit = limit
   }
-  return limiter.run(fn)
+  return limiter
+}
+
+/**
+ * Run `fn` under the per-service concurrency limit for `serviceId`.
+ * `limit <= 0` disables the limit. When `token` is cancelled a queued
+ * request is dropped and a running one is tracked as stuck (see
+ * `ServiceLimiter`).
+ */
+export function withServiceLimit<T>(serviceId: string, limit: number, fn: () => Promise<T>, token?: CancellationToken): Promise<T> {
+  if (limit <= 0) return fn()
+  return getServiceLimiter(serviceId, limit).run(fn, token)
 }
 
 /**
@@ -227,8 +340,16 @@ export async function serviceCall(
   if (!service || !service.client) return { error: `Language server "${serviceId}" not found or not running` }
   service.client.trace = Trace.Off
   let limit = workspace.getConfiguration('mcp').get<number>('maxConcurrentRequests', 4)
+  if (limit > 0) {
+    let limiter = getServiceLimiter(serviceId, limit)
+    if (limiter.stuckCount >= limiter.limit) {
+      return {
+        error: `Language server "${serviceId}" has ${limiter.stuckCount} stuck requests, new queries rejected. Restart the language server to recover.`
+      }
+    }
+  }
   try {
-    let result = await withServiceLimit(serviceId, limit, () => services.sendRequest(serviceId, method, params, token))
+    let result = await withServiceLimit(serviceId, limit, () => services.sendRequest(serviceId, method, params, token), token)
     return { result }
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) }
@@ -238,6 +359,7 @@ export async function serviceCall(
 interface LocationQuery {
   provider: ProviderName
   label: string
+  cacheKey: string
   fetch: (doc: Document, pos: Position, token: CancellationToken) => Promise<LocationWithTarget[]>
   serviceMethod: string
   buildParams: (doc: Document, pos: Position) => any
@@ -247,6 +369,7 @@ export const LOCATION_QUERIES: Record<string, LocationQuery> = {
   definition: {
     provider: ProviderName.Definition,
     label: 'Definition',
+    cacheKey: 'definition',
     fetch: (doc, pos, token) => languages.getDefinition(doc.textDocument, pos, token),
     serviceMethod: 'textDocument/definition',
     buildParams: (doc, pos) => ({ textDocument: { uri: doc.uri }, position: pos })
@@ -254,6 +377,7 @@ export const LOCATION_QUERIES: Record<string, LocationQuery> = {
   declaration: {
     provider: ProviderName.Declaration,
     label: 'Declaration',
+    cacheKey: 'declaration',
     fetch: (doc, pos, token) => languages.getDeclaration(doc.textDocument, pos, token),
     serviceMethod: 'textDocument/declaration',
     buildParams: (doc, pos) => ({ textDocument: { uri: doc.uri }, position: pos })
@@ -261,6 +385,7 @@ export const LOCATION_QUERIES: Record<string, LocationQuery> = {
   type_definition: {
     provider: ProviderName.TypeDefinition,
     label: 'Type definition',
+    cacheKey: 'type_definition',
     fetch: (doc, pos, token) => languages.getTypeDefinition(doc.textDocument, pos, token),
     serviceMethod: 'textDocument/typeDefinition',
     buildParams: (doc, pos) => ({ textDocument: { uri: doc.uri }, position: pos })
@@ -268,6 +393,7 @@ export const LOCATION_QUERIES: Record<string, LocationQuery> = {
   implementation: {
     provider: ProviderName.Implementation,
     label: 'Implementation',
+    cacheKey: 'implementation',
     fetch: (doc, pos, token) => languages.getImplementation(doc.textDocument, pos, token),
     serviceMethod: 'textDocument/implementation',
     buildParams: (doc, pos) => ({ textDocument: { uri: doc.uri }, position: pos })
@@ -278,6 +404,7 @@ export function referencesQuery(includeDeclaration: boolean): LocationQuery {
   return {
     provider: ProviderName.Reference,
     label: 'References',
+    cacheKey: `references:${includeDeclaration}`,
     fetch: (doc, pos, token) => languages.getReferences(doc.textDocument, { includeDeclaration }, pos, token),
     serviceMethod: 'textDocument/references',
     buildParams: (doc, pos) => ({
@@ -301,20 +428,22 @@ export async function getLocationResult(
   token: CancellationToken
 ): Promise<{ locations: LocationWithTarget[] } | { error: string }> {
   disableLanguageTrace(doc)
-  if (serviceId) {
-    let call = await serviceCall(serviceId, query.serviceMethod, query.buildParams(doc, pos), token)
-    if (call.error) return { error: `${query.label} request failed: ${call.error}` }
-    return { locations: normalizeLocations(call.result) }
-  }
-  if (!hasProvider(query.provider, doc)) {
-    return { error: `${query.label} provider not found for ${doc.uri}` }
-  }
-  try {
-    return { locations: await query.fetch(doc, pos, token) }
-  } catch (e) {
-    logger.error(`${query.label} request failed`, e)
-    return { error: `${query.label} request failed: ${e instanceof Error ? e.message : String(e)}` }
-  }
+  return withQueryCache(queryVariant(query.cacheKey, serviceId), doc, pos, async () => {
+    if (serviceId) {
+      let call = await serviceCall(serviceId, query.serviceMethod, query.buildParams(doc, pos), token)
+      if (call.error) return { error: `${query.label} request failed: ${call.error}` }
+      return { locations: normalizeLocations(call.result) }
+    }
+    if (!hasProvider(query.provider, doc)) {
+      return { error: `${query.label} provider not found for ${doc.uri}` }
+    }
+    try {
+      return { locations: await query.fetch(doc, pos, token) }
+    } catch (e) {
+      logger.error(`${query.label} request failed`, e)
+      return { error: `${query.label} request failed: ${e instanceof Error ? e.message : String(e)}` }
+    }
+  })
 }
 
 /**
@@ -384,17 +513,19 @@ export async function getHoverResult(
   token: CancellationToken
 ): Promise<{ hovers: Hover[] } | { error: string }> {
   disableLanguageTrace(doc)
-  if (serviceId) {
-    let call = await serviceCall(serviceId, 'textDocument/hover', { textDocument: { uri: doc.uri }, position: pos }, token)
-    if (call.error) return { error: `Hover request failed: ${call.error}` }
-    return { hovers: call.result ? [call.result] : [] }
-  }
-  if (!hasProvider(ProviderName.Hover, doc)) return { error: `Hover provider not found for ${doc.uri}` }
-  try {
-    return { hovers: await languages.getHover(doc.textDocument, pos, token) }
-  } catch (e) {
-    return { error: `Hover request failed: ${e instanceof Error ? e.message : String(e)}` }
-  }
+  return withQueryCache(queryVariant('hover', serviceId), doc, pos, async () => {
+    if (serviceId) {
+      let call = await serviceCall(serviceId, 'textDocument/hover', { textDocument: { uri: doc.uri }, position: pos }, token)
+      if (call.error) return { error: `Hover request failed: ${call.error}` }
+      return { hovers: call.result ? [call.result] : [] }
+    }
+    if (!hasProvider(ProviderName.Hover, doc)) return { error: `Hover provider not found for ${doc.uri}` }
+    try {
+      return { hovers: await languages.getHover(doc.textDocument, pos, token) }
+    } catch (e) {
+      return { error: `Hover request failed: ${e instanceof Error ? e.message : String(e)}` }
+    }
+  })
 }
 
 export function signatureSummary(help?: SignatureHelp): any {
@@ -419,25 +550,27 @@ export async function getSignatureResult(
   token: CancellationToken
 ): Promise<{ help?: SignatureHelp } | { error: string }> {
   disableLanguageTrace(doc)
-  if (serviceId) {
-    let call = await serviceCall(serviceId, 'textDocument/signatureHelp', {
-      textDocument: { uri: doc.uri },
-      position: pos,
-      context: { triggerKind: SignatureHelpTriggerKind.Invoked, isRetrigger: false }
-    }, token)
-    if (call.error) return { error: `Signature help request failed: ${call.error}` }
-    return { help: call.result }
-  }
-  if (!hasProvider(ProviderName.Signature, doc)) return { error: `Signature help provider not found for ${doc.uri}` }
-  try {
-    let help = await languages.getSignatureHelp(doc.textDocument, pos, token, {
-      triggerKind: SignatureHelpTriggerKind.Invoked,
-      isRetrigger: false
-    })
-    return { help }
-  } catch (e) {
-    return { error: `Signature help request failed: ${e instanceof Error ? e.message : String(e)}` }
-  }
+  return withQueryCache(queryVariant('signature_help', serviceId), doc, pos, async () => {
+    if (serviceId) {
+      let call = await serviceCall(serviceId, 'textDocument/signatureHelp', {
+        textDocument: { uri: doc.uri },
+        position: pos,
+        context: { triggerKind: SignatureHelpTriggerKind.Invoked, isRetrigger: false }
+      }, token)
+      if (call.error) return { error: `Signature help request failed: ${call.error}` }
+      return { help: call.result }
+    }
+    if (!hasProvider(ProviderName.Signature, doc)) return { error: `Signature help provider not found for ${doc.uri}` }
+    try {
+      let help = await languages.getSignatureHelp(doc.textDocument, pos, token, {
+        triggerKind: SignatureHelpTriggerKind.Invoked,
+        isRetrigger: false
+      })
+      return { help }
+    } catch (e) {
+      return { error: `Signature help request failed: ${e instanceof Error ? e.message : String(e)}` }
+    }
+  })
 }
 
 export function flattenSymbols(symbols: DocumentSymbol[] | null | undefined, maxResults: number): LimitedList<any> {
@@ -465,21 +598,23 @@ export async function getDocumentSymbolResult(
   token: CancellationToken
 ): Promise<{ symbols: DocumentSymbol[] | null } | { error: string }> {
   disableLanguageTrace(doc)
-  if (serviceId) {
-    let call = await serviceCall(serviceId, 'textDocument/documentSymbol', { textDocument: { uri: doc.uri } }, token)
-    if (call.error) return { error: `Document symbol request failed: ${call.error}` }
-    let result = call.result
-    let symbols = Array.isArray(result) && result.length > 0
-      ? (DocumentSymbol.is(result[0]) ? result : asDocumentSymbolTree(result))
-      : null
-    return { symbols }
-  }
-  if (!hasProvider(ProviderName.DocumentSymbol, doc)) return { error: `Document symbol provider not found for ${doc.uri}` }
-  try {
-    return { symbols: await languages.getDocumentSymbol(doc.textDocument, token) }
-  } catch (e) {
-    return { error: `Document symbol request failed: ${e instanceof Error ? e.message : String(e)}` }
-  }
+  return withQueryCache(queryVariant('document_symbols', serviceId), doc, null, async () => {
+    if (serviceId) {
+      let call = await serviceCall(serviceId, 'textDocument/documentSymbol', { textDocument: { uri: doc.uri } }, token)
+      if (call.error) return { error: `Document symbol request failed: ${call.error}` }
+      let result = call.result
+      let symbols = Array.isArray(result) && result.length > 0
+        ? (DocumentSymbol.is(result[0]) ? result : asDocumentSymbolTree(result))
+        : null
+      return { symbols }
+    }
+    if (!hasProvider(ProviderName.DocumentSymbol, doc)) return { error: `Document symbol provider not found for ${doc.uri}` }
+    try {
+      return { symbols: await languages.getDocumentSymbol(doc.textDocument, token) }
+    } catch (e) {
+      return { error: `Document symbol request failed: ${e instanceof Error ? e.message : String(e)}` }
+    }
+  })
 }
 
 export const BATCH_METHODS: string[] = [

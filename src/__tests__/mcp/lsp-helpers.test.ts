@@ -18,11 +18,13 @@ import {
   normalizeLocations,
   positionFromArgs,
   positionInputSchema,
+  queryCacheKey,
   rangeFromArgs,
   ServiceLimiter,
   signatureSummary,
   symbolKindName
 } from '../../mcp/tools/lsp'
+import { CancellationTokenSource } from '../../util/protocol'
 import workspace from '../../workspace'
 
 describe('mcp lsp helpers', () => {
@@ -98,6 +100,18 @@ describe('mcp lsp helpers', () => {
     workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': { vim: 'test' } })
   })
 
+  it('queryCacheKey includes uri, variant, version and position', () => {
+    let doc: any = { uri: 'file:///a.ts', version: 3 }
+    let pos = Position.create(1, 2)
+    expect(queryCacheKey('hover:test', doc, pos)).toBe(['file:///a.ts', 'hover:test', 3, 1, 2].join('\u0000'))
+    expect(queryCacheKey('hover:test', doc, null)).toBe(['file:///a.ts', 'hover:test', 3, -1, -1].join('\u0000'))
+    // a different position or version is a different key
+    expect(queryCacheKey('hover:test', doc, Position.create(2, 2))).not.toBe(queryCacheKey('hover:test', doc, pos))
+    doc.version = 4
+    expect(queryCacheKey('hover:test', doc, pos)).not.toBe(queryCacheKey('hover:test', { ...doc, version: 3 }, pos))
+    expect(queryCacheKey('definition:test', doc, pos)).not.toBe(queryCacheKey('hover:test', doc, pos))
+  })
+
   it('ServiceLimiter caps concurrent tasks', async () => {
     let limiter = new ServiceLimiter(1)
     let active = 0
@@ -113,6 +127,61 @@ describe('mcp lsp helpers', () => {
     release()
     await Promise.all(tasks)
     expect(maxActive).toBe(1)
+  })
+
+  it('ServiceLimiter drops queued tasks when their token is cancelled', async () => {
+    let limiter = new ServiceLimiter(1)
+    let order: string[] = []
+    let release!: () => void
+    let gate = new Promise<void>(resolve => { release = resolve })
+    let start!: () => void
+    let started = new Promise<void>(resolve => { start = resolve })
+    let firstToken = new CancellationTokenSource()
+    let secondToken = new CancellationTokenSource()
+    let first = limiter.run(async () => {
+      start()
+      await gate
+      order.push('first')
+    }, firstToken.token)
+    await started
+    let second = limiter.run(async () => {
+      order.push('second')
+    }, secondToken.token)
+    secondToken.cancel()
+    await expect(second).rejects.toThrow(/cancelled/)
+    expect(limiter.stuckCount).toBe(0)
+    release()
+    await first
+    expect(order).toEqual(['first'])
+  })
+
+  it('ServiceLimiter counts cancelled running requests as stuck until they settle', async () => {
+    let limiter = new ServiceLimiter(1)
+    let release!: () => void
+    let gate = new Promise<void>(resolve => { release = resolve })
+    let start!: () => void
+    let started = new Promise<void>(resolve => { start = resolve })
+    let token = new CancellationTokenSource()
+    let task = limiter.run(async () => {
+      start()
+      await gate
+    }, token.token)
+    await started
+    expect(limiter.stuckCount).toBe(0)
+    token.cancel()
+    expect(limiter.stuckCount).toBe(1)
+    release()
+    await task
+    expect(limiter.stuckCount).toBe(0)
+  })
+
+  it('ServiceLimiter rejects immediately when the token is already cancelled', async () => {
+    let limiter = new ServiceLimiter(1)
+    let token = new CancellationTokenSource()
+    token.cancel()
+    await expect(limiter.run(async () => 'ran', token.token)).rejects.toThrow(/cancelled/)
+    expect(limiter.stuckCount).toBe(0)
+    expect(await limiter.run(async () => 'ok')).toBe('ok')
   })
 
   it('hoverContents and hoverSummary extract text', () => {

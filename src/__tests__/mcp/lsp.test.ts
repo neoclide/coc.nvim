@@ -8,10 +8,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import commands from '../../commands'
 import diagnosticManager from '../../diagnostic/manager'
 import events from '../../events'
-import { createLspTools, withServiceLimit } from '../../mcp/tools/lsp'
+import { createLspTools, getServiceLimiter, lspQueryCache, withServiceLimit } from '../../mcp/tools/lsp'
 import services, { ServiceStat } from '../../services'
 import helper from '../helper'
-import { CancellationToken, Trace } from '../../util/protocol'
+import { CancellationToken, CancellationTokenSource, Trace } from '../../util/protocol'
 import workspace from '../../workspace'
 
 const serverModule = path.join(__dirname, '../client/server/testServer.js')
@@ -317,6 +317,81 @@ describe('mcp lsp tools', () => {
     let result = await tool('lsp/hover').handler({ uri: other, position: { line: 0, character: 0 } }, { token })
     expect(result.isError).toBe(true)
     expect(result.content[0].text).toContain('provider not found')
+  })
+
+  it('caches idempotent queries and invalidates on document change', async () => {
+    lspQueryCache.clear()
+    let first = await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
+    expect(first.isError).toBeFalsy()
+    expect(lspQueryCache.size).toBe(1)
+    // identical query is served from the cache, no new entry
+    let second = await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
+    expect(second.isError).toBeFalsy()
+    expect(second.structuredContent.hovers[0].contents).toContain('foo')
+    expect(lspQueryCache.size).toBe(1)
+    // lsp/batch reuses the same cache entry for the same query
+    await tool('lsp/batch').handler({ uri: file, position: { line: 1, character: 1 }, methods: ['hover'] }, { token })
+    expect(lspQueryCache.size).toBe(1)
+    // a different position is a distinct entry
+    await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 2 } }, { token })
+    expect(lspQueryCache.size).toBe(2)
+    // references with and without declaration are distinct entries
+    await tool('lsp/references').handler({ uri: file, position: { line: 1, character: 1 }, includeDeclaration: true }, { token })
+    await tool('lsp/references').handler({ uri: file, position: { line: 1, character: 1 }, includeDeclaration: false }, { token })
+    expect(lspQueryCache.size).toBe(4)
+    // editing the buffer clears every cached entry for the document
+    await helper.nvim.command(`edit ${file}`)
+    await helper.nvim.call('setline', [1, 'let a = 2'])
+    await helper.waitValue(() => lspQueryCache.size, 0)
+    // the next query repopulates the cache with the new document version
+    let after = await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
+    expect(after.isError).toBeFalsy()
+    expect(after.structuredContent.hovers[0].contents).toContain('foo')
+    expect(lspQueryCache.size).toBe(1)
+  })
+
+  it('does not cache error results', async () => {
+    lspQueryCache.clear()
+    let otherUri = URI.file(path.join(tmpdir, 'other.txt')).toString()
+    let first = await tool('lsp/hover').handler({ uri: otherUri, position: { line: 0, character: 0 } }, { token })
+    expect(first.isError).toBe(true)
+    expect(lspQueryCache.size).toBe(0)
+    let second = await tool('lsp/hover').handler({ uri: otherUri, position: { line: 0, character: 0 } }, { token })
+    expect(second.isError).toBe(true)
+    expect(lspQueryCache.size).toBe(0)
+  })
+
+  it('fails fast when a language server has stuck requests', async () => {
+    let limit = workspace.getConfiguration('mcp').get<number>('maxConcurrentRequests', 4)
+    if (limit <= 0) return
+    lspQueryCache.clear()
+    let limiter = getServiceLimiter('test', limit)
+    let releases: (() => void)[] = []
+    let tasks: Promise<unknown>[] = []
+    try {
+      for (let i = 0; i < limit; i++) {
+        let token = new CancellationTokenSource()
+        let release!: () => void
+        let gate = new Promise<void>(resolve => { release = resolve })
+        let start!: () => void
+        let started = new Promise<void>(resolve => { start = resolve })
+        releases.push(release)
+        tasks.push(limiter.run(async () => {
+          start()
+          await gate
+        }, token.token))
+        await started
+        token.cancel()
+      }
+      expect(limiter.stuckCount).toBe(limit)
+      let result = await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
+      expect(result.isError).toBe(true)
+      expect(result.content[0].text).toContain('stuck requests')
+    } finally {
+      for (let release of releases) release()
+      await Promise.allSettled(tasks)
+      expect(limiter.stuckCount).toBe(0)
+    }
   })
 
   describe('result limits', () => {

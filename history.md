@@ -2,6 +2,19 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-05
+
+- MCP: cache idempotent LSP queries (`lsp/hover`, `lsp/definition`,
+  `lsp/references` and the other read-only batch queries) keyed by document
+  uri, position, method and document version with a short TTL, and invalidate
+  the cache when the document changes, cutting latency for repeated agent
+  queries on the same symbol.
+- MCP: LSP queries abandoned by a tool timeout or `notifications/cancelled`
+  are dropped from the per-server request queue, and requests the language
+  server never answered are tracked as stuck; when all request slots are
+  stuck, new queries to that server fail fast with a restart hint instead of
+  queueing behind the dead requests forever.
+
 ## 2026-08-04
 
 - Add configuration `suggest.pumAlign` to align the popup menu with a field
