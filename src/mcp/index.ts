@@ -34,7 +34,6 @@ export interface McpConfig {
   maxRequestsPerSecond: number
   authClientPublicKey: string
   readTimeout: number
-  logLevel: string
   allowedTools: string[]
 }
 
@@ -234,7 +233,6 @@ class McpService implements Disposable {
       maxRequestsPerSecond: config.get<number>('maxRequestsPerSecond', 60),
       authClientPublicKey: config.get<string>('authClientPublicKey', ''),
       readTimeout: config.get<number>('readTimeout', 15000),
-      logLevel: config.get<string>('logLevel', 'info'),
       // Only tools listed in mcp.allowedTools are exposed to agents
       // (default: none). Built-in tools:
       // document/read, document/read_lines, document/apply_edits,

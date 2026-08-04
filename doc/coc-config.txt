@@ -814,13 +814,6 @@ the `coc-mcp` stdio bridge.
 
 	Default: `4`
 
-"mcp.logLevel"				*coc-config-mcp-logLevel*
-
-	Log level of the MCP server: `"debug"`, `"info"`, `"warn"` or
-	`"error"`.
-
-	Default: `"info"`
-
 "mcp.languageServiceMap"		*coc-config-mcp-languageServiceMap*
 
 	Map of `languageId` to language server id. When a document's
