@@ -1722,3 +1722,48 @@ describe('document', () => {
     expect(elapsed).toBeLessThan(10000)
   })
 })
+
+describe('vim highlight generation', () => {
+  async function createBufferedDoc(lines: number): Promise<[number, any]> {
+    let doc = await helper.createDocument()
+    let buf = doc.buffer
+    await buf.setLines(Array.from({ length: lines }, (_, i) => `line-${i}`))
+    await doc.patchChange()
+    return [doc.bufnr, doc]
+  }
+
+  it('does not write back stale highlight batches after a clear', async () => {
+    let [bufnr, doc] = await createBufferedDoc(20)
+    let key = `generation-${Date.now()}`
+    let highlights: any[] = []
+    for (let i = 0; i < 1500; i++) {
+      highlights.push(['Error', i % 10, 0, 1])
+    }
+    await nvim.call('coc#highlight#buffer_update', [bufnr, key, highlights, 10])
+    // clear the namespace while the old batch timer is still pending
+    await nvim.call('coc#highlight#buffer_update', [bufnr, key, [], 10])
+    await helper.wait(300)
+    let props = await nvim.call('coc#vim9#Get_highlights', [bufnr, key, 0, -1]) as any[]
+    expect(props.length).toBe(0)
+    await nvim.command(`bwipeout! ${bufnr}`)
+  })
+
+  it('keeps only the newest highlight generation', async () => {
+    let [bufnr, doc] = await createBufferedDoc(20)
+    let key = `generation-new-${Date.now()}`
+    let oldHighlights: any[] = []
+    for (let i = 0; i < 1500; i++) {
+      oldHighlights.push(['Warning', i % 10, 0, 1])
+    }
+    await nvim.call('coc#highlight#buffer_update', [bufnr, key, oldHighlights, 10])
+    let newHighlights = [['Error', 0, 0, 1], ['Error', 1, 0, 1]]
+    await nvim.call('coc#highlight#buffer_update', [bufnr, key, newHighlights, 10])
+    await helper.wait(300)
+    let props = await nvim.call('coc#vim9#Get_highlights', [bufnr, key, 0, -1]) as any[]
+    expect(props.length).toBe(2)
+    for (let p of props) {
+      expect(p[0]).toBe('Error')
+    }
+    await nvim.command(`bwipeout! ${bufnr}`)
+  })
+})
