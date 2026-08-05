@@ -125,8 +125,7 @@ function! coc#client#check_version() abort
   endif
 endfunction
 
-function! s:on_exit(name, code) abort
-  if get(g:, 'coc_vim_leaving', 0) | return | endif
+function! s:on_detach(name, code) abort
   let client = get(s:clients, a:name, v:null)
   if empty(client) | return | endif
   if client['running'] != 1 | return | endif
@@ -145,9 +144,21 @@ function! s:on_exit(name, code) abort
     call call(Callback, ['client '.a:name.' exited before response', v:null])
   endfor
   let client['async_callbacks'] = {}
+endfunction
+
+function! s:on_exit(name, code) abort
+  if get(g:, 'coc_vim_leaving', 0) | return | endif
+  call s:on_detach(a:name, a:code)
   if a:code != 0 && a:code != 143 && a:code != -1
     echohl Error | echom 'client '.a:name. ' abnormal exit with: '.a:code | echohl None
   endif
+endfunction
+
+" Shared detach path: local job exit, remote socket close and explicit
+" close_connection() all complete pending async callbacks exactly once and
+" reset the request id so a reconnect can safely reuse ids.
+function! coc#client#on_detach(name, code) abort
+  call s:on_detach(a:name, a:code)
 endfunction
 
 function! coc#client#get_client(name) abort

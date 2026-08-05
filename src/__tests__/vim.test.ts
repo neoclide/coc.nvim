@@ -554,6 +554,32 @@ describe('client API', () => {
     await helper.waitValue(async () => await nvim.call('coc#task#running', [id]), false)
   })
 
+  it('rejects pending async callbacks once when the connection detaches', async () => {
+    let code = [
+      "call coc#client#create('fake', [])",
+      'let g:coc_detach_err = ""',
+      'let g:coc_detach_count = 0',
+      "let c = coc#client#get_client('fake')",
+      "let c['running'] = 1",
+      "let c['async_req_id'] = 5",
+      "let c['async_callbacks'] = {5: {err, resp -> execute(\"let g:coc_detach_err = err\")}}",
+      "let c['async_callbacks'][7] = {err, resp -> execute(\"let g:coc_detach_count += 1\")}",
+      "call coc#client#on_detach('fake', 0)",
+      "call coc#client#on_detach('fake', 0)",
+      "let g:coc_detach_map_empty = empty(c['async_callbacks'])",
+      "let g:coc_detach_id = c['async_req_id']",
+      "let g:coc_detach_running = c['running']"
+    ].join('\n')
+    await nvim.exec(code)
+    expect(await nvim.getVar('coc_detach_err')).toContain('exited before response')
+    // callbacks completed exactly once even though detach ran twice
+    expect(await nvim.getVar('coc_detach_count')).toBe(1)
+    expect(await nvim.getVar('coc_detach_map_empty')).toBe(1)
+    // request ids reset so a reconnect can safely reuse id 1
+    expect(await nvim.getVar('coc_detach_id')).toBe(1)
+    expect(await nvim.getVar('coc_detach_running')).toBe(0)
+  })
+
   it('should set current dir', async () => {
     let dir = path.join(fs.realpathSync(os.tmpdir()), crypto.randomUUID())
     fs.mkdirSync(dir, { recursive: true })

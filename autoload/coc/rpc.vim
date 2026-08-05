@@ -172,9 +172,7 @@ function! coc#rpc#close_connection() abort
   else
     call chanclose(channel)
   endif
-  let s:client['running'] = 0
-  let s:client['channel'] = v:null
-  let s:client['chan_id'] = 0
+  call coc#client#on_detach('coc', 0)
 endfunction
 
 function! coc#rpc#request(method, args) abort
@@ -229,9 +227,5 @@ function! s:on_channel_close() abort
   if get(g:, 'coc_node_env', '') !=# 'test'
     echohl Error | echom '[coc.nvim] channel closed' | echohl None
   endif
-  if !empty(s:client)
-    let s:client['running'] = 0
-    let s:client['channel'] = v:null
-    let s:client['async_req_id'] = 1
-  endif
+  call coc#client#on_detach('coc', 0)
 endfunction
