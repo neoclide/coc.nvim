@@ -60,4 +60,29 @@ describe('mcp framing', () => {
     expect(errors.length).toBe(1)
     expect(frames).toEqual([])
   })
+
+  it('preserves multibyte characters split at every byte boundary', () => {
+    let msg = { jsonrpc: '2.0', id: 7, method: 'tools/call', params: { text: '你好，世界 😀' } }
+    let buf = encodeMessage(msg)
+    for (let split = 0; split < buf.length; split++) {
+      let frames: any[] = []
+      let errors: any[] = []
+      let splitter = new FrameSplitter(1024, m => frames.push(m), err => errors.push(err))
+      splitter.push(buf.subarray(0, split))
+      splitter.push(buf.subarray(split))
+      expect(errors, `split at ${split}`).toEqual([])
+      expect(frames, `split at ${split}`).toEqual([msg])
+    }
+  })
+
+  it('counts frame size in bytes, not characters', () => {
+    let frames: any[] = []
+    let errors: any[] = []
+    // 8 multibyte chars: 8 code units but 24 bytes, above the 16-byte limit
+    let splitter = new FrameSplitter(16, m => frames.push(m), err => errors.push(err))
+    splitter.push(encodeMessage({ value: '你'.repeat(8) }))
+    expect(frames).toEqual([])
+    expect(errors.length).toBe(1)
+    expect(errors[0].message).toContain('exceeds')
+  })
 })

@@ -13,7 +13,7 @@ export interface FrameError {
 }
 
 export class FrameSplitter {
-  private buffer = ''
+  private buffer: Buffer = Buffer.alloc(0)
   private disposed = false
 
   constructor(
@@ -25,36 +25,43 @@ export class FrameSplitter {
 
   public push(chunk: Buffer | string): void {
     if (this.disposed) return
-    this.buffer += typeof chunk === 'string' ? chunk : chunk.toString('utf8')
-    // Guard against unbounded buffering when no newline arrives.
-    if (this.buffer.length > this.maxBytes && this.buffer.indexOf('\n') === -1) {
-      this.onError({ message: `Frame exceeds ${this.maxBytes} bytes` })
-      this.buffer = ''
-      return
-    }
+    let buf = typeof chunk === 'string' ? Buffer.from(chunk, 'utf8') : chunk
+    if (buf.length === 0) return
+    this.buffer = this.buffer.length === 0 ? buf : Buffer.concat([this.buffer, buf])
     let index: number
-    while ((index = this.buffer.indexOf('\n')) !== -1) {
-      let line = this.buffer.slice(0, index)
-      this.buffer = this.buffer.slice(index + 1)
+    while ((index = this.buffer.indexOf(10)) !== -1) {
+      let line = this.buffer.subarray(0, index)
+      this.buffer = this.buffer.subarray(index + 1)
       if (line.length === 0) continue
+      // The limit counts UTF-8 bytes, not UTF-16 code units.
       if (line.length > this.maxBytes) {
         this.onError({ message: `Frame exceeds ${this.maxBytes} bytes` })
         continue
       }
-      let msg: any
-      try {
-        msg = JSON.parse(line)
-      } catch (e) {
-        this.onError({ message: e instanceof Error ? e.message : String(e), raw: line })
-        continue
-      }
-      this.onFrame(msg)
+      this.processLine(line)
     }
+    // Guard against unbounded buffering when no complete frame arrives.
+    if (this.buffer.length > this.maxBytes) {
+      this.onError({ message: `Frame exceeds ${this.maxBytes} bytes` })
+      this.buffer = Buffer.alloc(0)
+    }
+  }
+
+  private processLine(line: Buffer): void {
+    let text = line.toString('utf8')
+    let msg: any
+    try {
+      msg = JSON.parse(text)
+    } catch (e) {
+      this.onError({ message: e instanceof Error ? e.message : String(e), raw: text })
+      return
+    }
+    this.onFrame(msg)
   }
 
   public dispose(): void {
     this.disposed = true
-    this.buffer = ''
+    this.buffer = Buffer.alloc(0)
   }
 }
 
