@@ -2,6 +2,53 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-05
+
+- MCP: the `coc-mcp` bridge connects to the first coc.nvim instance whose
+  workspace contains the bridge working directory and exits when no
+  matching instance is found. `--match-first` connects to the first
+  available instance regardless of the working directory.
+- MCP: the `coc-mcp` bridge fails immediately with a "coc.nvim MCP service
+  not found" error when no usable connection exists at startup. Start
+  vim/nvim with `"mcp.autoStart": true` before launching Codex.
+- MCP: the socket server keeps running across `:CocRestart` — its started
+  state is kept in a vim variable and restored on startup, the
+  per-instance discovery file is keyed by the vim pid, and the `coc-mcp`
+  bridge reconnects to the new endpoint/token when the file is rewritten.
+- MCP: `mcp.autoStart` controls whether the socket server starts
+  automatically with coc.nvim (default off); `:CocCommand mcp.start`
+  starts it on demand for the current session regardless of the setting.
+- MCP: the `coc-mcp` bridge reads the private key from
+  `COC_MCP_AUTH_KEY_FILE` (path to a PEM file).
+- MCP: new `editor/state` tool returns a snapshot of the active editor —
+  workspace root, active document (uri, language, version), cursor,
+  visual selection, visible line range, surrounding lines, innermost
+  document symbol under the cursor and current diagnostics.
+- MCP: cache idempotent LSP queries (`lsp/hover`, `lsp/definition`,
+  `lsp/references` and the other read-only batch queries) keyed by document
+  uri, position, method and document version with a short TTL, and invalidate
+  the cache when the document changes, cutting latency for repeated agent
+  queries on the same symbol.
+- MCP: LSP queries abandoned by a tool timeout or `notifications/cancelled`
+  are dropped from the per-server request queue, and requests the language
+  server never answered are tracked as stuck; once all request slots are
+  stuck, new queries to that server fail fast with a restart hint. The
+  same bound applies with `mcp.maxConcurrentRequests: 0` (unlimited
+  concurrency, 16 stuck requests per server).
+- MCP: `workspace/apply_edit` saves all modified buffers with `:wa` after
+  applying, so edits are on disk for subsequent tools; the result reports
+  `saved` and a `saveError` when the save fails.
+- MCP: new `mcp.allowedTools` whitelist controls which tools are exposed to
+  agents — `tools/list` only returns whitelisted names and `tools/call`
+  rejects the rest. Default is empty (no tools exposed) so tool access is
+  opt-in; the configuration documents the full built-in tool list.
+- MCP: the `mcp.logLevel` configuration is not supported.
+- MCP: protocol version negotiation supports `2024-11-05` in addition to
+  `2025-06-18` and `2025-11-25`: sessions on `2024-11-05` get
+  `tools/list` entries limited to `name`/`description`/`inputSchema` and
+  `tools/call` results without `structuredContent`, matching the
+  `2024-11-05` schema.
+
 ## 2026-08-04
 
 - Add configuration `suggest.pumAlign` to align the popup menu with a field
@@ -25,6 +72,40 @@ Notable changes of coc.nvim:
   `completionList.applyKindSupport` and `data` in `itemDefaults`, and honors
   `applyKind` merge/replace rules for `commitCharacters` (union) and `data`
   (shallow merge, falling back to the default value when the item has none).
+- Add a built-in MCP (Model Context Protocol) server so agents like Codex can
+  interact with the running editor through tools, notifications and resources:
+    - `:CocCommand mcp.start` starts a loopback socket server (TCP or Unix)
+      tools to read editor buffers (including unsaved changes), search the
+      workspace, apply workspace edits, and query the language servers;
+      `bin/coc-mcp.js` (command `coc-mcp`) is a stdio bridge for Codex.
+    - New public API `mcp.registerTool()` lets extensions register custom
+      MCP tools.
+    - New configuration section `mcp.*` (`enabled`, `host`, `port`,
+      `transport`, `authRequired`, `authClientPublicKey`, `allowedPaths`,
+      `deniedPaths`, `maxClients`, `frameMaxBytes`, `timeout`,
+      `readTimeout`, `idleTimeout`, `maxRequestsPerSecond`,
+      `maxConcurrentRequests`, `languageServiceMap`) and
+      commands `:CocCommand mcp.start`, `mcp.stop` and `mcp.status`.
+    - Protocol: MCP `2025-06-18` with `2025-11-25` version negotiation,
+      `coc/*` notifications (document saved/changed, diagnostics, workspace
+      folders, editor state, service state) via `coc/subscribe`, and
+      `coc://` resources. Interface specification and roadmap live in
+      the MCP design document, usage guide in `doc/coc-mcp.txt`.
+    - `:CocInfo` includes an `## MCP server` section (transport, address,
+      pid, cwd and connected clients with pid and connect/last-activity
+      time); the MCP service closes its discovery/socket files on
+      SIGTERM/SIGINT and on Vim 8 `VimLeavePre`, and clients (the stdio
+      bridge) exit cleanly when the service shuts down.
+    - MCP discovery is unified under `~/.coc/mcp` : every coc.nvim instance
+      writes `coc-<pid>.json` (and its unix socket) there, stale files are
+      cleaned by the stdio bridge on every scan, and the bridge reads the
+      same directory without any environment variable (`COC_MCP_DIR` is an
+      optional override).
+    - LSP list tools cap their results via an optional `maxResults` argument
+      (defaults: 200 for location tools, 500 for symbol tools, 100 for
+      diagnostics and code actions; hard maximum 1000). Truncated responses
+      add `returned` and `truncated` to the structured output next to the
+      total `count`, and location tools truncate before enriching `lineText`.
 
 ## 2026-08-03
 

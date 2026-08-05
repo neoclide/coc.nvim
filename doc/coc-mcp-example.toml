@@ -1,0 +1,28 @@
+# Example `~/.codex/config.toml` section for the coc.nvim MCP server.
+#
+# 1. Enable the server in coc-settings.json:
+#      { "mcp": { "autoStart": true } }
+#    (or start it manually per session with :CocCommand mcp.start)
+# 2. Copy the [mcp_servers.coc] section below into ~/.codex/config.toml
+#    and adjust the paths.
+# 3. Run `codex mcp list` to verify, then start a Codex session.
+# List all available MCP tools in vim with: :CocCommand mcp.status
+
+[mcp_servers.coc]
+command = "node"
+args = ["/path/to/coc.nvim/bin/coc-mcp.js"]
+enabled = true
+startup_timeout_sec = 15
+tool_timeout_sec = 60
+
+# Optional: with several vim instances, connect to the first available one.
+# By default the bridge matches the instance whose workspace contains the
+# agent working directory and exits when no instance matches:
+# args = ["/path/to/coc.nvim/bin/coc-mcp.js", "--match-first"]
+
+# coc.nvim writes its per-instance discovery
+# files to ~/.coc/mcp/coc-<pid>.json and the bridge reads them from there.
+# COC_MCP_DIR optionally overrides that directory (tests, remote mounts).
+
+# Optional: whitelist only the tools Codex may call.
+# enabled_tools = ["document/read", "document/apply_edits", "workspace/search", "lsp/references"]

@@ -8,6 +8,7 @@ Extension package json 				|coc-api-json|
 Single file extensions 				|coc-api-single|
 Create custom Extensions 			|coc-api-extension|
 Lua API 					|coc-api-lua|
+MCP API 					|coc-api-mcp|
 Debug extensions 				|coc-api-debug|
 
 ==============================================================================
@@ -406,7 +407,49 @@ timeout or cancellation, so the editor may freeze for the duration of the
 request. Prefer calling these functions from a separate coroutine, or avoid
 them in performance-sensitive paths.
 
+-------------------------------------------------------------------------------
+MCP API 					*coc-api-mcp*
+
+coc.nvim exposes an MCP (Model Context Protocol) server integration through
+the `mcp` export. Extensions can register custom tools that become available
+to connected MCP clients (e.g. Codex) through `mcp.registerTool()`.
+
+	mcp.registerTool(tool) ~
+
+Register a custom MCP tool. `tool` has the following shape:
+
+	{
+	  name: string
+	  title?: string
+	  description: string
+	  inputSchema: Record<string, any>
+	  outputSchema?: Record<string, any>
+	  annotations?: {
+	    readOnlyHint?: boolean
+	    destructiveHint?: boolean
+	    idempotentHint?: boolean
+	    openWorldHint?: boolean
+	  }
+	  handler(args, context): ToolResult | Promise<ToolResult>
+	}
+
+`handler` receives the tool arguments and a context with a cancellation
+token; return `{ content: [{ type: 'text', text }], structuredContent?, isError? }`.
+Mark mutating tools with `annotations.destructiveHint: true` so clients prompt
+for confirmation. The returned Disposable unregisters the tool. Tools survive
+server restarts until disposed. A tool is only exposed to MCP clients when
+its name is listed in the `mcp.allowedTools` whitelist (|coc-config-mcp-allowedTools|).
+
+	mcp.running ~
+	mcp.status() ~
+	mcp.start() ~
+	mcp.stop() ~
+
+Inspect and control the built-in MCP server; see |coc-mcp| for user-facing
+configuration and `doc/coc-mcp.txt` for the protocol guide.
+
 ------------------------------------------------------------------------------
+
 DEBUG EXTENSIONS 				*coc-api-debug*
 
 						*coc-api-channel*
