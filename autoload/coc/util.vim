@@ -164,9 +164,14 @@ function! coc#util#jump(cmd, filepath, ...) abort
         let &buflisted = 1
       else
         let saved = &wildignore
-        set wildignore=
-        execute 'drop '.fnameescape(file)
-        execute 'set wildignore='.saved
+        try
+          set wildignore=
+          execute 'drop '.fnameescape(file)
+        finally
+          " Assign directly: 'set wildignore=' would re-parse the value and
+          " break on spaces or backslashes.
+          let &wildignore = saved
+        endtry
       endif
     endif
   elseif a:cmd ==# 'edit' && bufloaded(file)
@@ -222,30 +227,33 @@ function! s:safer_open(cmd, file) abort
         endif
       endif
       let saved = &wildignore
-      set wildignore=
-      let l:old_page_idx = tabpagenr()
-      let l:old_page_cnt = tabpagenr('$')
-      execute 'noautocmd '.a:cmd.' '.fnameescape(a:file)
-      if tabpagenr('$') > l:old_page_cnt
-        doautocmd TabNew
-        doautocmd BufNew
-        doautocmd BufAdd
-      endif
-      let l:new_page_idx = tabpagenr()
-      if l:new_page_idx != l:old_page_idx
-        exec 'noautocmd tabnext '.l:old_page_idx
-        doautocmd TabLeave
-        doautocmd BufLeave
-        exec 'noautocmd tabnext '.l:new_page_idx
-      endif
-      doautocmd TabEnter
-      doautocmd BufReadPre
-      doautocmd BufReadPost
-      doautocmd BufEnter
-      if l:new_page_idx != l:old_page_idx
-        doautocmd BufWinEnter
-      endif
-      execute 'set wildignore='.saved
+      try
+        set wildignore=
+        let l:old_page_idx = tabpagenr()
+        let l:old_page_cnt = tabpagenr('$')
+        execute 'noautocmd '.a:cmd.' '.fnameescape(a:file)
+        if tabpagenr('$') > l:old_page_cnt
+          doautocmd TabNew
+          doautocmd BufNew
+          doautocmd BufAdd
+        endif
+        let l:new_page_idx = tabpagenr()
+        if l:new_page_idx != l:old_page_idx
+          exec 'noautocmd tabnext '.l:old_page_idx
+          doautocmd TabLeave
+          doautocmd BufLeave
+          exec 'noautocmd tabnext '.l:new_page_idx
+        endif
+        doautocmd TabEnter
+        doautocmd BufReadPre
+        doautocmd BufReadPost
+        doautocmd BufEnter
+        if l:new_page_idx != l:old_page_idx
+          doautocmd BufWinEnter
+        endif
+      finally
+        let &wildignore = saved
+      endtry
     else
       execute a:cmd.' '.fnameescape(a:file)
     endif

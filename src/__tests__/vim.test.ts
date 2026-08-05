@@ -666,6 +666,58 @@ describe('client API', () => {
     await nvim.command('silent! %bwipeout!')
   })
 
+  it('restores wildignore exactly after drop jumps', async () => {
+    let value = 'foo bar,baz\\qux'
+    await nvim.setOption('wildignore', value)
+    let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-wild-'))
+    let file = path.join(dir, 'a.txt')
+    let file2 = path.join(dir, 'b.txt')
+    fs.writeFileSync(file, 'a\n')
+    fs.writeFileSync(file2, 'b\n')
+    try {
+      // make the target visible in another window so jump uses :drop
+      await nvim.command(`vsplit ${file}`)
+      await nvim.command('wincmd p')
+      await nvim.call('coc#util#jump', ['drop', file])
+      expect(await nvim.getOption('wildignore')).toBe(value)
+      await nvim.call('coc#util#jump', ['tab drop', file2])
+      expect(await nvim.getOption('wildignore')).toBe(value)
+    } finally {
+      await nvim.setOption('wildignore', '')
+      await nvim.command('silent! tabonly!')
+      await nvim.command('silent! %bwipeout!')
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('restores wildignore when opening throws', async () => {
+    let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-wild-'))
+    let file = path.join(dir, 'c.txt')
+    fs.writeFileSync(file, 'c\n')
+    let value = 'foo bar'
+    await nvim.setOption('wildignore', value)
+    await nvim.exec(`autocmd BufReadPre ${file} throw 'boom'`)
+    let tabs = await nvim.call('tabpagenr', ['$'])
+    try {
+      let err: Error | undefined
+      try {
+        await nvim.call('coc#util#jump', ['tab drop', file])
+      } catch (e) {
+        err = e as Error
+      }
+      expect(err).toBeTruthy()
+      expect(await nvim.getOption('wildignore')).toBe(value)
+    } finally {
+      await nvim.exec(`autocmd! BufReadPre ${file}`)
+      await nvim.setOption('wildignore', '')
+      while (await nvim.call('tabpagenr', ['$']) > tabs) {
+        await nvim.command('silent! tabclose!')
+      }
+      await nvim.command('silent! %bwipeout!')
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
   it('should execute vim script', async () => {
     let output = await nvim.exec(`echo 'foo'\necho 'bar'`, true)
     expect(output).toBe('foo\nbar')
