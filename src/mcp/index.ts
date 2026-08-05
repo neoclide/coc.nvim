@@ -40,6 +40,8 @@ export interface McpConfig {
 
 class McpService implements Disposable {
   private server: McpServer | undefined
+  private startPromise: Promise<void> | undefined
+  private generation = 0
   private notifications: NotificationManager | undefined
   private token = ''
   private registry: ToolRegistry | undefined
@@ -96,14 +98,30 @@ class McpService implements Disposable {
   /**
    * Start the MCP socket server. No-op when mcp.autoStart is false, unless
    * force is true (`:CocCommand mcp.start` starts the server regardless).
+   * Concurrent calls share a single start flow; a stop() while starting
+   * invalidates the pending start so its server and discovery artifacts are
+   * never published.
    */
-  public async start(force = false): Promise<void> {
-    if (this.server) return
+  public start(force = false): Promise<void> {
+    if (this.server) return Promise.resolve()
+    if (this.startPromise) return this.startPromise
+    let promise = this.doStart(force)
+    this.startPromise = promise
+    void promise.then(() => {
+      if (this.startPromise === promise) this.startPromise = undefined
+    }, () => {
+      if (this.startPromise === promise) this.startPromise = undefined
+    })
+    return promise
+  }
+
+  private async doStart(force: boolean): Promise<void> {
     let config = this.getConfig()
     if (!force && !config.autoStart) {
       logger.info('MCP server disabled by configuration')
       return
     }
+    let generation = this.generation
     // The instance file is keyed by the vim pid so the bridge can detect a
     // coc.nvim restart (same vim, new node process) from the file change.
     let pid = process.pid
@@ -143,6 +161,12 @@ class McpService implements Disposable {
     }, registry, new ResourceManager())
     try {
       let address = await server.listen()
+      // A stop() (or any newer lifecycle generation) invalidates this start:
+      // the server must be disposed and nothing may be published.
+      if (generation !== this.generation) {
+        server.dispose()
+        return
+      }
       this.server = server
       this.notifications = new NotificationManager(server)
       // Vim 8 kills the node process with SIGKILL right after VimLeavePre,
@@ -211,9 +235,12 @@ class McpService implements Disposable {
    * Stop the MCP socket server and remove the discovery file.
    */
   public stop(): void {
-    if (!this.server) return
-    this.server.dispose()
+    // Invalidate every in-flight start so its server is disposed before any
+    // discovery file, token or vim state is published.
+    this.generation++
+    let server = this.server
     this.server = undefined
+    if (server) server.dispose()
     if (this.notifications) {
       this.notifications.dispose()
       this.notifications = undefined

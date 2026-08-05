@@ -6,6 +6,7 @@ import events from '../../events'
 import { gracefulExit, setExitHook } from '../../exit'
 import { getInstanceFilePath, readDiscoveryFile } from '../../mcp/auth'
 import mcp from '../../mcp'
+import { McpServer } from '../../mcp/server'
 import workspace from '../../workspace'
 
 describe('mcp service', () => {
@@ -69,6 +70,47 @@ describe('mcp service', () => {
     await mcp.start(true)
     expect(mcp.running).toBe(true)
     expect(fs.existsSync(getInstanceFilePath(process.pid))).toBe(true)
+  })
+
+  it('serializes concurrent starts into a single server', async () => {
+    let releaseListen: () => void = () => {}
+    let listenSpy = vi.spyOn(McpServer.prototype, 'listen').mockImplementation(() => new Promise(resolve => {
+      releaseListen = () => resolve({ host: '127.0.0.1', port: 0, socketPath: '' } as any)
+    }))
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.allowedTools': [] })
+    try {
+      let first = mcp.start()
+      let second = mcp.start()
+      expect(listenSpy).toHaveBeenCalledTimes(1)
+      releaseListen()
+      await Promise.all([first, second])
+      expect(mcp.running).toBe(true)
+    } finally {
+      listenSpy.mockRestore()
+      mcp.stop()
+    }
+  })
+
+  it('stop during start disposes the pending server and publishes nothing', async () => {
+    let releaseListen: () => void = () => {}
+    let listenSpy = vi.spyOn(McpServer.prototype, 'listen').mockImplementation(() => new Promise(resolve => {
+      releaseListen = () => resolve({ host: '127.0.0.1', port: 0, socketPath: '' } as any)
+    }))
+    let disposeSpy = vi.spyOn(McpServer.prototype, 'dispose')
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.allowedTools': [] })
+    try {
+      let pending = mcp.start()
+      mcp.stop()
+      releaseListen()
+      await pending
+      expect(mcp.running).toBe(false)
+      expect(disposeSpy).toHaveBeenCalled()
+      expect(fs.existsSync(getInstanceFilePath(process.pid))).toBe(false)
+    } finally {
+      listenSpy.mockRestore()
+      disposeSpy.mockRestore()
+      mcp.stop()
+    }
   })
 
   it('formats human-readable status lines', async () => {
