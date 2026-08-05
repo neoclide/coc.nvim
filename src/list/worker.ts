@@ -66,10 +66,27 @@ export default class Worker {
     let { list, listOptions } = this
     this.loading = true
     let { interactive } = listOptions
-    this.tokenSource = new CancellationTokenSource()
-    let token = this.tokenSource.token
-    let items = await list.loadItems(context, token)
-    if (token.isCancellationRequested) return
+    let source = this.tokenSource = new CancellationTokenSource()
+    let token = source.token
+    let items: ListItem[] | ListTask | null | undefined
+    try {
+      items = await list.loadItems(context, token)
+    } catch (e) {
+      // Only the current request may reset the state: a newer request may
+      // already own tokenSource/loading.
+      if (this.tokenSource === source) {
+        this.tokenSource = null
+        this.loading = false
+      }
+      throw e
+    }
+    if (token.isCancellationRequested) {
+      if (this.tokenSource === source) {
+        this.tokenSource = null
+        this.loading = false
+      }
+      return
+    }
     items = items ?? []
     if (Array.isArray(items)) {
       this.tokenSource = null

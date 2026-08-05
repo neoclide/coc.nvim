@@ -1,9 +1,12 @@
 'use strict'
 import type { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import Highlighter from '../model/highlighter'
+import { createLogger } from '../logger'
 import { defaultValue, disposeAll, getConditionValue, wait } from '../util'
+import { isCancellationError } from '../util/errors'
 import { debounce } from '../util/node'
 import { Disposable } from '../util/protocol'
+import { toErrorText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
 import listConfiguration from './configuration'
@@ -13,6 +16,7 @@ import Prompt from './prompt'
 import { IList, ListAction, ListContext, ListItem, ListMode, ListOptions, Matcher } from './types'
 import UI from './ui'
 import Worker from './worker'
+const logger = createLogger('list-session')
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const debounceTime = getConditionValue(50, 1)
 
@@ -534,8 +538,12 @@ export default class ListSession {
     // reload or filter items
     if (this.listOptions.interactive) {
       this.worker.stop()
-      this.timer = setTimeout(async () => {
-        await this.worker.loadItems(this.context)
+      this.timer = setTimeout(() => {
+        void this.worker.loadItems(this.context).catch(e => {
+          if (isCancellationError(e)) return
+          void window.showErrorMessage(`Error on reload "${this.list.name}": ${toErrorText(e)}`)
+          logger.error(`Error on reload ${this.list.name} list:`, e)
+        })
       }, listConfiguration.debounceTime)
     } else {
       void this.worker.drawItems()

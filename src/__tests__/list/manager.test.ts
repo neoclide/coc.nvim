@@ -435,6 +435,51 @@ describe('list', () => {
       await helper.listInput('x')
       expect(manager.isActivated).toBe(true)
     })
+
+    it('reports interactive reload errors and keeps the worker usable', async () => {
+      let calls = 0
+      let list: IList = {
+        name: 'interactiveError',
+        interactive: true,
+        actions: [],
+        defaultAction: 'open',
+        loadItems: () => {
+          calls++
+          if (calls === 1) return Promise.resolve([{ label: 'foo' }])
+          return Promise.reject(new Error('reload boom'))
+        }
+      }
+      let disposable = manager.registerList(list, true)
+      let unhandled: Error[] = []
+      let onUnhandled = (e: Error): void => {
+        unhandled.push(e)
+      }
+      process.on('unhandledRejection', onUnhandled)
+      let showError = vi.spyOn(window, 'showErrorMessage').mockImplementation(() => Promise.resolve(undefined as any))
+      try {
+        await manager.start(['--interactive', 'interactiveError'])
+        await manager.session.ui.ready
+        expect(manager.session.worker.isLoading).toBe(false)
+        manager.prompt.input = 'x'
+        manager.session.onInputChange()
+        await helper.waitValue(() => calls, 2)
+        await helper.waitValue(() => manager.session.worker.isLoading, false)
+        expect(showError).toHaveBeenCalled()
+        expect(String(showError.mock.calls[0][0])).toContain('reload boom')
+        // a later input change still triggers a fresh reload
+        manager.prompt.input = 'y'
+        manager.session.onInputChange()
+        await helper.waitValue(() => calls, 3)
+        await helper.waitValue(() => manager.session.worker.isLoading, false)
+        expect(manager.session.worker.isLoading).toBe(false)
+      } finally {
+        process.off('unhandledRejection', onUnhandled)
+        showError.mockRestore()
+        disposable.dispose()
+        await manager.cancel(true)
+      }
+      expect(unhandled).toEqual([])
+    })
   })
 
   describe('parseArgs()', () => {
