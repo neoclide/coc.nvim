@@ -1,4 +1,5 @@
 import bser from 'bser'
+import fs from 'fs'
 import net from 'net'
 import os from 'os'
 import path from 'path'
@@ -444,6 +445,68 @@ describe('create FileSystemWatcherManager', () => {
       expect(results).toEqual([false, false])
     } finally {
       process.env.WATCHMAN_SOCK = sockPath
+    }
+  })
+
+  it('disposes a client whose creation completes after the folder was removed', async () => {
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-race-'))
+    let folderControl = new WorkspaceFolderController(configurations)
+    folderControl.addWorkspaceFolder(root, false)
+    let watcherManager = new FileSystemWatcherManager(folderControl, { ...defaultConfig, enable: true, ignoredFolders: [] })
+    watcherManager.disabled = false
+    let resolveClient: (c: any) => void = () => {}
+    let createSpy = vi.spyOn(Watchman, 'createClient').mockImplementation(() => new Promise(resolve => {
+      resolveClient = resolve
+    }))
+    let fakeClient = { dispose: vi.fn() }
+    let created = 0
+    watcherManager.onDidCreateClient(() => created++)
+    try {
+      watcherManager.attach(helper.createNullChannel())
+      let pending = watcherManager.createClient(root)
+      // Wait until the pending creation has actually reached the stubbed
+      // Watchman.createClient call before removing the folder.
+      await helper.waitValue(() => createSpy.mock.calls.length, 1)
+      folderControl.removeWorkspaceFolder(root)
+      resolveClient(fakeClient)
+      await pending
+      expect(fakeClient.dispose).toHaveBeenCalled()
+      expect((watcherManager as any).clientsMap.size).toBe(0)
+      expect(created).toBe(0)
+    } finally {
+      createSpy.mockRestore()
+      watcherManager.dispose()
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('disposes a client whose creation completes after manager dispose', async () => {
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-race-'))
+    let folderControl = new WorkspaceFolderController(configurations)
+    folderControl.addWorkspaceFolder(root, false)
+    let watcherManager = new FileSystemWatcherManager(folderControl, { ...defaultConfig, enable: true, ignoredFolders: [] })
+    watcherManager.disabled = false
+    let resolveClient: (c: any) => void = () => {}
+    let createSpy = vi.spyOn(Watchman, 'createClient').mockImplementation(() => new Promise(resolve => {
+      resolveClient = resolve
+    }))
+    let fakeClient = { dispose: vi.fn() }
+    let created = 0
+    watcherManager.onDidCreateClient(() => created++)
+    try {
+      watcherManager.attach(helper.createNullChannel())
+      let pending = watcherManager.createClient(root)
+      await helper.waitValue(() => createSpy.mock.calls.length, 1)
+      watcherManager.dispose()
+      resolveClient(fakeClient)
+      await pending
+      expect(fakeClient.dispose).toHaveBeenCalled()
+      expect((watcherManager as any).clientsMap.size).toBe(0)
+      expect(created).toBe(0)
+    } finally {
+      createSpy.mockRestore()
+      watcherManager.dispose()
+      fs.rmSync(root, { recursive: true, force: true })
     }
   })
 })

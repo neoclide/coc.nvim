@@ -23,6 +23,8 @@ export class FileSystemWatcherManager {
   private disposables: Disposable[] = []
   private channel: OutputChannel | undefined
   private creating: Map<string, Promise<Watchman | false | undefined>> = new Map()
+  private generations = new Map<string, number>()
+  private disposed = false
   public static watchers: Set<FileSystemWatcher> = new Set()
   private readonly _onDidCreateClient = new Emitter<string>()
   public disabled: boolean
@@ -49,6 +51,9 @@ export class FileSystemWatcherManager {
       })
       e.removed.forEach(folder => {
         let root = URI.parse(folder.uri).fsPath
+        // Invalidate any in-flight creation for this root so its client is
+        // disposed before it can be published or subscribed.
+        this.invalidate(root)
         let client = this.clientsMap.get(root)
         if (client) {
           this.clientsMap.delete(root)
@@ -77,17 +82,32 @@ export class FileSystemWatcherManager {
     if (this.has(root)) return this.waitClient(root)
     let pending = this.creating.get(root)
     if (pending) return pending
-    let p = this.createClientInner(root)
+    let generation = this.generationOf(root)
+    let p = this.createClientInner(root, generation)
     this.creating.set(root, p)
     return p.finally(() => {
       this.creating.delete(root)
     })
   }
 
-  private async createClientInner(root: string): Promise<Watchman | false | undefined> {
+  private generationOf(root: string): number {
+    return this.generations.get(root) ?? 0
+  }
+
+  private invalidate(root: string): void {
+    this.generations.set(root, this.generationOf(root) + 1)
+  }
+
+  private async createClientInner(root: string, generation: number): Promise<Watchman | false | undefined> {
     try {
       let watchmanPath = await this.getWatchmanPath()
       let client = await Watchman.createClient(watchmanPath, root, this.channel)
+      // The folder was removed or the manager disposed while the client was
+      // being created: the client must be closed, never published.
+      if (this.disposed || generation !== this.generationOf(root)) {
+        client.dispose()
+        return false
+      }
       this.clientsMap.set(root, client)
       for (let watcher of FileSystemWatcherManager.watchers) {
         watcher.listen(root, client)
@@ -129,6 +149,7 @@ export class FileSystemWatcherManager {
   }
 
   public dispose(): void {
+    this.disposed = true
     this._onDidCreateClient.dispose()
     for (let client of this.clientsMap.values()) {
       if (client) client.dispose()
