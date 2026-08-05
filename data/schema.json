@@ -2089,7 +2089,7 @@
     "suggest.reTriggerAfterIndent": {
       "type": "boolean",
       "description": "Re-trigger completion after indent changes.",
-      "scope": "language-overridable",
+      "scope": "application",
       "default": true
     },
     "suggest.completionItemKindLabels": {
@@ -2380,7 +2380,7 @@
     },
     "inlineSuggest.triggerCompletionWait": {
       "type": "integer",
-      "default": 0,
+      "default": 10,
       "minimum": 0,
       "maximum": 1000,
       "scope": "language-overridable",
