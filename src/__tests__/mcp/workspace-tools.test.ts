@@ -203,6 +203,54 @@ describe('mcp workspace tools', () => {
     expect(fs.existsSync(created)).toBe(true)
   })
 
+  it('workspace/apply_edit rejects rename when either side is outside allowed paths', async () => {
+    let inside = path.join(tmpdir, 'rename-inside.txt')
+    let outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-out-'))
+    let outside = path.join(outsideDir, 'rename-outside.txt')
+    fs.writeFileSync(inside, 'inside\n')
+    fs.writeFileSync(outside, 'outside\n')
+    let insideUri = URI.file(inside).toString()
+    let outsideUri = URI.file(outside).toString()
+    workspace.configurations.updateMemoryConfig({
+      'mcp.allowedPaths': [path.join(tmpdir, '**')],
+      'mcp.deniedPaths': []
+    })
+    try {
+      // target outside the allowed workspace
+      let badTarget = await tool('workspace/apply_edit').handler({
+        edit: {
+          documentChanges: [{ kind: 'rename', oldUri: insideUri, newUri: outsideUri }]
+        }
+      }, { token })
+      expect(badTarget.isError).toBe(true)
+      expect(fs.readFileSync(inside, 'utf8')).toBe('inside\n')
+      expect(fs.readFileSync(outside, 'utf8')).toBe('outside\n')
+      // source outside the allowed workspace
+      let badSource = await tool('workspace/apply_edit').handler({
+        edit: {
+          documentChanges: [{ kind: 'rename', oldUri: outsideUri, newUri: insideUri }]
+        }
+      }, { token })
+      expect(badSource.isError).toBe(true)
+      expect(fs.readFileSync(inside, 'utf8')).toBe('inside\n')
+      expect(fs.readFileSync(outside, 'utf8')).toBe('outside\n')
+      // both sides inside the workspace still works
+      let moved = path.join(tmpdir, 'rename-moved.txt')
+      let ok = await tool('workspace/apply_edit').handler({
+        edit: {
+          documentChanges: [{ kind: 'rename', oldUri: insideUri, newUri: URI.file(moved).toString() }]
+        }
+      }, { token })
+      expect(ok.isError).toBeFalsy()
+      expect(ok.structuredContent.applied).toBe(true)
+      expect(fs.existsSync(inside)).toBe(false)
+      expect(fs.existsSync(moved)).toBe(true)
+    } finally {
+      workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [], 'mcp.deniedPaths': [] })
+      fs.rmSync(outsideDir, { recursive: true, force: true })
+    }
+  })
+
   it('rejects file operations matching mcp.deniedPaths', async () => {
     workspace.configurations.updateMemoryConfig({ 'mcp.deniedPaths': [path.join(tmpdir, 'secret*')] })
     let filepath = path.join(tmpdir, 'secret.txt')

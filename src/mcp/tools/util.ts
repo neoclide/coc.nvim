@@ -92,6 +92,10 @@ export function collectEditUris(edit: any): string[] {
       if (!change) continue
       if (typeof change.textDocument?.uri === 'string') uris.push(change.textDocument.uri)
       if (typeof change.uri === 'string') uris.push(change.uri)
+      // RenameFile carries oldUri/newUri instead of uri; both sides must be
+      // authorized before the core can move anything with fs.renameSync.
+      if (typeof change.oldUri === 'string') uris.push(change.oldUri)
+      if (typeof change.newUri === 'string') uris.push(change.newUri)
     }
   }
   return uris
