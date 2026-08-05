@@ -106,7 +106,9 @@ function escapeRegExp(text: string): string {
 export async function searchWithJs(pattern: string, args: any, root: string, maxResults: number): Promise<SearchMatch[]> {
   let include = new RelativePatternImpl(URI.file(root), typeof args.include === 'string' && args.include ? args.include : '**/*')
   let uris = await workspace.findFiles(include, args.exclude || null, 500)
-  let flags = args.caseSensitive === true ? 'g' : 'gi'
+  // One (first) match per line, searched from the start of every line: the
+  // global flag would carry lastIndex across lines and skip matches.
+  let flags = args.caseSensitive === true ? '' : 'i'
   let source = args.regex === true ? pattern : escapeRegExp(pattern)
   let re: RegExp
   try {

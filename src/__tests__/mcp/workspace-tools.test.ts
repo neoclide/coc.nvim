@@ -125,6 +125,25 @@ describe('mcp workspace tools', () => {
     }
   })
 
+  it('JS search does not drop adjacent matching lines', async () => {
+    let file = path.join(tmpdir, 'adjacent.txt')
+    fs.writeFileSync(file, 'hello\nhello world\nworld\n')
+    let matches = await searchWithJs('hello', { include: 'adjacent.txt' }, tmpdir, 100)
+    let lines = matches.filter(m => m.file === file).map(m => m.line)
+    expect(lines).toEqual([0, 1])
+    let columns = matches.filter(m => m.file === file).map(m => m.column)
+    expect(columns).toEqual([0, 0])
+  })
+
+  it('JS search handles empty-match regex without hanging', async () => {
+    let file = path.join(tmpdir, 'empty-match.txt')
+    fs.writeFileSync(file, 'abc\nxyz\n')
+    let matches = await searchWithJs('x*', { regex: true, include: 'empty-match.txt' }, tmpdir, 100)
+    // 'x*' matches once at index 0 of every line (including the trailing
+    // empty line) without looping forever
+    expect(matches.filter(m => m.file === file).map(m => m.line)).toEqual([0, 1, 2])
+  })
+
   it('workspace/create_file creates a file on disk and buffer', async () => {
     let filepath = path.join(tmpdir, 'created.txt')
     let result = await tool('workspace/create_file').handler({ filepath }, { token })
