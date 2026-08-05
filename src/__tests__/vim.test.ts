@@ -1807,6 +1807,12 @@ describe('document', () => {
     expect(res).toBe('acx')
   })
 
+  it('SimpleStringDiff produces no user-visible echo', async () => {
+    let output = await nvim.call('execute', ["let g:coc_merge_result = coc#text#DiffApply('ab', 'abx', 'ac', -1)"]) as string
+    expect(output.trim()).toBe('')
+    expect(await nvim.getVar('coc_merge_result')).toBe('acx')
+  })
+
   it('should merge multiple concurrent edits on a line', async () => {
     let res = await nvim.call('coc#text#DiffApply', ['abcdef', 'aBcdEf', 'abCdef', -1])
     expect(res).toBe('aBCdEf')

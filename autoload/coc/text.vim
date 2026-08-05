@@ -309,7 +309,6 @@ def SimpleStringDiff(oldStr: string, newStr: string, charIdx: number = -1): dict
     endwhile
   endif
   const endIndex = old_length - suffixLen
-  echo suffixLen
   return {
     oldStart: prefixLen,
     oldEnd: endIndex,
