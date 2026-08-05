@@ -55,4 +55,56 @@ describe('mcp path validation', () => {
     expect(checkPath(path.join(allowedDir, 'secret.txt'))).not.toBeNull()
     expect(checkPath(path.join(allowedDir, 'ok.txt'))).toBeNull()
   })
+
+  it('denies symlink paths that escape the workspace boundary', () => {
+    let outside = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-out-'))
+    let link = path.join(tmpdir, 'escape-link')
+    try {
+      fs.symlinkSync(outside, link)
+    } catch (_e) {
+      fs.rmSync(outside, { recursive: true, force: true })
+      return // platform without symlink privilege
+    }
+    workspace.configurations.updateMemoryConfig({
+      'mcp.allowedPaths': [path.join(tmpdir, '**')],
+      'mcp.deniedPaths': []
+    })
+    try {
+      let throughLink = path.join(link, 'secret.txt')
+      expect(checkPath(throughLink)).not.toBeNull()
+      expect(checkPath(throughLink, { write: true })).not.toBeNull()
+      expect(checkPath(path.join(outside, 'secret.txt'))).not.toBeNull()
+    } finally {
+      workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [], 'mcp.deniedPaths': [] })
+      fs.rmSync(outside, { recursive: true, force: true })
+    }
+  })
+
+  it('requires both lexical and canonical paths to be allowed', () => {
+    let outside = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-out-'))
+    let link = path.join(tmpdir, 'escape-allowed')
+    try {
+      fs.symlinkSync(outside, link)
+    } catch (_e) {
+      fs.rmSync(outside, { recursive: true, force: true })
+      return // platform without symlink privilege
+    }
+    workspace.configurations.updateMemoryConfig({
+      'mcp.allowedPaths': [path.join(tmpdir, '**'), path.join(outside, '**')],
+      'mcp.deniedPaths': []
+    })
+    try {
+      let throughLink = path.join(link, 'secret.txt')
+      expect(checkPath(throughLink)).toBeNull()
+      workspace.configurations.updateMemoryConfig({
+        'mcp.allowedPaths': [path.join(tmpdir, '**'), path.join(outside, '**')],
+        'mcp.deniedPaths': [path.join(outside, 'secret*')]
+      })
+      expect(checkPath(throughLink)).not.toBeNull()
+      expect(checkPath(path.join(outside, 'ok.txt'))).toBeNull()
+    } finally {
+      workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [], 'mcp.deniedPaths': [] })
+      fs.rmSync(outside, { recursive: true, force: true })
+    }
+  })
 })

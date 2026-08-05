@@ -258,4 +258,41 @@ describe('mcp workspace tools', () => {
     expect(result.isError).toBe(true)
     expect(fs.existsSync(filepath)).toBe(false)
   })
+
+  it('rejects write tools that reach outside the workspace through symlinks', async () => {
+    let outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-out-'))
+    let outsideFile = path.join(outsideDir, 'target.txt')
+    fs.writeFileSync(outsideFile, 'secret\n')
+    let link = path.join(tmpdir, 'escape-link')
+    try {
+      fs.symlinkSync(outsideDir, link)
+    } catch (_e) {
+      fs.rmSync(outsideDir, { recursive: true, force: true })
+      return // platform without symlink privilege
+    }
+    // Scope access to the workspace so the canonical target (outside) can
+    // never match, regardless of other workspace folders in the test env.
+    workspace.configurations.updateMemoryConfig({
+      'mcp.allowedPaths': [path.join(tmpdir, '**')],
+      'mcp.deniedPaths': []
+    })
+    try {
+      let create = await tool('workspace/create_file').handler({ filepath: path.join(link, 'new.txt') }, { token })
+      expect(create.isError).toBe(true)
+      expect(fs.existsSync(path.join(outsideDir, 'new.txt'))).toBe(false)
+      let rename = await tool('workspace/rename_file').handler({
+        oldPath: path.join(link, 'target.txt'),
+        newPath: path.join(tmpdir, 'stolen.txt')
+      }, { token })
+      expect(rename.isError).toBe(true)
+      expect(fs.existsSync(outsideFile)).toBe(true)
+      expect(fs.existsSync(path.join(tmpdir, 'stolen.txt'))).toBe(false)
+      let del = await tool('workspace/delete_file').handler({ filepath: path.join(link, 'target.txt') }, { token })
+      expect(del.isError).toBe(true)
+      expect(fs.existsSync(outsideFile)).toBe(true)
+    } finally {
+      workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [], 'mcp.deniedPaths': [] })
+      fs.rmSync(outsideDir, { recursive: true, force: true })
+    }
+  })
 })

@@ -95,6 +95,33 @@ describe('mcp document tools', () => {
     expect(result.content[0].text).toContain('exceeds')
   })
 
+  it('document/read rejects symlink paths that escape the workspace', async () => {
+    let outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-doc-out-'))
+    let outsideFile = path.join(outsideDir, 'secret.txt')
+    fs.writeFileSync(outsideFile, 'secret\n')
+    let link = path.join(tmpdir, 'read-link')
+    try {
+      fs.symlinkSync(outsideDir, link)
+    } catch (_e) {
+      fs.rmSync(outsideDir, { recursive: true, force: true })
+      return // platform without symlink privilege
+    }
+    // Scope access to the workspace so the canonical target (outside) can
+    // never match, regardless of other workspace folders in the test env.
+    workspace.configurations.updateMemoryConfig({
+      'mcp.allowedPaths': [path.join(tmpdir, '**')],
+      'mcp.deniedPaths': []
+    })
+    try {
+      let result = await tool('document/read').handler({ uri: path.join(link, 'secret.txt') }, { token })
+      expect(result.isError).toBe(true)
+      expect(result.content[0].text).toContain('not allowed')
+    } finally {
+      workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [], 'mcp.deniedPaths': [] })
+      fs.rmSync(outsideDir, { recursive: true, force: true })
+    }
+  })
+
   it('document/read_lines reads a window from a large unopened file', async () => {
     let big = path.join(tmpdir, 'big.txt')
     let result = await tool('document/read_lines').handler({ uri: big, startLine: 0, endLine: 2 }, { token })

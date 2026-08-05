@@ -429,6 +429,29 @@ export function normalizeFilePath(filepath: string) {
   return URI.file(path.resolve(path.normalize(filepath))).fsPath
 }
 
+/**
+ * Resolve symlinks for authorization checks. Returns the canonical path of
+ * the nearest existing ancestor plus the remaining path components, so paths
+ * that are about to be created are checked as well. Falls back to the input
+ * when no ancestor resolves (e.g. a dangling root).
+ */
+export function realFsPath(fsPath: string): string {
+  let current = path.resolve(fsPath)
+  let suffix: string[] = []
+  for (;;) {
+    try {
+      let resolved = fs.realpathSync(current)
+      if (suffix.length === 0) return resolved
+      return path.join(resolved, ...suffix.reverse())
+    } catch (_e) {
+      let parent = path.dirname(current)
+      if (parent === current) return fsPath
+      suffix.push(path.basename(current))
+      current = parent
+    }
+  }
+}
+
 export function isParentFolder(folder: string, filepath: string, checkEqual = false): boolean {
   let pdir = normalizeFilePath(folder)
   let dir = normalizeFilePath(filepath)

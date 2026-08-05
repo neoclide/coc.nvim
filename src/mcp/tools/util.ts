@@ -1,6 +1,6 @@
 'use strict'
 import { URI } from 'vscode-uri'
-import { isParentFolder } from '../../util/fs'
+import { isParentFolder, realFsPath } from '../../util/fs'
 import { fs, minimatch, os, path } from '../../util/node'
 import { toArray } from '../../util/array'
 import type Document from '../../model/document'
@@ -124,6 +124,34 @@ function globMatch(pattern: string, fsPath: string): boolean {
     (isDir && minimatch(normalized + '/', p, { dot: true }))
 }
 
+/**
+ * Return the pattern plus a variant with the static prefix resolved through
+ * symlinks, so canonical paths (e.g. /private/tmp when /tmp is a link) still
+ * match the user's allowedPaths globs.
+ */
+function globVariants(pattern: string): string[] {
+  let variants = [pattern]
+  if (!path.isAbsolute(pattern)) return variants
+  let metaIdx = pattern.search(/[*?[\]{}]/)
+  let staticPart = metaIdx === -1 ? pattern : pattern.slice(0, metaIdx)
+  let rest = metaIdx === -1 ? '' : pattern.slice(metaIdx)
+  let trimmed = staticPart.replace(/[\\/]+$/, '')
+  let staticDir = trimmed === '' ? staticPart : path.dirname(trimmed)
+  let base = trimmed === '' ? '' : path.basename(trimmed)
+  let resolved = realFsPath(staticDir)
+  if (resolved !== staticDir) {
+    let joined = base ? path.join(resolved, base) : resolved
+    if (rest) {
+      // "dir/**" needs a separator, "secret*" does not
+      let sepNeeded = metaIdx > 0 && /[\\/]/.test(pattern[metaIdx - 1])
+      variants.push(joined + (sepNeeded ? '/' : '') + rest)
+    } else {
+      variants.push(joined)
+    }
+  }
+  return variants
+}
+
 function folderPaths(): string[] {
   try {
     return workspace.folderPaths
@@ -146,17 +174,23 @@ export function checkPath(input: string, opts: { write?: boolean } = {}): string
   let fsPath = URI.parse(uri).fsPath
   let config = workspace.getConfiguration('mcp')
   let denied = toArray<string>(config.get<string[]>('deniedPaths', []))
+  // Authorize both the lexical path and the path the filesystem operations
+  // will actually follow: a symlink inside the workspace must not escape the
+  // boundary, and a second link path must not bypass deniedPaths.
+  let realPath = realFsPath(fsPath)
+  let paths = realPath === fsPath ? [fsPath] : [fsPath, realPath]
   for (let glob of denied) {
-    if (glob && globMatch(glob, fsPath)) {
+    if (glob && paths.some(p => globVariants(glob).some(g => globMatch(g, p)))) {
       return `Path is denied by mcp.deniedPaths: ${glob}`
     }
   }
   let allowed = toArray<string>(config.get<string[]>('allowedPaths', []))
   if (allowed.length > 0) {
-    for (let glob of allowed) {
-      if (globMatch(glob, fsPath)) return null
+    for (let p of paths) {
+      let ok = allowed.some(glob => glob && globVariants(glob).some(g => globMatch(g, p)))
+      if (!ok) return `Path is not allowed by mcp.allowedPaths: ${fsPath}`
     }
-    return `Path is not allowed by mcp.allowedPaths: ${fsPath}`
+    return null
   }
   let roots = folderPaths()
   if (roots.length === 0) {
@@ -166,12 +200,21 @@ export function checkPath(input: string, opts: { write?: boolean } = {}): string
       roots = [process.cwd()]
     }
   }
+  let rootVariants: string[] = []
   for (let root of roots) {
-    if (isParentFolder(root, fsPath, true)) return null
+    rootVariants.push(root)
+    let resolved = realFsPath(root)
+    if (resolved !== root) rootVariants.push(resolved)
   }
+  let insideRoot = paths.every(p => rootVariants.some(root => isParentFolder(root, p, true)))
+  if (insideRoot) return null
   if (workspace.getDocument(uri)) return null
   if (!opts.write) {
-    if (isParentFolder(os.tmpdir(), fsPath, true)) return null
+    let tmpdir = os.tmpdir()
+    let tmpVariants = [tmpdir]
+    let resolved = realFsPath(tmpdir)
+    if (resolved !== tmpdir) tmpVariants.push(resolved)
+    if (paths.every(p => tmpVariants.some(t => isParentFolder(t, p, true)))) return null
   }
   return `Path is outside the workspace and not opened: ${fsPath}`
 }
