@@ -12,6 +12,9 @@ export default class ContentProvider implements Disposable {
   private nvim: Neovim
   private disposables: Disposable[] = []
   private providers: Map<string, TextDocumentContentProvider> = new Map()
+  // Latest refresh source per uri: starting a new refresh cancels the old
+  // one so stale content can never overwrite newer content.
+  private refreshSources = new Map<string, CancellationTokenSource>()
   private readonly _onDidProviderChange = new Emitter<void>()
   public readonly onDidProviderChange: Event<void> = this._onDidProviderChange.event
   constructor(
@@ -58,22 +61,43 @@ export default class ContentProvider implements Disposable {
     this.providers.set(scheme, provider)
     this._onDidProviderChange.fire()
     let disposables: Disposable[] = []
+    let refreshSources = new Set<CancellationTokenSource>()
     if (provider.onDidChange) {
       provider.onDidChange(async uri => {
-        let doc = this.documents.getDocument(uri.toString())
-        if (!doc) return
+        let key = uri.toString()
+        let previous = this.refreshSources.get(key)
+        if (previous) previous.cancel()
         let tokenSource = new CancellationTokenSource()
-        let content = await Promise.resolve(provider.provideTextDocumentContent(uri, tokenSource.token))
-        await doc.buffer.setLines(content.split(/\r?\n/), {
-          start: 0,
-          end: -1,
-          strictIndexing: false
-        })
+        this.refreshSources.set(key, tokenSource)
+        refreshSources.add(tokenSource)
+        try {
+          let content = await Promise.resolve(provider.provideTextDocumentContent(uri, tokenSource.token))
+          // Only the latest refresh for this uri may write, and only while
+          // the provider registration and document are still valid.
+          if (tokenSource.token.isCancellationRequested || this.refreshSources.get(key) !== tokenSource) return
+          let doc = this.documents.getDocument(key)
+          if (!doc) return
+          await doc.buffer.setLines(content.split(/\r?\n/), {
+            start: 0,
+            end: -1,
+            strictIndexing: false
+          })
+        } finally {
+          refreshSources.delete(tokenSource)
+          if (this.refreshSources.get(key) === tokenSource) this.refreshSources.delete(key)
+          tokenSource.dispose()
+        }
       }, null, disposables)
     }
     this.nvim.command(getAutocmdCommand(scheme), true)
     return Disposable.create(() => {
       this.providers.delete(scheme)
+      // In-flight refreshes must not write after unregistration.
+      for (let source of refreshSources) {
+        source.cancel()
+        source.dispose()
+      }
+      refreshSources.clear()
       disposeAll(disposables)
       this.resetAutocmds()
       this._onDidProviderChange.fire()
@@ -81,6 +105,11 @@ export default class ContentProvider implements Disposable {
   }
 
   public dispose(): void {
+    for (let source of this.refreshSources.values()) {
+      source.cancel()
+      source.dispose()
+    }
+    this.refreshSources.clear()
     disposeAll(this.disposables)
     this._onDidProviderChange.dispose()
     this.providers.clear()

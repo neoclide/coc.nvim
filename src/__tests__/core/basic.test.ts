@@ -427,6 +427,73 @@ describe('contentProvider', () => {
     await helper.waitValue(() => doc.attached, false)
     emitter.fire(URI.parse('jdk://1'))
   })
+
+  it('keeps the latest refresh content when an older refresh resolves late', async () => {
+    let first: (v: string) => void = () => {}
+    let second: (v: string) => void = () => {}
+    let calls = 0
+    let emitter = new Emitter<URI>()
+    let provider: TextDocumentContentProvider = {
+      onDidChange: emitter.event,
+      provideTextDocumentContent: () => {
+        calls++
+        if (calls === 1) return 'initial content'
+        if (calls === 2) return new Promise(resolve => {
+          first = resolve
+        })
+        return new Promise(resolve => {
+          second = resolve
+        })
+      }
+    }
+    let disposable = workspace.registerTextDocumentContentProvider('race', provider)
+    await nvim.command('edit race://1')
+    let doc = await workspace.document
+    try {
+      emitter.fire(URI.parse('race://1'))
+      emitter.fire(URI.parse('race://1'))
+      // newer refresh resolves first, then the stale first refresh
+      second('new content')
+      first('stale content')
+      await helper.waitFor('getline', ['.'], 'new content')
+      await helper.wait(50)
+      let line = await nvim.getLine()
+      expect(line).toBe('new content')
+    } finally {
+      disposable.dispose()
+      await nvim.command('bwipeout!')
+      await helper.waitValue(() => doc.attached, false)
+    }
+  })
+
+  it('does not write the buffer after the provider is unregistered', async () => {
+    let resolveContent: (v: string) => void = () => {}
+    let emitter = new Emitter<URI>()
+    let provider: TextDocumentContentProvider = {
+      onDidChange: emitter.event,
+      provideTextDocumentContent: () => {
+        if (calls === 0) {
+          calls++
+          return 'initial content'
+        }
+        return new Promise(resolve => {
+          resolveContent = resolve
+        })
+      }
+    }
+    let calls = 0
+    let disposable = workspace.registerTextDocumentContentProvider('late', provider)
+    await nvim.command('edit late://1')
+    let doc = await workspace.document
+    emitter.fire(URI.parse('late://1'))
+    disposable.dispose()
+    resolveContent('should not appear')
+    await helper.wait(50)
+    let line = await nvim.getLine()
+    expect(line).not.toBe('should not appear')
+    await nvim.command('bwipeout!')
+    await helper.waitValue(() => doc.attached, false)
+  })
 })
 
 async function getAutocmdIds(event: string, pattern?: string): Promise<number[]> {
