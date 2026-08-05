@@ -1633,13 +1633,13 @@ describe('document', () => {
     expect(res).toBe('aBCDef')
   })
 
-  it('should keep server text when concurrent edits overlap', async () => {
+  it('should keep user text when concurrent edits overlap', async () => {
     let res = await nvim.call('coc#text#DiffApply', ['abc', 'aXc', 'aYc', -1])
-    expect(res).toBe('aYc')
+    expect(res).toBe('aXc')
     res = await nvim.call('coc#text#DiffApply', ['abcde', 'abde', 'abCde', -1])
-    expect(res).toBe('abCde')
+    expect(res).toBe('abde')
     res = await nvim.call('coc#text#DiffApply', ['abcdef', 'abef', 'abcXdef', -1])
-    expect(res).toBe('abcXdef')
+    expect(res).toBe('abef')
   })
 
   it('should merge multiple concurrent edits with multibyte characters', async () => {
@@ -1649,12 +1649,12 @@ describe('document', () => {
     expect(res).toBe('BX😀C')
   })
 
-  it('should fall back to server text for very long lines', async () => {
+  it('should keep user text for very long lines', async () => {
     let base = 'a'.repeat(300)
     let ours = 'a'.repeat(100) + 'x' + 'a'.repeat(49) + 'y' + 'a'.repeat(150)
     let theirs = 'a'.repeat(100) + 'b' + 'a'.repeat(49) + 'c' + 'a'.repeat(149)
     let res = await nvim.call('coc#text#DiffApply', [base, ours, theirs, -1])
-    expect(res).toBeNull()
+    expect(res).toBe(ours)
   })
 
   it('should merge multiple concurrent edits through applyEdits', async () => {
@@ -1668,5 +1668,17 @@ describe('document', () => {
     await doc.applyEdits(edits)
     let line = await nvim.line
     expect(line).toBe('aBCdEf')
+  })
+
+  it('should merge fallback without performance regression', async () => {
+    let base = 'a'.repeat(100)
+    let ours = 'a'.repeat(30) + 'x' + 'a'.repeat(40) + 'y' + 'a'.repeat(30)
+    let theirs = 'a'.repeat(30) + 'b' + 'a'.repeat(39) + 'c' + 'a'.repeat(30)
+    let start = Date.now()
+    for (let i = 0; i < 20; i++) {
+      await nvim.call('coc#text#DiffApply', [base, ours, theirs, -1])
+    }
+    let elapsed = Date.now() - start
+    expect(elapsed).toBeLessThan(10000)
   })
 })

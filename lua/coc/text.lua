@@ -2,6 +2,9 @@ local api = vim.api
 
 local M = {}
 
+-- LCS is O(n * m), limit three-way merge to reasonable line lengths
+local MAX_MERGE_LEN = 200
+
 local function splitText(text, col)
   return text:sub(1, col - 1), text:sub(col)
 end
@@ -317,6 +320,210 @@ local function diffApply(original, current, newText, reverseFirst)
   return result
 end
 
+-- Character list of a string, matches strchars() semantics
+local function toChars(text)
+  return vim.fn.split(text, '\\zs')
+end
+
+-- Character based LCS diff of two strings, returns {type, char} items
+local function charLcsDiff(str1, str2)
+  local chars1 = toChars(str1)
+  local chars2 = toChars(str2)
+  local n1, n2 = #chars1, #chars2
+  local matrix = {}
+  for i = 0, n1 do
+    matrix[i] = {}
+    for j = 0, n2 do
+      if i == 0 or j == 0 then
+        matrix[i][j] = 0
+      elseif chars1[i] == chars2[j] then
+        matrix[i][j] = matrix[i - 1][j - 1] + 1
+      else
+        matrix[i][j] = math.max(matrix[i - 1][j], matrix[i][j - 1])
+      end
+    end
+  end
+  local common = {}
+  local i, j = n1, n2
+  while i > 0 and j > 0 do
+    if chars1[i] == chars2[j] then
+      common[#common + 1] = chars1[i]
+      i = i - 1
+      j = j - 1
+    elseif matrix[i - 1][j] > matrix[i][j - 1] then
+      i = i - 1
+    else
+      j = j - 1
+    end
+  end
+  for k = 1, math.floor(#common / 2) do
+    common[k], common[#common - k + 1] = common[#common - k + 1], common[k]
+  end
+  local result = {}
+  local i1, i2, ic = 1, 1, 1
+  while ic <= #common do
+    while i1 <= n1 and chars1[i1] ~= common[ic] do
+      table.insert(result, { type = '-', char = chars1[i1] })
+      i1 = i1 + 1
+    end
+    while i2 <= n2 and chars2[i2] ~= common[ic] do
+      table.insert(result, { type = '+', char = chars2[i2] })
+      i2 = i2 + 1
+    end
+    table.insert(result, { type = '=', char = common[ic] })
+    i1 = i1 + 1
+    i2 = i2 + 1
+    ic = ic + 1
+  end
+  while i1 <= n1 do
+    table.insert(result, { type = '-', char = chars1[i1] })
+    i1 = i1 + 1
+  end
+  while i2 <= n2 do
+    table.insert(result, { type = '+', char = chars2[i2] })
+    i2 = i2 + 1
+  end
+  return result
+end
+
+-- Extract changed segments from a diff, segment is {start, finish, text},
+-- start/finish are 0 based character indexes of the first string.
+local function getSegments(diff)
+  local segs = {}
+  local start = -1
+  local i1 = 0
+  local buf = {}
+  local function flush()
+    if start >= 0 then
+      table.insert(segs, { start = start, finish = i1, text = table.concat(buf) })
+      start = -1
+      buf = {}
+    end
+  end
+  for _, item in ipairs(diff) do
+    if item.type == '=' then
+      flush()
+      i1 = i1 + 1
+    elseif item.type == '-' then
+      if start < 0 then
+        start = i1
+      end
+      i1 = i1 + 1
+    else
+      if start < 0 then
+        start = i1
+      end
+      buf[#buf + 1] = item.char
+    end
+  end
+  flush()
+  return segs
+end
+
+-- Three-way merge of a line by character, user text wins on conflicts.
+-- Insertions at the boundary of a changed segment are kept.
+-- Returns nil when the line is too long to merge.
+local function mergeLine(base, ours, theirs)
+  if ours == base then
+    return theirs
+  end
+  if theirs == base or ours == theirs then
+    return ours
+  end
+  local baseLen = vim.fn.strchars(base)
+  if baseLen > MAX_MERGE_LEN or vim.fn.strchars(ours) > MAX_MERGE_LEN or vim.fn.strchars(theirs) > MAX_MERGE_LEN then
+    return nil
+  end
+  -- Byte offset of each character index, lua string operations are byte based
+  local offsets = { 0 }
+  for _, ch in ipairs(toChars(base)) do
+    offsets[#offsets + 1] = offsets[#offsets] + #ch
+  end
+  local function bytePos(charIdx)
+    return offsets[charIdx + 1]
+  end
+  local all = {}
+  for _, seg in ipairs(getSegments(charLcsDiff(base, ours))) do
+    table.insert(all, { start = seg.start, finish = seg.finish, byteStart = bytePos(seg.start), byteFinish = bytePos(seg.finish), text = seg.text, side = 1 })
+  end
+  for _, seg in ipairs(getSegments(charLcsDiff(base, theirs))) do
+    table.insert(all, { start = seg.start, finish = seg.finish, byteStart = bytePos(seg.start), byteFinish = bytePos(seg.finish), text = seg.text, side = 2 })
+  end
+  if #all == 0 then
+    return ours
+  end
+  table.sort(all, function(a, b)
+    if a.start == b.start then
+      return a.finish < b.finish
+    end
+    return a.start < b.start
+  end)
+  local groups = {}
+  for _, seg in ipairs(all) do
+    if #groups == 0 then
+      table.insert(groups, {
+        start = seg.start,
+        finish = seg.finish,
+        byteStart = seg.byteStart,
+        byteFinish = seg.byteFinish,
+        ours = seg.side == 1 and { seg } or {},
+        theirs = seg.side == 2 and { seg } or {}
+      })
+    else
+      local last = groups[#groups]
+      -- Segments conflict when their ranges intersect, insertions at the
+      -- boundary of a changed segment are kept.
+      local overlap
+      if seg.start == seg.finish then
+        overlap = seg.start > last.start and seg.start < last.finish
+      else
+        overlap = seg.start < last.finish and last.start < seg.finish
+      end
+      if overlap then
+        local target = seg.side == 1 and last.ours or last.theirs
+        table.insert(target, seg)
+        last.finish = math.max(last.finish, seg.finish)
+        last.byteFinish = math.max(last.byteFinish, seg.byteFinish)
+      else
+        table.insert(groups, {
+          start = seg.start,
+          finish = seg.finish,
+          byteStart = seg.byteStart,
+          byteFinish = seg.byteFinish,
+          ours = seg.side == 1 and { seg } or {},
+          theirs = seg.side == 2 and { seg } or {}
+        })
+      end
+    end
+  end
+  local result = {}
+  local pos = 0
+  for _, group in ipairs(groups) do
+    if group.byteStart > pos then
+      result[#result + 1] = base:sub(pos + 1, group.byteStart)
+      pos = group.byteStart
+    end
+    -- Conflict, apply user changes only.
+    local segs = #group.ours > 0 and group.ours or group.theirs
+    local gpos = group.byteStart
+    for _, seg in ipairs(segs) do
+      if seg.byteStart > gpos then
+        result[#result + 1] = base:sub(gpos + 1, seg.byteStart)
+      end
+      result[#result + 1] = seg.text
+      gpos = seg.byteFinish
+    end
+    if group.byteFinish > gpos then
+      result[#result + 1] = base:sub(gpos + 1, group.byteFinish)
+    end
+    pos = group.byteFinish
+  end
+  if pos < baseLen then
+    result[#result + 1] = base:sub(pos + 1)
+  end
+  return table.concat(result)
+end
+
 -- Change single line by use nvim_buf_set_text
 -- 1 based line number, current line, applied line
 function M.changeLineText(bufnr, lnum, current, applied)
@@ -386,6 +593,10 @@ function M.set_lines(bufnr, changedtick, originalLines, replacement, startLine, 
               applied = current
             else
               applied = diffApply(original, current, newText, column > #current/2)
+              if applied == nil then
+                -- Fallback to three-way merge, keep user text when not possible
+                applied = mergeLine(original, current, newText) or current
+              end
             end
           end
         end
@@ -424,5 +635,8 @@ function M.set_lines(bufnr, changedtick, originalLines, replacement, startLine, 
     vim.fn.cursor({cursor[1], cursor[2] + delta})
   end
 end
+
+-- Merge helper exported for tests
+M.mergeLine = mergeLine
 
 return M

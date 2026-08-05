@@ -162,9 +162,9 @@ def GetSegments(diff: list<dict<any>>): list<dict<any>>
   return segs
 enddef
 
-# Three-way merge of a line by character, server text wins on conflicts.
+# Three-way merge of a line by character, user text wins on conflicts.
 # Insertions at the boundary of a changed segment are kept.
-# Returns null when the line is too long to merge.
+# Returns the user text when the line is too long to merge.
 def MergeLine(base: string, ours: string, theirs: string): any
   if ours ==# base
     return theirs
@@ -174,7 +174,7 @@ def MergeLine(base: string, ours: string, theirs: string): any
   endif
   const baseLen = strchars(base)
   if baseLen > max_merge_len || strchars(ours) > max_merge_len || strchars(theirs) > max_merge_len
-    return null
+    return ours
   endif
   const d1 = LcsDiff(base, ours)
   const d2 = LcsDiff(base, theirs)
@@ -222,32 +222,18 @@ def MergeLine(base: string, ours: string, theirs: string): any
       result ..= strcharpart(base, pos, group.start - pos)
       pos = group.start
     endif
-    if len(group.ours) > 0 && len(group.theirs) > 0
-      # Conflict, apply server changes only.
-      var gpos = group.start
-      for seg in group.theirs
-        if seg.start > gpos
-          result ..= strcharpart(base, gpos, seg.start - gpos)
-        endif
-        result ..= seg.text
-        gpos = seg.end
-      endfor
-      if group.end > gpos
-        result ..= strcharpart(base, gpos, group.end - gpos)
+    # Conflict, apply user changes only.
+    var segs = len(group.ours) > 0 ? group.ours : group.theirs
+    var gpos = group.start
+    for seg in segs
+      if seg.start > gpos
+        result ..= strcharpart(base, gpos, seg.start - gpos)
       endif
-    else
-      var segs = len(group.ours) > 0 ? group.ours : group.theirs
-      var gpos = group.start
-      for seg in segs
-        if seg.start > gpos
-          result ..= strcharpart(base, gpos, seg.start - gpos)
-        endif
-        result ..= seg.text
-        gpos = seg.end
-      endfor
-      if group.end > gpos
-        result ..= strcharpart(base, gpos, group.end - gpos)
-      endif
+      result ..= seg.text
+      gpos = seg.end
+    endfor
+    if group.end > gpos
+      result ..= strcharpart(base, gpos, group.end - gpos)
     endif
     pos = group.end
   endfor

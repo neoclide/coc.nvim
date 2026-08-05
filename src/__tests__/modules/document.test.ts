@@ -609,6 +609,32 @@ describe('Document', () => {
         expect(line).toBe(' fo')
       }
     })
+
+    it('should merge multiple concurrent edits', async () => {
+      let doc = await helper.createDocument()
+      let buf = doc.buffer
+      await buf.setLines(['abcdef'])
+      await doc.patchChange()
+      nvim.call('setline', [1, 'aBcdEf'], true)
+      nvim.call('cursor', [1, 5], true)
+      let edits: TextEdit[] = [TextEdit.replace(Range.create(0, 2, 0, 3), 'C')]
+      await doc.applyEdits(edits)
+      let line = await nvim.line
+      expect(line).toBe('aBCdEf')
+    })
+
+    it('should merge concurrent edits with multibyte characters', async () => {
+      let doc = await helper.createDocument()
+      let buf = doc.buffer
+      await buf.setLines(['你a你b'])
+      await doc.patchChange()
+      nvim.call('setline', [1, '你A你B'], true)
+      nvim.call('cursor', [1, 4], true)
+      let edits: TextEdit[] = [TextEdit.replace(Range.create(0, 0, 0, 1), '好')]
+      await doc.applyEdits(edits)
+      let line = await nvim.line
+      expect(line).toBe('好A你B')
+    })
   })
 
   describe('changeLines()', () => {
@@ -806,6 +832,70 @@ describe('Document', () => {
       await helper.waitFor('getline', ['.'], 'fo foo')
       let lines = await doc.buffer.lines
       expect(lines).toEqual(['fo foo'])
+    })
+  })
+
+  describe('text merge', () => {
+    async function mergeLine(base: string, ours: string, theirs: string): Promise<string | null> {
+      return await nvim.request('nvim_exec_lua', [
+        `return require('coc.text').mergeLine(...)`,
+        [base, ours, theirs]
+      ]) as string | null
+    }
+
+    it('should merge multiple concurrent edits', async () => {
+      expect(await mergeLine('abcdef', 'aBcdEf', 'abCdef')).toBe('aBCdEf')
+      expect(await mergeLine('abcd', 'axbycd', 'aXcd')).toBe('axXycd')
+    })
+
+    it('should keep user text when edits overlap', async () => {
+      expect(await mergeLine('abc', 'aXc', 'aYc')).toBe('aXc')
+      expect(await mergeLine('abcde', 'abde', 'abCde')).toBe('abde')
+      expect(await mergeLine('abcdef', 'abef', 'abcXdef')).toBe('abef')
+    })
+
+    it('should merge with multibyte characters', async () => {
+      expect(await mergeLine('你a你b', '你A你B', '好a你b')).toBe('好A你B')
+      expect(await mergeLine('a😀b', 'B😀C', 'aX😀b')).toBe('BX😀C')
+    })
+
+    it('should keep user text for very long lines', async () => {
+      let base = 'a'.repeat(300)
+      let ours = 'a'.repeat(100) + 'x' + 'a'.repeat(49) + 'y' + 'a'.repeat(150)
+      let theirs = 'a'.repeat(100) + 'b' + 'a'.repeat(49) + 'c' + 'a'.repeat(149)
+      expect(await mergeLine(base, ours, theirs)).toBeNull()
+    })
+
+    it('should merge without performance regression', async () => {
+      let base = 'ab'.repeat(100)
+      let ours = base.slice(0, 150) + 'x' + base.slice(151)
+      let theirs = base.slice(0, 100) + 'Y' + base.slice(101)
+      let elapsed = await nvim.request('nvim_exec_lua', [
+        `local text = require('coc.text')
+         local start = vim.uv.hrtime()
+         for i = 1, 50 do
+           text.mergeLine(...)
+         end
+         return (vim.uv.hrtime() - start) / 1e6`,
+        [base, ours, theirs]
+      ]) as number
+      expect(elapsed).toBeLessThan(5000)
+    })
+
+    it('should skip merge for very long lines', async () => {
+      let base = 'a'.repeat(2000)
+      let ours = 'a'.repeat(1999) + 'x'
+      let theirs = 'a'.repeat(1999) + 'y'
+      let elapsed = await nvim.request('nvim_exec_lua', [
+        `local text = require('coc.text')
+         local start = vim.uv.hrtime()
+         for i = 1, 2000 do
+           text.mergeLine(...)
+         end
+         return (vim.uv.hrtime() - start) / 1e6`,
+        [base, ours, theirs]
+      ]) as number
+      expect(elapsed).toBeLessThan(5000)
     })
   })
 
