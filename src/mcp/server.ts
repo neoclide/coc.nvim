@@ -55,6 +55,7 @@ export class McpServer implements Disposable {
   private address: McpServerAddress | undefined
   private disposed = false
   private writeMutex = new Mutex()
+  private toolChangeDisposable: Disposable
 
   constructor(
     public readonly options: McpServerOptions,
@@ -64,7 +65,7 @@ export class McpServer implements Disposable {
     this.ownsTools = tools === undefined
     this.tools = tools ?? new ToolRegistry()
     this.resources = resources ?? new ResourceManager()
-    this.tools.onDidChange(() => {
+    this.toolChangeDisposable = this.tools.onDidChange(() => {
       this.broadcastNotification(NOTIFICATION_TOOLS_LIST_CHANGED, undefined)
     })
   }
@@ -192,6 +193,9 @@ export class McpServer implements Disposable {
   public dispose(): void {
     if (this.disposed) return
     this.disposed = true
+    // Always release the shared registry subscription: ownsTools only
+    // controls registry disposal, not the server's own listeners.
+    this.toolChangeDisposable.dispose()
     for (let session of this.sessions.values()) {
       session.close()
     }

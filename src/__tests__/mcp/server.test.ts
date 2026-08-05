@@ -296,6 +296,40 @@ describe('mcp server lifecycle', () => {
     client.close()
   })
 
+  it('disposes the shared tool registry subscription on server dispose', async () => {
+    let registry = new ToolRegistry()
+    let first = new McpServer({
+      transport: 'tcp',
+      host: '127.0.0.1',
+      port: 0,
+      token: 'test-token',
+      authRequired: true,
+      maxClients: 4,
+      timeout: 0
+    }, registry)
+    let firstBroadcast = vi.spyOn(first, 'broadcastNotification')
+    first.dispose()
+    let second = new McpServer({
+      transport: 'tcp',
+      host: '127.0.0.1',
+      port: 0,
+      token: 'test-token',
+      authRequired: true,
+      maxClients: 4,
+      timeout: 0
+    }, registry)
+    let secondBroadcast = vi.spyOn(second, 'broadcastNotification')
+    registry.register({
+      name: 'shared-tool',
+      description: 'Shared tool',
+      inputSchema: { type: 'object' },
+      handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
+    })
+    expect(firstBroadcast).not.toHaveBeenCalled()
+    expect(secondBroadcast).toHaveBeenCalledTimes(1)
+    second.dispose()
+  })
+
   it('times out slow tool calls with -32003', async () => {
     let slowRegistry = new ToolRegistry()
     slowRegistry.register({
