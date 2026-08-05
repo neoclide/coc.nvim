@@ -4,20 +4,17 @@ Notable changes of coc.nvim:
 
 ## 2026-08-05
 
-- MCP: the `coc-mcp` bridge defaults to `--match-cwd`: it connects to the
-  first coc.nvim instance whose workspace matches the bridge working
-  directory and exits when no matching instance is found. The interactive
-  selection mode (`coc/instances` / `coc/connect`) is removed;
-  `--match-first` still connects to the first available instance.
-- MCP: the `coc-mcp` bridge no longer waits for the coc.nvim MCP service —
-  it fails immediately with a "coc.nvim MCP service not found" error when
-  no usable connection exists at startup, and the `COC_MCP_WAIT_MS` /
-  `COC_MCP_NO_WAIT` environment variables are removed. Start vim/nvim
-  with `"mcp.autoStart": true` before launching Codex.
-- MCP: the socket server survives `:CocRestart` — its started state is kept
-  in a vim variable and restored on startup, the per-instance discovery
-  file is keyed by the vim pid, and the `coc-mcp` bridge reconnects to the
-  new endpoint/token when the file is rewritten instead of exiting.
+- MCP: the `coc-mcp` bridge connects to the first coc.nvim instance whose
+  workspace contains the bridge working directory and exits when no
+  matching instance is found. `--match-first` connects to the first
+  available instance regardless of the working directory.
+- MCP: the `coc-mcp` bridge fails immediately with a "coc.nvim MCP service
+  not found" error when no usable connection exists at startup. Start
+  vim/nvim with `"mcp.autoStart": true` before launching Codex.
+- MCP: the socket server keeps running across `:CocRestart` — its started
+  state is kept in a vim variable and restored on startup, the
+  per-instance discovery file is keyed by the vim pid, and the `coc-mcp`
+  bridge reconnects to the new endpoint/token when the file is rewritten.
 - MCP: `mcp.autoStart` controls whether the socket server starts
   automatically with coc.nvim (default off); `:CocCommand mcp.start`
   starts it on demand for the current session regardless of the setting.
@@ -34,11 +31,10 @@ Notable changes of coc.nvim:
   queries on the same symbol.
 - MCP: LSP queries abandoned by a tool timeout or `notifications/cancelled`
   are dropped from the per-server request queue, and requests the language
-  server never answered are tracked as stuck; when all request slots are
-  stuck, new queries to that server fail fast with a restart hint instead of
-  queueing behind the dead requests forever. The same bound applies with
-  `mcp.maxConcurrentRequests: 0` (unlimited concurrency, 16 stuck requests
-  per server).
+  server never answered are tracked as stuck; once all request slots are
+  stuck, new queries to that server fail fast with a restart hint. The
+  same bound applies with `mcp.maxConcurrentRequests: 0` (unlimited
+  concurrency, 16 stuck requests per server).
 - MCP: `workspace/apply_edit` saves all modified buffers with `:wa` after
   applying, so edits are on disk for subsequent tools; the result reports
   `saved` and a `saveError` when the save fails.
@@ -46,9 +42,9 @@ Notable changes of coc.nvim:
   agents — `tools/list` only returns whitelisted names and `tools/call`
   rejects the rest. Default is empty (no tools exposed) so tool access is
   opt-in; the configuration documents the full built-in tool list.
-- MCP: removed the unused `mcp.logLevel` configuration.
-- MCP: protocol version negotiation now also accepts `2024-11-05` (besides
-  `2025-06-18` and `2025-11-25`): sessions on `2024-11-05` get
+- MCP: the `mcp.logLevel` configuration is not supported.
+- MCP: protocol version negotiation supports `2024-11-05` in addition to
+  `2025-06-18` and `2025-11-25`: sessions on `2024-11-05` get
   `tools/list` entries limited to `name`/`description`/`inputSchema` and
   `tools/call` results without `structuredContent`, matching the
   `2024-11-05` schema.
