@@ -8,6 +8,7 @@ import workspace from '../../workspace'
 import type { McpTool, ToolContext } from './index'
 import { errorResult, textResult } from './util'
 import { configuredServiceId, getDocumentSymbolResult, symbolKindName } from './lsp'
+import { positionInRange } from '../../util/position'
 
 /**
  * Editor state tool: snapshot of the active editor (document, cursor,
@@ -20,19 +21,11 @@ function lineText(doc: Document, line: number): string {
   return doc.getLines(line, line + 1)[0] ?? ''
 }
 
-function positionInRange(pos: Position, range: { start: Position, end: Position }): boolean {
-  let { start, end } = range
-  if (pos.line < start.line || pos.line > end.line) return false
-  if (pos.line === start.line && pos.character < start.character) return false
-  if (pos.line === end.line && pos.character >= end.character) return false
-  return true
-}
-
 function innermostSymbol(symbols: DocumentSymbol[] | null | undefined, pos: Position): { name: string, kind: string } | null {
   let best: { name: string, kind: string, depth: number } | null = null
   let walk = (list: DocumentSymbol[] | undefined, depth: number): void => {
     for (let s of list ?? []) {
-      if (positionInRange(pos, s.range)) {
+      if (positionInRange(pos, s.range) === 0) {
         best = { name: s.name, kind: (symbolKindName(s.kind) ?? '').toLowerCase(), depth }
         walk(s.children, depth + 1)
       }
