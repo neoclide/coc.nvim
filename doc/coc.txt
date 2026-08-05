@@ -81,7 +81,7 @@ INTRODUCTION						*coc-introduction*
 
 coc.nvim enhances your (Neo)Vim with a rich extension ecosystem and
 implements the client features specified by the Language Server Protocol
-(3.17 for now); see |coc-lsp|.
+(3.18 for now); see |coc-lsp|.
 
 Some features (such as completion and inline completion) work automatically
 by default; all of them can be disabled through |coc-configuration|.
@@ -423,8 +423,8 @@ non-interactive messages are reported to the user.
 ==============================================================================
 LSP FEATURES 						*coc-lsp*
 
-Most features of LSP 3.17 are supported. Check out the specification at
-https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/
+Most features of LSP 3.18 are supported. Check out the specification at
+https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/
 
 Features not supported: ~
 
@@ -3282,7 +3282,7 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 	Send an LSP request with {method} and {params} to the language server
 	of {id} (check the id with `:CocList services`).
 	Check out the LSP specification at
-	https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/
+	https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/
 
 "sendNotification" {id} {method} [{params}]		*CocAction('sendNotification')*
 
@@ -4256,6 +4256,14 @@ folders 						*coc-list-folders*
 
 	- 'edit' change the directory of the workspace folder.
 	- 'delete' remove the selected workspace folder.
+
+notifications					*coc-list-notifications*
+
+	Notification history of the current session.
+
+	Actions:
+
+	- 'clear': Clear the notification history (default action).
 
 outline							*coc-list-outline*
 

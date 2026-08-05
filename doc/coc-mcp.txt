@@ -92,12 +92,6 @@ server state is kept in vim, the new coc.nvim process restarts it and
 rewrites the discovery file, and the bridge reconnects to the new
 endpoint/token automatically.
 
-	[mcp_servers.coc]
-	command = "node"
-	args = ["/path/to/coc.nvim/bin/coc-mcp.js"]
-	enabled = true
-	startup_timeout_sec = 30
-
 Multiple editor instances: ~
 
 Each running coc.nvim writes its own discovery file under
@@ -299,7 +293,7 @@ the events, and event names that do not start with `coc/` are ignored:
 The server also broadcasts `notifications/tools/list_changed` to all
 initialized sessions when the registered tool set changes (for example an
 extension registers a tool). Query the current server status at any time
-with the `coc/status` tool (address, clients, tool list and protocol
+with the `coc/status` request (address, clients, tool list and protocol
 version).
 
 See also: |coc-config-mcp|.

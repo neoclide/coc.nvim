@@ -9,6 +9,8 @@ Single file extensions 				|coc-api-single|
 Create custom Extensions 			|coc-api-extension|
 Lua API 					|coc-api-lua|
 MCP API 					|coc-api-mcp|
+Watch file 					|coc-api-watchFile|
+Ranges formatting 				|coc-api-rangesFormatting|
 Debug extensions 				|coc-api-debug|
 
 ==============================================================================
@@ -447,6 +449,33 @@ its name is listed in the `mcp.allowedTools` whitelist (|coc-config-mcp-allowedT
 
 Inspect and control the built-in MCP server; see |coc-mcp| for user-facing
 configuration and `doc/coc-mcp.txt` for the protocol guide.
+
+------------------------------------------------------------------------------
+
+WATCH FILE 					*coc-api-watchFile*
+
+	watchFile(filepath, onChange[, immediate[, onError]]) ~
+
+	Watch a single file for changes and call {onChange} when the file
+	changes. The parent directory of {filepath} must exist. Watching
+	survives file replacement by rename or deletion, so the change
+	handler keeps being called after the file is replaced.
+
+	{immediate}: Invoke the handler shortly after watching starts.
+	{onError}: Called with the error when the watcher fails.
+
+	Returns a Disposable; dispose it to stop watching.
+
+------------------------------------------------------------------------------
+
+RANGES FORMATTING 				*coc-api-rangesFormatting*
+
+	LSP 3.18 `textDocument/rangesFormatting` is supported through
+	`languages.registerDocumentRangeFormatProvider()`. The provider may
+	implement `provideDocumentRangesFormattingEdits(document, ranges,
+	options, token)` and return `TextEdit[]`; when the method is absent,
+	coc.nvim falls back to formatting each range separately. Existing
+	visual block selection formatting behavior is unchanged.
 
 ------------------------------------------------------------------------------
 

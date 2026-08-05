@@ -73,14 +73,23 @@ WORKSPACE
 
 	Filetypes that should be ignored when resolving the workspace folder.
 
-	Scope: `resource`, default: `[]`
+	Scope: `application`, default: `[]`
 
 "workspace.ignoredFolders"				*coc-config-workspace-ignoredFolders*
 
 	List of folders that should not be resolved as the workspace folder;
 	environment variables and minimatch patterns can be used.
 
-	Scope: `application`, default: `["$HOME"]`
+	Default value: >
+	[
+	  "$HOME",
+	  "$HOME/.cargo/**",
+	  "$HOME/.rustup/**",
+	  "$HOME/pkg/mod/**",
+	  "$HOMEBREW_PREFIX/**"
+	]
+<
+	Scope: `application`
 
 "workspace.openOutputCommand"				*coc-config-workspace-openOutputCommand*
 
@@ -256,7 +265,7 @@ PREFERENCES
 
 	How long before the format command run on save times out.
 
-	Scope: `language-overridable`, default: `200`
+	Scope: `language-overridable`, default: `500`
 
 "coc.preferences.formatOnType"				*coc-preferences-formatOnType*
 
@@ -931,21 +940,22 @@ CODELENS
 
 "codeLens.position"					*coc-config-codeLens-position*
 
-	Display position of codeLens virtual text.
+	Display position of codeLens virtual text: `"top"`, `"eol"` or
+	`"right_align"`.
 
-	Scope: `resource`, default: `"top"`
+	Scope: `language-overridable`, default: `"top"`
 
 "codeLens.separator"					*coc-config-codeLens-separator*
 
 	Separator text for codeLens in virtual text.
 
-	Scope: `resource`, default: `""`
+	Scope: `language-overridable`, default: `""`
 
 "codeLens.subseparator"					*coc-config-codeLens-subseparator*
 
 	Subseparator between codeLenses in virtual text.
 
-	Scope: `resource`, default: `" | "`
+	Scope: `language-overridable`, default: `" | "`
 
 ------------------------------------------------------------------------------
 COLORS
@@ -1263,7 +1273,7 @@ DOCUMENTHIGHLIGHT
 	Limit the highlights added by matchaddpos; too many positions could
 	make Vim slow.
 
-	Scope: `resource`, default: `100`
+	Scope: `resource`, default: `200`
 
 "documentHighlight.timeout"				*coc-config-documentHighlight-timeout*
 
@@ -1580,7 +1590,7 @@ NOTIFICATION
 	Show progress notifications in the status line instead of a float
 	window/popup.
 
-	Scope: `application`, default: `false`
+	Scope: `application`, default: `true`
 
 "notification.timeout"					*coc-config-notification-timeout*
 
@@ -1868,14 +1878,14 @@ SNIPPET
 	Use the 'CocSnippetVisual' highlight group to highlight placeholders
 	with the same index as the current one.
 
-	Scope: `resource`, default: `false`
+	Scope: `application`, default: `false`
 
 "snippet.nextPlaceholderOnDelete"			*coc-config-snippet-nextPlaceholderOnDelete*
 
-	Automatically jump to the next placeholder when the current one is 
+	Automatically jump to the next placeholder when the current one is
 	completely deleted.
 
-	Scope: `resource`, default: `false`
+	Scope: `application`, default: `false`
 
 "snippet.statusText"					*coc-config-snippet-statusText*
 
@@ -1889,11 +1899,92 @@ SOURCES							*coc-config-sources*
 
 Configurations of builtin completion sources.
 
+"coc.source.around.enable"				*coc-config-coc-source-around-enable*
+
+	Enable the around source, which completes words around the cursor.
+
+	Scope: `application`, default: `true`
+
+"coc.source.around.priority"				*coc-config-coc-source-around-priority*
+
+	Priority of the around source; higher priority ranks its items first.
+
+	Scope: `application`, default: `1`
+
+"coc.source.around.shortcut"				*coc-config-coc-source-around-shortcut*
+
+	Shortcut text shown in the completion menu.
+
+	Scope: `application`, default: `"A"`
+
+"coc.source.around.disableSyntaxes"			*coc-config-coc-source-around-disableSyntaxes*
+
+	Disable the around source when the syntax name of the completion
+	context matches any of these names.
+
+	Scope: `application`, default: `[]`
+
+"coc.source.buffer.enable"				*coc-config-coc-source-buffer-enable*
+
+	Enable the buffer source, which completes words from all buffers.
+
+	Scope: `application`, default: `true`
+
+"coc.source.buffer.priority"				*coc-config-coc-source-buffer-priority*
+
+	Priority of the buffer source; higher priority ranks its items first.
+
+	Scope: `application`, default: `1`
+
+"coc.source.buffer.shortcut"				*coc-config-coc-source-buffer-shortcut*
+
+	Shortcut text shown in the completion menu.
+
+	Scope: `application`, default: `"B"`
+
+"coc.source.buffer.disableSyntaxes"			*coc-config-coc-source-buffer-disableSyntaxes*
+
+	Disable the buffer source when the syntax name of the completion
+	context matches any of these names.
+
+	Scope: `application`, default: `[]`
+
 "coc.source.buffer.ignoreGitignore"			*coc-config-coc-source-buffer-ignoreGitignore*
 
 	Ignore git-ignored files for buffer words.
 
 	Scope: `application`, default: `true`
+
+"coc.source.file.enable"				*coc-config-coc-source-file-enable*
+
+	Enable the file source, which completes file paths.
+
+	Scope: `application`, default: `true`
+
+"coc.source.file.priority"				*coc-config-coc-source-file-priority*
+
+	Priority of the file source; higher priority ranks its items first.
+
+	Scope: `application`, default: `10`
+
+"coc.source.file.shortcut"				*coc-config-coc-source-file-shortcut*
+
+	Shortcut text shown in the completion menu.
+
+	Scope: `application`, default: `"F"`
+
+"coc.source.file.triggerCharacters"			*coc-config-coc-source-file-triggerCharacters*
+
+	Characters that trigger file path completion.
+
+	Scope: `application`, default: `["/", "\\"]`
+
+"coc.source.file.disableSyntaxes"			*coc-config-coc-source-file-disableSyntaxes*
+
+	Disable the file source when the syntax name of the completion
+	context matches any of these names.
+
+	Scope: `application`, default: `[]`
 
 "coc.source.file.ignoreHidden"				*coc-config-coc-source-file-ignoreHidden*
 
@@ -2026,7 +2117,7 @@ SUGGEST
 
 	Filter completion items on backspace.
 
-	Scope: `language-overridable`, default: `true`
+	Scope: `application`, default: `true`
 
 "suggest.floatConfig"					*coc-config-suggest-floatConfig*
 
