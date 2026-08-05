@@ -169,7 +169,7 @@ function parseConnectEndpoint(value) {
   if (isNaN(port) || port < 1 || port > 65535) {
     throw new Error('invalid --connect port: ' + portStr)
   }
-  return { host, port }
+  return {host, port}
 }
 
 function connectEndpoint() {
@@ -214,20 +214,20 @@ function resolveAuthKey() {
 function decideInstance(mode) {
   const instances = listLiveInstances().sort((a, b) => a.pid - b.pid)
   if (instances.length === 0) {
-    return { missing: 'no live coc.nvim instance found in ' + mcpInstancesDir() }
+    return {missing: 'no live coc.nvim instance found in ' + mcpInstancesDir()}
   }
-  if (instances.length === 1) return { info: instances[0] }
-  if (mode === 'first') return { info: instances[0] }
+  if (instances.length === 1) return {info: instances[0]}
+  if (mode === 'first') return {info: instances[0]}
   const cwd = process.cwd()
   const matches = instances.filter(i => cwdScore(i, cwd) >= 0)
   if (mode === 'cwd') {
     if (matches.length === 0) {
-      return { missing: 'no instance matches cwd ' + cwd + ' (--match-cwd)' }
+      return {missing: 'no instance matches cwd ' + cwd + ' (--match-cwd)'}
     }
-    return { info: matches[0] }
+    return {info: matches[0]}
   }
-  if (matches.length === 1) return { info: matches[0] }
-  return { select: true }
+  if (matches.length === 1) return {info: matches[0]}
+  return {select: true}
 }
 
 function readDiscovery(file) {
@@ -265,11 +265,11 @@ function getWaitMs() {
 
 function main() {
   if (process.argv.includes('--generate-key')) {
-    const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
+    const {privateKey, publicKey} = crypto.generateKeyPairSync('ec', {namedCurve: 'prime256v1'})
     console.log('PRIVATE KEY (write to a PEM file and set COC_MCP_AUTH_KEY_FILE for the bridge, keep secret):')
-    console.log(privateKey.export({ type: 'pkcs8', format: 'pem' }).toString())
+    console.log(privateKey.export({type: 'pkcs8', format: 'pem'}).toString())
     console.log('PUBLIC KEY (set as mcp.authClientPublicKey in coc-settings.json):')
-    console.log(publicKey.export({ type: 'spki', format: 'pem' }).toString())
+    console.log(publicKey.export({type: 'spki', format: 'pem'}).toString())
     process.exit(0)
   }
   let connectInfo = null
@@ -289,7 +289,7 @@ function main() {
         host: endpoint.host,
         port: endpoint.port,
         token: '',
-        serverInfo: { version: 'unknown' },
+        serverInfo: {version: 'unknown'},
         protocolVersion: 'unknown'
       }
       log('connecting directly to ' + endpoint.host + ':' + endpoint.port + ' (--connect, public-key auth)')
@@ -308,6 +308,8 @@ function main() {
   let selectionBuffer = ''
   let selectionQueue = Promise.resolve()
   let agentProtocolVersion = '2025-06-18'
+  // 2024-11-05 agents do not know structuredContent (added in 2025-06-18).
+  const includeStructured = () => agentProtocolVersion !== '2024-11-05'
   let currentInfo = null
   let relaying = false
   let reconnecting = false
@@ -473,7 +475,7 @@ function main() {
     return new Promise((resolve, reject) => {
       const s = info.transport === 'unix'
         ? net.createConnection(info.socketPath)
-        : net.createConnection({ host: info.host, port: info.port })
+        : net.createConnection({host: info.host, port: info.port})
       s.setNoDelay(true)
       let settled = false
       const failOnce = err => {
@@ -502,7 +504,7 @@ function main() {
             }
           }
           if (extra) Object.assign(params, extra)
-          s.write(JSON.stringify({ jsonrpc: '2.0', id: 0, method: 'coc/auth', params }) + '\n')
+          s.write(JSON.stringify({jsonrpc: '2.0', id: 0, method: 'coc/auth', params}) + '\n')
         }
         let buffer = ''
         const onData = chunk => {
@@ -527,7 +529,7 @@ function main() {
                 failOnce(new Error('signing failed: ' + e.message))
                 return
               }
-              sendAuth({ nonce: msg.result.nonce, signature })
+              sendAuth({nonce: msg.result.nonce, signature})
               continue
             }
             if (msg.id === 0) {
@@ -552,10 +554,10 @@ function main() {
                 params: {
                   protocolVersion: agentProtocolVersion,
                   capabilities: {},
-                  clientInfo: { name: 'coc-mcp-bridge', version: '0.0.0', pid: process.pid }
+                  clientInfo: {name: 'coc-mcp-bridge', version: '0.0.0', pid: process.pid}
                 }
               }) + '\n')
-              s.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n')
+              s.write(JSON.stringify({jsonrpc: '2.0', method: 'notifications/initialized'}) + '\n')
               return
             }
             if (msg.id === 1) {
@@ -572,7 +574,7 @@ function main() {
           }
         }
         if (authKey) {
-          s.write(JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'coc/challenge' }) + '\n')
+          s.write(JSON.stringify({jsonrpc: '2.0', id: 2, method: 'coc/challenge'}) + '\n')
         } else {
           sendAuth()
         }
@@ -590,21 +592,21 @@ function main() {
     try {
       msg = JSON.parse(line)
     } catch (e) {
-      writeStdout({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } })
+      writeStdout({jsonrpc: '2.0', id: null, error: {code: -32700, message: 'Parse error'}})
       return
     }
     if (!msg || msg.jsonrpc !== '2.0' || typeof msg.method !== 'string') {
       if (typeof msg.id !== 'undefined') {
-        writeStdout({ jsonrpc: '2.0', id: msg.id, error: { code: -32600, message: 'Invalid message' } })
+        writeStdout({jsonrpc: '2.0', id: msg.id, error: {code: -32600, message: 'Invalid message'}})
       }
       return
     }
     const isRequest = typeof msg.id !== 'undefined'
     const respond = result => {
-      if (isRequest) writeStdout({ jsonrpc: '2.0', id: msg.id, result })
+      if (isRequest) writeStdout({jsonrpc: '2.0', id: msg.id, result})
     }
     const respondError = (code, message) => {
-      if (isRequest) writeStdout({ jsonrpc: '2.0', id: msg.id, error: { code, message } })
+      if (isRequest) writeStdout({jsonrpc: '2.0', id: msg.id, error: {code, message}})
     }
     switch (msg.method) {
       case 'initialize':
@@ -612,10 +614,10 @@ function main() {
         respond({
           protocolVersion: agentProtocolVersion,
           capabilities: {
-            tools: { listChanged: false },
-            experimental: { cocInstanceSelection: true }
+            tools: {listChanged: false},
+            experimental: {cocInstanceSelection: true}
           },
-          serverInfo: { name: 'coc-mcp-bridge', version: '0.0.0' },
+          serverInfo: {name: 'coc-mcp-bridge', version: '0.0.0'},
           instructions: 'Multiple coc.nvim instances detected. Call coc/instances to list them, then coc/connect with the pid to choose.'
         })
         return
@@ -630,14 +632,14 @@ function main() {
             {
               name: 'coc/instances',
               description: 'List available coc.nvim MCP instances (pid, workspace root, version).',
-              inputSchema: { type: 'object', properties: {} }
+              inputSchema: {type: 'object', properties: {}}
             },
             {
               name: 'coc/connect',
               description: 'Connect to a coc.nvim instance by pid from coc/instances.',
               inputSchema: {
                 type: 'object',
-                properties: { pid: { type: 'integer' } },
+                properties: {pid: {type: 'integer'}},
                 required: ['pid']
               }
             }
@@ -657,8 +659,8 @@ function main() {
             transport: i.transport
           }))
           respond({
-            content: [{ type: 'text', text: JSON.stringify(list, null, 2) }],
-            structuredContent: { count: list.length, instances: list },
+            content: [{type: 'text', text: JSON.stringify(list, null, 2)}],
+            ...(includeStructured() ? {structuredContent: {count: list.length, instances: list}} : {}),
             isError: false
           })
           return
@@ -666,7 +668,7 @@ function main() {
         if (name === 'coc/connect') {
           const pid = args.pid
           if (typeof pid !== 'number') {
-            respond({ content: [{ type: 'text', text: 'pid is required' }], isError: true })
+            respond({content: [{type: 'text', text: 'pid is required'}], isError: true})
             return
           }
           let file = path.join(mcpInstancesDir(), 'coc-' + pid + '.json')
@@ -674,23 +676,26 @@ function main() {
           try {
             info = readDiscovery(file)
           } catch (e) {
-            respond({ content: [{ type: 'text', text: 'instance ' + pid + ' not found: ' + e.message }], isError: true })
+            respond({content: [{type: 'text', text: 'instance ' + pid + ' not found: ' + e.message}], isError: true})
             return
           }
           try {
             await connectToInstance(info, true)
           } catch (e) {
-            respond({ content: [{ type: 'text', text: 'connect failed: ' + e.message }], isError: true })
+            respond({content: [{type: 'text', text: 'connect failed: ' + e.message}], isError: true})
             return
           }
           respond({
-            content: [{ type: 'text', text: 'connected to coc.nvim instance ' + pid }],
-            structuredContent: {
-              connected: true,
-              pid,
-              serverInfo: info.serverInfo,
-              protocolVersion: agentProtocolVersion
-            }
+            content: [{type: 'text', text: 'connected to coc.nvim instance ' + pid}],
+            ...(includeStructured() ? {
+              structuredContent: {
+                connected: true,
+                pid,
+                serverInfo: info.serverInfo,
+                protocolVersion: agentProtocolVersion
+              }
+            } : {}),
+            isError: false
           })
           return
         }

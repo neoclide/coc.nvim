@@ -18,20 +18,27 @@ function logAudit(session: Session, message: string): void {
   }
 }
 
-function normalizeResult(result: any): any {
+function normalizeResult(result: any, protocolVersion: string | undefined): any {
   if (
     result &&
     Array.isArray(result.content) &&
     result.content.every((c: any) => c && typeof c === 'object' && c.type === 'text' && typeof c.text === 'string')
   ) {
+    if (!P.supportsStructuredContent(protocolVersion) && 'structuredContent' in result) {
+      let { structuredContent: _sc, ...rest } = result
+      return rest
+    }
     return result
   }
   let text = typeof result === 'string' ? result : JSON.stringify(result ?? {})
-  return {
+  let normalized: any = {
     content: [{ type: 'text', text }],
-    structuredContent: result,
     isError: false
   }
+  // structuredContent only exists in 2025-06-18+; 2024-11-05 results are
+  // limited to content/isError.
+  if (P.supportsStructuredContent(protocolVersion)) normalized.structuredContent = result
+  return normalized
 }
 
 function handleInitialize(server: McpServer, session: Session, id: number | string | null, params: any): void {
@@ -139,7 +146,7 @@ async function handleToolCall(server: McpServer, session: Session, id: number | 
     let result = await resultPromise
     finish(() => {
       logAudit(session, `Tool ${name} finished in ${Date.now() - start}ms`)
-      session.sendResult(id, normalizeResult(result))
+      session.sendResult(id, normalizeResult(result, session.protocolVersion))
     })
   } catch (e) {
     finish(() => {
@@ -261,7 +268,15 @@ export async function handleMessage(server: McpServer, session: Session, msg: an
     case P.NOTIFICATION_INITIALIZED:
       return
     case P.METHOD_TOOLS_LIST:
-      if (isRequest) session.sendResult(id, server.tools.list())
+      if (isRequest) {
+        let { tools } = server.tools.list()
+        // 2024-11-05 Tool is limited to name/description/inputSchema:
+        // title, annotations and outputSchema only exist in newer revisions.
+        if (!P.supportsToolMetadata(session.protocolVersion)) {
+          tools = tools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema }))
+        }
+        session.sendResult(id, { tools })
+      }
       return
     case P.METHOD_TOOLS_CALL:
       if (isRequest) await handleToolCall(server, session, id, params)

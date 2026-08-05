@@ -36,6 +36,12 @@ Notable changes of coc.nvim:
   agents — `tools/list` only returns whitelisted names and `tools/call`
   rejects the rest. Default is empty (no tools exposed) so tool access is
   opt-in; the configuration documents the full built-in tool list.
+- MCP: removed the unused `mcp.logLevel` configuration.
+- MCP: protocol version negotiation now also accepts `2024-11-05` (besides
+  `2025-06-18` and `2025-11-25`): sessions on `2024-11-05` get
+  `tools/list` entries limited to `name`/`description`/`inputSchema` and
+  `tools/call` results without `structuredContent`, matching the
+  `2024-11-05` schema.
 
 ## 2026-08-04
 
@@ -72,7 +78,7 @@ Notable changes of coc.nvim:
       `transport`, `authRequired`, `authClientPublicKey`, `allowedPaths`,
       `deniedPaths`, `maxClients`, `frameMaxBytes`, `timeout`,
       `readTimeout`, `idleTimeout`, `maxRequestsPerSecond`,
-      `maxConcurrentRequests`, `logLevel`, `languageServiceMap`) and
+      `maxConcurrentRequests`, `languageServiceMap`) and
       commands `:CocCommand mcp.start`, `mcp.stop` and `mcp.status`.
     - Protocol: MCP `2025-06-18` with `2025-11-25` version negotiation,
       `coc/*` notifications (document saved/changed, diagnostics, workspace

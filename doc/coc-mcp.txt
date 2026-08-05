@@ -1,4 +1,4 @@
-*coc-mcp.txt*				MCP server integration for coc.nvim
+*coc-mcp.txt* *coc-mcp*			MCP server integration for coc.nvim
 
 MCP (Model Context Protocol) integration lets agents like OpenAI Codex
 connect to the running coc.nvim instance, read editor buffers (including
@@ -25,11 +25,19 @@ coc.nvim starts a local MCP server over a loopback socket (TCP or Unix
 socket). Codex spawns a tiny stdio bridge (`coc-mcp`) which forwards MCP
 messages between Codex and the socket.
 
+Protocol versions: the server accepts `initialize` requests for MCP
+`2024-11-05`, `2025-06-18` and `2025-11-25` and echoes the requested
+version back when supported. Sessions on `2024-11-05` (which predates
+structured tool output and tool metadata) receive `tools/list` entries
+without `title`, `annotations` or `outputSchema` and `tools/call` results
+without `structuredContent`, so older clients only see the fields their
+schema defines; newer versions get the full metadata.
+
 ==============================================================================
 2. ENABLE					*coc-mcp-enable*
 
-The server is disabled by default. Enable it explicitly in
-coc-settings.json:
+The server is not started by default.
+Enable auto start in coc-settings.json:
 
 	{
 	  "mcp": {

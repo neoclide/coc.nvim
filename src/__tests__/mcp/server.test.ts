@@ -126,12 +126,69 @@ describe('mcp server lifecycle', () => {
     let client = await authClient()
     let error: any
     try {
-      await client.request(1, 'initialize', { protocolVersion: '2024-11-05', capabilities: {} })
+      await client.request(1, 'initialize', { protocolVersion: '2025-03-26', capabilities: {} })
     } catch (e) {
       error = e
     }
     expect(error).toBeTruthy()
     expect(error.message).toContain('-32600')
+    expect(error.message).toContain('2024-11-05')
+    client.close()
+  })
+
+  it('accepts protocol version 2024-11-05 and omits newer fields', async () => {
+    let client = new TestClient(address.port)
+    await client.request(0, 'coc/auth', { token: 'test-token' })
+    let init = await client.request(1, 'initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1' }
+    })
+    expect(init.protocolVersion).toBe('2024-11-05')
+    client.notify('notifications/initialized')
+    // 2024-11-05 Tool is limited to name/description/inputSchema; title,
+    // annotations and outputSchema were added in later revisions.
+    let disposable = registry.register({
+      name: 'annotated',
+      title: 'Annotated',
+      description: 'Tool with newer metadata',
+      inputSchema: { type: 'object' },
+      outputSchema: { type: 'object' },
+      annotations: { readOnlyHint: true },
+      handler: () => ({ content: [{ type: 'text', text: 'ok' }], structuredContent: { ok: true } })
+    })
+    let list = await client.request(2, 'tools/list')
+    let annotated = list.tools.find((t: any) => t.name === 'annotated')
+    expect(annotated).toEqual({
+      name: 'annotated',
+      description: 'Tool with newer metadata',
+      inputSchema: { type: 'object' }
+    })
+    expect(annotated.title).toBeUndefined()
+    expect(annotated.annotations).toBeUndefined()
+    expect(annotated.outputSchema).toBeUndefined()
+    // 2024-11-05 CallToolResult has no structuredContent (added 2025-06-18).
+    let call = await client.request(3, 'tools/call', { name: 'annotated', arguments: {} })
+    expect(call.content[0].text).toBe('ok')
+    expect(call.structuredContent).toBeUndefined()
+    disposable.dispose()
+    client.close()
+  })
+
+  it('emits tools/list_changed to 2024-11-05 clients', async () => {
+    let client = new TestClient(address.port)
+    await client.request(0, 'coc/auth', { token: 'test-token' })
+    await client.request(1, 'initialize', { protocolVersion: '2024-11-05', capabilities: {} })
+    client.notify('notifications/initialized')
+    let changed = client.waitNotification('notifications/tools/list_changed')
+    registry.register({
+      name: 'late-2024',
+      description: 'Late registered tool',
+      inputSchema: { type: 'object' },
+      handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
+    })
+    let msg = await changed
+    expect(msg.method).toBe('notifications/tools/list_changed')
     client.close()
   })
 

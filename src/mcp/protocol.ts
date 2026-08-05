@@ -3,12 +3,34 @@
 /**
  * MCP protocol constants shared by the socket server and tools.
  *
- * Target: Model Context Protocol 2025-06-18.
+ * Target: Model Context Protocol 2025-06-18, with version negotiation for
+ * 2024-11-05 (structured output / tool metadata only exist in newer
+ * revisions) and 2025-11-25.
  * @see https://modelcontextprotocol.io/specification/2025-06-18/
  */
 
 export const PROTOCOL_VERSION = '2025-06-18'
-export const SUPPORTED_PROTOCOL_VERSIONS: readonly string[] = ['2025-11-25', '2025-06-18']
+export const SUPPORTED_PROTOCOL_VERSIONS: readonly string[] = ['2025-11-25', '2025-06-18', '2024-11-05']
+
+export const PROTOCOL_VERSION_2024_11_05 = '2024-11-05'
+
+/**
+ * Structured tool output (`structuredContent` in CallToolResult) was added
+ * in 2025-06-18; 2024-11-05 results must only carry `content`/`isError`.
+ */
+export function supportsStructuredContent(protocolVersion: string | undefined): boolean {
+  return protocolVersion !== PROTOCOL_VERSION_2024_11_05
+}
+
+/**
+ * Tool metadata beyond the 2024-11-05 shape (`title`, `annotations`,
+ * `outputSchema`) was added in 2025-03-26 (`annotations`) and later
+ * revisions (`title`, `outputSchema`); 2024-11-05 tools are limited to
+ * `name`/`description`/`inputSchema`.
+ */
+export function supportsToolMetadata(protocolVersion: string | undefined): boolean {
+  return protocolVersion !== PROTOCOL_VERSION_2024_11_05
+}
 
 export const DEFAULT_FRAME_MAX_BYTES = 16 * 1024 * 1024
 export const DEFAULT_TOOL_TIMEOUT = 5000
