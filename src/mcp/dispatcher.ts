@@ -163,6 +163,7 @@ async function handleToolCall(server: McpServer, session: Session, id: number | 
 }
 
 export async function handleMessage(server: McpServer, session: Session, msg: any): Promise<void> {
+  if (!session.active) return
   session.touch()
   if (!msg || typeof msg !== 'object' || msg.jsonrpc !== '2.0' || typeof msg.method !== 'string') {
     session.sendError(msg && typeof msg.id !== 'undefined' ? msg.id : null, P.JSONRPC_INVALID_REQUEST, 'Invalid message')

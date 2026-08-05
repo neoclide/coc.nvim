@@ -224,6 +224,7 @@ export class McpServer implements Disposable {
     let splitter = new FrameSplitter(
       this.options.frameMaxBytes ?? DEFAULT_FRAME_MAX_BYTES,
       msg => {
+        if (!session.active) return
         let isRequest = typeof msg?.id !== 'undefined'
         let isExit = msg?.method === 'notifications/exit'
         if (isRequest || isExit) {
@@ -248,6 +249,10 @@ export class McpServer implements Disposable {
       }
     )
     socket.on('data', (chunk: Buffer) => {
+      if (!session.active) {
+        socket.destroy()
+        return
+      }
       splitter.push(chunk)
     })
     socket.on('error', err => {

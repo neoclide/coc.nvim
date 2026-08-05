@@ -5,12 +5,20 @@ import { createLspTools } from '../../mcp/tools/lsp'
 import { createWorkspaceTools } from '../../mcp/tools/workspace'
 import { McpServer } from '../../mcp/server'
 import { McpTool, ToolRegistry } from '../../mcp/tools'
+import { encodeMessage } from '../../mcp/framing'
 import { TestClient } from './testClient'
 
 async function authInit(client: TestClient): Promise<void> {
   await client.request(0, 'coc/auth', { token: 'sec-token' })
   await client.request(1, 'initialize', { protocolVersion: '2025-06-18', capabilities: {} })
   client.notify('notifications/initialized')
+}
+
+async function pollUntil(fn: () => boolean, ms: number): Promise<void> {
+  let deadline = Date.now() + ms
+  while (!fn() && Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, 10))
+  }
 }
 
 describe('mcp security hardening', () => {
@@ -130,5 +138,130 @@ describe('mcp security hardening', () => {
     for (let name of ['document/read', 'workspace/search', 'lsp/references', 'lsp/hover']) {
       expect(byName.get(name)?.annotations?.readOnlyHint).toBe(true)
     }
+  })
+
+  it('drops queued tool calls after exit', async () => {
+    let secondEntered = 0
+    let release: () => void = () => {}
+    let gate = new Promise<void>(resolve => {
+      release = resolve
+    })
+    let started: () => void = () => {}
+    let startedPromise = new Promise<void>(resolve => {
+      started = resolve
+    })
+    let slowwrite: McpTool = {
+      name: 'slowwrite',
+      description: 'Slow mutating tool',
+      inputSchema: { type: 'object' },
+      annotations: { destructiveHint: true },
+      handler: async () => {
+        started()
+        await gate
+        return { content: [{ type: 'text', text: 'done' }] }
+      }
+    }
+    let secondwrite: McpTool = {
+      name: 'secondwrite',
+      description: 'Second mutating tool',
+      inputSchema: { type: 'object' },
+      annotations: { destructiveHint: true },
+      handler: async () => {
+        secondEntered++
+        return { content: [{ type: 'text', text: 'second' }] }
+      }
+    }
+    let registry = new ToolRegistry()
+    registry.register(slowwrite)
+    registry.register(secondwrite)
+    let server = new McpServer({
+      transport: 'tcp',
+      host: '127.0.0.1',
+      port: 0,
+      token: 'sec-token',
+      authRequired: true,
+      maxClients: 2,
+      timeout: 0
+    }, registry)
+    let address = await server.listen()
+    let client = new TestClient(address.port)
+    await authInit(client)
+    // One TCP write: slow call, exit, then another destructive call. The exit
+    // closes the session, so the queued second call must never run.
+    client.socket.write(Buffer.concat([
+      encodeMessage({ jsonrpc: '2.0', id: 40, method: 'tools/call', params: { name: 'slowwrite', arguments: {} } }),
+      encodeMessage({ jsonrpc: '2.0', method: 'notifications/exit' }),
+      encodeMessage({ jsonrpc: '2.0', id: 41, method: 'tools/call', params: { name: 'secondwrite', arguments: {} } })
+    ]))
+    await startedPromise
+    release()
+    await client.onClosed()
+    await pollUntil(() => secondEntered > 0, 1000)
+    expect(secondEntered).toBe(0)
+    client.close()
+    server.dispose()
+  })
+
+  it('server dispose cancels pending tokens and drops queued writes', async () => {
+    let secondEntered = 0
+    let cancelled = 0
+    let release: () => void = () => {}
+    let gate = new Promise<void>(resolve => {
+      release = resolve
+    })
+    let started: () => void = () => {}
+    let startedPromise = new Promise<void>(resolve => {
+      started = resolve
+    })
+    let slowwrite: McpTool = {
+      name: 'slowwrite',
+      description: 'Slow mutating tool',
+      inputSchema: { type: 'object' },
+      annotations: { destructiveHint: true },
+      handler: async (_args, ctx) => {
+        started()
+        ctx.token.onCancellationRequested(() => {
+          cancelled++
+        })
+        await gate
+        return { content: [{ type: 'text', text: 'done' }] }
+      }
+    }
+    let secondwrite: McpTool = {
+      name: 'secondwrite',
+      description: 'Second mutating tool',
+      inputSchema: { type: 'object' },
+      annotations: { destructiveHint: true },
+      handler: async () => {
+        secondEntered++
+        return { content: [{ type: 'text', text: 'second' }] }
+      }
+    }
+    let registry = new ToolRegistry()
+    registry.register(slowwrite)
+    registry.register(secondwrite)
+    let server = new McpServer({
+      transport: 'tcp',
+      host: '127.0.0.1',
+      port: 0,
+      token: 'sec-token',
+      authRequired: true,
+      maxClients: 2,
+      timeout: 0
+    }, registry)
+    let address = await server.listen()
+    let client = new TestClient(address.port)
+    await authInit(client)
+    client.socket.write(Buffer.concat([
+      encodeMessage({ jsonrpc: '2.0', id: 50, method: 'tools/call', params: { name: 'slowwrite', arguments: {} } }),
+      encodeMessage({ jsonrpc: '2.0', id: 51, method: 'tools/call', params: { name: 'secondwrite', arguments: {} } })
+    ]))
+    await startedPromise
+    server.dispose()
+    release()
+    await pollUntil(() => secondEntered > 0 || cancelled > 0, 1000)
+    expect(secondEntered).toBe(0)
+    expect(cancelled).toBeGreaterThan(0)
+    client.close()
   })
 })

@@ -54,9 +54,14 @@ export class Session {
    * (and the exit notification) are processed in order so that shutdown/exit
    * cannot cut off an in-flight tool call. Notifications such as
    * notifications/cancelled are handled out of band and must not be queued.
+   * Once the session is closed, tasks that have not started yet are dropped:
+   * close is the session's execution boundary.
    */
   public enqueue(task: () => Promise<void>): void {
-    this.queue = this.queue.then(task, () => {
+    this.queue = this.queue.then(() => {
+      if (this.closed) return
+      return task()
+    }, () => {
       // keep the chain alive even if a previous task failed
     })
   }
@@ -116,6 +121,14 @@ export class Session {
     this.closed = true
     if (this.authTimer) clearTimeout(this.authTimer)
     if (this.idleTimer) clearTimeout(this.idleTimer)
+    // Cancel every in-flight request token and clear the bookkeeping; queued
+    // tasks that have not started yet are skipped by enqueue(). Late results
+    // are consumed by the callers and never sent (send() ignores closed).
+    for (let pending of this.pending.values()) {
+      if (pending.timer) clearTimeout(pending.timer)
+      pending.cancel()
+    }
+    this.pending.clear()
     this.onClose(this)
     try {
       this.socket.end()
