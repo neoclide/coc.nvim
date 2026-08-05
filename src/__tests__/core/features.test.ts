@@ -757,9 +757,16 @@ describe('WorkspaceFolderController', () => {
         })
       })
       let folder: WorkspaceFolder = { name: '', uri: URI.file(process.cwd()).toString() }
-      let res = await workspaceFolder.checkPatterns([folder], ['**/schema.json'])
-      spy.mockRestore()
-      expect(res).toBe(false)
+      try {
+        let res = await workspaceFolder.checkPatterns([folder], ['**/schema.json'])
+        expect(res).toBe(false)
+        // the timed-out token source must be released, not kept forever
+        expect((workspaceFolder as any)._tokenSources.size).toBe(0)
+        await workspaceFolder.checkPatterns([folder], ['**/schema.json'])
+        expect((workspaceFolder as any)._tokenSources.size).toBe(0)
+      } finally {
+        spy.mockRestore()
+      }
     })
   })
 

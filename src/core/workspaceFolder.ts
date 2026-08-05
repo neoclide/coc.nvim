@@ -277,22 +277,27 @@ export default class WorkspaceFolderController {
     let timer = setTimeout(() => {
       tokenSource.cancel()
     }, checkPatternTimeout)
-    let results = await Promise.allSettled(dirs.map(dir => {
-      return this.checkFolder(dir, patterns, token).then(checked => {
-        this._tokenSources.delete(tokenSource)
-        if (checked) {
-          find = true
-          clearTimeout(timer)
-          tokenSource.cancel()
+    try {
+      let results = await Promise.allSettled(dirs.map(dir => {
+        return this.checkFolder(dir, patterns, token).then(checked => {
+          if (checked) {
+            find = true
+            tokenSource.cancel()
+          }
+        })
+      }))
+      results.forEach(res => {
+        if (res.status === 'rejected' && !isCancellationError(res.reason)) {
+          logger.error(`checkPatterns error:`, patterns, res.reason)
         }
       })
-    }))
-    clearTimeout(timer)
-    results.forEach(res => {
-      if (res.status === 'rejected' && !isCancellationError(res.reason)) {
-        logger.error(`checkPatterns error:`, patterns, res.reason)
-      }
-    })
-    return find
+      return find
+    } finally {
+      // Always release the source: rejected (timed out) checks previously
+      // left it in _tokenSources forever.
+      clearTimeout(timer)
+      this._tokenSources.delete(tokenSource)
+      tokenSource.dispose()
+    }
   }
 }
