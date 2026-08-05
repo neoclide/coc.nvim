@@ -2,7 +2,6 @@
 import { spawn } from 'child_process'
 import crypto from 'crypto'
 import fs from 'fs'
-import net from 'net'
 import os from 'os'
 import path from 'path'
 import { afterAll, describe, expect, it } from 'vitest'
@@ -11,17 +10,6 @@ import { McpServer } from '../../mcp/server'
 import { ToolRegistry } from '../../mcp/tools'
 
 const bridgePath = path.resolve(__dirname, '../../../bin/coc-mcp.js')
-
-async function getDeadPort(): Promise<number> {
-  return await new Promise((resolve, reject) => {
-    let s = net.createServer()
-    s.on('error', reject)
-    s.listen(0, '127.0.0.1', () => {
-      let port = (s.address() as net.AddressInfo).port
-      s.close(() => resolve(port))
-    })
-  })
-}
 
 interface BridgeClient {
   proc: import('child_process').ChildProcess
@@ -148,10 +136,10 @@ describe('coc-mcp stdio bridge', () => {
     expect(stderr).toContain('server capabilities: tools')
   })
 
-  it('exits with code 2 when the discovery file is missing', async () => {
+  it('exits with code 2 when no coc.nvim MCP service is found', async () => {
     let emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-empty-'))
     let proc = spawn(process.execPath, [bridgePath], {
-      env: { ...process.env, COC_MCP_DIR: emptyDir, COC_MCP_WAIT_MS: '300' },
+      env: { ...process.env, COC_MCP_DIR: emptyDir },
       stdio: ['pipe', 'pipe', 'pipe']
     })
     let stderr = ''
@@ -162,96 +150,10 @@ describe('coc-mcp stdio bridge', () => {
       proc.on('exit', resolve)
     })
     expect(code).toBe(2)
-    expect(stderr).toContain('did not become available')
-    expect(stderr).toContain('COC_MCP_WAIT_MS')
+    expect(stderr).toContain('startup failed')
+    expect(stderr).toContain('coc.nvim MCP service not found')
     fs.rmSync(emptyDir, { recursive: true, force: true })
   })
-
-  it('polls until the coc.nvim MCP service appears', async () => {
-    let registry = new ToolRegistry()
-    registry.register({
-      name: 'poll_echo',
-      description: 'echo',
-      inputSchema: { type: 'object' },
-      handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
-    })
-    let pollServer = new McpServer({
-      transport: 'tcp',
-      host: '127.0.0.1',
-      port: 0,
-      token: 'bridge-token',
-      authRequired: true,
-      maxClients: 2,
-      timeout: 1000
-    }, registry)
-    let pollAddress = await pollServer.listen()
-    let pollDir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-bridge-poll-'))
-    fs.mkdirSync(path.join(pollDir, 'mcp'), { recursive: true })
-    let file = path.join(pollDir, 'mcp', `coc-${process.pid}.json`)
-    let base = {
-      version: 1,
-      pid: process.pid,
-      transport: 'tcp',
-      host: '127.0.0.1',
-      token: 'bridge-token',
-      protocolVersion: '2025-06-18',
-      serverInfo: { name: 'coc.nvim', version: '0.0.0' },
-      apiVersion: 38,
-      startedAt: Date.now()
-    }
-    // point at a dead port first, publish the real server after the bridge started
-    fs.writeFileSync(file, JSON.stringify({ ...base, port: await getDeadPort() }))
-    let proc = spawn(process.execPath, [bridgePath], {
-      env: { ...process.env, COC_MCP_DIR: path.join(pollDir, 'mcp'), COC_MCP_WAIT_MS: '12000' },
-      stdio: ['pipe', 'pipe', 'pipe']
-    })
-    let stderr = ''
-    proc.stderr.on('data', chunk => {
-      stderr += chunk.toString('utf8')
-    })
-    let client: BridgeClient = {
-      proc,
-      frames: [],
-      waiters: new Map(),
-      splitter: new FrameSplitter(1 << 20, msg => onFrame(msg), () => {})
-    }
-    proc.stdout.on('data', chunk => client.splitter.push(chunk))
-    function onFrame(msg: any): void {
-      if (msg.id !== undefined && client.waiters.has(msg.id)) {
-        let waiter = client.waiters.get(msg.id)!
-        client.waiters.delete(msg.id)
-        if (msg.error) waiter.reject(new Error(`${msg.error.code}: ${msg.error.message}`))
-        else waiter.resolve(msg.result)
-      } else {
-        client.frames.push(msg)
-      }
-    }
-    function request(id: number | string, method: string, params?: any): Promise<any> {
-      return new Promise((resolve, reject) => {
-        client.waiters.set(id, { resolve, reject })
-        let msg: any = { jsonrpc: '2.0', id, method }
-        if (params !== undefined) msg.params = params
-        proc.stdin.write(JSON.stringify(msg) + '\n')
-      })
-    }
-    // let the bridge start polling, then publish the real address
-    await new Promise(resolve => setTimeout(resolve, 300))
-    fs.writeFileSync(file, JSON.stringify({ ...base, port: pollAddress.port }))
-    let init = await request(1, 'initialize', {
-      protocolVersion: '2025-06-18',
-      capabilities: {},
-      clientInfo: { name: 'codex-test', version: '1' }
-    })
-    expect(init.protocolVersion).toBe('2025-06-18')
-    proc.stdin.end()
-    await new Promise<void>(resolve => {
-      proc.on('exit', () => resolve())
-    })
-    expect(stderr).toContain('waiting for coc.nvim MCP server')
-    expect(stderr).toContain('connected to coc.nvim')
-    pollServer.dispose()
-    fs.rmSync(pollDir, { recursive: true, force: true })
-  }, 15000)
 
   it('connects to the instance whose workspace matches the bridge cwd', async () => {
     let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-multi-'))
@@ -303,7 +205,7 @@ describe('coc-mcp stdio bridge', () => {
     writeInstance(1, addrB.port, 'token-b', workB)
     let proc = spawn(process.execPath, [bridgePath], {
       cwd: path.join(workA, 'sub'),
-      env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp'), COC_MCP_WAIT_MS: '3000' },
+      env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp') },
       stdio: ['pipe', 'pipe', 'pipe']
     })
     let stderr = ''
@@ -436,7 +338,7 @@ describe('coc-mcp stdio bridge', () => {
     let { serverA, serverB } = await twoInstances(dir, work, work)
     let proc = spawn(process.execPath, [bridgePath], {
       cwd: work,
-      env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp'), COC_MCP_WAIT_MS: '3000' },
+      env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp') },
       stdio: ['pipe', 'pipe', 'pipe']
     })
     let { request } = attachClient(proc)
@@ -472,7 +374,7 @@ describe('coc-mcp stdio bridge', () => {
     let { serverA, serverB } = await twoInstances(dir, workA, workB)
     let proc = spawn(process.execPath, [bridgePath, '--match-first'], {
       cwd: '/',
-      env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp'), COC_MCP_WAIT_MS: '3000' },
+      env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp') },
       stdio: ['pipe', 'pipe', 'pipe']
     })
     let { request } = attachClient(proc)
@@ -499,7 +401,7 @@ describe('coc-mcp stdio bridge', () => {
     let { serverA, serverB } = await twoInstances(dir, workA, workB)
     let proc = spawn(process.execPath, [bridgePath, '--match-cwd'], {
       cwd: path.join(workB, 'sub'),
-      env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp'), COC_MCP_WAIT_MS: '3000' },
+      env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp') },
       stdio: ['pipe', 'pipe', 'pipe']
     })
     let { request } = attachClient(proc)
@@ -551,7 +453,7 @@ describe('coc-mcp stdio bridge', () => {
       startedAt: Date.now()
     }))
     let proc = spawn(process.execPath, [bridgePath], {
-      env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp'), COC_MCP_WAIT_MS: '3000' },
+      env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp') },
       stdio: ['pipe', 'pipe', 'pipe']
     })
     let { request } = attachClient(proc)
@@ -645,7 +547,7 @@ describe('coc-mcp stdio bridge', () => {
     fs.writeFileSync(staleJson, '{}')
     fs.writeFileSync(staleSock, '')
     let proc = spawn(process.execPath, [bridgePath], {
-      env: { ...process.env, COC_MCP_DIR: mcpDir, COC_MCP_WAIT_MS: '3000' },
+      env: { ...process.env, COC_MCP_DIR: mcpDir },
       stdio: ['pipe', 'pipe', 'pipe']
     })
     let { request } = attachClient(proc)
@@ -703,8 +605,7 @@ describe('coc-mcp stdio bridge', () => {
       env: {
         ...process.env,
         COC_MCP_DIR: path.join(dir, 'mcp'),
-        COC_MCP_AUTH_KEY_FILE: keyFile,
-        COC_MCP_WAIT_MS: '3000'
+        COC_MCP_AUTH_KEY_FILE: keyFile
       },
       stdio: ['pipe', 'pipe', 'pipe']
     })
@@ -748,7 +649,7 @@ describe('coc-mcp stdio bridge', () => {
       startedAt: Date.now()
     }))
     let proc = spawn(process.execPath, [bridgePath], {
-      env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp'), COC_MCP_WAIT_MS: '3000' },
+      env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp') },
       stdio: ['pipe', 'pipe', 'pipe']
     })
     let stderr = ''
@@ -783,7 +684,6 @@ describe('coc-mcp stdio bridge', () => {
 
   it('--connect requires a private key', async () => {
     let proc = spawn(process.execPath, [bridgePath, '--connect=127.0.0.1:9'], {
-      env: { ...process.env, COC_MCP_NO_WAIT: '1' },
       stdio: ['pipe', 'pipe', 'pipe']
     })
     let stderr = ''
@@ -826,8 +726,7 @@ describe('coc-mcp stdio bridge', () => {
       env: {
         ...process.env,
         COC_MCP_DIR: path.join(connectDir, 'mcp'),
-        COC_MCP_AUTH_KEY_FILE: keyFile,
-        COC_MCP_WAIT_MS: '5000'
+        COC_MCP_AUTH_KEY_FILE: keyFile
       },
       stdio: ['pipe', 'pipe', 'pipe']
     })

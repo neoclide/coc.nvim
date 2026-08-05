@@ -24,10 +24,6 @@ tool_timeout_sec = 60
 # coc.nvim writes its per-instance discovery
 # files to ~/.coc/mcp/coc-<pid>.json and the bridge reads them from there.
 # COC_MCP_DIR optionally overrides that directory (tests, remote mounts).
-[mcp_servers.coc.env]
-# How long the bridge waits (polls) for the coc.nvim MCP service before
-# giving up. Default is 15000 (15s); COC_MCP_NO_WAIT=1 disables waiting.
-# COC_MCP_WAIT_MS = "30000"
 
 # Optional: whitelist only the tools Codex may call.
 # enabled_tools = ["document/read", "document/apply_edits", "workspace/search", "lsp/references"]

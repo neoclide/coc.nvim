@@ -83,12 +83,9 @@ or `workspace/apply_edit`.
 A commented example with timeouts and an optional tool whitelist lives in
 `doc/coc-mcp-example.toml`.
 
-The bridge waits for the MCP service instead of failing immediately: if
-coc.nvim is not running yet (or is restarting), it polls the discovery
-file and socket until the service appears (default up to 15s, configurable
-with the `COC_MCP_WAIT_MS` environment variable; `COC_MCP_NO_WAIT=1`
-restores the immediate-exit behavior). Make sure Codex's
-`startup_timeout_sec` is large enough for the wait window.
+The bridge fails immediately when it cannot find a usable coc.nvim MCP
+service: start vim/nvim with coc.nvim and `"mcp.autoStart": true` first,
+or run `:CocCommand mcp.start`, then start Codex.
 
 Once connected, the bridge keeps running across `:CocRestart`: the MCP
 server state is kept in vim, the new coc.nvim process restarts it and
@@ -100,9 +97,6 @@ endpoint/token automatically.
 	args = ["/path/to/coc.nvim/bin/coc-mcp.js"]
 	enabled = true
 	startup_timeout_sec = 30
-
-	[mcp_servers.coc.env]
-	COC_MCP_WAIT_MS = "30000"   # wait up to 30s for the service
 
 Multiple editor instances: ~
 
@@ -211,8 +205,8 @@ asking for fewer results also makes the call faster.
 - Make sure coc.nvim is running and `"mcp.autoStart": true` is set, or start
   the server manually with `:CocCommand mcp.start`.
 - Check `~/.coc/mcp/coc-<pid>.json` exists.
-- If coc.nvim starts slowly, raise `startup_timeout_sec` in
-  `~/.codex/config.toml` and `COC_MCP_WAIT_MS` for the bridge.
+- The bridge exits immediately when coc.nvim is not running: restart session
+  after mcp service available.
 - If `mcp.authClientPublicKey` is configured but the bridge has no
   `COC_MCP_AUTH_KEY_FILE`, authentication fails: set the private key file
   or clear the config.
@@ -260,7 +254,6 @@ file, no token):
 
 	[mcp_servers.coc.env]
 	COC_MCP_AUTH_KEY_FILE = "/home/user/.config/coc-mcp/key.pem"
-	COC_MCP_WAIT_MS = "30000"
 
 `--connect` accepts `host:port` (or a bare `port`, defaulting to
 `127.0.0.1`; IPv6 like `[::1]:port` works too). The bridge sends

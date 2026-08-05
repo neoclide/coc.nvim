@@ -4,6 +4,11 @@ Notable changes of coc.nvim:
 
 ## 2026-08-05
 
+- MCP: the `coc-mcp` bridge no longer waits for the coc.nvim MCP service —
+  it fails immediately with a "coc.nvim MCP service not found" error when
+  no usable connection exists at startup, and the `COC_MCP_WAIT_MS` /
+  `COC_MCP_NO_WAIT` environment variables are removed. Start vim/nvim
+  with `"mcp.autoStart": true` before launching Codex.
 - MCP: the socket server survives `:CocRestart` — its started state is kept
   in a vim variable and restored on startup, the per-instance discovery
   file is keyed by the vim pid, and the `coc-mcp` bridge reconnects to the

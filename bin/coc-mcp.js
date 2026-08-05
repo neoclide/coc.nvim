@@ -256,13 +256,6 @@ function readDiscovery(file) {
   return info
 }
 
-function getWaitMs() {
-  if (process.env.COC_MCP_NO_WAIT === '1') return 0
-  const fromEnv = parseInt(process.env.COC_MCP_WAIT_MS, 10)
-  if (!isNaN(fromEnv) && fromEnv >= 0) return fromEnv
-  return 15000
-}
-
 function main() {
   if (process.argv.includes('--generate-key')) {
     const {privateKey, publicKey} = crypto.generateKeyPairSync('ec', {namedCurve: 'prime256v1'})
@@ -298,12 +291,9 @@ function main() {
     log(e.message)
     process.exit(2)
   }
-  const waitMs = getWaitMs()
-  const started = Date.now()
   let mode = 'poll' // 'poll' | 'selection' | 'relay' | 'waiting'
   let closed = false
   let socket = null
-  let retryTimer = null
   let stdinBuffer = Buffer.alloc(0)
   let selectionBuffer = ''
   let selectionQueue = Promise.resolve()
@@ -323,30 +313,13 @@ function main() {
     if (closed) return
     closed = true
     if (msg) log(msg)
-    if (retryTimer) {
-      clearTimeout(retryTimer)
-      retryTimer = null
-    }
     process.exit(code)
   }
 
   function giveUp(reason) {
-    log('coc.nvim MCP server did not become available within ' + waitMs + 'ms: ' + reason)
+    log('startup failed: coc.nvim MCP service not found: ' + reason)
     log('start vim/nvim with coc.nvim and set "mcp.autoStart": true in coc-settings.json, or run :CocCommand mcp.start')
-    log('for slow starts raise COC_MCP_WAIT_MS and the codex mcp startup_timeout_sec, or set COC_MCP_NO_WAIT=1')
     process.exit(2)
-  }
-
-  function scheduleRetry(reason) {
-    if (mode !== 'poll' || closed) return
-    if (Date.now() - started >= waitMs) {
-      giveUp(reason)
-      return
-    }
-    if (!retryTimer) {
-      log('waiting for coc.nvim MCP server... (' + reason + ')')
-      retryTimer = setTimeout(attempt, 500)
-    }
   }
 
   /**
@@ -709,23 +682,18 @@ function main() {
 
   function startSelection() {
     mode = 'selection'
-    if (retryTimer) {
-      clearTimeout(retryTimer)
-      retryTimer = null
-    }
     log('multiple coc.nvim instances, waiting for the agent to choose (coc/instances / coc/connect)')
   }
 
   function attempt() {
     if (mode !== 'poll' || closed) return
-    retryTimer = null
     if (connectInfo) {
       connectToInstance(connectInfo, false).catch(err => {
         if (err && err.code === 3) {
           fail(3, err.message)
           return
         }
-        scheduleRetry(err.message)
+        giveUp(err.message)
       })
       return
     }
@@ -734,7 +702,7 @@ function main() {
     try {
       const selection = decideInstance(matchMode())
       if (selection.missing) {
-        scheduleRetry(selection.missing)
+        giveUp(selection.missing)
         return
       }
       if (selection.select) {
@@ -743,7 +711,7 @@ function main() {
         info = selection.info
       }
     } catch (e) {
-      scheduleRetry(e.message)
+      giveUp(e.message)
       return
     }
     if (select) {
@@ -755,7 +723,7 @@ function main() {
         fail(3, err.message)
         return
       }
-      scheduleRetry(err.message)
+      giveUp(err.message)
     })
   }
 
