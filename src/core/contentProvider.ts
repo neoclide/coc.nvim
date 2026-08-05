@@ -65,6 +65,12 @@ export default class ContentProvider implements Disposable {
     if (provider.onDidChange) {
       provider.onDidChange(async uri => {
         let key = uri.toString()
+        // A refresh for a document that is no longer open must not call the
+        // provider at all: the provider may respond with a request that the
+        // server does not implement (e.g. workspace/textDocumentContent),
+        // producing an unhandled rejection for a document nobody is viewing.
+        let doc = this.documents.getDocument(key)
+        if (!doc) return
         let previous = this.refreshSources.get(key)
         if (previous) previous.cancel()
         let tokenSource = new CancellationTokenSource()
@@ -75,8 +81,6 @@ export default class ContentProvider implements Disposable {
           // Only the latest refresh for this uri may write, and only while
           // the provider registration and document are still valid.
           if (tokenSource.token.isCancellationRequested || this.refreshSources.get(key) !== tokenSource) return
-          let doc = this.documents.getDocument(key)
-          if (!doc) return
           await doc.buffer.setLines(content.split(/\r?\n/), {
             start: 0,
             end: -1,
