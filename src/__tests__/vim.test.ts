@@ -555,6 +555,31 @@ describe('client API', () => {
     await helper.waitValue(async () => await nvim.call('coc#task#running', [id]), false)
   })
 
+  it('runs node version checks with spaces in the executable path', async () => {
+    let dir = path.join(os.tmpdir(), `coc node check-${crypto.randomUUID()}`)
+    fs.mkdirSync(dir, { recursive: true })
+    let node = path.join(dir, 'my node')
+    fs.writeFileSync(node, '#!/bin/sh\necho "v20.19.0"\n', { mode: 0o755 })
+    let saved = await nvim.eval('exists("g:coc_node_path") ? g:coc_node_path : ""') as string
+    try {
+      await nvim.setVar('coc_node_path', node)
+      let out = await nvim.call('eval', ["system(shellescape(g:coc_node_path) . ' --version')"]) as string
+      expect(out.trim()).toBe('v20.19.0')
+      // check_version must parse the version without reporting an error
+      let stderrBefore = await nvim.call('eval', ["get(coc#client#get_client('coc'), 'stderr', [])"]) as any[]
+      await nvim.call('coc#client#check_version', [])
+      let stderrAfter = await nvim.call('eval', ["get(coc#client#get_client('coc'), 'stderr', [])"]) as any[]
+      expect(stderrAfter.length).toBe(stderrBefore.length)
+    } finally {
+      if (saved === '') {
+        await nvim.exec('unlet g:coc_node_path')
+      } else {
+        await nvim.setVar('coc_node_path', saved)
+      }
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
   it('rejects pending async callbacks once when the connection detaches', async () => {
     let code = [
       "call coc#client#create('fake', [])",

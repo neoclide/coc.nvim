@@ -107,7 +107,7 @@ function! coc#client#check_version() abort
   else
     let node = $COC_NODE_PATH == '' ? 'node' : $COC_NODE_PATH
   endif
-  let cmd = node . ' --version'
+  let cmd = shellescape(node) . ' --version'
   let output = system(cmd)
   let msgs = []
   if v:shell_error
