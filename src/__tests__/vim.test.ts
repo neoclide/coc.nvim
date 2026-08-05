@@ -630,6 +630,42 @@ describe('client API', () => {
     await nvim.command('silent! %bwipeout!')
   })
 
+  it('validates Buf_set_lines ranges like Neovim', async () => {
+    let buf = await nvim.createNewBuffer()
+    let cases: Array<[number, number, boolean]> = [
+      [2, 1, true], // reversed range, strict
+      [2, 1, false], // reversed range, non-strict
+      [0, 5, true], // end beyond buffer, strict
+      [-5, 1, true], // start below buffer, strict
+      [1, -5, true], // end below buffer, strict
+    ]
+    for (let [start, end, strict] of cases) {
+      await buf.setLines(['a', 'b'], { start: 0, end: -1 })
+      let err: Error | undefined
+      try {
+        await buf.setLines(['X'], { start, end, strictIndexing: strict })
+      } catch (e) {
+        err = e as Error
+      }
+      expect(err, `${start}:${end}:${strict}`).toBeTruthy()
+      expect(await buf.lines, `${start}:${end}:${strict}`).toEqual(['a', 'b'])
+    }
+    // boundary insert at the end still works
+    await buf.setLines(['a', 'b'], { start: 0, end: -1 })
+    await buf.setLines(['X'], { start: 2, end: 2, strictIndexing: true })
+    expect(await buf.lines).toEqual(['a', 'b', 'X'])
+    // get_lines validates reversed ranges too
+    await buf.setLines(['a', 'b'], { start: 0, end: -1 })
+    let getErr: Error | undefined
+    try {
+      await buf.getLines({ start: 2, end: 1, strictIndexing: true })
+    } catch (e) {
+      getErr = e as Error
+    }
+    expect(getErr).toBeTruthy()
+    await nvim.command('silent! %bwipeout!')
+  })
+
   it('should execute vim script', async () => {
     let output = await nvim.exec(`echo 'foo'\necho 'bar'`, true)
     expect(output).toBe('foo\nbar')

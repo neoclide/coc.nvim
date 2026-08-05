@@ -1145,6 +1145,12 @@ export def Buf_get_lines(id: number, start: number, end: number, strict: bool = 
   const len = BufLineCount(bufnr)
   const s = start < 0 ? len + start + 2 : start + 1
   const e = end < 0 ? len + end + 1 : end
+  if s > e + 1
+    throw 'Start index exceeds end index'
+  endif
+  if s < 1 || e < 0
+    throw 'Index out of bounds'
+  endif
   if strict && e > len
     throw $'Index out of bounds {end}'
   endif
@@ -1156,6 +1162,12 @@ export def Buf_set_lines(id: number, start: number, end: number, strict: bool = 
   const len = BufLineCount(bufnr)
   const startLnum = start < 0 ? len + start + 2 : start + 1
   var endLnum = end < 0 ? len + end + 1 : end
+  if startLnum > endLnum + 1
+    throw 'Start index exceeds end index'
+  endif
+  if startLnum < 1 || endLnum < 0
+    throw 'Index out of bounds'
+  endif
   if endLnum > len
     if strict
       throw $'Index out of bounds {end}'
