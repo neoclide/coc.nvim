@@ -314,6 +314,7 @@ describe('applyEdits()', () => {
   })
 
   it('should drop waitUntil edit after default timeout', async () => {
+    helper.updateConfiguration('editor.fileOperationTimeout', 50, disposables)
     let file = await createTmpFile('content')
     await helper.createDocument(file)
     let newFile = path.join(os.tmpdir(), crypto.randomUUID())

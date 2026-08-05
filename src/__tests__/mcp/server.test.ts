@@ -575,7 +575,7 @@ describe('mcp server hardening', () => {
         }
       }
     })
-    let server = newServer({ timeout: 300 }, registry)
+    let server = newServer({ timeout: 100 }, registry)
     let address = await server.listen()
     let client = new TestClient(address.port)
     await authInit(client)
@@ -587,7 +587,7 @@ describe('mcp server hardening', () => {
     expect(result.structuredContent.cancelled).toBe(true)
     // wait past the timeout window: cancellation must have cleared the timer,
     // so no spurious -32003 arrives
-    await new Promise(resolve => setTimeout(resolve, 400))
+    await new Promise(resolve => setTimeout(resolve, 150))
     expect(client.notifications.some(n => n.error && n.error.code === -32003)).toBe(false)
     client.close()
     server.dispose()

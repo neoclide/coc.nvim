@@ -658,7 +658,11 @@ describe('diagnostic manager', () => {
 
       let doc = await createDocument()
       let buf = nvim.createBuffer(doc.bufnr)
-      let items = await buf.getVar('coc_diagnostic_map') as any
+      let items: any
+      await helper.waitValue(async () => {
+        items = await buf.getVar('coc_diagnostic_map') as any
+        return Array.isArray(items) && items.length == 5
+      }, true)
       expect(items.length).toBe(5)
 
       let res = await nvim.lua('return vim.diagnostic.get()') as any[]

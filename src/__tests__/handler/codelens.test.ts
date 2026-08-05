@@ -348,6 +348,7 @@ describe('codeLenes feature', () => {
     expect(markers.length).toBeGreaterThan(0)
     let codeLensBuffer = codeLens.buffers.getItem(doc.buffer.id)
     await codeLensBuffer.forceFetch()
+    await helper.waitValue(() => codeLensBuffer.currentCodeLens.length > 1, true)
     let curr = codeLensBuffer.currentCodeLens
     expect(curr.length).toBeGreaterThan(1)
   })
