@@ -510,7 +510,7 @@ export class ExtensionManager {
       id,
       packageJSON,
       extensionPath,
-      extensionUri: URI.parse(extensionPath),
+      extensionUri: URI.file(extensionPath),
       get _exports() {
         // Can be used by coc-test
         return isTester ? ext : undefined

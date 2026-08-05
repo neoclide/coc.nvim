@@ -790,6 +790,31 @@ describe('getOriginalLine', () => {
       expect(fs.existsSync(filepath)).toBe(true)
     })
 
+    it('rename will/did events carry file URIs for old and new paths', async () => {
+      let filepath = await createTmpFile('test')
+      let newPath = path.join(path.dirname(filepath), 'renamed-events.txt')
+      disposables.push(Disposable.create(() => {
+        if (fs.existsSync(newPath)) fs.unlinkSync(newPath)
+        if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
+      }))
+      let will: any[] = []
+      let did: any[] = []
+      let d1 = workspace.files.onWillRenameFiles(e => will.push(...e.files))
+      let d2 = workspace.files.onDidRenameFiles(e => did.push(...e.files))
+      disposables.push(d1, d2)
+      await workspace.files.renameFile(filepath, newPath, { overwrite: true })
+      expect(will.length).toBe(1)
+      expect(will[0].oldUri.scheme).toBe('file')
+      expect(will[0].oldUri.fsPath).toBe(filepath)
+      expect(will[0].newUri.scheme).toBe('file')
+      expect(will[0].newUri.fsPath).toBe(newPath)
+      expect(did.length).toBe(1)
+      expect(did[0].oldUri.scheme).toBe('file')
+      expect(did[0].oldUri.fsPath).toBe(filepath)
+      expect(did[0].newUri.scheme).toBe('file')
+      expect(did[0].newUri.fsPath).toBe(newPath)
+    })
+
     it('should rename if file does not exist', async () => {
       let filepath = path.join(tmpdir, 'foo')
       let newPath = path.join(tmpdir, 'bar')

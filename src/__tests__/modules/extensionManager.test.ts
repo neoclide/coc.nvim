@@ -743,7 +743,7 @@ describe('ExtensionManager', () => {
       expect(item.extension.isActive).toBe(true)
     })
 
-    it('should toggle local extension', async () => {
+  it('should toggle local extension', async () => {
       tmpfolder = createFolder()
       let folder = path.join(tmpfolder, 'local')
       createExtension(folder, { name: 'local', main: 'entry.js', engines: { coc: '>=0.0.1' } })
@@ -759,6 +759,22 @@ describe('ExtensionManager', () => {
       let state = manager.getExtensionState('local')
       expect(state).toBe('activated')
     })
+  })
+
+  it('builds extensionUri from a filesystem path with the file scheme', async () => {
+    tmpfolder = createFolder()
+    let manager = create()
+    await manager.registerExtension('C:\\tmp\\win-ext', {
+      name: 'win-ext',
+      main: 'index.js',
+      engines: { coc: '>=0.0.1' }
+    }, ExtensionType.Global)
+    let extension = manager.getExtension('win-ext')!.extension
+    expect(extension.extensionUri.scheme).toBe('file')
+    // URI.parse('C:\\...') would treat C as the scheme; URI.file must keep
+    // the drive-letter path.
+    expect(extension.extensionUri.fsPath).toMatch(/^[a-z]:/i)
+    expect(extension.extensionUri.fsPath).toContain('win-ext')
   })
 
   describe('watchExtension()', () => {

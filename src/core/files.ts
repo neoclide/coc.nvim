@@ -468,7 +468,7 @@ export default class Files {
     let oldStat = await statAsync(oldPath)
     let loaded = (oldStat && oldStat.isDirectory()) ? 0 : await nvim.call('bufloaded', [oldPath])
     if (!loaded && !oldStat) throw errors.fileNotExists(oldPath)
-    let file = { newUri: URI.parse(newPath), oldUri: URI.parse(oldPath) }
+    let file = { newUri: URI.file(newPath), oldUri: URI.file(oldPath) }
     if (!opts.skipEvent) await this.fireWaitUntilEvent(this._onWillRenameFiles, { files: [file] }, recovers)
     if (loaded) {
       let bufnr = await nvim.call('coc#ui#rename_file', [oldPath, newPath, oldStat != null]) as number
