@@ -264,4 +264,71 @@ describe('mcp security hardening', () => {
     expect(cancelled).toBeGreaterThan(0)
     client.close()
   })
+
+  it('client cancel releases in-flight slots even when the tool ignores cancellation', async () => {
+    let entered = 0
+    let resolveNever: ((v: any) => void) | null = null
+    let never: McpTool = {
+      name: 'never',
+      description: 'Never settles',
+      inputSchema: { type: 'object' },
+      annotations: { readOnlyHint: true },
+      handler: () => {
+        entered++
+        return new Promise(resolve => {
+          resolveNever = resolve
+        })
+      }
+    }
+    let echo: McpTool = {
+      name: 'echo',
+      description: 'Read only echo',
+      inputSchema: { type: 'object', properties: { value: { type: 'string' } } },
+      annotations: { readOnlyHint: true },
+      handler: (args: any) => ({
+        content: [{ type: 'text', text: String(args?.value ?? '') }]
+      })
+    }
+    let registry = new ToolRegistry()
+    registry.register(never)
+    registry.register(echo)
+    let server = new McpServer({
+      transport: 'tcp',
+      host: '127.0.0.1',
+      port: 0,
+      token: 'sec-token',
+      authRequired: true,
+      maxClients: 2,
+      maxRequestsPerSecond: 1000,
+      timeout: 0
+    }, registry)
+    let address = await server.listen()
+    let client = new TestClient(address.port)
+    await authInit(client)
+    // Fill every in-flight slot with a tool that never settles.
+    for (let i = 60; i < 76; i++) {
+      client.socket.write(encodeMessage({
+        jsonrpc: '2.0',
+        id: i,
+        method: 'tools/call',
+        params: { name: 'never', arguments: {} }
+      }))
+    }
+    await pollUntil(() => entered >= 16, 1000)
+    // Cancel each request twice; the accounting must stay idempotent.
+    for (let i = 60; i < 76; i++) {
+      client.notify('notifications/cancelled', { requestId: i })
+      client.notify('notifications/cancelled', { requestId: i })
+    }
+    // Slots must be released immediately: a new call succeeds instead of
+    // returning "Too many concurrent requests".
+    let res = await client.request(90, 'tools/call', { name: 'echo', arguments: { value: 'ok' } })
+    expect(res.content[0].text).toBe('ok')
+    // A late result is consumed silently: no second response for id 60.
+    resolveNever?.({ content: [{ type: 'text', text: 'late' }] })
+    await new Promise(resolve => setImmediate(resolve))
+    expect(client.notifications.some(n => n.id === 60)).toBe(false)
+    client.close()
+    server.dispose()
+  })
 })

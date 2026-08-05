@@ -158,8 +158,6 @@ export class McpServer implements Disposable {
     let pending = session.pending.get(requestId)
     if (pending) {
       pending.cancel()
-      if (pending.timer) clearTimeout(pending.timer)
-      session.pending.delete(requestId)
     }
   }
 

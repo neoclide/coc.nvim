@@ -489,6 +489,10 @@ describe('mcp server hardening', () => {
     let enteredPromise = new Promise<void>(resolve => {
       entered = resolve
     })
+    let cancelledObserved: () => void = () => {}
+    let cancelledPromise = new Promise<void>(resolve => {
+      cancelledObserved = resolve
+    })
     registry.register({
       name: 'cancelme',
       description: 'Cancellable tool',
@@ -499,8 +503,8 @@ describe('mcp server hardening', () => {
         await new Promise<void>(resolve => {
           context.token.onCancellationRequested(() => resolve())
         })
-        let cancelled = context.token.isCancellationRequested === true
-        return { content: [{ type: 'text', text: 'done' }], structuredContent: { cancelled } }
+        cancelledObserved()
+        return { content: [{ type: 'text', text: 'done' }] }
       }
     })
     let server = newServer({ timeout: 3000 }, registry)
@@ -511,8 +515,11 @@ describe('mcp server hardening', () => {
     await enteredPromise
     // a real client sends the cancellation after the call started
     client.notify('notifications/cancelled', { requestId: 2 })
-    let result = await call
-    expect(result.structuredContent.cancelled).toBe(true)
+    await cancelledPromise
+    // a cancelled request must not receive a response
+    client.close()
+    await expect(call).rejects.toThrow('Connection closed')
+    expect(client.notifications.some(n => n.id === 2)).toBe(false)
     client.close()
     server.dispose()
   })
@@ -583,12 +590,13 @@ describe('mcp server hardening', () => {
     await enteredPromise
     client.notify('notifications/cancelled', { requestId: 2 })
     release()
-    let result = await call
-    expect(result.structuredContent.cancelled).toBe(true)
     // wait past the timeout window: cancellation must have cleared the timer,
     // so no spurious -32003 arrives
     await new Promise(resolve => setTimeout(resolve, 150))
     expect(client.notifications.some(n => n.error && n.error.code === -32003)).toBe(false)
+    expect(client.notifications.some(n => n.id === 2)).toBe(false)
+    client.close()
+    await expect(call).rejects.toThrow('Connection closed')
     client.close()
     server.dispose()
   })

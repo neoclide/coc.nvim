@@ -99,6 +99,7 @@ async function handleToolCall(server: McpServer, session: Session, id: number | 
   let tokenSource = new CancellationTokenSource()
   let start = Date.now()
   let done = false
+  let cancelled = false
   let timer: NodeJS.Timeout | undefined
   // read-only tools (e.g. LSP queries) get the longer mcp.readTimeout;
   // mutating and other tools use mcp.timeout. Both are user-configured and
@@ -111,7 +112,7 @@ async function handleToolCall(server: McpServer, session: Session, id: number | 
     session.pending.delete(id)
     session.inFlight--
     tokenSource.dispose()
-    fn()
+    if (!cancelled) fn()
   }
   session.inFlight++
   try {
@@ -141,8 +142,18 @@ async function handleToolCall(server: McpServer, session: Session, id: number | 
     } else {
       resultPromise = callPromise
     }
-    // set pending after the timer so cancelRequest can clear it
-    session.pending.set(id, { cancel: () => tokenSource.cancel(), timer })
+    // set pending after the timer so cancelRequest can clear it. Cancellation
+    // terminates the protocol-side accounting (inFlight, token, pending) even
+    // when the tool itself ignores the token and never settles; late results
+    // are consumed by finish() without a second response.
+    session.pending.set(id, {
+      cancel: () => {
+        cancelled = true
+        tokenSource.cancel()
+        finish(() => {})
+      },
+      timer
+    })
     let result = await resultPromise
     finish(() => {
       logAudit(session, `Tool ${name} finished in ${Date.now() - start}ms`)
