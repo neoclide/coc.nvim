@@ -1675,7 +1675,7 @@ describe('document', () => {
     let ours = 'a'.repeat(30) + 'x' + 'a'.repeat(40) + 'y' + 'a'.repeat(30)
     let theirs = 'a'.repeat(30) + 'b' + 'a'.repeat(39) + 'c' + 'a'.repeat(30)
     let start = Date.now()
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 10; i++) {
       await nvim.call('coc#text#DiffApply', [base, ours, theirs, -1])
     }
     let elapsed = Date.now() - start

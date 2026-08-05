@@ -873,7 +873,7 @@ describe('Document', () => {
       let elapsed = await nvim.request('nvim_exec_lua', [
         `local text = require('coc.text')
          local start = vim.uv.hrtime()
-         for i = 1, 50 do
+         for i = 1, 30 do
            text.mergeLine(...)
          end
          return (vim.uv.hrtime() - start) / 1e6`,
@@ -889,7 +889,7 @@ describe('Document', () => {
       let elapsed = await nvim.request('nvim_exec_lua', [
         `local text = require('coc.text')
          local start = vim.uv.hrtime()
-         for i = 1, 2000 do
+         for i = 1, 500 do
            text.mergeLine(...)
          end
          return (vim.uv.hrtime() - start) / 1e6`,

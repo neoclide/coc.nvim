@@ -330,13 +330,32 @@ local function charLcsDiff(str1, str2)
   local chars1 = toChars(str1)
   local chars2 = toChars(str2)
   local n1, n2 = #chars1, #chars2
+  -- Trim common prefix and suffix, LCS only on the changed middle
+  local start = 1
+  while start <= n1 and start <= n2 and chars1[start] == chars2[start] do
+    start = start + 1
+  end
+  local end1, end2 = n1, n2
+  while end1 >= start and end2 >= start and chars1[end1] == chars2[end2] do
+    end1 = end1 - 1
+    end2 = end2 - 1
+  end
+  local function slice(list, from, to)
+    local result = {}
+    for i = from, to do
+      result[#result + 1] = list[i]
+    end
+    return result
+  end
+  local mid1 = slice(chars1, start, end1)
+  local mid2 = slice(chars2, start, end2)
   local matrix = {}
-  for i = 0, n1 do
+  for i = 0, #mid1 do
     matrix[i] = {}
-    for j = 0, n2 do
+    for j = 0, #mid2 do
       if i == 0 or j == 0 then
         matrix[i][j] = 0
-      elseif chars1[i] == chars2[j] then
+      elseif mid1[i] == mid2[j] then
         matrix[i][j] = matrix[i - 1][j - 1] + 1
       else
         matrix[i][j] = math.max(matrix[i - 1][j], matrix[i][j - 1])
@@ -344,10 +363,10 @@ local function charLcsDiff(str1, str2)
     end
   end
   local common = {}
-  local i, j = n1, n2
+  local i, j = #mid1, #mid2
   while i > 0 and j > 0 do
-    if chars1[i] == chars2[j] then
-      common[#common + 1] = chars1[i]
+    if mid1[i] == mid2[j] then
+      common[#common + 1] = mid1[i]
       i = i - 1
       j = j - 1
     elseif matrix[i - 1][j] > matrix[i][j - 1] then
@@ -360,14 +379,17 @@ local function charLcsDiff(str1, str2)
     common[k], common[#common - k + 1] = common[#common - k + 1], common[k]
   end
   local result = {}
+  for i = 1, start - 1 do
+    table.insert(result, { type = '=', char = chars1[i] })
+  end
   local i1, i2, ic = 1, 1, 1
   while ic <= #common do
-    while i1 <= n1 and chars1[i1] ~= common[ic] do
-      table.insert(result, { type = '-', char = chars1[i1] })
+    while i1 <= #mid1 and mid1[i1] ~= common[ic] do
+      table.insert(result, { type = '-', char = mid1[i1] })
       i1 = i1 + 1
     end
-    while i2 <= n2 and chars2[i2] ~= common[ic] do
-      table.insert(result, { type = '+', char = chars2[i2] })
+    while i2 <= #mid2 and mid2[i2] ~= common[ic] do
+      table.insert(result, { type = '+', char = mid2[i2] })
       i2 = i2 + 1
     end
     table.insert(result, { type = '=', char = common[ic] })
@@ -375,13 +397,16 @@ local function charLcsDiff(str1, str2)
     i2 = i2 + 1
     ic = ic + 1
   end
-  while i1 <= n1 do
-    table.insert(result, { type = '-', char = chars1[i1] })
+  while i1 <= #mid1 do
+    table.insert(result, { type = '-', char = mid1[i1] })
     i1 = i1 + 1
   end
-  while i2 <= n2 do
-    table.insert(result, { type = '+', char = chars2[i2] })
+  while i2 <= #mid2 do
+    table.insert(result, { type = '+', char = mid2[i2] })
     i2 = i2 + 1
+  end
+  for i = end1 + 1, n1 do
+    table.insert(result, { type = '=', char = chars1[i] })
   end
   return result
 end

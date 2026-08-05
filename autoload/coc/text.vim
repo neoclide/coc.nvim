@@ -64,6 +64,19 @@ export def LcsDiff(str1: string, str2: string): list<dict<any>>
   const chars2 = split(str2, '\zs')
   const len1 = len(chars1)
   const len2 = len(chars2)
+  # Trim common prefix and suffix, LCS only on the changed middle
+  var start = 0
+  while start < len1 && start < len2 && chars1[start] == chars2[start]
+    start += 1
+  endwhile
+  var end1 = len1
+  var end2 = len2
+  while end1 > start && end2 > start && chars1[end1 - 1] == chars2[end2 - 1]
+    end1 -= 1
+    end2 -= 1
+  endwhile
+  const mid1 = start == end1 ? [] : chars1[start : end1 - 1]
+  const mid2 = start == end2 ? [] : chars2[start : end2 - 1]
   def Lcs(a: list<string>, b: list<string>): list<string>
     var matrix: list<list<number>> = []
     for i in range(0, len(a))
@@ -95,20 +108,23 @@ export def LcsDiff(str1: string, str2: string): list<dict<any>>
     result->reverse()
     return result
   enddef
-  var common = Lcs(chars1, chars2)
+  var common = Lcs(mid1, mid2)
   var result: list<dict<any>> = []
+  for i in range(0, start - 1)
+    result->add({type: '=', char: chars1[i]})
+  endfor
   var i1 = 0
   var i2 = 0
   var ic = 0
   while ic < len(common)
     # 处理str1中不在公共序列的部分
-    while i1 < len1 && chars1[i1] != common[ic]
-      result->add({type: '-', char: chars1[i1]})
+    while i1 < len(mid1) && mid1[i1] != common[ic]
+      result->add({type: '-', char: mid1[i1]})
       i1 += 1
     endwhile
     # 处理str2中不在公共序列的部分
-    while i2 < len2 && chars2[i2] != common[ic]
-      result->add({type: '+', char: chars2[i2]})
+    while i2 < len(mid2) && mid2[i2] != common[ic]
+      result->add({type: '+', char: mid2[i2]})
       i2 += 1
     endwhile
     # 添加公共字符
@@ -118,14 +134,17 @@ export def LcsDiff(str1: string, str2: string): list<dict<any>>
     ic += 1
   endwhile
   # 处理剩余字符
-  while i1 < len1
-    result->add({type: '-', char: chars1[i1]})
+  while i1 < len(mid1)
+    result->add({type: '-', char: mid1[i1]})
     i1 += 1
   endwhile
-  while i2 < len2
-    result->add({type: '+', char: chars2[i2]})
+  while i2 < len(mid2)
+    result->add({type: '+', char: mid2[i2]})
     i2 += 1
   endwhile
+  for i in range(end1, len1 - 1)
+    result->add({type: '=', char: chars1[i]})
+  endfor
   return result
 enddef
 
