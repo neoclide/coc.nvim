@@ -1,5 +1,6 @@
 'use strict'
 import { URI } from 'vscode-uri'
+import RelativePatternImpl from '../../model/relativePattern'
 import services from '../../services'
 import { child_process, fs, which } from '../../util/node'
 import workspace from '../../workspace'
@@ -76,7 +77,9 @@ function searchWithRg(pattern: string, args: any, root: string, maxResults: numb
         let line = output.slice(0, idx)
         output = output.slice(idx + 1)
         let match = parseRgLine(line)
-        if (match) {
+        // Only return matches for files that pass the path policy; the count
+        // limit applies to allowed matches, not raw rg output.
+        if (match && !checkPath(match.file)) {
           results.push(match)
           if (results.length >= maxResults) {
             done = true
@@ -101,7 +104,8 @@ function escapeRegExp(text: string): string {
 }
 
 export async function searchWithJs(pattern: string, args: any, root: string, maxResults: number): Promise<SearchMatch[]> {
-  let uris = await workspace.findFiles(typeof args.include === 'string' && args.include ? args.include : '**/*', args.exclude || null, 500)
+  let include = new RelativePatternImpl(URI.file(root), typeof args.include === 'string' && args.include ? args.include : '**/*')
+  let uris = await workspace.findFiles(include, args.exclude || null, 500)
   let flags = args.caseSensitive === true ? 'g' : 'gi'
   let source = args.regex === true ? pattern : escapeRegExp(pattern)
   let re: RegExp
@@ -114,6 +118,7 @@ export async function searchWithJs(pattern: string, args: any, root: string, max
   for (let uri of uris) {
     if (results.length >= maxResults) break
     let filepath = uri.fsPath
+    if (checkPath(filepath)) continue
     let content: string
     try {
       let stat = fs.statSync(filepath)

@@ -82,6 +82,49 @@ describe('mcp workspace tools', () => {
     expect(jsMatches[0].text).toContain('hello')
   })
 
+  it('workspace/search filters files in deniedPaths and scopes to the root', async () => {
+    let keepDir = path.join(tmpdir, 'keep')
+    let deniedDir = path.join(tmpdir, 'denied-sub')
+    fs.mkdirSync(keepDir, { recursive: true })
+    fs.mkdirSync(deniedDir, { recursive: true })
+    fs.writeFileSync(path.join(keepDir, 'keep.ts'), 'needle in keep\n')
+    fs.writeFileSync(path.join(deniedDir, 'hidden.ts'), 'needle in denied\n')
+    workspace.configurations.updateMemoryConfig({
+      'mcp.allowedPaths': [path.join(tmpdir, '**')],
+      'mcp.deniedPaths': [path.join(deniedDir, '**')]
+    })
+    try {
+      let rgResult = await tool('workspace/search').handler({
+        pattern: 'needle',
+        include: '**/*.ts',
+        root: tmpdir
+      }, { token })
+      expect(rgResult.isError).toBeFalsy()
+      let rgFiles = rgResult.structuredContent.matches.map((m: any) => m.file)
+      expect(rgFiles).toContain(path.join(keepDir, 'keep.ts'))
+      expect(rgFiles.some(f => f.includes('denied-sub'))).toBe(false)
+      let jsMatches = await searchWithJs('needle', { include: '**/*.ts' }, tmpdir, 100)
+      let jsFiles = jsMatches.map(m => m.file)
+      expect(jsFiles).toContain(path.join(keepDir, 'keep.ts'))
+      expect(jsFiles.some(f => f.includes('denied-sub'))).toBe(false)
+    } finally {
+      workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [], 'mcp.deniedPaths': [] })
+    }
+  })
+
+  it('JS search fallback does not return files outside the requested root', async () => {
+    let otherDir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-other-'))
+    fs.writeFileSync(path.join(otherDir, 'other.ts'), 'needle in other\n')
+    workspace.workspaceFolderControl.addWorkspaceFolder(otherDir, true)
+    try {
+      let jsMatches = await searchWithJs('needle', { include: '**/*.ts' }, tmpdir, 100)
+      expect(jsMatches.some(m => m.file.includes('other.ts'))).toBe(false)
+    } finally {
+      workspace.workspaceFolderControl.removeWorkspaceFolder(otherDir)
+      fs.rmSync(otherDir, { recursive: true, force: true })
+    }
+  })
+
   it('workspace/create_file creates a file on disk and buffer', async () => {
     let filepath = path.join(tmpdir, 'created.txt')
     let result = await tool('workspace/create_file').handler({ filepath }, { token })
