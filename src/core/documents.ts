@@ -561,10 +561,9 @@ export default class Documents implements Disposable {
   public shouldFormatOnSave(document: Document): boolean {
     const config = this.configurations.getConfiguration('coc.preferences', document)
     const filetypes = config.get<string[] | null>('formatOnSaveFiletypes', null)
-    const enabledInConfiguration = (
-      Array.isArray(filetypes) && (filetypes.includes('*') || filetypes.includes(document.languageId))
-      || config.get<boolean>('formatOnSave', false)
-    )
+    const enabledInConfiguration = Array.isArray(filetypes)
+      ? filetypes.includes('*') || filetypes.includes(document.languageId)
+      : config.get<boolean>('formatOnSave', false)
     if (!enabledInConfiguration) return false
     if (!languages.hasFormatProvider(document)) {
       logger.warn(`Format provider not found for ${document.uri}`)

@@ -326,6 +326,25 @@ describe('formatOnSave', () => {
     expect(res).toBe(true)
   })
 
+  it('should prefer formatOnSaveFiletypes over formatOnSave', async () => {
+    let doc = await workspace.document
+    doc.setFiletype('text')
+    disposables.push(languages.registerDocumentFormatProvider(['text'], {
+      provideDocumentFormattingEdits: () => []
+    }))
+
+    helper.updateConfiguration('coc.preferences.formatOnSave', true, disposables)
+    helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['javascript'], disposables)
+    expect(documents.shouldFormatOnSave(doc)).toBe(false)
+
+    helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', [], disposables)
+    expect(documents.shouldFormatOnSave(doc)).toBe(false)
+
+    helper.updateConfiguration('coc.preferences.formatOnSave', false, disposables)
+    helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['text'], disposables)
+    expect(documents.shouldFormatOnSave(doc)).toBe(true)
+  })
+
   it('should ignore non-array formatOnSaveFiletypes', async () => {
     helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', 'text', disposables)
     let doc = await workspace.document
