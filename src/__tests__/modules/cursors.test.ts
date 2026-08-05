@@ -414,10 +414,15 @@ describe('cursors', () => {
         void doc.applyEdits(edits)
       })
       await p
+      let updated = new Promise<void>(resolve => {
+        let disposable = session.onDidUpdate(() => {
+          disposable.dispose()
+          resolve()
+        })
+      })
       await nvim.command('undo')
-      await helper.waitValue(() => {
-        return nvim.getLine()
-      }, 'foo foo foo')
+      await updated
+      expect(await nvim.getLine()).toBe('foo foo foo')
       expect(session.currentRanges).toEqual(ranges)
     })
 

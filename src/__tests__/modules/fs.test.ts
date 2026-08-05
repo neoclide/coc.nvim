@@ -42,16 +42,23 @@ describe('fs', () => {
   it('should watch file', async () => {
     let filepath = path.join(os.tmpdir(), crypto.randomUUID())
     fs.writeFileSync(filepath, 'file', 'utf8')
-    let called = 0
+    let resolveChange: () => void
+    let changed = new Promise<void>(resolve => {
+      resolveChange = resolve
+    })
     let disposable = watchFile(filepath, () => {
-      called++
+      resolveChange()
     }, true)
+    await changed
     // Replace the file by rename like an atomic save: the watcher must
     // survive the inode replacement and keep reporting changes.
+    changed = new Promise<void>(resolve => {
+      resolveChange = resolve
+    })
     let tmp = `${filepath}.tmp`
     fs.writeFileSync(tmp, 'new file', 'utf8')
     fs.renameSync(tmp, filepath)
-    await waitValue(() => called, 2)
+    await changed
     disposable.dispose()
     disposable = watchFile('file_not_exists', () => {}, true)
     disposable.dispose()
