@@ -535,7 +535,7 @@ function! coc#dialog#change_input_value(winid, bufnr, value) abort
     call win_gotoid(a:winid)
   endif
   if s:is_vim
-    if !s:term_support
+    if s:term_support && bufloaded(a:bufnr) && getbufvar(a:bufnr, '&buftype') ==# 'terminal'
       call term_sendkeys(a:bufnr, "\<C-u>\<C-k>".a:value)
     endif
     " call timer_start(3000, { -> term_sendkeys(bufnr, "\<C-u>\<C-k>abcd")})

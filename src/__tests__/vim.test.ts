@@ -12,6 +12,7 @@ import type { VirtualTextItem } from '../handler/inlayHint/buffer'
 import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
 import mcp from '../mcp'
 import { getInstanceFilePath, readDiscoveryFile } from '../mcp/auth'
+import QuickPick from '../model/quickpick'
 import { sameFile } from '../util/fs'
 import workspace from '../workspace'
 import helper from './helper'
@@ -1222,6 +1223,40 @@ describe('Popup', () => {
       return curr
     }), 'abc')
     input.dispose()
+  })
+
+  it('updates the visible input value programmatically', async () => {
+    let input = await helper.plugin.window.createInputBox('title', 'old')
+    let changed: string | undefined
+    input.onDidChange(v => {
+      changed = v
+    })
+    // wait until the prompt terminal is ready (default value echoed)
+    await helper.waitValue(async () => {
+      let line = await nvim.call('term_getline', [input.bufnr, 1]) as string
+      return line.includes('old')
+    }, true)
+    input.value = 'foo'
+    await helper.wait(100)
+    let line = await nvim.call('term_getline', [input.bufnr, 1]) as string
+    expect(line.trim()).toBe('foo')
+    expect(input.value).toBe('foo')
+    expect(changed).toBe('foo')
+    input.dispose()
+  })
+
+  it('updates QuickPick value programmatically', async () => {
+    let qp = new QuickPick(nvim, {})
+    qp.items = [{ label: 'a' }, { label: 'b' }]
+    await qp.show()
+    // give the prompt terminal time to become ready
+    await helper.wait(200)
+    qp.value = 'foo'
+    await helper.wait(100)
+    let line = await nvim.call('term_getline', [qp.inputBox.bufnr, 1]) as string
+    expect(line.trim()).toBe('foo')
+    expect(qp.value).toBe('foo')
+    qp.dispose()
   })
 })
 
