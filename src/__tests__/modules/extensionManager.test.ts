@@ -296,7 +296,24 @@ describe('ExtensionManager', () => {
       tmpfolder = createFolder()
       let manager = create(tmpfolder, true)
       let ext = await createExtension(manager, 'onFileSystem:zip')
-      await nvim.command('edit zip:///a')
+      // `:edit zip:///a` needs a zip plugin and is unreliable in CI, so
+      // mock a zip document open instead.
+      let bufnr = 100000
+      let doc = {
+        bufnr,
+        uri: 'zip:///a',
+        attached: true,
+        languageId: 'zip',
+        filetype: 'zip',
+        winids: [],
+        textDocument: { lines: [] }
+      } as any
+      let documents = workspace.documentsManager
+      documents.buffers.set(bufnr, doc)
+      disposables.push(Disposable.create(() => {
+        documents.buffers.delete(bufnr)
+      }))
+      ;(documents as any)._onDidOpenTextDocument.fire(doc)
       await helper.waitValue(() => ext.isActive, true)
       expect(ext.isActive).toBe(true)
       ext = await createExtension(manager, 'onFileSystem:zip')
