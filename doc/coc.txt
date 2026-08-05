@@ -112,7 +112,7 @@ coc.nvim's automatic completion by setting `"suggest.autoTrigger": "none"`
 ==============================================================================
 REQUIREMENTS						*coc-requirements*
 
-Neovim >= 0.8.0 or Vim >= 9.0.0483.
+Neovim >= 0.8.0 or Vim >= 9.0.0438.
 
 NodeJS https://nodejs.org/ >= 20.19.0.
 
@@ -2239,10 +2239,10 @@ b:coc_diagnostic_info					*b:coc_diagnostic_info*
 
 	Can be used to customize the statusline. See |coc-status|.
 
-b:coc_diagnostic_map					*b:coc_diagnostic_map*
+b:coc_diagnostic_map					*b:coc_diagnostic_map* *diagnostic-structure*
 
 	Diagnostics of the current buffer; the format is the same as
-	*diagnostic-structure*.
+	|diagnostic-structure|.
 
 b:coc_current_function					*b:coc_current_function*
 
@@ -2941,7 +2941,8 @@ Acceptable {action} names for |CocAction()| and |CocActionAsync()|.
 	hover is found.
 
 	{hoverTarget}: Optional specification for where to show hover info,
-	defaulting to `coc.preferences.hoverTarget` in `coc-settings.json`.
+	defaulting to `hover.target` in `coc-settings.json`
+	(see |coc-config-hover-target|).
 	Valid options: `["preview", "echo", "float"]`.
 
 "definitionHover" [{hoverTarget}]			*CocAction('definitionHover')*

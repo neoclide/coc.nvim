@@ -22,7 +22,7 @@ _Custom popup menu with snippet support_
 
 - 🚀 **Fast**: separated NodeJS process that does not slow down Vim most of the time.
 - 💎 **Reliable**: typed language, tested with CI.
-- 🌟 **Featured**: all LSP 3.16 features are supported, see `:h coc-lsp`.
+- 🌟 **Featured**: most LSP 3.17 features are supported, see `:h coc-lsp`.
 - ❤️ **Flexible**: [configured like VS Code](https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file), [Coc extensions function similarly to VS Code extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
 ## Quick Start
@@ -257,7 +257,7 @@ nnoremap <silent><nowait> <space>p  :<C-u>CocListResume<CR>
 
 ## Example Lua configuration
 
-NOTE: This only works in Neovim 0.7.0dev+.
+NOTE: This only works in Neovim 0.8.0+.
 
 ```lua
 -- https://raw.githubusercontent.com/neoclide/coc.nvim/master/doc/coc-example-config.lua
@@ -478,7 +478,7 @@ The bridge waits up to 15s (configurable with the `COC_MCP_WAIT_MS` environment 
 
 Try these steps if you experience problems with coc.nvim:
 
-- Ensure your Vim version >= 8.0 using `:version`
+- Ensure your Vim version >= 9.0.0438 using `:version`
 - If a service failed to start, use `:CocInfo` or `:checkhealth` if you use Neovim
 - Checkout the log of coc.nvim with `:CocOpenLog`
 - If you have issues with the language server, it's recommended to [checkout

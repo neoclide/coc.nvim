@@ -208,6 +208,14 @@ PREFERENCES
 
 	Scope: `application`, default: `true`
 
+"coc.preferences.enableMessageDialog"		*coc-preferences-enableMessageDialog*
+
+	When enabled, messages are always shown through the notification
+	interface, even when the message has action items (which would
+	otherwise use |coc-preferences-messageDialogKind|).
+
+	Scope: `application`, default: `false`
+
 "coc.preferences.messageDialogKind"			*coc-preferences-messageDialogKind*
 
 	Method to use when showing interactive messages to the user
