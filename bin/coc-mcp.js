@@ -121,9 +121,10 @@ function cwdScore(info, cwd) {
 }
 
 /**
- * Selection mode requested on the command line: 'cwd' (connect to the first
- * instance whose workspace matches the bridge cwd) or 'first' (connect to
- * the first available instance).
+ * Instance selection requested on the command line: 'cwd' (connect to the
+ * first instance whose workspace matches the bridge cwd) or 'first'
+ * (connect to the first available instance). Returns null when no flag is
+ * given, in which case the caller falls back to 'cwd'.
  */
 function matchMode() {
   let mode = null
@@ -204,30 +205,22 @@ function resolveAuthKey() {
 
 /**
  * Decide which coc.nvim instance to connect to:
- * - --match-first connects to the first available instance;
- * - --match-cwd connects to the first instance whose workspace matches the
- *   bridge cwd;
- * - otherwise a single live instance, or a single cwd match, is used;
- *   with several instances and no clear match the bridge enters selection
- *   mode (coc/instances + coc/connect) so the agent can choose.
+ * - 'cwd' (the default) connects to the first instance whose workspace
+ *   contains the bridge cwd and fails when no instance matches;
+ * - 'first' connects to the first available instance, ignoring cwd.
  */
 function decideInstance(mode) {
   const instances = listLiveInstances().sort((a, b) => a.pid - b.pid)
   if (instances.length === 0) {
     return {missing: 'no live coc.nvim instance found in ' + mcpInstancesDir()}
   }
-  if (instances.length === 1) return {info: instances[0]}
   if (mode === 'first') return {info: instances[0]}
   const cwd = process.cwd()
   const matches = instances.filter(i => cwdScore(i, cwd) >= 0)
-  if (mode === 'cwd') {
-    if (matches.length === 0) {
-      return {missing: 'no instance matches cwd ' + cwd + ' (--match-cwd)'}
-    }
-    return {info: matches[0]}
+  if (matches.length === 0) {
+    return {missing: 'no instance matches cwd ' + cwd + ' (default --match-cwd)'}
   }
-  if (matches.length === 1) return {info: matches[0]}
-  return {select: true}
+  return {info: matches[0]}
 }
 
 function readDiscovery(file) {
@@ -291,15 +284,11 @@ function main() {
     log(e.message)
     process.exit(2)
   }
-  let mode = 'poll' // 'poll' | 'selection' | 'relay' | 'waiting'
+  let mode = 'poll' // 'poll' | 'relay' | 'waiting'
   let closed = false
   let socket = null
   let stdinBuffer = Buffer.alloc(0)
-  let selectionBuffer = ''
-  let selectionQueue = Promise.resolve()
   let agentProtocolVersion = '2025-06-18'
-  // 2024-11-05 agents do not know structuredContent (added in 2025-06-18).
-  const includeStructured = () => agentProtocolVersion !== '2024-11-05'
   let currentInfo = null
   let relaying = false
   let reconnecting = false
@@ -440,9 +429,9 @@ function main() {
   }
 
   /**
-   * Connect to a coc.nvim instance, run coc/auth, and for selection mode
-   * also run the bridge's own MCP initialize (as the MCP client). Resolves
-   * once the handshake is complete and relaying has started.
+   * Connect to a coc.nvim instance and run coc/auth; for reconnects also
+   * run the bridge's own MCP initialize (as the MCP client). Resolves once
+   * the handshake is complete and relaying has started.
    */
   function connectToInstance(info, internalInit) {
     return new Promise((resolve, reject) => {
@@ -556,135 +545,6 @@ function main() {
     })
   }
 
-  /**
-   * Selection mode: the bridge answers the agent's MCP session itself and
-   * exposes coc/instances (list) and coc/connect (pick by pid).
-   */
-  async function handleSelectionFrame(line) {
-    let msg
-    try {
-      msg = JSON.parse(line)
-    } catch (e) {
-      writeStdout({jsonrpc: '2.0', id: null, error: {code: -32700, message: 'Parse error'}})
-      return
-    }
-    if (!msg || msg.jsonrpc !== '2.0' || typeof msg.method !== 'string') {
-      if (typeof msg.id !== 'undefined') {
-        writeStdout({jsonrpc: '2.0', id: msg.id, error: {code: -32600, message: 'Invalid message'}})
-      }
-      return
-    }
-    const isRequest = typeof msg.id !== 'undefined'
-    const respond = result => {
-      if (isRequest) writeStdout({jsonrpc: '2.0', id: msg.id, result})
-    }
-    const respondError = (code, message) => {
-      if (isRequest) writeStdout({jsonrpc: '2.0', id: msg.id, error: {code, message}})
-    }
-    switch (msg.method) {
-      case 'initialize':
-        agentProtocolVersion = (msg.params && msg.params.protocolVersion) || '2025-06-18'
-        respond({
-          protocolVersion: agentProtocolVersion,
-          capabilities: {
-            tools: {listChanged: false},
-            experimental: {cocInstanceSelection: true}
-          },
-          serverInfo: {name: 'coc-mcp-bridge', version: '0.0.0'},
-          instructions: 'Multiple coc.nvim instances detected. Call coc/instances to list them, then coc/connect with the pid to choose.'
-        })
-        return
-      case 'notifications/initialized':
-        return
-      case 'ping':
-        respond({})
-        return
-      case 'tools/list':
-        respond({
-          tools: [
-            {
-              name: 'coc/instances',
-              description: 'List available coc.nvim MCP instances (pid, workspace root, version).',
-              inputSchema: {type: 'object', properties: {}}
-            },
-            {
-              name: 'coc/connect',
-              description: 'Connect to a coc.nvim instance by pid from coc/instances.',
-              inputSchema: {
-                type: 'object',
-                properties: {pid: {type: 'integer'}},
-                required: ['pid']
-              }
-            }
-          ]
-        })
-        return
-      case 'tools/call': {
-        const name = msg.params && msg.params.name
-        const args = (msg.params && msg.params.arguments) || {}
-        if (name === 'coc/instances') {
-          const instances = listLiveInstances().sort((a, b) => a.pid - b.pid)
-          const list = instances.map(i => ({
-            pid: i.pid,
-            version: (i.serverInfo && i.serverInfo.version) || 'unknown',
-            protocolVersion: i.protocolVersion || 'unknown',
-            workspaceRoot: i.workspaceRoot || i.cwd || null,
-            transport: i.transport
-          }))
-          respond({
-            content: [{type: 'text', text: JSON.stringify(list, null, 2)}],
-            ...(includeStructured() ? {structuredContent: {count: list.length, instances: list}} : {}),
-            isError: false
-          })
-          return
-        }
-        if (name === 'coc/connect') {
-          const pid = args.pid
-          if (typeof pid !== 'number') {
-            respond({content: [{type: 'text', text: 'pid is required'}], isError: true})
-            return
-          }
-          let file = path.join(mcpInstancesDir(), 'coc-' + pid + '.json')
-          let info
-          try {
-            info = readDiscovery(file)
-          } catch (e) {
-            respond({content: [{type: 'text', text: 'instance ' + pid + ' not found: ' + e.message}], isError: true})
-            return
-          }
-          try {
-            await connectToInstance(info, true)
-          } catch (e) {
-            respond({content: [{type: 'text', text: 'connect failed: ' + e.message}], isError: true})
-            return
-          }
-          respond({
-            content: [{type: 'text', text: 'connected to coc.nvim instance ' + pid}],
-            ...(includeStructured() ? {
-              structuredContent: {
-                connected: true,
-                pid,
-                serverInfo: info.serverInfo,
-                protocolVersion: agentProtocolVersion
-              }
-            } : {}),
-            isError: false
-          })
-          return
-        }
-        respondError(-32602, 'Unknown tool: ' + name)
-        return
-      }
-      default:
-        respondError(-32601, 'Method not found: ' + msg.method)
-    }
-  }
-
-  function startSelection() {
-    mode = 'selection'
-    log('multiple coc.nvim instances, waiting for the agent to choose (coc/instances / coc/connect)')
-  }
-
   function attempt() {
     if (mode !== 'poll' || closed) return
     if (connectInfo) {
@@ -698,24 +558,15 @@ function main() {
       return
     }
     let info
-    let select = false
     try {
-      const selection = decideInstance(matchMode())
-      if (selection.missing) {
-        giveUp(selection.missing)
+      const decision = decideInstance(matchMode() || 'cwd')
+      if (decision.missing) {
+        giveUp(decision.missing)
         return
       }
-      if (selection.select) {
-        select = true
-      } else {
-        info = selection.info
-      }
+      info = decision.info
     } catch (e) {
       giveUp(e.message)
-      return
-    }
-    if (select) {
-      startSelection()
       return
     }
     connectToInstance(info, false).catch(err => {
@@ -728,18 +579,6 @@ function main() {
   }
 
   process.stdin.on('data', chunk => {
-    if (mode === 'selection') {
-      selectionBuffer += chunk.toString('utf8')
-      let idx
-      while ((idx = selectionBuffer.indexOf('\n')) !== -1) {
-        const line = selectionBuffer.slice(0, idx).trim()
-        selectionBuffer = selectionBuffer.slice(idx + 1)
-        if (line) {
-          selectionQueue = selectionQueue.then(() => handleSelectionFrame(line))
-        }
-      }
-      return
-    }
     if (mode === 'relay') {
       socket.write(chunk)
       return

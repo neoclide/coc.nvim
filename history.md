@@ -4,6 +4,11 @@ Notable changes of coc.nvim:
 
 ## 2026-08-05
 
+- MCP: the `coc-mcp` bridge defaults to `--match-cwd`: it connects to the
+  first coc.nvim instance whose workspace matches the bridge working
+  directory and exits when no matching instance is found. The interactive
+  selection mode (`coc/instances` / `coc/connect`) is removed;
+  `--match-first` still connects to the first available instance.
 - MCP: the `coc-mcp` bridge no longer waits for the coc.nvim MCP service —
   it fails immediately with a "coc.nvim MCP service not found" error when
   no usable connection exists at startup, and the `COC_MCP_WAIT_MS` /

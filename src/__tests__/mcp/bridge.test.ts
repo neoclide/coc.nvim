@@ -74,6 +74,7 @@ describe('coc-mcp stdio bridge', () => {
       protocolVersion: '2025-06-18',
       serverInfo: { name: 'coc.nvim', version: '0.0.0' },
       apiVersion: 38,
+      cwd: process.cwd(),
       startedAt: Date.now()
     }))
 
@@ -331,35 +332,30 @@ describe('coc-mcp stdio bridge', () => {
     return { serverA, serverB }
   }
 
-  it('enters selection mode and lets the agent pick an instance via coc/connect', async () => {
+  it('exits with code 2 by default when no instance matches the bridge cwd', async () => {
     let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-multi-'))
-    let work = path.join(dir, 'shared')
-    fs.mkdirSync(work, { recursive: true })
-    let { serverA, serverB } = await twoInstances(dir, work, work)
+    let workA = path.join(dir, 'proj-a')
+    let workB = path.join(dir, 'proj-b')
+    let elsewhere = path.join(dir, 'elsewhere')
+    fs.mkdirSync(workA, { recursive: true })
+    fs.mkdirSync(workB, { recursive: true })
+    fs.mkdirSync(elsewhere, { recursive: true })
+    let { serverA, serverB } = await twoInstances(dir, workA, workB)
     let proc = spawn(process.execPath, [bridgePath], {
-      cwd: work,
+      cwd: elsewhere,
       env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp') },
       stdio: ['pipe', 'pipe', 'pipe']
     })
-    let { request } = attachClient(proc)
-    let init = await request(1, 'initialize', {
-      protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
+    let stderr = ''
+    proc.stderr.on('data', chunk => {
+      stderr += chunk.toString('utf8')
     })
-    expect(init.serverInfo.name).toBe('coc-mcp-bridge')
-    let tools = await request(2, 'tools/list')
-    let names = tools.tools.map((t: any) => t.name)
-    expect(names).toEqual(expect.arrayContaining(['coc/instances', 'coc/connect']))
-    let instances = await request(3, 'tools/call', { name: 'coc/instances', arguments: {} })
-    expect(instances.structuredContent.count).toBe(2)
-    let connect = await request(4, 'tools/call', { name: 'coc/connect', arguments: { pid: process.pid } })
-    expect(connect.structuredContent.connected).toBe(true)
-    // after connecting, tools/list is relayed to the chosen instance
-    let list = await request(5, 'tools/list')
-    let relayedNames = list.tools.map((t: any) => t.name)
-    expect(relayedNames).toContain('instance_b_tool')
-    expect(relayedNames).not.toContain('instance_a_tool')
-    proc.stdin.end()
-    await new Promise<void>(resolve => proc.on('exit', () => resolve()))
+    let code = await Promise.race([
+      new Promise<number | null>(resolve => proc.on('exit', resolve)),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('bridge did not exit')), 5000))
+    ])
+    expect(code).toBe(2)
+    expect(stderr).toContain('no instance matches cwd')
     serverA.dispose()
     serverB.dispose()
     fs.rmSync(dir, { recursive: true, force: true })
@@ -450,6 +446,7 @@ describe('coc-mcp stdio bridge', () => {
       protocolVersion: '2025-06-18',
       serverInfo: { name: 'coc.nvim', version: '0.0.0' },
       apiVersion: 38,
+      cwd: process.cwd(),
       startedAt: Date.now()
     }))
     let proc = spawn(process.execPath, [bridgePath], {
@@ -497,6 +494,7 @@ describe('coc-mcp stdio bridge', () => {
       protocolVersion: '2025-06-18',
       serverInfo: { name: 'coc.nvim', version: '0.0.0' },
       apiVersion: 38,
+      cwd: process.cwd(),
       startedAt: Date.now()
     }))
     // the bridge reconnects and relays requests to the new server
@@ -540,6 +538,7 @@ describe('coc-mcp stdio bridge', () => {
       protocolVersion: '2025-06-18',
       serverInfo: { name: 'coc.nvim', version: '0.0.0' },
       apiVersion: 38,
+      cwd: process.cwd(),
       startedAt: Date.now()
     }))
     let staleJson = path.join(mcpDir, 'coc-999999999.json')
@@ -597,6 +596,7 @@ describe('coc-mcp stdio bridge', () => {
       protocolVersion: '2025-06-18',
       serverInfo: { name: 'coc.nvim', version: '0.0.0' },
       apiVersion: 38,
+      cwd: process.cwd(),
       startedAt: Date.now()
     }))
     let keyFile = path.join(dir, 'key.pem')
@@ -646,6 +646,7 @@ describe('coc-mcp stdio bridge', () => {
       protocolVersion: '2025-06-18',
       serverInfo: { name: 'coc.nvim', version: '0.0.0' },
       apiVersion: 38,
+      cwd: process.cwd(),
       startedAt: Date.now()
     }))
     let proc = spawn(process.execPath, [bridgePath], {

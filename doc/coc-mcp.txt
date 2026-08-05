@@ -106,22 +106,15 @@ version and workspace root), keyed by the vim pid, so several vim/neovim
 instances do not overwrite each other. The bridge picks an instance as
 follows:
 
-- `--match-cwd` connects to the first instance whose workspace root
-  contains the bridge working directory (symlinks are normalized);
+- by default (same as `--match-cwd`) it connects to the first instance
+  whose workspace root contains the bridge working directory (symlinks are
+  normalized) and exits when no instance matches;
 - `--match-first` connects to the first available instance, ignoring the
   working directory (useful when the agent is not started from a
-  terminal);
-- otherwise the single live instance, or the single cwd-matching instance,
-  is used automatically;
-- with several instances and no clear match the bridge enters *selection
-  mode*: it answers the MCP session itself and exposes two tools so the
-  agent can choose at runtime: `coc/instances` (list pid, workspace root,
-  version) and `coc/connect` (connect to a pid). After `coc/connect` the
-  bridge relays the chosen instance's tools.
+  terminal).
 
 `mcp.status` shows the server pid, working directory and the connected
-clients (each bridge reports its own pid). In the agent, `coc/instances` /
-`coc/connect` (selection mode) list and pick instances at runtime.
+clients (each bridge reports its own pid).
 
 ==============================================================================
 4. COMMANDS					*coc-mcp-commands*
@@ -210,9 +203,10 @@ asking for fewer results also makes the call faster.
 - If `mcp.authClientPublicKey` is configured but the bridge has no
   `COC_MCP_AUTH_KEY_FILE`, authentication fails: set the private key file
   or clear the config.
-- With several vim instances the bridge may connect to the wrong one: run
-  the bridge from the workspace directory of the target instance, or use
-  selection mode (`coc/instances` / `coc/connect`) inside the agent.
+- The bridge connects to the instance whose workspace contains its working
+  directory and exits when none matches: run the bridge from the workspace
+  of the target instance, or pass `--match-first` to connect to the first
+  available instance.
 
 Edits are not visible on disk:
 - `workspace/apply_edit` saves all modified buffers with `:wa` after

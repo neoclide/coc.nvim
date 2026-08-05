@@ -15,11 +15,10 @@ enabled = true
 startup_timeout_sec = 15
 tool_timeout_sec = 60
 
-# Optional: with several vim instances, connect to the first available one
-# instead of entering selection mode:
+# Optional: with several vim instances, connect to the first available one.
+# By default the bridge matches the instance whose workspace contains the
+# agent working directory and exits when no instance matches:
 # args = ["/path/to/coc.nvim/bin/coc-mcp.js", "--match-first"]
-# or match the instance whose workspace contains the agent working dir:
-# args = ["/path/to/coc.nvim/bin/coc-mcp.js", "--match-cwd"]
 
 # coc.nvim writes its per-instance discovery
 # files to ~/.coc/mcp/coc-<pid>.json and the bridge reads them from there.
