@@ -234,6 +234,29 @@ describe('services', () => {
       expect(started).toBe(true)
     })
 
+    it('does not start a service disposed before plugin ready', async () => {
+      Object.assign(events, { _ready: false })
+      await helper.edit('t.vim')
+      let starts = 0
+      let d = services.register({
+        id: 'disposed-before-ready',
+        state: ServiceStat.Initial,
+        selector: [{ language: 'vim', scheme: 'file' }],
+        onServiceReady: () => Disposable.create(() => {}),
+        dispose: () => {},
+        start: () => {
+          starts++
+        }
+      } as any)
+      let before = ((events as any).handlers.get('ready') ?? []).length
+      d.dispose()
+      let after = ((events as any).handlers.get('ready') ?? []).length
+      expect(after).toBe(before - 1)
+      await events.fire('ready', [])
+      expect(starts).toBe(0)
+      await nvim.command('bd!')
+    })
+
     it('should start language client on by document', async () => {
       const serverOptions: ServerOptions = {
         module: serverModule,

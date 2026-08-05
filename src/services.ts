@@ -141,12 +141,15 @@ class ServiceManager implements Disposable {
     let { id } = service
     if (this.registered.get(id)) return
     this.registered.set(id, service)
-    this.tryStartService(service)
+    let readyDisposable = this.tryStartService(service)
     service.onServiceReady(() => {
       logger.info(`service ${id} started`)
     }, null, this.disposables)
     return Disposable.create(() => {
       if (!this.registered.has(id)) return
+      // Remove the pending ready listener before disposing the service so a
+      // delayed start can never touch a released language client.
+      if (readyDisposable) readyDisposable.dispose()
       service.dispose()
       this.registered.delete(id)
     })
@@ -155,17 +158,21 @@ class ServiceManager implements Disposable {
    * @internal
    */
 
-  public tryStartService(service: IServiceProvider): void {
+  public tryStartService(service: IServiceProvider): Disposable | undefined {
     if (!events.ready) {
       let disposable = events.on('ready', () => {
         disposable.dispose()
+        // The registration may have been disposed or replaced before ready.
+        if (this.registered.has(service.id) && this.registered.get(service.id) !== service) return
         if (this.shouldStart(service)) {
           void service.start()
         }
       })
+      return disposable
     } else if (this.shouldStart(service)) {
       void service.start()
     }
+    return undefined
   }
 
   public getService(id: string): IServiceProvider {
