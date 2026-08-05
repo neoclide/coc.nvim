@@ -188,6 +188,24 @@ export function resolveRequestOptions(url: URL, options: FetchOptions): any {
   return opts
 }
 
+/**
+ * Extract and validate the charset parameter of a Content-Type header.
+ * Handles quoted values (charset="utf-8") and trailing parameters
+ * (charset=utf-8; format=flowed); throws for unsupported encodings.
+ */
+function parseCharset(contentType: string): BufferEncoding {
+  let match = /;\s*charset\s*=\s*"?([^";\s]+)"?/i.exec(contentType)
+  let encoding = match ? match[1] : 'utf8'
+  let lower = encoding.toLowerCase()
+  if (lower === 'iso-8859-1' || lower === 'latin-1') encoding = 'latin1'
+  else if (lower === 'utf-16' || lower === 'utf-16le' || lower === 'ucs-2' || lower === 'ucs2') encoding = 'utf16le'
+  else if (lower === 'us-ascii') encoding = 'ascii'
+  if (!Buffer.isEncoding(encoding)) {
+    throw new Error(`Unsupported charset: ${encoding}`)
+  }
+  return encoding
+}
+
 export function request(url: URL, data: any, opts: any, token?: CancellationToken, obj: any = {}): Promise<ResponseResult> {
   let mod = getRequestModule(url)
   return new Promise<ResponseResult>((resolve, reject) => {
@@ -212,18 +230,23 @@ export function request(url: URL, data: any, opts: any, token?: CancellationToke
           clearTimeout(timer)
           let buf = Buffer.concat(chunks)
           if (!opts.buffer && (contentType.startsWith('application/json') || contentType.startsWith('text/'))) {
-            let ms = contentType.match(/charset=(\S+)/)
-            let encoding = ms ? ms[1] : 'utf8'
-            let rawData = buf.toString(encoding as BufferEncoding)
-            if (!contentType.includes('application/json')) {
-              resolve(rawData)
-            } else {
-              try {
-                const parsedData = JSON.parse(rawData)
-                resolve(parsedData)
-              } catch (e) {
-                reject(new Error(`Parse response error: ${e}`))
+            // The decode must not escape the event callback: unsupported or
+            // invalid charsets reject the request instead of throwing.
+            try {
+              let encoding = parseCharset(contentType)
+              let rawData = buf.toString(encoding)
+              if (!contentType.includes('application/json')) {
+                resolve(rawData)
+              } else {
+                try {
+                  const parsedData = JSON.parse(rawData)
+                  resolve(parsedData)
+                } catch (e) {
+                  reject(new Error(`Parse response error: ${e}`))
+                }
               }
+            } catch (e) {
+              reject(new Error(`Decode response error: ${e instanceof Error ? e.message : String(e)}`))
             }
           } else {
             resolve(buf)

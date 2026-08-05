@@ -52,6 +52,26 @@ async function createServer(): Promise<number> {
         res.writeHead(200, { 'Content-Type': 'text/plain' })
         res.end('text')
       }
+      if (req.url === '/quoted_charset') {
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset="utf-8"' })
+        res.end('你好')
+      }
+      if (req.url === '/extra_charset') {
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8; format=flowed' })
+        res.end('你好')
+      }
+      if (req.url === '/quoted_json') {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset="utf-8"' })
+        res.end(JSON.stringify({ text: '你好' }))
+      }
+      if (req.url === '/latin_charset') {
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=ISO-8859-1' })
+        res.end(Buffer.from([0xe4, 0x6b]))
+      }
+      if (req.url === '/unknown_charset') {
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=x-unknown' })
+        res.end('abc')
+      }
       if (req.url === '/404') {
         res.writeHead(404, { 'Content-Type': 'text/plain' })
         res.end('not found')
@@ -303,6 +323,27 @@ describe('fetch', () => {
       await fetch(`http://127.0.0.1:${port}/bad_json`)
     }
     await expect(fn()).rejects.toThrow(Error)
+  })
+
+  it('decodes quoted and trailing-parameter charsets and rejects unknown ones', async () => {
+    let uncaught: Error[] = []
+    let onUncaught = (err: Error): void => {
+      uncaught.push(err)
+    }
+    process.on('uncaughtException', onUncaught)
+    try {
+      expect(await fetch(`http://127.0.0.1:${port}/quoted_charset`)).toBe('你好')
+      expect(await fetch(`http://127.0.0.1:${port}/extra_charset`)).toBe('你好')
+      expect(await fetch(`http://127.0.0.1:${port}/quoted_json`)).toEqual({ text: '你好' })
+      expect(await fetch(`http://127.0.0.1:${port}/latin_charset`)).toBe('\u00e4k')
+      let fn = async () => {
+        await fetch(`http://127.0.0.1:${port}/unknown_charset`)
+      }
+      await expect(fn()).rejects.toThrow(/charset/i)
+    } finally {
+      process.off('uncaughtException', onUncaught)
+    }
+    expect(uncaught).toEqual([])
   })
 
   it('should catch error on reject or abnormal response', async () => {
