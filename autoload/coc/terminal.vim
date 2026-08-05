@@ -21,19 +21,9 @@ function! coc#terminal#start(cmd, cwd, env, strict) abort
     exe 'doautocmd <nomodeline> User CocTerminalOpen'
   endif
   let bufnr = bufnr('%')
-  let env = {}
-  let original = {}
-  if !empty(a:env)
-    " use env option when possible
-    if s:is_vim
-      let env = copy(a:env)
-    elseif exists('*setenv')
-      for key in keys(a:env)
-        let original[key] = getenv(key)
-        call setenv(key, a:env[key])
-      endfor
-    endif
-  endif
+  " Both Vim and Neovim support the env option directly; never mutate the
+  " editor process global environment, so a failed start cannot leak vars.
+  let env = copy(a:env)
 
   function! s:OnExit(status) closure
     call coc#rpc#notify('CocAutocmd', ['TermExit', bufnr, a:status])
@@ -59,19 +49,21 @@ function! coc#terminal#start(cmd, cwd, env, strict) abort
     wincmd p
     return [bufnr, job_info(job).process]
   else
-    let job_id = termopen(a:cmd, {
-          \ 'cwd': cwd,
-          \ 'pty': v:true,
-          \ 'on_exit': {job, status -> s:OnExit(status)},
-          \ 'env': env,
-          \ 'clear_env': a:strict ? v:true : v:false
-          \ })
-    if !empty(original) && exists('*setenv')
-      for key in keys(original)
-        call setenv(key, original[key])
-      endfor
-    endif
+    try
+      let job_id = termopen(a:cmd, {
+            \ 'cwd': cwd,
+            \ 'pty': v:true,
+            \ 'on_exit': {job, status -> s:OnExit(status)},
+            \ 'env': env,
+            \ 'clear_env': a:strict ? v:true : v:false
+            \ })
+    catch /.*/
+      " termopen failed (e.g. invalid cwd): restore the window layout
+      silent! execute 'bd! ' . bufnr
+      throw v:exception
+    endtry
     if job_id == 0
+      silent! execute 'bd! ' . bufnr
       throw 'create terminal job failed'
     endif
     wincmd p

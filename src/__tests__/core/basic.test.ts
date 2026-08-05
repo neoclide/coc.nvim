@@ -724,6 +724,36 @@ describe('create terminal', () => {
     expect(lines.includes('test')).toBe(false)
   })
 
+  it('strictEnv keeps caller-provided variables and drops inherited ones', async () => {
+    let terminal = await terminals.createTerminal(nvim, {
+      name: `test-${crypto.randomUUID()}`,
+      shellPath: which.sync('bash'),
+      env: { COC_AUDIT_ENV: 'wanted' },
+      strictEnv: true
+    })
+    await helper.wait(20)
+    terminal.sendText(`echo "A=$COC_AUDIT_ENV B=$NODE_ENV"`, true)
+    let buf = nvim.createBuffer(terminal.bufnr)
+    await helper.waitFor('eval', [`join(getbufline(${terminal.bufnr},1,'$'),'\n')`], /A=wanted B=/)
+    let lines = await buf.lines
+    expect(lines.some(l => l.includes('A=wanted B='))).toBe(true)
+    terminal.dispose()
+  })
+
+  it('restores editor state when terminal start fails', async () => {
+    let winCount = await nvim.call('winnr', ['$'])
+    let winid = await nvim.call('win_getid')
+    let model = new TerminalModel('bash', [], nvim)
+    let fn = async () => {
+      await model.start('/definitely/not/a/real/dir', { COC_AUDIT_ENV: 'new' })
+    }
+    await expect(fn()).rejects.toThrow()
+    expect(await nvim.call('winnr', ['$'])).toBe(winCount)
+    expect(await nvim.call('win_getid')).toBe(winid)
+    // the editor process environment is never mutated
+    expect(await nvim.call('getenv', ['COC_AUDIT_ENV'])).toBeNull()
+  })
+
   it('should use custom shell command', async () => {
     let terminal = await terminals.createTerminal(nvim, {
       name: `test-${crypto.randomUUID()}`,
