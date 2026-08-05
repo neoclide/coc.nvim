@@ -57,26 +57,30 @@ enddef
 
 # Using character indexes
 export def LcsDiff(str1: string, str2: string): list<dict<any>>
-  def Lcs(a: string, b: string): string
-    var matrix = []
-    for i in range(0, strchars(a))
+  const chars1 = split(str1, '\zs')
+  const chars2 = split(str2, '\zs')
+  const len1 = len(chars1)
+  const len2 = len(chars2)
+  def Lcs(a: list<string>, b: list<string>): list<string>
+    var matrix: list<list<number>> = []
+    for i in range(0, len(a))
       matrix[i] = []
-      for j in range(0, strchars(b))
+      for j in range(0, len(b))
         if i == 0 || j == 0
           matrix[i][j] = 0
-        elseif a[i] == b[j]
+        elseif a[i - 1] == b[j - 1]
           matrix[i][j] = matrix[i - 1][j - 1] + 1
         else
           matrix[i][j] = max([matrix[i - 1][j], matrix[i][j - 1]])
         endif
       endfor
     endfor
-    var result = ''
-    var i = strchars(a) - 1
-    var j = strchars(b) - 1
-    while i >= 0 && j >= 0
-      if a[i] == b[j]
-        result = a[i] .. result
+    var result: list<string> = []
+    var i = len(a)
+    var j = len(b)
+    while i > 0 && j > 0
+      if a[i - 1] == b[j - 1]
+        result->add(a[i - 1])
         i -= 1
         j -= 1
       elseif matrix[i - 1][j] > matrix[i][j - 1]
@@ -85,41 +89,38 @@ export def LcsDiff(str1: string, str2: string): list<dict<any>>
         j -= 1
       endif
     endwhile
+    result->reverse()
     return result
   enddef
-  const len1 = strchars(str1)
-  const len2 = strchars(str2)
-  var common = Lcs(str1, str2)
-  var result = []
+  var common = Lcs(chars1, chars2)
+  var result: list<dict<any>> = []
   var i1 = 0
   var i2 = 0
   var ic = 0
-  while ic < strchars(common)
+  while ic < len(common)
     # 处理str1中不在公共序列的部分
-    while i1 < len1 && str1[i1] != common[ic]
-      result->add({type: '-', char: str1[i1]})
+    while i1 < len1 && chars1[i1] != common[ic]
+      result->add({type: '-', char: chars1[i1]})
       i1 += 1
     endwhile
     # 处理str2中不在公共序列的部分
-    while i2 < len2 && str2[i2] != common[ic]
-      result->add({type: '+', char: str2[i2]})
+    while i2 < len2 && chars2[i2] != common[ic]
+      result->add({type: '+', char: chars2[i2]})
       i2 += 1
     endwhile
     # 添加公共字符
-    if ic < strchars(common)
-      result->add({type: '=', char: common[ic]})
-      i1 += 1
-      i2 += 1
-      ic += 1
-    endif
+    result->add({type: '=', char: common[ic]})
+    i1 += 1
+    i2 += 1
+    ic += 1
   endwhile
   # 处理剩余字符
   while i1 < len1
-    result->add({type: '-', char: str1[i1]})
+    result->add({type: '-', char: chars1[i1]})
     i1 += 1
   endwhile
   while i2 < len2
-    result->add({type: '+', char: str2[i2]})
+    result->add({type: '+', char: chars2[i2]})
     i2 += 1
   endwhile
   return result
@@ -194,6 +195,10 @@ export def SearchChangePosition(newStr: string, oldStr: string, diff: dict<any>)
   enddef
   if Slice(oldStr, 0, diff.oldStart) ==# Slice(newStr, 0, diff.oldStart) && CheckPosition(diff.oldStart)
     return result
+  endif
+  # Insertion at the end of the old line maps to the end of the new line
+  if delta == 0 && diff.oldStart == strchars(oldStr)
+    return strchars(newStr)
   endif
   const diffs = LcsDiff(oldStr, newStr)
   # oldStr index

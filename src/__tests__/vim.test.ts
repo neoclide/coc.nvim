@@ -1566,4 +1566,61 @@ describe('document', () => {
       expect(line).toBe(' fo')
     }
   })
+
+  it('should merge concurrent edits with multibyte characters like ASCII', async () => {
+    let doc = await helper.createDocument()
+    let buf = doc.buffer
+    await buf.setLines(['你a'])
+    await doc.patchChange()
+    nvim.call('setline', [1, '你ax'], true)
+    nvim.call('cursor', [1, 5], true)
+    let edits: TextEdit[] = [TextEdit.replace(Range.create(0, 1, 0, 2), 'b')]
+    await doc.applyEdits(edits)
+    let line = await nvim.line
+    expect(line).toBe('你bx')
+  })
+
+  it('should merge concurrent edits with emoji like ASCII', async () => {
+    let doc = await helper.createDocument()
+    let buf = doc.buffer
+    await buf.setLines(['a😀'])
+    await doc.patchChange()
+    nvim.call('setline', [1, 'a😀x'], true)
+    nvim.call('cursor', [1, 6], true)
+    let edits: TextEdit[] = [TextEdit.replace(Range.create(0, 0, 0, 1), 'b')]
+    await doc.applyEdits(edits)
+    let line = await nvim.line
+    expect(line).toBe('b😀x')
+  })
+
+  it('should mark common multibyte characters as equal in LCS diff', async () => {
+    let diff = await nvim.call('coc#text#LcsDiff', ['你a', '你b']) as { type: string, char: string }[]
+    expect(diff).toEqual([
+      { type: '=', char: '你' },
+      { type: '-', char: 'a' },
+      { type: '+', char: 'b' },
+    ])
+    diff = await nvim.call('coc#text#LcsDiff', ['a😀b', 'a😀c']) as { type: string, char: string }[]
+    expect(diff).toEqual([
+      { type: '=', char: 'a' },
+      { type: '=', char: '😀' },
+      { type: '-', char: 'b' },
+      { type: '+', char: 'c' },
+    ])
+    diff = await nvim.call('coc#text#LcsDiff', ['ab', 'ac']) as { type: string, char: string }[]
+    expect(diff).toEqual([
+      { type: '=', char: 'a' },
+      { type: '-', char: 'b' },
+      { type: '+', char: 'c' },
+    ])
+  })
+
+  it('should merge concurrent line edits with multibyte characters like ASCII', async () => {
+    let res = await nvim.call('coc#text#DiffApply', ['你a', '你ax', '你b', -1])
+    expect(res).toBe('你bx')
+    res = await nvim.call('coc#text#DiffApply', ['你a', '你ax', '你b', 4])
+    expect(res).toBe('你bx')
+    res = await nvim.call('coc#text#DiffApply', ['ab', 'abx', 'ac', -1])
+    expect(res).toBe('acx')
+  })
 })
