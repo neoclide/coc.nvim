@@ -27,6 +27,9 @@ function! coc#terminal#start(cmd, cwd, env, strict) abort
 
   function! s:OnExit(status) closure
     call coc#rpc#notify('CocAutocmd', ['TermExit', bufnr, a:status])
+    if has_key(s:channel_map, bufnr)
+      call remove(s:channel_map, bufnr)
+    endif
     if a:status == 0
       execute 'silent! bd! '.bufnr
     endif
@@ -105,7 +108,15 @@ function! coc#terminal#close(bufnr) abort
       silent! call chanclose(job_id)
     endif
   endif
+  if has_key(s:channel_map, a:bufnr)
+    call remove(s:channel_map, a:bufnr)
+  endif
   exe 'silent! bd! '.a:bufnr
+endfunction
+
+" @internal Test only: current size of the terminal channel map.
+function! coc#terminal#_channel_count() abort
+  return len(s:channel_map)
 endfunction
 
 function! coc#terminal#show(bufnr, opts) abort

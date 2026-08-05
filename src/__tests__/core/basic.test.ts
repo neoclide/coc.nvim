@@ -802,6 +802,34 @@ describe('create terminal', () => {
     expect(res).toBe(false)
   })
 
+  it('cleans the terminal channel map after exit and dispose', async () => {
+    let base = await nvim.call('coc#terminal#_channel_count') as number
+    // natural success exit
+    let t1 = await terminals.createTerminal(nvim, {
+      name: `clean-${crypto.randomUUID()}`,
+      shellPath: which.sync('bash'),
+      shellArgs: ['-c', 'echo done; exit 0']
+    })
+    await helper.waitFor('bufloaded', [t1.bufnr], 0)
+    expect(await nvim.call('coc#terminal#_channel_count')).toBe(base)
+    // nonzero exit
+    let t2 = await terminals.createTerminal(nvim, {
+      name: `clean-${crypto.randomUUID()}`,
+      shellPath: which.sync('bash'),
+      shellArgs: ['-c', 'exit 3']
+    })
+    await helper.waitFor('bufloaded', [t2.bufnr], 0)
+    expect(await nvim.call('coc#terminal#_channel_count')).toBe(base)
+    // manual dispose
+    let t3 = await terminals.createTerminal(nvim, {
+      name: `clean-${crypto.randomUUID()}`,
+      shellPath: which.sync('bash')
+    })
+    t3.dispose()
+    await helper.waitFor('bufloaded', [t3.bufnr], 0)
+    expect(await nvim.call('coc#terminal#_channel_count')).toBe(base)
+  })
+
   it('should not throw when show & hide disposed terminal', async () => {
     let terminal = await terminals.createTerminal(nvim, {
       name: `test-${crypto.randomUUID()}`,
