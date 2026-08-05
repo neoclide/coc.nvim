@@ -15,6 +15,11 @@ process.env.VIMRUNTIME = ''
 process.env.NODE_ENV = 'test'
 process.env.COC_NVIM = '1'
 process.env.COC_DATA_HOME = dataHome
+// Keep nvim's own log out of the repo working tree: when the default log
+// path ($XDG_STATE_HOME/nvim/log) is not writable, nvim falls back to
+// writing .nvimlog in its cwd, which is src/__tests__ for tests that spawn
+// nvim via the helper.
+process.env.NVIM_LOG_FILE = path.join(dataHome, 'nvim.log')
 // MCP discovery directory override so tests never touch the real ~/.coc/mcp
 process.env.COC_MCP_DIR = path.join(dataHome, 'mcp')
 const vimconfig = path.join(dataHome, 'vimconfig')
