@@ -20,16 +20,16 @@ _Custom popup menu with snippet support_
 
 ## Why?
 
-- 🚀 **Fast**: separated NodeJS process that does not slow down Vim most of the time.
+- 🚀 **Fast**: a separate Node.js process that does not slow down Vim most of the time.
 - 💎 **Reliable**: typed language, tested with CI.
-- 🌟 **Featured**: most LSP 3.17 features are supported, see `:h coc-lsp`.
+- 🌟 **Featured**: most LSP 3.18 features are supported, see `:h coc-lsp`.
 - ❤️ **Flexible**: [configured like VS Code](https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file), [Coc extensions function similarly to VS Code extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
 ## Quick Start
 
-Make sure use Vim >= 9.0.0438 or Neovim >= 0.8.0.
+Make sure you use Vim >= 9.0.0438 or Neovim >= 0.8.0.
 
-Install [nodejs](https://nodejs.org/en/download/) >= 20.19.0:
+Install [Node.js](https://nodejs.org/en/download/) >= 20.19.0:
 
 ```bash
 curl -sL install-node.vercel.app/lts | bash
@@ -47,8 +47,7 @@ Plug 'neoclide/coc.nvim', {'branch': 'master', 'do': 'npm ci'}
 
 in your `.vimrc` or `init.vim`, then restart Vim and run `:PlugInstall`.
 
-Checkout [Install
-coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim) for
+Check out [Install coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim) for
 more info.
 
 You **have to** install coc extensions or configure language servers for
@@ -58,7 +57,7 @@ Install extensions like this:
 
     :CocInstall coc-json coc-tsserver
 
-Or you can configure a language server in your `coc-settings.json`(open it using `:CocConfig`) like this:
+Or you can configure a language server in your `coc-settings.json` (open it using `:CocConfig`) like this:
 
 ```json
 {
@@ -73,15 +72,26 @@ Or you can configure a language server in your `coc-settings.json`(open it using
 }
 ```
 
-Checkout the wiki for more details:
+Check out the wiki for more details:
 
 - [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
+- [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
+- [Debug coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Debug-coc.nvim)
+- [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
+- [Environment variables](https://github.com/neoclide/coc.nvim/wiki/Environment-variables)
+- [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
+- [Install coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
+- [Language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
+- [Multiple cursors support](https://github.com/neoclide/coc.nvim/wiki/Multiple-cursors-support)
+- [Nvim notifications integration](https://github.com/neoclide/coc.nvim/wiki/Nvim-notifications-integration)
+- [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
 - [Using the configuration file](https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file)
 - [Using coc extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
-- [Configure language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
-- [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
+- [Using coc list](https://github.com/neoclide/coc.nvim/wiki/Using-coc-list)
+- [Using snippets](https://github.com/neoclide/coc.nvim/wiki/Using-snippets)
+- [Using workspaceFolders](https://github.com/neoclide/coc.nvim/wiki/Using-workspaceFolders)
 
-Checkout `:h coc-nvim` for Vim interface.
+Check out `:h coc-nvim` for the Vim interface.
 
 ## Example Vim configuration
 
@@ -444,6 +454,8 @@ keyset("n", "<space>p", ":<C-u>CocListResume<cr>", opts)
 
 coc.nvim can act as a [Model Context Protocol](https://modelcontextprotocol.io) server so agents like OpenAI Codex can read editor buffers (including unsaved changes), query the language servers and apply edits that stay in sync with Vim/Neovim.
 
+The MCP server can expose read and write operations to connected clients. Only connect trusted clients, and use `mcp.allowedPaths`, `mcp.deniedPaths` and `mcp.allowedTools` to restrict access when needed.
+
 Auto start it in `coc-settings.json` (disabled by default):
 
 ```json
@@ -478,10 +490,10 @@ The bridge fails immediately with a `coc.nvim MCP service not found` error when 
 
 Try these steps if you experience problems with coc.nvim:
 
-- Ensure your Vim version >= 9.0.0438 using `:version`
+- Ensure your Vim version is >= 9.0.0438 or your Neovim version is >= 0.8.0 using `:version`
 - If a service failed to start, use `:CocInfo` or `:checkhealth` if you use Neovim
-- Checkout the log of coc.nvim with `:CocOpenLog`
-- If you have issues with the language server, it's recommended to [checkout
+- Check the coc.nvim log with `:CocOpenLog`
+- If you have issues with the language server, it's recommended to [check out
   the language server output](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server#using-output-channel)
 
 ## Feedback
