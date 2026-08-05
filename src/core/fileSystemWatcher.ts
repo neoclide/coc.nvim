@@ -262,6 +262,8 @@ export class FileSystemWatcher implements IFileSystemWatcher {
     this._onDidRename.dispose()
     this._onDidCreate.dispose()
     this._onDidChange.dispose()
+    this._onDidDelete.dispose()
+    this._onDidListen.dispose()
     disposeAll(this.disposables)
   }
 }

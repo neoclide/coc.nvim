@@ -510,3 +510,27 @@ describe('create FileSystemWatcherManager', () => {
     }
   })
 })
+
+describe('FileSystemWatcher dispose', () => {
+  it('releases every event emitter including delete and listen', () => {
+    let watcher = new FileSystemWatcher('**/*', false, false, false)
+    let calls: Record<string, number> = { create: 0, change: 0, delete: 0, rename: 0, listen: 0 }
+    watcher.onDidCreate(() => calls.create++)
+    watcher.onDidChange(() => calls.change++)
+    watcher.onDidDelete(() => calls.delete++)
+    watcher.onDidRename(() => calls.rename++)
+    watcher.onDidListen(() => calls.listen++)
+    let w = watcher as any
+    watcher.dispose()
+    for (let name of ['_onDidCreate', '_onDidChange', '_onDidDelete', '_onDidRename', '_onDidListen']) {
+      expect(w[name]._callbacks).toBeUndefined()
+    }
+    // simulating underlying changes after dispose must not call anything
+    w._onDidCreate.fire(URI.file('/x'))
+    w._onDidChange.fire(URI.file('/x'))
+    w._onDidDelete.fire(URI.file('/x'))
+    w._onDidRename.fire({ oldUri: URI.file('/a'), newUri: URI.file('/b') })
+    w._onDidListen.fire()
+    expect(calls).toEqual({ create: 0, change: 0, delete: 0, rename: 0, listen: 0 })
+  })
+})
