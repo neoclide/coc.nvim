@@ -540,6 +540,20 @@ describe('call_function', () => {
 })
 
 describe('client API', () => {
+  it('stops and restarts a task without evaluating the Job as a number', async () => {
+    let id = `vim-task-${Date.now()}`
+    let started = await nvim.call('coc#task#start', [id, { cmd: 'sleep', args: ['30'] }])
+    expect(started).toBe(true)
+    // stop() must not throw E910 (Using a Job as a Number)
+    await nvim.call('coc#task#stop', [id])
+    await helper.waitValue(async () => await nvim.call('coc#task#running', [id]), false)
+    // restarting the same id stops the old job first without E910
+    started = await nvim.call('coc#task#start', [id, { cmd: 'sleep', args: ['30'] }])
+    expect(started).toBe(true)
+    await nvim.call('coc#task#stop', [id])
+    await helper.waitValue(async () => await nvim.call('coc#task#running', [id]), false)
+  })
+
   it('should set current dir', async () => {
     let dir = path.join(fs.realpathSync(os.tmpdir()), crypto.randomUUID())
     fs.mkdirSync(dir, { recursive: true })
