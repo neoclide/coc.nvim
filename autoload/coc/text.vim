@@ -1,5 +1,8 @@
 vim9script
 
+# LCS is O(n * m), limit three-way merge to reasonable line lengths
+const max_merge_len = 200
+
 export def LinesEqual(one: list<string>, two: list<string>): bool
   if len(one) != len(two)
     return false
@@ -126,6 +129,134 @@ export def LcsDiff(str1: string, str2: string): list<dict<any>>
   return result
 enddef
 
+# Extract changed segments from a diff, segment is {start, end, text},
+# start/end are character indexes of the first string.
+def GetSegments(diff: list<dict<any>>): list<dict<any>>
+  var segs: list<dict<any>> = []
+  var start = -1
+  var i1 = 0
+  var buf = ''
+  for item in diff
+    if item.type ==# '='
+      if start >= 0
+        segs->add({start: start, end: i1, text: buf})
+        start = -1
+        buf = ''
+      endif
+      i1 += 1
+    elseif item.type ==# '-'
+      if start < 0
+        start = i1
+      endif
+      i1 += 1
+    else
+      if start < 0
+        start = i1
+      endif
+      buf ..= item.char
+    endif
+  endfor
+  if start >= 0
+    segs->add({start: start, end: i1, text: buf})
+  endif
+  return segs
+enddef
+
+# Three-way merge of a line by character, server text wins on conflicts.
+# Insertions at the boundary of a changed segment are kept.
+# Returns null when the line is too long to merge.
+def MergeLine(base: string, ours: string, theirs: string): any
+  if ours ==# base
+    return theirs
+  endif
+  if theirs ==# base || ours ==# theirs
+    return ours
+  endif
+  const baseLen = strchars(base)
+  if baseLen > max_merge_len || strchars(ours) > max_merge_len || strchars(theirs) > max_merge_len
+    return null
+  endif
+  const d1 = LcsDiff(base, ours)
+  const d2 = LcsDiff(base, theirs)
+  var all: list<dict<any>> = []
+  for seg in GetSegments(d1)
+    all->add({start: seg.start, end: seg.end, text: seg.text, side: 1})
+  endfor
+  for seg in GetSegments(d2)
+    all->add({start: seg.start, end: seg.end, text: seg.text, side: 2})
+  endfor
+  if len(all) == 0
+    return ours
+  endif
+  all->sort((a, b) => a.start == b.start ? a.end - b.end : a.start - b.start)
+  var groups: list<dict<any>> = []
+  for seg in all
+    if len(groups) == 0
+      groups->add({start: seg.start, end: seg.end, ours: seg.side == 1 ? [seg] : [], theirs: seg.side == 2 ? [seg] : []})
+      continue
+    endif
+    var last = groups[-1]
+    # Segments conflict when their ranges intersect, insertions at the
+    # boundary of a changed segment are kept.
+    var overlap = false
+    if seg.start == seg.end
+      overlap = seg.start > last.start && seg.start < last.end
+    else
+      overlap = seg.start < last.end && last.start < seg.end
+    endif
+    if overlap
+      if seg.side == 1
+        add(last.ours, seg)
+      else
+        add(last.theirs, seg)
+      endif
+      last.end = max([last.end, seg.end])
+    else
+      groups->add({start: seg.start, end: seg.end, ours: seg.side == 1 ? [seg] : [], theirs: seg.side == 2 ? [seg] : []})
+    endif
+  endfor
+  var result = ''
+  var pos = 0
+  for group in groups
+    if group.start > pos
+      result ..= strcharpart(base, pos, group.start - pos)
+      pos = group.start
+    endif
+    if len(group.ours) > 0 && len(group.theirs) > 0
+      # Conflict, apply server changes only.
+      var gpos = group.start
+      for seg in group.theirs
+        if seg.start > gpos
+          result ..= strcharpart(base, gpos, seg.start - gpos)
+        endif
+        result ..= seg.text
+        gpos = seg.end
+      endfor
+      if group.end > gpos
+        result ..= strcharpart(base, gpos, group.end - gpos)
+      endif
+    else
+      var segs = len(group.ours) > 0 ? group.ours : group.theirs
+      var gpos = group.start
+      for seg in segs
+        if seg.start > gpos
+          result ..= strcharpart(base, gpos, seg.start - gpos)
+        endif
+        result ..= seg.text
+        gpos = seg.end
+      endfor
+      if group.end > gpos
+        result ..= strcharpart(base, gpos, group.end - gpos)
+      endif
+    endif
+    pos = group.end
+  endfor
+  if pos < baseLen
+    result ..= strcharpart(base, pos)
+  endif
+  return result
+enddef
+
 # Get the single changed part, by character index of cursor.
 def SimpleStringDiff(oldStr: string, newStr: string, charIdx: number = -1): dict<any>
   var suffixLen = 0
@@ -237,8 +368,9 @@ export def DiffApply(original: string, current: string, newText: string, colIdx:
   const diff = SimpleStringDiff(original, current, charIdx)
   const delta = diff.oldEnd - diff.oldStart
   const idx = SearchChangePosition(newText, original, diff)
-  if idx == -1
-    return null
+  if idx != -1
+    return SimpleApplyDiff(newText, idx, idx + delta, diff.newText)
   endif
-  return SimpleApplyDiff(newText, idx, idx + delta, diff.newText)
+  # Single change heuristic failed, use three-way merge as fallback.
+  return MergeLine(original, current, newText)
 enddef

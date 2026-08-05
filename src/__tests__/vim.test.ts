@@ -1623,4 +1623,50 @@ describe('document', () => {
     res = await nvim.call('coc#text#DiffApply', ['ab', 'abx', 'ac', -1])
     expect(res).toBe('acx')
   })
+
+  it('should merge multiple concurrent edits on a line', async () => {
+    let res = await nvim.call('coc#text#DiffApply', ['abcdef', 'aBcdEf', 'abCdef', -1])
+    expect(res).toBe('aBCdEf')
+    res = await nvim.call('coc#text#DiffApply', ['abcd', 'axbycd', 'aXcd', -1])
+    expect(res).toBe('axXycd')
+    res = await nvim.call('coc#text#DiffApply', ['abcdef', 'abCDef', 'aBcdef', -1])
+    expect(res).toBe('aBCDef')
+  })
+
+  it('should keep server text when concurrent edits overlap', async () => {
+    let res = await nvim.call('coc#text#DiffApply', ['abc', 'aXc', 'aYc', -1])
+    expect(res).toBe('aYc')
+    res = await nvim.call('coc#text#DiffApply', ['abcde', 'abde', 'abCde', -1])
+    expect(res).toBe('abCde')
+    res = await nvim.call('coc#text#DiffApply', ['abcdef', 'abef', 'abcXdef', -1])
+    expect(res).toBe('abcXdef')
+  })
+
+  it('should merge multiple concurrent edits with multibyte characters', async () => {
+    let res = await nvim.call('coc#text#DiffApply', ['你a你b', '你A你B', '好a你b', -1])
+    expect(res).toBe('好A你B')
+    res = await nvim.call('coc#text#DiffApply', ['a😀b', 'B😀C', 'aX😀b', -1])
+    expect(res).toBe('BX😀C')
+  })
+
+  it('should fall back to server text for very long lines', async () => {
+    let base = 'a'.repeat(300)
+    let ours = 'a'.repeat(100) + 'x' + 'a'.repeat(49) + 'y' + 'a'.repeat(150)
+    let theirs = 'a'.repeat(100) + 'b' + 'a'.repeat(49) + 'c' + 'a'.repeat(149)
+    let res = await nvim.call('coc#text#DiffApply', [base, ours, theirs, -1])
+    expect(res).toBeNull()
+  })
+
+  it('should merge multiple concurrent edits through applyEdits', async () => {
+    let doc = await helper.createDocument()
+    let buf = doc.buffer
+    await buf.setLines(['abcdef'])
+    await doc.patchChange()
+    nvim.call('setline', [1, 'aBcdEf'], true)
+    nvim.call('cursor', [1, 5], true)
+    let edits: TextEdit[] = [TextEdit.replace(Range.create(0, 2, 0, 3), 'C')]
+    await doc.applyEdits(edits)
+    let line = await nvim.line
+    expect(line).toBe('aBCdEf')
+  })
 })
