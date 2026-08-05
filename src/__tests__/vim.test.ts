@@ -718,6 +718,26 @@ describe('client API', () => {
     }
   })
 
+  it('keeps the centered prompt on screen with a large marginTop', async () => {
+    let savedLines = await nvim.getOption('lines') as number
+    let savedColumns = await nvim.getOption('columns') as number
+    await nvim.setOption('lines', 12)
+    await nvim.setOption('columns', 80)
+    try {
+      let maxRow = Number(await nvim.getOption('lines')) - Number(await nvim.getOption('cmdheight')) - 2
+      for (let marginTop of [0, 1, 50, maxRow]) {
+        let input = await helper.plugin.window.createInputBox('title', '', { marginTop, position: 'center' })
+        let row = input.dimension.row
+        expect(row, `marginTop ${marginTop}`).toBeGreaterThanOrEqual(0)
+        expect(row, `marginTop ${marginTop}`).toBeLessThanOrEqual(maxRow)
+        input.dispose()
+      }
+    } finally {
+      await nvim.setOption('lines', savedLines)
+      await nvim.setOption('columns', savedColumns)
+    }
+  })
+
   it('should execute vim script', async () => {
     let output = await nvim.exec(`echo 'foo'\necho 'bar'`, true)
     expect(output).toBe('foo\nbar')

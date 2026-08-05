@@ -703,7 +703,9 @@ function! s:get_prompt_dimension(title, default, opts) abort
     if marginTop is v:null
       let row = (&lines - &cmdheight - 2) / 2
     else
-      let row = marginTop < 2 ? 1 : min([marginTop, &columns - &cmdheight])
+      " Limit by the available height, not the terminal width, so a large
+      " marginTop cannot push the prompt off screen.
+      let row = marginTop < 2 ? 1 : min([marginTop, &lines - &cmdheight - 2])
     endif
     let config = {
           \ 'col': float2nr((&columns - width) / 2),
