@@ -25,7 +25,7 @@ export enum PatternType {
 
 const logger = createLogger('core-workspaceFolder')
 const PatternTypes = [PatternType.Buffer, PatternType.LanguageServer, PatternType.Global]
-const checkPatternTimeout = getConditionValue(5000, 500)
+const checkPatternTimeout = getConditionValue(5000, 100)
 
 function toWorkspaceFolder(fsPath: string): WorkspaceFolder | undefined {
   if (!fsPath || !path.isAbsolute(fsPath)) {

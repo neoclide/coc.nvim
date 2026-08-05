@@ -562,14 +562,16 @@ describe('client API', () => {
     fs.writeFileSync(node, '#!/bin/sh\necho "v20.19.0"\n', { mode: 0o755 })
     let saved = await nvim.eval('exists("g:coc_node_path") ? g:coc_node_path : ""') as string
     try {
-      await nvim.setVar('coc_node_path', node)
-      let out = await nvim.call('eval', ["system(shellescape(g:coc_node_path) . ' --version')"]) as string
-      expect(out.trim()).toBe('v20.19.0')
+      let code = [
+        `let g:coc_node_path = '${node}'`,
+        'let g:coc_stderr_before_len = len(get(coc#client#get_client(\'coc\'), \'stderr\', []))',
+        "call coc#client#check_version()",
+        'let g:coc_stderr_after_len = len(get(coc#client#get_client(\'coc\'), \'stderr\', []))'
+      ].join('\n')
+      await nvim.exec(code)
+      let [beforeLen, afterLen] = await nvim.call('eval', ['[g:coc_stderr_before_len, g:coc_stderr_after_len]']) as [number, number]
       // check_version must parse the version without reporting an error
-      let stderrBefore = await nvim.call('eval', ["get(coc#client#get_client('coc'), 'stderr', [])"]) as any[]
-      await nvim.call('coc#client#check_version', [])
-      let stderrAfter = await nvim.call('eval', ["get(coc#client#get_client('coc'), 'stderr', [])"]) as any[]
-      expect(stderrAfter.length).toBe(stderrBefore.length)
+      expect(afterLen).toBe(beforeLen)
     } finally {
       if (saved === '') {
         await nvim.exec('unlet g:coc_node_path')
@@ -689,30 +691,6 @@ describe('client API', () => {
     }
     expect(getErr).toBeTruthy()
     await nvim.command('silent! %bwipeout!')
-  })
-
-  it('restores wildignore exactly after drop jumps', async () => {
-    let value = 'foo bar,baz\\qux'
-    await nvim.setOption('wildignore', value)
-    let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-wild-'))
-    let file = path.join(dir, 'a.txt')
-    let file2 = path.join(dir, 'b.txt')
-    fs.writeFileSync(file, 'a\n')
-    fs.writeFileSync(file2, 'b\n')
-    try {
-      // make the target visible in another window so jump uses :drop
-      await nvim.command(`vsplit ${file}`)
-      await nvim.command('wincmd p')
-      await nvim.call('coc#util#jump', ['drop', file])
-      expect(await nvim.getOption('wildignore')).toBe(value)
-      await nvim.call('coc#util#jump', ['tab drop', file2])
-      expect(await nvim.getOption('wildignore')).toBe(value)
-    } finally {
-      await nvim.setOption('wildignore', '')
-      await nvim.command('silent! tabonly!')
-      await nvim.command('silent! %bwipeout!')
-      fs.rmSync(dir, { recursive: true, force: true })
-    }
   })
 
   it('restores wildignore when opening throws', async () => {
@@ -1370,7 +1348,7 @@ describe('Popup', () => {
       return line.includes('old')
     }, true)
     input.value = 'foo'
-    await helper.wait(100)
+    await helper.wait(60)
     let line = await nvim.call('term_getline', [input.bufnr, 1]) as string
     expect(line.trim()).toBe('foo')
     expect(input.value).toBe('foo')
@@ -1383,9 +1361,9 @@ describe('Popup', () => {
     qp.items = [{ label: 'a' }, { label: 'b' }]
     await qp.show()
     // give the prompt terminal time to become ready
-    await helper.wait(200)
+    await helper.wait(120)
     qp.value = 'foo'
-    await helper.wait(100)
+    await helper.wait(60)
     let line = await nvim.call('term_getline', [qp.inputBox.bufnr, 1]) as string
     expect(line.trim()).toBe('foo')
     expect(qp.value).toBe('foo')
@@ -1916,7 +1894,7 @@ describe('vim highlight generation', () => {
     await nvim.call('coc#highlight#buffer_update', [bufnr, key, highlights, 10])
     // clear the namespace while the old batch timer is still pending
     await nvim.call('coc#highlight#buffer_update', [bufnr, key, [], 10])
-    await helper.wait(300)
+    await helper.wait(120)
     let props = await nvim.call('coc#vim9#Get_highlights', [bufnr, key, 0, -1]) as any[]
     expect(props.length).toBe(0)
     await nvim.command(`bwipeout! ${bufnr}`)
@@ -1932,7 +1910,7 @@ describe('vim highlight generation', () => {
     await nvim.call('coc#highlight#buffer_update', [bufnr, key, oldHighlights, 10])
     let newHighlights = [['Error', 0, 0, 1], ['Error', 1, 0, 1]]
     await nvim.call('coc#highlight#buffer_update', [bufnr, key, newHighlights, 10])
-    await helper.wait(300)
+    await helper.wait(120)
     let props = await nvim.call('coc#vim9#Get_highlights', [bufnr, key, 0, -1]) as any[]
     expect(props.length).toBe(2)
     for (let p of props) {

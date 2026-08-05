@@ -196,7 +196,10 @@ describe('mcp security hardening', () => {
     await startedPromise
     release()
     await client.onClosed()
-    await pollUntil(() => secondEntered > 0, 1000)
+    // The exit task closes the session in the same event-loop turn as the
+    // queued second call would have run; a short settle is enough for the
+    // buggy behavior to manifest.
+    await new Promise(resolve => setTimeout(resolve, 50))
     expect(secondEntered).toBe(0)
     client.close()
     server.dispose()

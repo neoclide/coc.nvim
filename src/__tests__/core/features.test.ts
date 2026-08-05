@@ -746,12 +746,8 @@ describe('WorkspaceFolderController', () => {
 
     it('should not throw on timeout', async () => {
       let spy = vi.spyOn(workspaceFolder, 'checkFolder').mockImplementation((_dir, _patterns, token) => {
-        return new Promise((resolve, reject) => {
-          let timer = setTimeout(() => {
-            resolve(undefined)
-          }, 200)
+        return new Promise((_resolve, reject) => {
           token.onCancellationRequested(() => {
-            clearTimeout(timer)
             reject(new CancellationError())
           })
         })
