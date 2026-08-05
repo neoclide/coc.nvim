@@ -26,6 +26,21 @@ async function waitFor(fn: () => boolean, timeout = 5000): Promise<void> {
   }
 }
 
+async function waitNotification(client: BridgeClient, method: string): Promise<any> {
+  await waitFor(() => client.frames.some(frame => frame.method === method))
+  let index = client.frames.findIndex(frame => frame.method === method)
+  return client.frames.splice(index, 1)[0]
+}
+
+async function requestTools(client: BridgeClient, request: (id: number | string, method: string, params?: any) => Promise<any>, id: number): Promise<any> {
+  let result = await request(id, 'tools/list')
+  if (result.tools.length === 0) {
+    await waitNotification(client, 'notifications/tools/list_changed')
+    result = await request(id + 1000, 'tools/list')
+  }
+  return result
+}
+
 describe('coc-mcp stdio bridge', () => {
   let server: McpServer
   let address: { host: string, port: number, socketPath: string }
@@ -121,7 +136,7 @@ describe('coc-mcp stdio bridge', () => {
     })
     expect(init.protocolVersion).toBe('2025-06-18')
     proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n')
-    let list = await request(2, 'tools/list')
+    let list = await requestTools(client, request, 2)
     expect(list.tools.map((t: any) => t.name)).toContain('bridge_echo')
     let call = await request(3, 'tools/call', { name: 'bridge_echo', arguments: { value: 'via-bridge' } })
     expect(call.structuredContent.value).toBe('via-bridge')
@@ -137,22 +152,48 @@ describe('coc-mcp stdio bridge', () => {
     expect(stderr).toContain('server capabilities: tools')
   })
 
-  it('exits with code 2 when no coc.nvim MCP service is found', async () => {
+  it('waits for coc.nvim before completing initialize', async () => {
     let emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-empty-'))
     let proc = spawn(process.execPath, [bridgePath], {
-      env: { ...process.env, COC_MCP_DIR: emptyDir },
+      env: { ...process.env, COC_MCP_DIR: emptyDir, COC_MCP_POLL_INTERVAL_MS: '50' },
       stdio: ['pipe', 'pipe', 'pipe']
     })
     let stderr = ''
     proc.stderr.on('data', chunk => {
       stderr += chunk.toString('utf8')
     })
-    let code = await new Promise<number | null>(resolve => {
-      proc.on('exit', resolve)
+    let { request } = attachClient(proc)
+    let initialize = request(1, 'initialize', {
+      protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
     })
-    expect(code).toBe(2)
-    expect(stderr).toContain('startup failed')
-    expect(stderr).toContain('coc.nvim MCP service not found')
+    await waitFor(() => stderr.includes('retrying'))
+    expect(proc.exitCode).toBe(null)
+
+    let registry = new ToolRegistry()
+    registry.register({
+      name: 'delayed_tool',
+      description: 'tool registered after bridge startup',
+      inputSchema: { type: 'object' },
+      handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
+    })
+    let delayedServer = new McpServer({
+      transport: 'tcp', host: '127.0.0.1', port: 0,
+      token: 'delayed-token', authRequired: true, maxClients: 2, timeout: 1000
+    }, registry)
+    let delayedAddress = await delayedServer.listen()
+    fs.writeFileSync(path.join(emptyDir, `coc-${process.pid}.json`), JSON.stringify({
+      version: 1, pid: process.pid, transport: 'tcp', host: '127.0.0.1',
+      port: delayedAddress.port, token: 'delayed-token', protocolVersion: '2025-06-18',
+      serverInfo: { name: 'coc.nvim', version: '0.0.0' }, cwd: process.cwd()
+    }))
+    let init = await initialize
+    expect(init.capabilities.tools.listChanged).toBe(true)
+    let list = await request(2, 'tools/list')
+    expect(list.tools.map((tool: any) => tool.name)).toContain('delayed_tool')
+    proc.stdin.end()
+    await new Promise<void>(resolve => proc.on('exit', () => resolve()))
+    expect(proc.exitCode).toBe(0)
+    delayedServer.dispose()
     fs.rmSync(emptyDir, { recursive: true, force: true })
   })
 
@@ -242,7 +283,7 @@ describe('coc-mcp stdio bridge', () => {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
     })
     expect(init.protocolVersion).toBe('2025-06-18')
-    let list = await request(2, 'tools/list')
+    let list = await requestTools(client, request, 2)
     let names = list.tools.map((t: any) => t.name)
     expect(names).toContain('instance_a_tool')
     expect(names).not.toContain('instance_b_tool')
@@ -332,7 +373,7 @@ describe('coc-mcp stdio bridge', () => {
     return { serverA, serverB }
   }
 
-  it('exits with code 2 by default when no instance matches the bridge cwd', async () => {
+  it('fails initialize when no instance matches the bridge cwd', async () => {
     let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-multi-'))
     let workA = path.join(dir, 'proj-a')
     let workB = path.join(dir, 'proj-b')
@@ -343,18 +384,24 @@ describe('coc-mcp stdio bridge', () => {
     let { serverA, serverB } = await twoInstances(dir, workA, workB)
     let proc = spawn(process.execPath, [bridgePath], {
       cwd: elsewhere,
-      env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp') },
+      env: {
+        ...process.env,
+        COC_MCP_DIR: path.join(dir, 'mcp'),
+        COC_MCP_POLL_INTERVAL_MS: '20',
+        COC_MCP_STARTUP_TIMEOUT_MS: '100'
+      },
       stdio: ['pipe', 'pipe', 'pipe']
     })
     let stderr = ''
     proc.stderr.on('data', chunk => {
       stderr += chunk.toString('utf8')
     })
-    let code = await Promise.race([
-      new Promise<number | null>(resolve => proc.on('exit', resolve)),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('bridge did not exit')), 5000))
-    ])
-    expect(code).toBe(2)
+    let { request } = attachClient(proc)
+    await expect(request(1, 'initialize', {
+      protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
+    })).rejects.toThrow(/unavailable after 100ms/)
+    await new Promise<void>(resolve => proc.on('exit', () => resolve()))
+    expect(proc.exitCode).toBe(2)
     expect(stderr).toContain('no instance matches cwd')
     serverA.dispose()
     serverB.dispose()
@@ -373,11 +420,11 @@ describe('coc-mcp stdio bridge', () => {
       env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp') },
       stdio: ['pipe', 'pipe', 'pipe']
     })
-    let { request } = attachClient(proc)
+    let { client, request } = attachClient(proc)
     await request(1, 'initialize', {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
     })
-    let list = await request(2, 'tools/list')
+    let list = await requestTools(client, request, 2)
     let names = list.tools.map((t: any) => t.name)
     expect(names).toContain('instance_a_tool')
     expect(names).not.toContain('instance_b_tool')
@@ -400,11 +447,11 @@ describe('coc-mcp stdio bridge', () => {
       env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp') },
       stdio: ['pipe', 'pipe', 'pipe']
     })
-    let { request } = attachClient(proc)
+    let { client, request } = attachClient(proc)
     await request(1, 'initialize', {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
     })
-    let list = await request(2, 'tools/list')
+    let list = await requestTools(client, request, 2)
     let names = list.tools.map((t: any) => t.name)
     expect(names).toContain('instance_b_tool')
     expect(names).not.toContain('instance_a_tool')
@@ -453,11 +500,11 @@ describe('coc-mcp stdio bridge', () => {
       env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp') },
       stdio: ['pipe', 'pipe', 'pipe']
     })
-    let { request } = attachClient(proc)
+    let { client, request } = attachClient(proc)
     await request(1, 'initialize', {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
     })
-    let before = await request(2, 'tools/list')
+    let before = await requestTools(client, request, 2)
     expect(before.tools.map((t: any) => t.name)).toContain('before_restart')
     let stderr = ''
     proc.stderr.on('data', chunk => {
@@ -466,7 +513,7 @@ describe('coc-mcp stdio bridge', () => {
     // simulate coc.nvim restarting: the old server goes away and a new one
     // rewrites the discovery file with a new endpoint and token
     firstServer.dispose()
-    await waitFor(() => stderr.includes('waiting for restart'))
+    await waitFor(() => stderr.includes('disconnected'))
     let registry2 = new ToolRegistry()
     registry2.register({
       name: 'after_restart',
@@ -497,8 +544,10 @@ describe('coc-mcp stdio bridge', () => {
       cwd: process.cwd(),
       startedAt: Date.now()
     }))
+    let changed = await waitNotification(client, 'notifications/tools/list_changed')
+    expect(changed.method).toBe('notifications/tools/list_changed')
     // the bridge reconnects and relays requests to the new server
-    let after = await request(3, 'tools/list')
+    let after = await requestTools(client, request, 3)
     expect(after.tools.map((t: any) => t.name)).toContain('after_restart')
     proc.stdin.end()
     await new Promise<void>(resolve => proc.on('exit', () => resolve()))
@@ -549,11 +598,11 @@ describe('coc-mcp stdio bridge', () => {
       env: { ...process.env, COC_MCP_DIR: mcpDir },
       stdio: ['pipe', 'pipe', 'pipe']
     })
-    let { request } = attachClient(proc)
+    let { client, request } = attachClient(proc)
     await request(1, 'initialize', {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
     })
-    let list = await request(2, 'tools/list')
+    let list = await requestTools(client, request, 2)
     expect(list.tools.map((t: any) => t.name)).toContain('clean_tool')
     proc.stdin.end()
     await new Promise<void>(resolve => proc.on('exit', () => resolve()))
@@ -609,11 +658,11 @@ describe('coc-mcp stdio bridge', () => {
       },
       stdio: ['pipe', 'pipe', 'pipe']
     })
-    let { request } = attachClient(proc)
+    let { client, request } = attachClient(proc)
     await request(1, 'initialize', {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
     })
-    let list = await request(2, 'tools/list')
+    let list = await requestTools(client, request, 2)
     expect(list.tools.map((t: any) => t.name)).toContain('key_tool')
     proc.stdin.end()
     await new Promise<void>(resolve => proc.on('exit', () => resolve()))
@@ -621,7 +670,7 @@ describe('coc-mcp stdio bridge', () => {
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
-  it('exits with code 3 when the server requires a key but the bridge has none', async () => {
+  it('fails initialize when the server requires a key but the bridge has none', async () => {
     const { publicKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
     let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-key-'))
     fs.mkdirSync(path.join(dir, 'mcp'), { recursive: true })
@@ -650,18 +699,24 @@ describe('coc-mcp stdio bridge', () => {
       startedAt: Date.now()
     }))
     let proc = spawn(process.execPath, [bridgePath], {
-      env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp') },
+      env: {
+        ...process.env,
+        COC_MCP_DIR: path.join(dir, 'mcp'),
+        COC_MCP_POLL_INTERVAL_MS: '20',
+        COC_MCP_STARTUP_TIMEOUT_MS: '100'
+      },
       stdio: ['pipe', 'pipe', 'pipe']
     })
     let stderr = ''
     proc.stderr.on('data', chunk => {
       stderr += chunk.toString('utf8')
     })
-    let code = await Promise.race([
-      new Promise<number | null>(resolve => proc.on('exit', resolve)),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('bridge did not exit')), 5000))
-    ])
-    expect(code).toBe(3)
+    let { request } = attachClient(proc)
+    await expect(request(1, 'initialize', {
+      protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
+    })).rejects.toThrow(/unavailable after 100ms/)
+    await new Promise<void>(resolve => proc.on('exit', () => resolve()))
+    expect(proc.exitCode).toBe(2)
     expect(stderr).toContain('authentication failed')
     keyServer.dispose()
     fs.rmSync(dir, { recursive: true, force: true })

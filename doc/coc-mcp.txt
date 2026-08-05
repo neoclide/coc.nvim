@@ -65,50 +65,35 @@ MCP status section.
 ==============================================================================
 3. CODEX SETUP				*coc-mcp-codex*
 
-Add a stdio MCP server to `~/.codex/config.toml`:
+Add this stdio server to `~/.codex/config.toml`:
 
 	[mcp_servers.coc]
 	command = "node"
 	args = ["/path/to/coc.nvim/bin/coc-mcp.js"]
 	enabled = true
 
-No environment variables are required: the bridge reads the per-instance
-discovery files from `~/.coc/mcp` (the same directory coc.nvim writes them
-to). `COC_MCP_DIR` optionally overrides that directory for special setups
-(e.g. tests or remote mounts). Run `codex mcp list` to verify the server
-shows up, then start a Codex session and call tools such as
-`editor/state` to snapshot the active buffer and cursor, `document/read`,
-`lsp/references` (or `lsp/batch` to run several LSP queries in one call)
-or `workspace/apply_edit`.
-A commented example with timeouts and an optional tool whitelist lives in
-`doc/coc-mcp-example.toml`.
+Before starting Codex, start the coc.nvim MCP server with
+`"mcp.autoStart": true` or `:CocCommand mcp.start`. Run `codex mcp list` to
+verify the configuration. See
+`doc/coc-mcp-example.toml` for timeout and tool-filter examples.
 
-The bridge fails immediately when it cannot find a usable coc.nvim MCP
-service: start vim/nvim with coc.nvim and `"mcp.autoStart": true` first,
-or run `:CocCommand mcp.start`, then start Codex.
-
-Once connected, the bridge keeps running across `:CocRestart`: the MCP
-server state is kept in vim, the new coc.nvim process restarts it and
-rewrites the discovery file, and the bridge reconnects to the new
-endpoint/token automatically.
+The bridge discovers coc.nvim instances through `~/.coc/mcp` and needs no
+environment variables. `COC_MCP_DIR` overrides the discovery directory for
+tests or remote mounts. During initialization, the bridge waits up to five
+seconds for a connection before returning an error and exiting. Set
+`COC_MCP_STARTUP_TIMEOUT_MS` to change this timeout, and keep Codex's
+`startup_timeout_sec` at least as large.
 
 Multiple editor instances: ~
 
-Each running coc.nvim writes its own discovery file under
-`~/.coc/mcp/coc-<pid>.json` (with `pid`, port, token, protocol
-version and workspace root), keyed by the vim pid, so several vim/neovim
-instances do not overwrite each other. The bridge picks an instance as
-follows:
+Each instance publishes `~/.coc/mcp/coc-<pid>.json`. The bridge selects one
+as follows:
 
-- by default (same as `--match-cwd`) it connects to the first instance
-  whose workspace root contains the bridge working directory (symlinks are
-  normalized) and exits when no instance matches;
-- `--match-first` connects to the first available instance, ignoring the
-  working directory (useful when the agent is not started from a
-  terminal).
+- default (`--match-cwd`): first instance whose workspace contains the
+  bridge working directory, with symlinks normalized;
+- `--match-first`: first available instance, ignoring the working directory.
 
-`mcp.status` shows the server pid, working directory and the connected
-clients (each bridge reports its own pid).
+The bridge reconnects automatically after `:CocRestart`.
 
 ==============================================================================
 4. COMMANDS					*coc-mcp-commands*
@@ -189,18 +174,14 @@ asking for fewer results also makes the call faster.
 8. TROUBLESHOOTING				*coc-mcp-troubleshooting*
 
 `codex mcp list` shows the server but tools do not appear:
-- Make sure coc.nvim is running and `"mcp.autoStart": true` is set, or start
-  the server manually with `:CocCommand mcp.start`.
-- Check `~/.coc/mcp/coc-<pid>.json` exists.
-- The bridge exits immediately when coc.nvim is not running: restart session
-  after mcp service available.
+- Start coc.nvim with `"mcp.autoStart": true`, or run
+  `:CocCommand mcp.start`, before starting Codex. The bridge exits if it cannot
+  connect within five seconds.
+- Check that `~/.coc/mcp/coc-<pid>.json` exists and its workspace contains the
+  bridge working directory. Use `--match-first` to ignore the workspace.
 - If `mcp.authClientPublicKey` is configured but the bridge has no
   `COC_MCP_AUTH_KEY_FILE`, authentication fails: set the private key file
   or clear the config.
-- The bridge connects to the instance whose workspace contains its working
-  directory and exits when none matches: run the bridge from the workspace
-  of the target instance, or pass `--match-first` to connect to the first
-  available instance.
 
 Edits are not visible on disk:
 - `workspace/apply_edit` saves all modified buffers with `:wa` after

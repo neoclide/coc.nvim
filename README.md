@@ -477,7 +477,7 @@ enabled = true
 
 Run `codex mcp list` to verify the server, then call tools such as `document/read`, `lsp/references` or `workspace/apply_edit`. See [doc/coc-mcp.txt](doc/coc-mcp.txt) for the interface specification. List the available tools in vim with `:CocCommand mcp.status` or via the MCP `tools/list` request.
 
-The bridge fails immediately with a `coc.nvim MCP service not found` error when no usable connection exists at startup, so start vim/nvim with coc.nvim (and `"mcp.autoStart": true`) before launching Codex.
+During initialization, the bridge waits up to five seconds for a usable coc.nvim connection before returning an error. Start vim/nvim with coc.nvim and `"mcp.autoStart": true`, or run `:CocCommand mcp.start`, before launching Codex. Set `COC_MCP_STARTUP_TIMEOUT_MS` to change the timeout.
 
 ## Articles
 

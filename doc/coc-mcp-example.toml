@@ -17,7 +17,8 @@ tool_timeout_sec = 60
 
 # Optional: with several vim instances, connect to the first available one.
 # By default the bridge matches the instance whose workspace contains the
-# agent working directory and exits when no instance matches:
+# agent working directory and fails initialization after five seconds when no
+# instance matches:
 # args = ["/path/to/coc.nvim/bin/coc-mcp.js", "--match-first"]
 
 # coc.nvim writes its per-instance discovery
