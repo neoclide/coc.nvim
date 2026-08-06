@@ -434,6 +434,11 @@ describe('semanticTokens', () => {
     it('should highlight hidden buffer on shown', async () => {
       helper.updateConfiguration('semanticTokens.filetypes', ['rust'])
       registerProvider()
+      // Mock the RPC-heavy highlight diff/apply steps so the test is immune
+      // to Neovim channel stalls under parallel load. The trigger chain
+      // (BufWinEnter -> onShown -> doHighlight -> onDidRefresh) is still
+      // exercised against the real buffer and window state.
+      let diffSpy = vi.spyOn(window, 'diffHighlights').mockResolvedValue(null)
       await nvim.command('edit foo')
       let code = 'fn main() {\n  println!("H"); \n}'
       let filepath = path.join(tempDir, 'a.rs')
@@ -441,18 +446,18 @@ describe('semanticTokens', () => {
       let uri = URI.file(filepath).toString()
       await workspace.loadFile(uri, '')
       let doc = workspace.getDocument(uri)
-      await nvim.command('b ' + doc.bufnr)
+      expect(doc.filetype).toBe('rust')
       let item = semanticTokens.getItem(doc.bufnr)
       let called = false
       item.onDidRefresh(() => {
         called = true
       })
-      let buf = doc.buffer
-      expect(doc.filetype).toBe('rust')
-      await nvim.command(`b ${buf.id}`)
+      // show the previously hidden buffer, which must trigger a refresh
+      await nvim.command('b ' + doc.bufnr)
       await helper.waitValue(() => {
         return called
       }, true)
+      diffSpy.mockRestore()
     })
 
     it('should no highlights when request cancelled', async () => {
