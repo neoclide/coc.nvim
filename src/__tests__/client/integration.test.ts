@@ -964,6 +964,13 @@ describe('Client integration', () => {
     })
 
     it('should reject start when a pipe server never connects', async () => {
+      let nativeSetTimeout = global.setTimeout
+      let timerSpy = vi.spyOn(global, 'setTimeout').mockImplementation(((callback, timeout, ...args) => {
+        // Shorten only the test-mode CONNECT_TIMEOUT watchdog. The spawned
+        // process intentionally never connects, so wall-clock time adds no
+        // coverage here.
+        return nativeSetTimeout(callback, timeout === 2000 ? 20 : timeout, ...args)
+      }) as typeof setTimeout)
       let serverOptions: lsclient.ServerOptions = {
         command: 'node',
         args: ['-e', 'setInterval(() => {}, 1000)', '--'],
@@ -973,8 +980,15 @@ describe('Client integration', () => {
         documentSelector: ['css'],
         initializationOptions: {}
       })
-      await expect(client.start()).rejects.toThrow(/Timed out/)
-      await client.dispose()
+      try {
+        await expect(client.start()).rejects.toThrow(/Timed out/)
+      } finally {
+        try {
+          await client.dispose()
+        } finally {
+          timerSpy.mockRestore()
+        }
+      }
     })
 
     it('should reject start when module runtime is not found', async () => {

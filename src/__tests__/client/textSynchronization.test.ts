@@ -48,11 +48,22 @@ afterAll(async () => {
 
 async function loadBuffer(filepath: string): Promise<Document> {
   let nr = await nvim.call('bufadd', [filepath]) as number
-  await nvim.call('bufload', [nr])
-  await helper.waitValue(async () => {
-    return workspace.getDocument(nr) != null
-  }, true)
-  return workspace.getDocument(nr)
+  let doc = workspace.getDocument(nr)
+  if (doc) return doc
+  let resolveDocument: (document: Document) => void
+  let opened = new Promise<Document>(resolve => {
+    resolveDocument = resolve
+  })
+  let disposable = workspace.onDidOpenTextDocument(textDocument => {
+    let document = workspace.getDocument(textDocument.uri)
+    if (document?.bufnr === nr) resolveDocument(document)
+  })
+  try {
+    await nvim.call('bufload', [nr])
+    return workspace.getDocument(nr) ?? await opened
+  } finally {
+    disposable.dispose()
+  }
 }
 
 describe('TextDocumentSynchronization', () => {
@@ -113,13 +124,22 @@ describe('TextDocumentSynchronization', () => {
       let uri = URI.file(path.join(os.tmpdir(), 'x.vim'))
       await workspace.loadFile(uri.toString())
       let loaded: Set<string> = new Set()
+      let openResolvers = new Map<string, () => void>()
+      let waitForOpen = (filepath: string): Promise<void> => {
+        return new Promise(resolve => {
+          openResolvers.set(filepath, resolve)
+        })
+      }
       let throwError = false
       let client = createClient({
         documentSelector: [{ language: 'vim' }],
         textSynchronization: { delayOpenNotifications: true }
       }, {
         didOpen: (data, next) => {
-          loaded.add(URI.parse(data.uri).fsPath)
+          let filepath = URI.parse(data.uri).fsPath
+          loaded.add(filepath)
+          openResolvers.get(filepath)?.()
+          openResolvers.delete(filepath)
           if (throwError) return Promise.reject(new Error('my error'))
           return next(data)
         }
@@ -129,8 +149,9 @@ describe('TextDocumentSynchronization', () => {
       let filepath = path.join(os.tmpdir(), 't.vim')
       let doc = await loadBuffer(filepath)
       expect(loaded.has(filepath)).toBe(false)
+      let opened = waitForOpen(filepath)
       await nvim.command(`b ${doc.bufnr}`)
-      await helper.waitValue(() => loaded.has(filepath), true)
+      await opened
       await nvim.command(`bwipeout`)
       filepath = path.join(os.tmpdir(), 'p.vim')
       doc = await loadBuffer(filepath)
@@ -141,11 +162,10 @@ describe('TextDocumentSynchronization', () => {
       await feature.sendPendingOpenNotifications()
       expect(loaded.has(filepath)).toBe(true)
       throwError = true
-      filepath = path.join(os.tmpdir(), 'foo.vim')
-      doc = await loadBuffer(filepath)
       feature._pendingOpenNotifications.set(doc.uri, doc.textDocument)
+      opened = waitForOpen(filepath)
       await nvim.command(`b ${doc.bufnr}`)
-      await helper.waitValue(() => loaded.has(filepath), true)
+      await opened
       await client.stop()
     })
   })

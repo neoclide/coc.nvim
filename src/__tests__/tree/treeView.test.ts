@@ -995,7 +995,6 @@ describe('TreeView', () => {
     async function createFilterTreeView(opts: Partial<ProviderOptions<TreeNode>> = {}): Promise<void> {
       createTreeView(defaultDef, { enableFilter: true }, opts)
       await treeView.show()
-      await helper.wait(20)
       let tick = await nvim.eval('b:changedtick') as number
       await nvim.input('f')
       await helper.waitValue(async () => {
@@ -1016,12 +1015,20 @@ describe('TreeView', () => {
 
     it('should not throw error on filter', async () => {
       await createFilterTreeView()
+      let resolveUpdate: () => void
+      let updated = new Promise<void>(resolve => {
+        resolveUpdate = resolve
+      })
       let spy = vi.spyOn(treeView as any, 'getRenderedLine').mockImplementation(() => {
+        resolveUpdate()
         throw new Error('Error on updateUI')
       })
-      await nvim.input('a')
-      await helper.wait(50)
-      spy.mockRestore()
+      try {
+        await nvim.input('a')
+        await updated
+      } finally {
+        spy.mockRestore()
+      }
     })
 
     it('should add & remove Cursor highlight on window change', async () => {
@@ -1042,7 +1049,7 @@ describe('TreeView', () => {
     it('should filter new nodes on data change', async () => {
       await createFilterTreeView()
       await nvim.input('a')
-      await helper.wait(50)
+      await helper.waitFor('getline', [2], 'a ')
       updateData([
         ['ab'],
         ['e'],
@@ -1056,7 +1063,7 @@ describe('TreeView', () => {
     it('should change selected item by <up> and <down>', async () => {
       await createFilterTreeView()
       await nvim.input('a')
-      await helper.wait(50)
+      await helper.waitFor('getline', [2], 'a ')
       updateData([
         ['ab'],
         ['fA']
@@ -1089,12 +1096,8 @@ describe('TreeView', () => {
     it('should not throw with empty nodes', async () => {
       await createFilterTreeView()
       await nvim.input('ab')
-      await helper.wait(50)
-      await nvim.input('<up>')
-      await helper.wait(50)
-      await nvim.input('<down>')
-      await helper.wait(50)
-      await nvim.input('<cr>')
+      await checkLines(['test', 'ab '])
+      await nvim.input('<up><down><cr>')
       await checkLines(['test', 'ab '])
       let curr = treeView.selection[0]
       expect(curr).toBeUndefined()
@@ -1152,7 +1155,7 @@ describe('TreeView', () => {
         '  g',
       ])
       await nvim.input('f')
-      await helper.wait(20)
+      await helper.waitPrompt()
       await nvim.input('<C-o>')
       await checkLines([
         'test',
@@ -1184,12 +1187,20 @@ describe('TreeView', () => {
 
     it('should not throw on filter error', async () => {
       await createFilterTreeView()
+      let resolveRedraw: () => void
+      let redrawn = new Promise<void>(resolve => {
+        resolveRedraw = resolve
+      })
       let spy = vi.spyOn(treeView as any, 'redraw').mockImplementation(() => {
+        resolveRedraw()
         throw new Error('test error')
       })
-      await nvim.input('a')
-      await helper.wait(20)
-      spy.mockRestore()
+      try {
+        await nvim.input('a')
+        await redrawn
+      } finally {
+        spy.mockRestore()
+      }
     })
   })
 })

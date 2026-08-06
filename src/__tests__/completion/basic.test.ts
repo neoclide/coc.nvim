@@ -1169,12 +1169,15 @@ describe('completion', () => {
 
     it('should timeout on resolve', async () => {
       let called = false
+      let finishResolve: () => void
       disposables.push(sources.createSource({
         name: 'resolve',
         doComplete: (_opt: CompleteOption) => Promise.resolve({ items: [{ word: 'foo' }] }),
         onCompleteResolve: async item => {
           called = true
-          await helper.wait(200)
+          await new Promise<void>(resolve => {
+            finishResolve = resolve
+          })
           item.info = 'info'
         }
       }))
@@ -1185,6 +1188,8 @@ describe('completion', () => {
       }, true)
       let floatWin = await helper.getFloat('pumdetail')
       expect(floatWin).toBeUndefined()
+      finishResolve()
+      await Promise.resolve()
     }, 10000)
   })
 

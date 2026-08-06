@@ -381,13 +381,6 @@ export class Helper extends EventEmitter {
     return nullChannel
   }
 
-  public generateRandomHash(algorithm = 'sha256') {
-    const randomString = Math.random().toString(36).substring(2) // 生成随机字符串
-    const hash = crypto.createHash(algorithm)
-      .update(randomString)
-      .digest('hex') // 输出十六进制格式
-    return hash
-  }
 }
 
 export async function createTmpFile(content: string, disposables?: Disposable[]): Promise<string> {

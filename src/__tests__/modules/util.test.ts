@@ -1725,15 +1725,12 @@ describe('diff', () => {
     })
   })
 
-  function blockMilliseconds(ms: number): void {
-    let ts = Date.now()
-    let i = 0
-    while (true) {
-      if (Date.now() - ts > ms) {
-        break
-      }
-      i++
-    }
+  function mockElapsedTime(): ReturnType<typeof vi.spyOn> {
+    let now = 0
+    return vi.spyOn(Date, 'now').mockImplementation(() => {
+      now += 20
+      return now
+    })
   }
 
   describe('async', () => {
@@ -1748,14 +1745,16 @@ describe('diff', () => {
       let n = 0
       let res: string[] = []
       let finished: boolean
-      await filter<string>(['a', 'b', 'c'], () => {
-        blockMilliseconds(30)
-        return true
-      }, (items, done) => {
-        n++
-        res.push(...items)
-        finished = done
-      })
+      let spy = mockElapsedTime()
+      try {
+        await filter<string>(['a', 'b', 'c'], () => true, (items, done) => {
+          n++
+          res.push(...items)
+          finished = done
+        })
+      } finally {
+        spy.mockRestore()
+      }
       expect(n).toBe(3)
       expect(res).toEqual(['a', 'b', 'c'])
       expect(finished).toEqual(true)
@@ -1767,17 +1766,14 @@ describe('diff', () => {
       process.nextTick(() => {
         tokenSource.cancel()
       })
-      await filter([1, 2, 3, 4, 5, 6, 7, 8], i => {
-        if (i > 1) {
-          let ts = Date.now()
-          while (true) {
-            if (Date.now() - ts > 40) break
-          }
-        }
-        return true
-      }, (_, done) => {
-        expect(done).toBeFalsy()
-      }, token)
+      let spy = mockElapsedTime()
+      try {
+        await filter([1, 2, 3], () => true, (_, done) => {
+          expect(done).toBeFalsy()
+        }, token)
+      } finally {
+        spy.mockRestore()
+      }
     })
 
     it('should perform async forEach', async () => {
@@ -1785,25 +1781,29 @@ describe('diff', () => {
       let res = []
       await forEach([1, 2], x => res.push(x))
       expect(res).toEqual([1, 2])
-      let result = []
-      const items = Array(1024 * 20).fill(1) // 足够大的数组以确保会yield
-      await forEach(items, () => result.push(helper.generateRandomHash()), undefined, { yieldAfter: 5 })
-      expect(result.length).toBe(items.length)
-      result = []
-      await forEach(items, () => result.push(helper.generateRandomHash()), undefined)
-      expect(result.length).toBe(items.length)
-      // it should cancel with callback called.
-      let tokenSource = new CancellationTokenSource()
-      let token = tokenSource.token
-      let called = false
-      let cb = () => {
-        tokenSource.cancel()
-        called = true
+      const items = [1, 2, 3]
+      let spy = mockElapsedTime()
+      try {
+        let result = []
+        let yielded = vi.fn()
+        await forEach(items, item => result.push(item), undefined, { yieldCallback: yielded })
+        expect(result).toEqual(items)
+        expect(yielded).toHaveBeenCalled()
+        // it should cancel with callback called.
+        let tokenSource = new CancellationTokenSource()
+        let token = tokenSource.token
+        let called = false
+        let cb = () => {
+          tokenSource.cancel()
+          called = true
+        }
+        result = []
+        await forEach(items, item => result.push(item), token, { yieldCallback: cb })
+        expect(called).toBe(true)
+        expect(result.length).toBeLessThan(items.length)
+      } finally {
+        spy.mockRestore()
       }
-      result = []
-      await forEach(items, () => result.push(helper.generateRandomHash()), token, { yieldAfter: 1, yieldCallback: cb })
-      expect(called).toBe(true)
-      expect(result.length).toBeLessThan(items.length)
     })
 
     it('should map with empty array should return empty array', async () => {
@@ -1812,13 +1812,17 @@ describe('diff', () => {
     })
 
     it('should map correct transform items', async () => {
-      const items = Array(1024 * 20).fill(1) // 足够大的数组以确保会yield
-      const result = await map(items, () => helper.generateRandomHash())
-      expect(result.length).toBe(items.length)
+      let spy = mockElapsedTime()
+      try {
+        const result = await map([1, 2, 3], item => item * 2)
+        expect(result).toEqual([2, 4, 6])
+      } finally {
+        spy.mockRestore()
+      }
     })
 
     it('should map yieldCallback when yielding', async () => {
-      const items = Array(1024 * 20).fill(1) // 足够大的数组以确保会yield
+      const items = [1, 2, 3]
       let tokenSource = new CancellationTokenSource()
       let token = tokenSource.token
       let called = false
@@ -1826,20 +1830,30 @@ describe('diff', () => {
         tokenSource.cancel()
         called = true
       }
-      const options: YieldOptions = { yieldCallback: cb, yieldAfter: 5 }
-      await map(items, x => helper.generateRandomHash(), token, options)
+      let spy = mockElapsedTime()
+      try {
+        const options: YieldOptions = { yieldCallback: cb }
+        await map(items, item => item * 2, token, options)
+      } finally {
+        spy.mockRestore()
+      }
       expect(called).toBe(true)
     })
 
     it('should cancel on map', async () => {
-      let total = 1024 * 1024
-      const items = Array(total).fill(1) // 足够大的数组以确保会yield
+      const items = [1, 2, 3]
       let tokenSource = new CancellationTokenSource()
       let token = tokenSource.token
       process.nextTick(() => {
         tokenSource.cancel()
       }, 0)
-      let res = await map(items, x => helper.generateRandomHash(), token)
+      let spy = mockElapsedTime()
+      let res: number[]
+      try {
+        res = await map(items, item => item * 2, token)
+      } finally {
+        spy.mockRestore()
+      }
       expect(res[res.length - 1]).toBeUndefined()
     })
   })

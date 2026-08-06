@@ -296,14 +296,10 @@ describe('applyEdits()', () => {
     await helper.createDocument(file)
     let newFile = path.join(os.tmpdir(), crypto.randomUUID())
     workspace.onWillCreateFiles(e => {
-      e.waitUntil(new Promise(resolve => {
-        setTimeout(() => {
-          resolve({
-            changes: {
-              [URI.file(file).toString()]: [TextEdit.insert(Position.create(0, 0), 'late-')]
-            }
-          })
-        }, 100)
+      e.waitUntil(Promise.resolve({
+        changes: {
+          [URI.file(file).toString()]: [TextEdit.insert(Position.create(0, 0), 'late-')]
+        }
       }))
     }, null, disposables)
     await workspace.createFile(newFile, { overwrite: true })
@@ -318,18 +314,19 @@ describe('applyEdits()', () => {
     let file = await createTmpFile('content')
     await helper.createDocument(file)
     let newFile = path.join(os.tmpdir(), crypto.randomUUID())
+    let resolveEdit: (edit: WorkspaceEdit) => void
     workspace.onWillCreateFiles(e => {
       e.waitUntil(new Promise(resolve => {
-        setTimeout(() => {
-          resolve({
-            changes: {
-              [URI.file(file).toString()]: [TextEdit.insert(Position.create(0, 0), 'late-')]
-            }
-          })
-        }, 700)
+        resolveEdit = resolve
       }))
     }, null, disposables)
     await workspace.createFile(newFile, { overwrite: true })
+    resolveEdit({
+      changes: {
+        [URI.file(file).toString()]: [TextEdit.insert(Position.create(0, 0), 'late-')]
+      }
+    })
+    await Promise.resolve()
     await nvim.command('wa')
     let content = await readFile(file, 'utf8')
     expect(content).toBe('content')
@@ -341,18 +338,19 @@ describe('applyEdits()', () => {
     let file = await createTmpFile('content')
     await helper.createDocument(file)
     let newFile = path.join(os.tmpdir(), crypto.randomUUID())
+    let resolveEdit: (edit: WorkspaceEdit) => void
     workspace.onWillCreateFiles(e => {
       e.waitUntil(new Promise(resolve => {
-        setTimeout(() => {
-          resolve({
-            changes: {
-              [URI.file(file).toString()]: [TextEdit.insert(Position.create(0, 0), 'late-')]
-            }
-          })
-        }, 300)
+        resolveEdit = resolve
       }))
     }, null, disposables)
     await workspace.createFile(newFile, { overwrite: true })
+    resolveEdit({
+      changes: {
+        [URI.file(file).toString()]: [TextEdit.insert(Position.create(0, 0), 'late-')]
+      }
+    })
+    await Promise.resolve()
     await nvim.command('wa')
     let content = await readFile(file, 'utf8')
     expect(content).toBe('content')
@@ -844,14 +842,11 @@ describe('getOriginalLine', () => {
     })
 
     it('should overwrite if file exists', async () => {
-      let filepath = path.join(os.tmpdir(), crypto.randomUUID())
-      let newPath = path.join(os.tmpdir(), crypto.randomUUID())
-      await workspace.createFile(filepath)
-      await workspace.createFile(newPath)
+      let filepath = await createTmpFile('', disposables)
+      let newPath = await createTmpFile('', disposables)
       await workspace.renameFile(filepath, newPath, { overwrite: true })
       expect(fs.existsSync(newPath)).toBe(true)
       expect(fs.existsSync(filepath)).toBe(false)
-      fs.unlinkSync(newPath)
     })
 
     it('should rename buffer in directory and revert', async () => {
@@ -959,8 +954,7 @@ describe('getOriginalLine', () => {
     })
 
     it('should delete file if exists', async () => {
-      let filepath = path.join(tmpdir, 'foo')
-      await workspace.createFile(filepath)
+      let filepath = await createTmpFile('', disposables)
       expect(fs.existsSync(filepath)).toBe(true)
       await workspace.deleteFile(filepath)
       expect(fs.existsSync(filepath)).toBe(false)
