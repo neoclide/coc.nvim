@@ -430,6 +430,29 @@ describe('handler codeActions', () => {
       expect(action.title).toBe('foo')
       helper.updateConfiguration('coc.preferences.floatActions', true)
     })
+
+    it('should show kind in code action menu (#5288)', async () => {
+      helper.updateConfiguration('coc.preferences.floatActions', false)
+      currActions = [
+        CodeAction.create('Move to file', CodeActionKind.RefactorExtract + '.move.file'),
+        CodeAction.create('Quick fix', CodeActionKind.QuickFix),
+        CodeAction.create('plain')
+      ]
+      let items: string[] = []
+      let spy = vi.spyOn(window.dialogs, 'requestInputList').mockImplementation((_title, list) => {
+        items = list as string[]
+        return Promise.resolve(0)
+      })
+      await codeActions.doCodeAction(null, undefined)
+      spy.mockRestore()
+      // menu items show the top-level kind; order is provider-defined
+      expect(items).toContain('Move to file [refactor]')
+      expect(items).toContain('Quick fix [quickfix]')
+      // no kind -> unchanged
+      expect(items).toContain('plain')
+      expect(items).toHaveLength(3)
+      helper.updateConfiguration('coc.preferences.floatActions', true)
+    })
   })
 
   describe('doQuickfix', () => {

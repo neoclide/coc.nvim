@@ -216,6 +216,12 @@ function toCodeActionText(action: CodeAction): string {
   let text = action.title
   let tooltip = action.command?.tooltip
   if (tooltip) text = `${text} - ${tooltip}`
+  let kind = action.kind
+  if (kind && kind.length > 0) {
+    // show the top-level kind (e.g. "refactor.move.file" -> "refactor") so
+    // the menu can be filtered by kind
+    text = `${text} [${kind.split('.')[0]}]`
+  }
   // TODO: long tooltip makes menu hard to read, consider showing tooltip
   // separately (e.g. hover) or with a dedicated description line instead.
   return text.length > 80 ? `${text.slice(0, 77)}...` : text
