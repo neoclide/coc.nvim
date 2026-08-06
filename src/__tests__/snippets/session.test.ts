@@ -382,6 +382,23 @@ describe('SnippetSession', () => {
       expect(line).toBe('foo bar')
     })
 
+    it('should skip nested placeholder when its parent is replaced (#5424)', async () => {
+      let session = await createSession()
+      let res = await session.start('solid ${1:this.$2} $3;', defaultRange)
+      expect(res).toBe(true)
+      expect(session.placeholder.index).toBe(1)
+      // placeholder 1 contains nested $2, typing over the selection replaces it
+      await nvim.input('some text')
+      let line = await nvim.line
+      expect(line).toBe('solid some text ;')
+      await session.nextPlaceholder()
+      // jump skips the replaced nested placeholder and lands on $3
+      expect(session.isActive).toBe(true)
+      expect(session.placeholder.index).toBe(3)
+      let pos = await window.getCursorPosition()
+      expect(pos).toEqual({ line: 0, character: 16 })
+    })
+
     it('should not nest when stale session range contains new snippet', async () => {
       await nvim.command('startinsert')
       let doc = await workspace.document

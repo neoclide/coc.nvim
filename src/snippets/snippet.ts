@@ -227,6 +227,13 @@ export class CocSnippet {
     }
     if (marker instanceof Text) {
       let newText = new Text(preText + marker.value + afterText)
+      // Replacing the whole parent marker (e.g. typing over a selected
+      // placeholder) removes every child, including nested placeholders
+      // sitting on the boundary, so they don't come back on later jumps.
+      if (samePosition(range.start, parentRange.start) && samePosition(range.end, parentRange.end)) {
+        startIdx = 0
+        deleteCount = children.length
+      }
       // Placeholder have to contain empty Text
       parentMarker.children.splice(startIdx, deleteCount, newText)
       newText.parent = parentMarker
