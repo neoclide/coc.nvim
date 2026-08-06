@@ -10,6 +10,16 @@ import { McpServer } from '../../mcp/server'
 import workspace from '../../workspace'
 
 describe('mcp service', () => {
+  async function waitForInstanceFile(timeout = 2000): Promise<string> {
+    let instancePath = getInstanceFilePath(process.pid)
+    let deadline = Date.now() + timeout
+    while (!fs.existsSync(instancePath)) {
+      if (Date.now() >= deadline) break
+      await new Promise(resolve => setTimeout(resolve, 10))
+    }
+    return instancePath
+  }
+
   afterEach(() => {
     mcp.stop()
     workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false, 'mcp.allowedTools': [] })
@@ -47,7 +57,9 @@ describe('mcp service', () => {
   it('removes the per-instance discovery file and stops listening on stop', async () => {
     workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true })
     await mcp.start()
-    let instancePath = getInstanceFilePath(process.pid)
+    // The instance file is published as part of the start flow; poll briefly
+    // so the assertion is not racing the file write.
+    let instancePath = await waitForInstanceFile()
     expect(fs.existsSync(instancePath)).toBe(true)
     let socketPath = mcp.status().socketPath as string | undefined
     mcp.stop()
@@ -69,7 +81,8 @@ describe('mcp service', () => {
     workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false })
     await mcp.start(true)
     expect(mcp.running).toBe(true)
-    expect(fs.existsSync(getInstanceFilePath(process.pid))).toBe(true)
+    let instancePath = await waitForInstanceFile()
+    expect(fs.existsSync(instancePath)).toBe(true)
   })
 
   it('serializes concurrent starts into a single server', async () => {

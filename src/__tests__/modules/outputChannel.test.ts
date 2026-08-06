@@ -53,15 +53,18 @@ describe('OutputChannel', () => {
   })
 
   test('outputChannel.keep()', async () => {
-    await nvim.setLine('foo')
     let c = new OutputChannel('clear', nvim)
+    c.show(false)
+    await helper.waitFor('bufname', ['%'], 'output:///clear')
+    let buf = await nvim.buffer
     c.appendLine('foo')
     c.appendLine('bar')
-    c.show()
-    await helper.waitFor('bufloaded', ['output:///clear'], 1)
+    // appends land in the buffer before clear, so the keep assertion below
+    // is not racing the buffer creation
+    await helper.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /bar/)
     c.clear(2)
-    await helper.waitFor('eval', [`join(getbufline('output:///clear',1,'$'),'\n')`], /bar/)
-    let lines = await nvim.call('getbufline', ['output:///clear', 1, '$']) as string[]
+    await helper.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /bar/)
+    let lines = await buf.lines
     expect(lines.includes('bar')).toBe(true)
   })
 
