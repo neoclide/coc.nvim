@@ -28,6 +28,10 @@ export default class Cursors {
     this.disposables.push(commands.registerCommand('editor.action.addRanges', async (ranges: Range[]) => {
       await this.addRanges(ranges)
     }, null, true))
+    this.disposables.push(commands.registerCommand('editor.action.cancelRanges', async () => {
+      let doc = await workspace.document
+      this.cancel(doc.bufnr)
+    }, null, true))
   }
 
   private loadConfiguration(e?: IConfigurationChangeEvent): void {

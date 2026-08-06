@@ -290,6 +290,23 @@ describe('cursors', () => {
     })
   })
 
+  describe('cancelRanges command', () => {
+    it('should cancel cursors session of current buffer (#5052)', async () => {
+      let doc = await workspace.document
+      await nvim.call('setline', [1, ['foo foo foo', 'bar bar']])
+      await doc.synchronize()
+      let ranges = [
+        Range.create(0, 0, 0, 3),
+        Range.create(0, 4, 0, 7),
+      ]
+      await commands.executeCommand('editor.action.addRanges', ranges)
+      expect(cursors.getSession(doc.bufnr)).toBeDefined()
+      await commands.executeCommand('editor.action.cancelRanges')
+      expect(cursors.getSession(doc.bufnr)).toBeUndefined()
+      expect(await cursors.isActivated()).toBe(false)
+    })
+  })
+
   describe('validChange()', () => {
     it('should check valid change', async () => {
       let doc = await workspace.document
