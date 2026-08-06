@@ -211,7 +211,18 @@ export class InstallBuffer implements InstallUI {
     let isSync = events.requesting === true
     let { nvim } = workspace
     nvim.pauseNotification()
-    nvim.command(isSync ? 'enew' : (this.settings.updateUIInTab ? 'tabnew' : 'vs +enew'), true)
+    // Name the buffer so `:ls!` shows a meaningful entry instead of
+    // `[scratch]`; reusing the named buffer also avoids leaking a new buffer
+    // on every show (#5061)
+    let name = '[Coc Extensions]'
+    let setup = 'buftype=nofile bufhidden=wipe nobuflisted'
+    if (isSync) {
+      nvim.command(`edit +setl\\ ${setup} ${name}`, true)
+    } else if (this.settings.updateUIInTab) {
+      nvim.command(`tabnew +setl\\ ${setup} ${name}`, true)
+    } else {
+      nvim.command(`vs +setl\\ ${setup} ${name}`, true)
+    }
     nvim.call('bufnr', ['%'], true)
     nvim.command('setl buftype=nofile bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1', true)
     if (!isSync) nvim.command('nnoremap <silent><nowait><buffer> q :q<CR>', true)

@@ -287,7 +287,9 @@ export default class WorkspaceHandler {
       let content = fs.readFileSync(file, { encoding: 'utf8' })
       lines.push(...content.split(/\r?\n/).map(line => stripAnsi(line)))
     }
-    await this.nvim.command('vnew +setl\\ buftype=nofile\\ bufhidden=wipe\\ nobuflisted')
+    // Name the buffer so `:ls!` shows a meaningful entry instead of
+    // `[scratch]` (#5061)
+    await this.nvim.command('vnew +setl\\ buftype=nofile\\ bufhidden=wipe\\ nobuflisted [Coc Info]')
     let buf = await this.nvim.buffer
     await buf.setLines(lines, { start: 0, end: -1, strictIndexing: false })
   }

@@ -209,6 +209,9 @@ describe('vim api', () => {
     global.REVISION = '2e82259f'
     let handler = helper.plugin.getHandler().workspace
     await handler.showInfo()
+    // scratch buffer should carry a meaningful name (#5061)
+    let bufname = await nvim.call('bufname', ['%']) as string
+    expect(bufname).toBe('[Coc Info]')
     await nvim.command('bd!')
   })
 
