@@ -71,8 +71,8 @@ export class SnippetSession {
     if (edits.length === 1) return await this.start(toSnippetString(edits[0].snippet), edits[0].range, false)
     const textDocument = this.document.textDocument
     const textEdits = filterSortEdits(textDocument, edits.map(e => TextEdit.replace(e.range, toSnippetString(e.snippet))))
-    const sharedFinals = this.getSharedEditableFinals(textEdits.map(o => o.newText))
-    if (sharedFinals.size === 0) return await this.insertNestedSnippetEdits(textEdits)
+    const editableFinals = this.getEditableFinals(textEdits.map(o => o.newText))
+    if (editableFinals.size === 0) return await this.insertNestedSnippetEdits(textEdits)
     const len = textEdits.length
     // Merge all edits into a single snippet so placeholders share one
     // session. Each edit keeps its local tabstop namespace, except repeated
@@ -104,10 +104,10 @@ export class SnippetSession {
         if (m instanceof Placeholder && m.index === 0 && m.children.length > 0) {
           needsFinalTabstop = true
           const key = this.getEditableFinalKey(m)
-          let index = sharedFinals.has(key) ? sharedIndexMap.get(key) : localFinalMap.get(key)
+          let index = editableFinals.has(key) ? sharedIndexMap.get(key) : localFinalMap.get(key)
           if (index == null) {
             index = nextIndex++
-            if (sharedFinals.has(key)) {
+            if (editableFinals.has(key)) {
               sharedIndexMap.set(key, index)
             } else {
               localFinalMap.set(key, index)
@@ -135,7 +135,7 @@ export class SnippetSession {
     return placeholder.toTextmateString()
   }
 
-  private getSharedEditableFinals(snippets: string[]): Set<string> {
+  private getEditableFinals(snippets: string[]): Set<string> {
     const counts = new Map<string, number>()
     for (const text of snippets) {
       const keys = new Set<string>()
@@ -150,7 +150,12 @@ export class SnippetSession {
         counts.set(key, (counts.get(key) ?? 0) + 1)
       }
     }
-    return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key))
+    // Any editable final tabstop ($0 with a default value) forces the merge
+    // path so placeholder navigation crosses edits. Keys repeated across
+    // edits keep the same index and mirror, matching rust-analyzer "Add
+    // Label": older versions emit a single ${0:...} final, newer ones reuse
+    // it on every site.
+    return new Set(counts.keys())
   }
 
   private async insertNestedSnippetEdits(textEdits: TextEdit[]): Promise<boolean> {

@@ -281,6 +281,50 @@ describe('SnippetSession', () => {
       await session.nextPlaceholder()
       expect(session.isActive).toBe(false)
     })
+
+    it('should merge edits with a single editable final tabstop (#5485 old rust-analyzer)', async () => {
+      let session = await createSession()
+      let doc = session.document
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), [
+        'fn main() {',
+        '    loop {',
+        '        break;',
+        '        continue;',
+        '    }',
+        '}'
+      ].join('\n'))])
+      // rust-analyzer 2025-11 "Add Label" emits a single editable final
+      // ${0:'l} on the last site, with regular tabstops on the earlier ones.
+      let edits: SnippetEdit[] = [
+        { range: Range.create(1, 4, 1, 4), snippet: "${1:'l}: " },
+        { range: Range.create(2, 13, 2, 13), snippet: " ${2:'l}" },
+        { range: Range.create(3, 16, 3, 16), snippet: " ${0:'l}" }
+      ]
+      let res = await session.insertSnippetEdits(edits)
+      expect(res).toBe(true)
+      let lines = await doc.buffer.lines
+      expect(lines).toEqual([
+        'fn main() {',
+        "    'l: loop {",
+        "        break 'l;",
+        "        continue 'l;",
+        '    }',
+        '}'
+      ])
+      // first placeholder selects exactly "'l", without trailing ": "
+      expect(session.placeholder!.index).toBe(1)
+      expect(session.placeholder!.range).toEqual(Range.create(1, 4, 1, 6))
+      // Tab navigates across edits with exact ranges, no trailing ";"
+      await session.nextPlaceholder()
+      expect(session.placeholder!.index).toBe(2)
+      expect(session.placeholder!.range).toEqual(Range.create(2, 14, 2, 16))
+      await session.nextPlaceholder()
+      expect(session.placeholder!.index).toBe(3)
+      expect(session.placeholder!.range).toEqual(Range.create(3, 17, 3, 19))
+      // final jump reaches the appended $0 and ends the session
+      await session.nextPlaceholder()
+      expect(session.isActive).toBe(false)
+    })
   })
 
   describe('nested snippet', () => {
