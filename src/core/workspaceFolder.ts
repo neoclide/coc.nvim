@@ -10,7 +10,7 @@ import { getConditionValue } from '../util'
 import { distinct, isFalsyOrEmpty, toArray } from '../util/array'
 import { isCancellationError } from '../util/errors'
 import { Extensions as ExtensionsInfo, IExtensionRegistry } from '../util/extensionRegistry'
-import { checkFolder, isDirectory, isFolderIgnored, isParentFolder, resolveRoot } from '../util/fs'
+import { checkFolder, isDirectory, isFolderIgnored, isParentFolder, resolveRoot, uriToFsPath } from '../util/fs'
 import { path } from '../util/node'
 import { toObject } from '../util/object'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
@@ -115,7 +115,7 @@ export default class WorkspaceFolderController {
     if (this._workspaceFolders.length === 0) return undefined
     let folders = Array.from(this._workspaceFolders).map(o => URI.parse(o.uri).fsPath)
     folders.sort((a, b) => b.length - a.length)
-    let fsPath = uri.fsPath
+    let fsPath = uriToFsPath(uri)
     let folder = folders.find(f => isParentFolder(f, fsPath, true))
     if (folder === undefined) return undefined
     return toWorkspaceFolder(folder)
@@ -162,7 +162,7 @@ export default class WorkspaceFolderController {
   public resolveRoot(document: Document, cwd: string, fireEvent: boolean, expand: ((input: string) => string)): string | null {
     if (document.buftype !== '' || document.schema !== 'file') return null
     let u = URI.parse(document.uri)
-    let dir = isDirectory(u.fsPath) ? path.normalize(u.fsPath) : path.dirname(u.fsPath)
+    let dir = isDirectory(uriToFsPath(u)) ? path.normalize(uriToFsPath(u)) : path.dirname(uriToFsPath(u))
     let { ignoredFiletypes, ignoredFolders, workspaceFolderCheckCwd, workspaceFolderFallbackCwd, bottomUpFiletypes } = this.config
     if (ignoredFiletypes?.includes(document.filetype)) return null
     ignoredFolders = Array.isArray(ignoredFolders) ? ignoredFolders.filter(s => s && s.length > 0).map(s => expand(s)) : []

@@ -1,4 +1,4 @@
-import { findUp, isDirectory, findMatch, watchFile, writeJson, loadJson, normalizeFilePath, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, fileStartsWith, writeFile, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, lineToLocation, resolveRoot, statAsync, FileType } from '../../util/fs'
+import { findUp, isDirectory, findMatch, watchFile, writeJson, loadJson, normalizeFilePath, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, fileStartsWith, writeFile, remove, renameAsync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, lineToLocation, resolveRoot, statAsync, uriToFsPath, FileType } from '../../util/fs'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -23,6 +23,19 @@ async function waitValue(fn: () => number, value: number): Promise<void> {
 }
 
 describe('fs', () => {
+  describe('uriToFsPath()', () => {
+    it('should keep POSIX single-letter-colon paths absolute (#2974)', () => {
+      // vscode-uri treats /F: as a Windows drive and drops the leading slash
+      expect(uriToFsPath('file:///F:')).toBe('/F:')
+      expect(uriToFsPath('file:///F:/x')).toBe('/F:/x')
+      expect(uriToFsPath('file:///f%3A/x')).toBe('/f:/x')
+      // unaffected shapes keep the normal behavior
+      expect(uriToFsPath('file:///FF:')).toBe('/FF:')
+      expect(uriToFsPath('file:///home/user/F:')).toBe('/home/user/F:')
+      expect(uriToFsPath('file:///tmp/foo')).toBe('/tmp/foo')
+    })
+  })
+
   describe('normalizeFilePath()', () => {
     it('should fs normalizeFilePath', () => {
       let res = normalizeFilePath('//')

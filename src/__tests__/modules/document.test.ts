@@ -5,6 +5,7 @@ import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import Document, { getNotAttachReason, getUri } from '../../model/document'
+import { uriToFsPath } from '../../util/fs'
 import { computeLinesOffsets, firstDiffLine, LinesTextDocument } from '../../model/textdocument'
 import { Disposable, disposeAll } from '../../util'
 import { applyEdits, filterSortEdits } from '../../util/textedit'
@@ -168,6 +169,16 @@ describe('LinesTextDocument', () => {
     expect(res).toEqual('terminal:3')
     res = getUri(__filename, 3, 'terminal')
     expect(URI.parse(res).fsPath).toBe(__filename)
+  })
+
+  it('should preserve POSIX single-letter-colon path case (#2974)', () => {
+    let res = getUri('/F:/x', 3, '')
+    expect(res).toBe('file:///F%3A/x')
+    expect(URI.parse(res).path).toBe('/F:/x')
+    expect(uriToFsPath(res)).toBe('/F:/x')
+    // unaffected shapes keep the normal URI encoding
+    expect(getUri('/home/user/F:/x', 3, '')).toBe('file:///home/user/F%3A/x')
+    expect(uriToFsPath(getUri('/tmp/foo', 3, ''))).toBe('/tmp/foo')
   })
 
   it('should work with line not last one', () => {

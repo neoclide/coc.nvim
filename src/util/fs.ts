@@ -35,6 +35,23 @@ export enum FileType {
   SymbolicLink = 64
 }
 
+/**
+ * Convert a file URI to a filesystem path.
+ *
+ * `vscode-uri` misreads a POSIX absolute path whose first segment is a single
+ * letter followed by ':' (e.g. `/F:` or `/F:/x`) as a Windows drive path:
+ * `URI.file('/F:').fsPath` returns `f:` (leading slash dropped, letter
+ * lowercased). On POSIX, keep the URI's original absolute path for that shape
+ * so workspace/root resolution and file operations never see a relative path.
+ */
+export function uriToFsPath(uri: string | URI): string {
+  let u = typeof uri === 'string' ? URI.parse(uri) : uri
+  if (u.scheme === 'file' && !platform.isWindows && /^\/[a-zA-Z]:/.test(u.path)) {
+    return u.path
+  }
+  return u.fsPath
+}
+
 export type OnReadLine = (line: string) => void
 
 export function watchFile(filepath: string, onChange: () => void, immediate = false, onError?: (err: Error) => void): Disposable {

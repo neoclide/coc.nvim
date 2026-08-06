@@ -12,7 +12,7 @@ import EditInspect, { EditState, RecoverFunc } from '../model/editInspect'
 import type { SnippetEdit } from '../snippets/session'
 import { DocumentChange, Env, GlobPattern } from '../types'
 import * as errors from '../util/errors'
-import { isFile, isParentFolder, normalizeFilePath, statAsync } from '../util/fs'
+import { isFile, isParentFolder, normalizeFilePath, statAsync, uriToFsPath } from '../util/fs'
 import { crypto, fs, glob, minimatch, os, path } from '../util/node'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
 import { byteIndex } from '../util/string'
@@ -739,5 +739,5 @@ function fileMatch(root: string, relpath: string, pattern: GlobPattern): boolean
 }
 
 function fsPath(uri: string): string {
-  return URI.parse(uri).fsPath
+  return uriToFsPath(uri)
 }

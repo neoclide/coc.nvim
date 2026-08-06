@@ -13,6 +13,7 @@ import { disposeAll, getConditionValue, sha256, waitNextTick } from '../util/ind
 import { isUrl } from '../util/is'
 import { debounce, path } from '../util/node'
 import { equals, toObject } from '../util/object'
+import * as platform from '../util/platform'
 import { emptyRange } from '../util/position'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import { byteIndex, byteLength, byteSlice, characterIndex, toText } from '../util/string'
@@ -749,7 +750,15 @@ function fireLinesChanged(bufnr: number): void {
 
 export function getUri(fullpath: string, id: number, buftype: string): string {
   if (!fullpath) return `untitled:${id}`
-  if (path.isAbsolute(fullpath)) return URI.file(path.normalize(fullpath)).toString()
+  if (path.isAbsolute(fullpath)) {
+    fullpath = path.normalize(fullpath)
+    if (!platform.isWindows && /^\/[a-zA-Z]:/.test(fullpath)) {
+      // vscode-uri misreads /F: as a Windows drive and drops letter case on
+      // serialization; percent-encode the colon so the case survives (#2974)
+      return 'file://' + fullpath.split('/').map(seg => encodeURIComponent(seg)).join('/')
+    }
+    return URI.file(fullpath).toString()
+  }
   if (isUrl(fullpath)) return URI.parse(fullpath).toString()
   if (buftype != '') return `${buftype}:${id}`
   return `unknown:${id}`
