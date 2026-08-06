@@ -1,6 +1,8 @@
 'use strict'
+import * as path from 'path'
 import type { ClientCapabilities, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams, DocumentSelector, ProtocolNotificationType, RegistrationType, SaveOptions, ServerCapabilities, TextDocumentChangeRegistrationOptions, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncOptions, TextEdit, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { URI } from 'vscode-uri'
 import { TextDocumentWillSaveEvent } from '../core/files'
 import { DidChangeTextDocumentParams as TextDocumentChangeEvent } from '../types'
 import { defaultValue, disposeAll } from '../util'
@@ -38,6 +40,7 @@ interface $ConfigurationOptions {
   textSynchronization?: {
     delayOpenNotifications?: boolean
   }
+  languageIdMap?: { [filename: string]: string }
 }
 
 export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpenTextDocumentParams, TextDocument, TextDocumentSynchronizationMiddleware> {
@@ -52,7 +55,18 @@ export class DidOpenTextDocumentFeature extends TextDocumentEventFeature<DidOpen
       workspace.onDidOpenTextDocument,
       DidOpenTextDocumentNotification.type,
       'didOpen',
-      textDocument => client.code2ProtocolConverter.asOpenTextDocumentParams(textDocument),
+      textDocument => {
+        let params = client.code2ProtocolConverter.asOpenTextDocumentParams(textDocument)
+        let languageIdMap = client.clientOptions.languageIdMap
+        if (languageIdMap && params.textDocument) {
+          let uri = URI.parse(textDocument.uri)
+          let fsPath = uri.scheme === 'file' ? uri.fsPath : textDocument.uri
+          let filename = path.basename(fsPath)
+          let languageId = languageIdMap[filename] ?? languageIdMap[fsPath]
+          if (languageId) params.textDocument.languageId = languageId
+        }
+        return params
+      },
       TextDocumentEventFeature.textDocumentFilter
     )
     this._syncedDocuments = syncedDocuments

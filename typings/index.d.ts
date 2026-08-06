@@ -14148,6 +14148,11 @@ declare module 'coc.nvim' {
       delayOpenNotifications?: boolean
     }
     /**
+     * Map of filename to languageId used when opening documents, e.g.
+     * { "application.yml": "spring-boot-properties-yaml" }.
+     */
+    languageIdMap?: { [filename: string]: string }
+    /**
      * Markdown options of the client.
      */
     markdown?: {

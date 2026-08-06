@@ -2,6 +2,15 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-07
+
+- Add `languageserver.<name>.languageIdMap` configuration which maps a
+  filename (or absolute path) to the languageId sent in
+  `textDocument/didOpen` for that server, e.g.
+  `{"application.yml": "spring-boot-properties-yaml"}`. This allows a
+  server to receive a languageId different from the buffer filetype
+  without affecting other servers.
+
 ## 2026-08-05
 
 - MCP: the `coc-mcp` bridge connects to the first coc.nvim instance whose

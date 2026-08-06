@@ -239,6 +239,11 @@ export type LanguageClientOptions = {
      */
     delayOpenNotifications?: boolean
   }
+  /**
+   * Map of filename to languageId used when opening documents, e.g.
+   * { "application.yml": "spring-boot-properties-yaml" }.
+   */
+  languageIdMap?: { [filename: string]: string }
 } & $ConfigurationOptions & $CompletionOptions & $FormattingOptions & $DiagnosticPullOptions & $WorkspaceOptions
 
 type ResolvedClientOptions = {
@@ -268,6 +273,7 @@ type ResolvedClientOptions = {
   textSynchronization: {
     delayOpenNotifications?: boolean
   }
+  languageIdMap?: { [filename: string]: string }
 } & $ConfigurationOptions & Required<$CompletionOptions> & Required<$FormattingOptions> & Required<$DiagnosticPullOptions> & Required<$WorkspaceOptions>
 
 export enum State {
@@ -479,6 +485,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
       connectionOptions: clientOptions.connectionOptions,
       uriConverter: clientOptions.uriConverter,
       textSynchronization: this.createTextSynchronizationOptions(clientOptions.textSynchronization),
+      languageIdMap: clientOptions.languageIdMap,
       markdown
     }
   }

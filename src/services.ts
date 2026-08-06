@@ -62,6 +62,11 @@ export interface LanguageServerConfig {
   configSection?: string
   stdioEncoding?: string
   runtime?: string
+  /**
+   * Map of filename to languageId used when opening documents for this server,
+   * e.g. { "application.yml": "spring-boot-properties-yaml" }.
+   */
+  languageIdMap?: { [filename: string]: string }
 }
 
 export interface IServiceProvider {
@@ -499,6 +504,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Reado
     diagnosticCollectionName: name,
     outputChannelName: id,
     stdioEncoding: config.stdioEncoding,
+    languageIdMap: config.languageIdMap,
     progressOnInitialization: config.progressOnInitialization === true,
     initializationOptions: config.initializationOptions ?? {}
   }

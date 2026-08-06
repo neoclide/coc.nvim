@@ -673,6 +673,13 @@ LANGUAGESERVER
 	  "selectionRange", "progress", "callHierarchy", "linkedEditing",
 	  "fileEvents", "semanticTokens"]
 <
+	- "languageIdMap": Map of filename to languageId used when the
+	  document is opened for this language server, which allows sending
+	  a languageId different from the filetype to a specific server,
+	  e.g. `{"application.yml": "spring-boot-properties-yaml"}`. The key
+	  can be a file name or an absolute path. Note the languageId
+	  affects only the documents opened for this language server.
+
 	- "formatterPriority": Priority of this languageserver's formatter.
 
 	- "revealOutputChannelOn": Configure the message level at which the

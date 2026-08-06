@@ -10,7 +10,7 @@ let lastChangeEvent
 let lastWillSave
 let lastDidSave
 documents.onDidOpen(e => {
-  lastOpenEvent = {uri: e.document.uri, version: e.document.version}
+  lastOpenEvent = {uri: e.document.uri, version: e.document.version, languageId: e.document.languageId}
 })
 documents.onDidClose(e => {
   lastCloseEvent = {uri: e.document.uri}

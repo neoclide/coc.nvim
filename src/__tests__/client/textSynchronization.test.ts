@@ -92,6 +92,33 @@ describe('TextDocumentSynchronization', () => {
       await client.stop()
     })
 
+    it('should use languageIdMap for languageId on open', async () => {
+      let client = createClient({
+        documentSelector: [{ language: 'vim' }],
+        languageIdMap: { 't.vim': 'myvim', [path.join(os.tmpdir(), 'full.vim')]: 'fullvim' }
+      })
+      await client.start()
+      let uri = URI.file(path.join(os.tmpdir(), 't.vim'))
+      let doc = await workspace.loadFile(uri.toString())
+      expect(doc.languageId).toBe('vim')
+      let res = await client.sendRequest('getLastOpen') as any
+      expect(res.uri).toBe(doc.uri)
+      expect(res.languageId).toBe('myvim')
+      // full path key
+      uri = URI.file(path.join(os.tmpdir(), 'full.vim'))
+      doc = await workspace.loadFile(uri.toString())
+      res = await client.sendRequest('getLastOpen') as any
+      expect(res.uri).toBe(doc.uri)
+      expect(res.languageId).toBe('fullvim')
+      // unmatched file keeps original languageId
+      uri = URI.file(path.join(os.tmpdir(), 'other.vim'))
+      doc = await workspace.loadFile(uri.toString())
+      res = await client.sendRequest('getLastOpen') as any
+      expect(res.uri).toBe(doc.uri)
+      expect(res.languageId).toBe('vim')
+      await client.stop()
+    })
+
     it('should work with middleware', async () => {
       let called = false
       let throwError = false
