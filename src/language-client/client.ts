@@ -708,6 +708,9 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
         ? _sendNotification(type, connection.sendNotification.bind(connection), params)
         : connection.sendNotification(type, params))
     } catch (error) {
+      if (this._disposed === 'disposing' || this._disposed === 'disposed') {
+        return
+      }
       this.error(`Sending notification ${toMethod(type)} failed.`, error)
       if ([ClientState.Stopping, ClientState.Stopped].includes(this._state)) return
       throw error
