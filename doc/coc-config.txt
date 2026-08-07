@@ -255,6 +255,12 @@ PREFERENCES
 
 	Scope: `application`, default: `true`
 
+"coc.preferences.codeActionsShowKind"			*coc-preferences-codeActionsShowKind*
+
+	Set to true to show kind in the code actions menu.
+
+	Scope: `application`, default: `true`
+
 "coc.preferences.formatOnSave"				*coc-preferences-formatOnSave*
 
 	Set to true to enable formatting on save.
