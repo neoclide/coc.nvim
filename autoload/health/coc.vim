@@ -47,7 +47,7 @@ function! s:checkEnvironment() abort
     let valid = 0
     call s:report_error('Executable node.js not found, install node.js from http://nodejs.org/')
   endif
-  let output = system(node . ' --version')
+  let output = system(shellescape(node) . ' --version')
   if v:shell_error && output !=# ""
     let valid = 0
     call s:report_error(output)

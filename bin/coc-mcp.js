@@ -15,9 +15,39 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const crypto = require('crypto')
+const POLL_INTERVAL_MS = Number(process.env.COC_MCP_POLL_INTERVAL_MS) || 5000
+const STARTUP_TIMEOUT_MS = Number(process.env.COC_MCP_STARTUP_TIMEOUT_MS) || 5000
+const AGENT_LOG_FILE = path.join(os.homedir(), '.log', `mcp-${process.pid}.log`)
 
 function log(msg) {
   process.stderr.write('[coc-mcp] ' + msg + '\n')
+}
+
+let agentLogErrorReported = false
+
+function logAgentMessage(direction, message) {
+  try {
+    fs.mkdirSync(path.dirname(AGENT_LOG_FILE), {recursive: true})
+    fs.appendFileSync(
+      AGENT_LOG_FILE,
+      `[${new Date().toISOString()}] ${direction} ${message}\n`
+    )
+  } catch (e) {
+    if (!agentLogErrorReported) {
+      agentLogErrorReported = true
+      log('unable to write agent message log: ' + e.message)
+    }
+  }
+}
+
+function logAgentChunk(direction, chunk, state) {
+  state.buffer += chunk.toString('utf8')
+  let index
+  while ((index = state.buffer.indexOf('\n')) !== -1) {
+    let line = state.buffer.slice(0, index)
+    state.buffer = state.buffer.slice(index + 1)
+    if (line.trim()) logAgentMessage(direction, line)
+  }
 }
 
 /**
@@ -284,44 +314,150 @@ function main() {
     log(e.message)
     process.exit(2)
   }
-  let mode = 'poll' // 'poll' | 'relay' | 'waiting'
+  let mode = 'poll' // 'poll' | 'relay'
   let closed = false
   let socket = null
-  let stdinBuffer = Buffer.alloc(0)
+  let pendingFrames = []
+  let stdinBuffer = ''
+  let agentInputState = {buffer: ''}
+  let agentOutputState = {buffer: ''}
   let agentProtocolVersion = '2025-06-18'
   let currentInfo = null
   let relaying = false
   let reconnecting = false
   let instanceWatcher = null
+  let pollTimer = null
+  let startupTimer = null
+  let connecting = false
+  let clientInitialized = false
+  let connectionNotified = false
+  let pendingInitialize = null
+  let backendInitializeResult = null
+  let lastConnectionError = 'coc.nvim MCP service not found'
 
   function writeStdout(msg) {
-    process.stdout.write(JSON.stringify(msg) + '\n')
+    let frame = JSON.stringify(msg) + '\n'
+    // logAgentMessage('SEND', frame.trimEnd())
+    process.stdout.write(frame)
   }
 
-  function fail(code, msg) {
-    if (closed) return
+  function retryDelay() {
+    return pendingInitialize ? Math.min(POLL_INTERVAL_MS, 100) : POLL_INTERVAL_MS
+  }
+
+  function scheduleAttempt() {
+    if (closed || mode === 'relay' || connecting || pollTimer) return
+    const delay = retryDelay()
+    pollTimer = setTimeout(() => {
+      pollTimer = null
+      attempt()
+    }, delay)
+  }
+
+  function sendInitializeResult(msg) {
+    const requested = msg.params && msg.params.protocolVersion
+    if (typeof requested === 'string') agentProtocolVersion = requested
+    if (startupTimer) {
+      clearTimeout(startupTimer)
+      startupTimer = null
+    }
+    pendingInitialize = null
+    clientInitialized = true
+    const result = Object.assign({}, backendInitializeResult || {})
+    result.protocolVersion = result.protocolVersion || agentProtocolVersion
+    result.capabilities = result.capabilities || {}
+    result.serverInfo = result.serverInfo || (currentInfo && currentInfo.serverInfo) || {name: 'coc-mcp-bridge', version: '0.0.0'}
+    writeStdout({
+      jsonrpc: '2.0',
+      id: msg.id,
+      result
+    })
+  }
+
+  function failStartup() {
+    if (closed || clientInitialized || !pendingInitialize) return
+    const msg = pendingInitialize
+    pendingInitialize = null
+    startupTimer = null
+    const message = `coc.nvim MCP service unavailable after ${STARTUP_TIMEOUT_MS}ms: ${lastConnectionError}`
+    log(message)
+    writeStdout({jsonrpc: '2.0', id: msg.id, error: {code: -32000, message}})
     closed = true
-    if (msg) log(msg)
-    process.exit(code)
+    if (pollTimer) clearTimeout(pollTimer)
+    if (instanceWatcher) instanceWatcher.close()
+    if (socket) socket.destroy()
+    setImmediate(() => process.exit(2))
   }
 
-  function giveUp(reason) {
-    log('startup failed: coc.nvim MCP service not found: ' + reason)
-    log('start vim/nvim with coc.nvim and set "mcp.autoStart": true in coc-settings.json, or run :CocCommand mcp.start')
-    process.exit(2)
+  function waitForInitialize(msg) {
+    const requested = msg.params && msg.params.protocolVersion
+    if (typeof requested === 'string') agentProtocolVersion = requested
+    if (mode === 'relay' && socket && backendInitializeResult) {
+      sendInitializeResult(msg)
+      return
+    }
+    if (pendingInitialize) {
+      writeStdout({jsonrpc: '2.0', id: msg.id, error: {code: -32600, message: 'Initialize already pending'}})
+      return
+    }
+    pendingInitialize = msg
+    startupTimer = setTimeout(failStartup, STARTUP_TIMEOUT_MS)
+    if (pollTimer) {
+      clearTimeout(pollTimer)
+      pollTimer = null
+    }
+    if (!connecting) attempt()
+  }
+
+  function handleWaitingFrame(line, msg) {
+    if (msg && msg.method === 'initialize' && msg.id !== undefined) {
+      waitForInitialize(msg)
+      return
+    }
+    if (msg && msg.method === 'notifications/initialized') return
+    if (mode === 'relay' && socket) {
+      socket.write(line + '\n')
+      return
+    }
+    pendingFrames.push(line + '\n')
+  }
+
+  function notifyConnected(info) {
+    if (connectionNotified || !clientInitialized) return
+    connectionNotified = true
+    const version = info && info.serverInfo && info.serverInfo.version || 'unknown'
+    writeStdout({
+      jsonrpc: '2.0',
+      method: 'notifications/message',
+      params: {
+        level: 'info',
+        logger: 'coc-mcp-bridge',
+        data: 'Connected to coc.nvim ' + version
+      }
+    })
+    writeStdout({jsonrpc: '2.0', method: 'notifications/tools/list_changed'})
   }
 
   /**
    * Forward frames between the agent (stdin/stdout) and the connected coc
    * socket. All frames after the handshake are relayed verbatim.
    */
-  function startRelay(s, info) {
+  function startRelay(s, info, initializeResult) {
+    const wasInitialized = clientInitialized
     socket = s
     mode = 'relay'
     relaying = true
+    connecting = false
     currentInfo = info
+    backendInitializeResult = initializeResult
+    connectionNotified = false
+    if (pollTimer) {
+      clearTimeout(pollTimer)
+      pollTimer = null
+    }
     log('relaying frames between codex and coc.nvim')
     s.on('data', chunk => {
+      // logAgentChunk('SEND', chunk, agentOutputState)
       process.stdout.write(chunk)
     })
     s.on('error', err => {
@@ -335,20 +471,17 @@ function main() {
       }
       if (!relaying) return
       relaying = false
-      mode = 'waiting'
-      // The agent session ends through stdin close (handled elsewhere). A
-      // socket close with the agent still connected means coc.nvim went
-      // away: wait for the discovery file to be rewritten (coc restart) and
-      // reconnect, or exit when the vim process is gone.
-      if (!currentInfo || typeof currentInfo.pid !== 'number' || !isPidAlive(currentInfo.pid)) {
-        process.exit(0)
-      }
-      log('coc.nvim MCP server disconnected, waiting for restart...')
-      handleInstanceFileEvent(currentInfo.pid)
+      mode = 'poll'
+      connecting = false
+      backendInitializeResult = null
+      log('coc.nvim MCP server disconnected, polling for a new connection...')
+      scheduleAttempt()
     })
-    if (stdinBuffer.length) {
-      s.write(stdinBuffer)
-      stdinBuffer = Buffer.alloc(0)
+    if (pendingInitialize) sendInitializeResult(pendingInitialize)
+    if (wasInitialized) notifyConnected(info)
+    if (pendingFrames.length) {
+      for (const frame of pendingFrames) s.write(frame)
+      pendingFrames = []
     }
     watchInstanceFile(info)
   }
@@ -376,11 +509,10 @@ function main() {
   }
 
   function handleInstanceFileEvent(pid) {
-    if (closed || reconnecting) return
+    if (closed) return
     const filepath = path.join(mcpInstancesDir(), 'coc-' + pid + '.json')
     if (!fs.existsSync(filepath)) {
-      // removed (or not written yet): vim gone means the session is over
-      if (!isPidAlive(pid)) process.exit(0)
+      if (!isPidAlive(pid)) scheduleAttempt()
       return
     }
     let info
@@ -392,11 +524,12 @@ function main() {
       return
     }
     if (!isPidAlive(info.pid)) {
-      process.exit(0)
+      scheduleAttempt()
       return
     }
     if (currentInfo && sameEndpoint(currentInfo, info)) return
-    reconnectTo(info)
+    if (relaying) reconnectTo(info)
+    else attempt()
   }
 
   function sameEndpoint(a, b) {
@@ -411,8 +544,11 @@ function main() {
    * endpoint, then resume relaying.
    */
   function reconnectTo(info) {
-    if (closed || relaying || reconnecting) return
+    if (closed || !relaying || reconnecting) return
     reconnecting = true
+    relaying = false
+    mode = 'poll'
+    connecting = true
     log('coc.nvim MCP server restarted, reconnecting...')
     if (socket) {
       const old = socket
@@ -420,20 +556,22 @@ function main() {
       old.destroy()
       socket = null
     }
-    connectToInstance(info, true).then(() => {
+    connectToInstance(info).then(() => {
       reconnecting = false
     }).catch(err => {
       reconnecting = false
-      log('reconnect failed: ' + err.message + ', waiting for the next restart')
+      connecting = false
+      log('reconnect failed: ' + err.message + ', polling for another connection')
+      scheduleAttempt()
     })
   }
 
   /**
-   * Connect to a coc.nvim instance and run coc/auth; for reconnects also
-   * run the bridge's own MCP initialize (as the MCP client). Resolves once
-   * the handshake is complete and relaying has started.
+   * Connect to a coc.nvim instance and run coc/auth and the bridge's own MCP
+   * initialize (as the MCP client). Resolves once the handshake is complete
+   * and relaying has started.
    */
-  function connectToInstance(info, internalInit) {
+  function connectToInstance(info) {
     return new Promise((resolve, reject) => {
       const s = info.transport === 'unix'
         ? net.createConnection(info.socketPath)
@@ -503,12 +641,6 @@ function main() {
               }
               const caps = msg.result.capabilities || {}
               log('server capabilities: ' + (Object.keys(caps).join(', ') || '(none)'))
-              if (!internalInit) {
-                s.removeListener('data', onData)
-                startRelay(s, info)
-                resolve(s)
-                return
-              }
               s.write(JSON.stringify({
                 jsonrpc: '2.0',
                 id: 1,
@@ -528,7 +660,7 @@ function main() {
                 return
               }
               s.removeListener('data', onData)
-              startRelay(s, info)
+              startRelay(s, info, msg.result)
               resolve(s)
               return
             }
@@ -546,14 +678,14 @@ function main() {
   }
 
   function attempt() {
-    if (mode !== 'poll' || closed) return
+    if (mode !== 'poll' || closed || connecting) return
+    connecting = true
     if (connectInfo) {
-      connectToInstance(connectInfo, false).catch(err => {
-        if (err && err.code === 3) {
-          fail(3, err.message)
-          return
-        }
-        giveUp(err.message)
+      connectToInstance(connectInfo).catch(err => {
+        connecting = false
+        lastConnectionError = err.message
+        log('connection failed: ' + err.message + '; retrying in ' + (retryDelay() / 1000) + 's')
+        scheduleAttempt()
       })
       return
     }
@@ -561,29 +693,50 @@ function main() {
     try {
       const decision = decideInstance(matchMode() || 'cwd')
       if (decision.missing) {
-        giveUp(decision.missing)
+        connecting = false
+        lastConnectionError = decision.missing
+        log('coc.nvim MCP service not found: ' + decision.missing + '; retrying in ' + (retryDelay() / 1000) + 's')
+        scheduleAttempt()
         return
       }
       info = decision.info
     } catch (e) {
-      giveUp(e.message)
+      connecting = false
+      lastConnectionError = e.message
+      log('connection scan failed: ' + e.message + '; retrying in ' + (retryDelay() / 1000) + 's')
+      scheduleAttempt()
       return
     }
-    connectToInstance(info, false).catch(err => {
-      if (err && err.code === 3) {
-        fail(3, err.message)
-        return
-      }
-      giveUp(err.message)
+    connectToInstance(info).catch(err => {
+      connecting = false
+      lastConnectionError = err.message
+      log('connection failed: ' + err.message + '; retrying in ' + (retryDelay() / 1000) + 's')
+      scheduleAttempt()
     })
   }
 
   process.stdin.on('data', chunk => {
-    if (mode === 'relay') {
+    if (mode === 'relay' && clientInitialized && socket) {
+      // logAgentChunk('RECV', chunk, agentInputState)
       socket.write(chunk)
       return
     }
-    stdinBuffer = Buffer.concat([stdinBuffer, chunk])
+    let input = stdinBuffer + chunk.toString('utf8')
+    stdinBuffer = ''
+    let lines = input.split('\n')
+    if (lines[lines.length - 1] !== '') {
+      stdinBuffer = lines.pop()
+    }
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed) continue
+      // logAgentMessage('RECV', trimmed)
+      try {
+        handleWaitingFrame(trimmed, JSON.parse(trimmed))
+      } catch (e) {
+        pendingFrames.push(line + '\n')
+      }
+    }
   })
   process.stdin.on('error', err => {
     log('stdin error: ' + err.message)
@@ -591,6 +744,9 @@ function main() {
   process.stdin.on('end', () => {
     if (closed) return
     closed = true
+    if (pollTimer) clearTimeout(pollTimer)
+    if (startupTimer) clearTimeout(startupTimer)
+    if (instanceWatcher) instanceWatcher.close()
     if (mode === 'relay' && socket) {
       socket.end()
     } else {

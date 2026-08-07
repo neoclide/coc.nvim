@@ -21,22 +21,15 @@ function! coc#terminal#start(cmd, cwd, env, strict) abort
     exe 'doautocmd <nomodeline> User CocTerminalOpen'
   endif
   let bufnr = bufnr('%')
-  let env = {}
-  let original = {}
-  if !empty(a:env)
-    " use env option when possible
-    if s:is_vim
-      let env = copy(a:env)
-    elseif exists('*setenv')
-      for key in keys(a:env)
-        let original[key] = getenv(key)
-        call setenv(key, a:env[key])
-      endfor
-    endif
-  endif
+  " Both Vim and Neovim support the env option directly; never mutate the
+  " editor process global environment, so a failed start cannot leak vars.
+  let env = copy(a:env)
 
   function! s:OnExit(status) closure
     call coc#rpc#notify('CocAutocmd', ['TermExit', bufnr, a:status])
+    if has_key(s:channel_map, bufnr)
+      call remove(s:channel_map, bufnr)
+    endif
     if a:status == 0
       execute 'silent! bd! '.bufnr
     endif
@@ -59,19 +52,21 @@ function! coc#terminal#start(cmd, cwd, env, strict) abort
     wincmd p
     return [bufnr, job_info(job).process]
   else
-    let job_id = termopen(a:cmd, {
-          \ 'cwd': cwd,
-          \ 'pty': v:true,
-          \ 'on_exit': {job, status -> s:OnExit(status)},
-          \ 'env': env,
-          \ 'clear_env': a:strict ? v:true : v:false
-          \ })
-    if !empty(original) && exists('*setenv')
-      for key in keys(original)
-        call setenv(key, original[key])
-      endfor
-    endif
+    try
+      let job_id = termopen(a:cmd, {
+            \ 'cwd': cwd,
+            \ 'pty': v:true,
+            \ 'on_exit': {job, status -> s:OnExit(status)},
+            \ 'env': env,
+            \ 'clear_env': a:strict ? v:true : v:false
+            \ })
+    catch /.*/
+      " termopen failed (e.g. invalid cwd): restore the window layout
+      silent! execute 'bd! ' . bufnr
+      throw v:exception
+    endtry
     if job_id == 0
+      silent! execute 'bd! ' . bufnr
       throw 'create terminal job failed'
     endif
     wincmd p
@@ -113,7 +108,15 @@ function! coc#terminal#close(bufnr) abort
       silent! call chanclose(job_id)
     endif
   endif
+  if has_key(s:channel_map, a:bufnr)
+    call remove(s:channel_map, a:bufnr)
+  endif
   exe 'silent! bd! '.a:bufnr
+endfunction
+
+" @internal Test only: current size of the terminal channel map.
+function! coc#terminal#_channel_count() abort
+  return len(s:channel_map)
 endfunction
 
 function! coc#terminal#show(bufnr, opts) abort

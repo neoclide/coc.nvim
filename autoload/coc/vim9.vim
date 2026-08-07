@@ -11,6 +11,25 @@ const maxCount = get(g:, 'coc_highlight_maximum_count', 500)
 const maxTimePerBatchMs = 16
 var maxEditCount = get(g:, 'coc_edits_maximum_count', 200)
 var saved_event_ignore: string = ''
+# Per (bufnr, namespace) highlight generation and the latest pending batch
+# timer. A new set/update/clear bumps the generation and stops the old timer
+# so stale batches can never write back after a newer result was applied.
+var s_hl_generation: dict<number> = {}
+var s_hl_timers: dict<number> = {}
+
+def Hl_key(bufnr: number, ns: number): string
+  return $'{bufnr}:{ns}'
+enddef
+
+def Invalidate_highlights(bufnr: number, ns: number): void
+  const key = Hl_key(bufnr, ns)
+  const timer_id = get(s_hl_timers, key, 0)
+  if timer_id > 0
+    timer_stop(timer_id)
+    remove(s_hl_timers, key)
+  endif
+  s_hl_generation[key] = get(s_hl_generation, key, 0) + 1
+enddef
 
 def Is_timeout(start_time: list<any>, max: number): bool
   return (start_time->reltime()->reltimefloat()) * 1000 > max
@@ -67,6 +86,7 @@ export def Clear_highlights(id: number, key: any, start_line: number = 0, end_li
   const buf = id == 0 ? bufnr('%') : id
   if bufloaded(buf)
     const ns = Create_namespace(key)
+    Invalidate_highlights(buf, ns)
     coc#api#Buf_clear_namespace(buf, ns, start_line, end_line)
   endif
 enddef
@@ -84,6 +104,7 @@ export def Clear_all(): void
   const bufnrs = getbufinfo({'bufloaded': 1})->mapnew((_, o: dict<any>): number => o.bufnr)
   for ns in values(namespaces)
     for bufnr in bufnrs
+      Invalidate_highlights(bufnr, ns)
       coc#api#Buf_clear_namespace(bufnr, ns, 0, -1)
     endfor
   endfor
@@ -100,12 +121,18 @@ export def Set_highlights(bufnr: number, key: any, highlights: list<any>, priori
   if bufloaded(bufnr)
     const changedtick = getbufvar(bufnr, 'changedtick', 0)
     const ns = Create_namespace(key)
-    Add_highlights_timer(bufnr, ns, highlights, priority, changedtick)
+    Invalidate_highlights(bufnr, ns)
+    Add_highlights_timer(bufnr, ns, highlights, priority, changedtick, s_hl_generation[Hl_key(bufnr, ns)])
   endif
 enddef
 
-def Add_highlights_timer(bufnr: number, ns: number, highlights: list<any>, priority: any, changedtick: number): void
+def Add_highlights_timer(bufnr: number, ns: number, highlights: list<any>, priority: any, changedtick: number, gen: number): void
+  const key = Hl_key(bufnr, ns)
   if !bufloaded(bufnr) || getbufvar(bufnr, 'changedtick', 0) != changedtick
+    return
+  endif
+  if gen != get(s_hl_generation, key, 0)
+    # a newer generation owns this (bufnr, namespace)
     return
   endif
   const total = len(highlights)
@@ -121,7 +148,11 @@ def Add_highlights_timer(bufnr: number, ns: number, highlights: list<any>, prior
   endfor
   if end_idx < total - 1
     const next = highlights[end_idx + 1 : ]
-    timer_start(10,  (_) => Add_highlights_timer(bufnr, ns, next, priority, changedtick))
+    const timer_id = timer_start(10, (_) => Add_highlights_timer(bufnr, ns, next, priority, changedtick, gen))
+    s_hl_timers[key] = timer_id
+  elseif get(s_hl_generation, key, 0) == gen && has_key(s_hl_timers, key)
+    # All batches applied: this flow is done and owns no pending timer.
+    remove(s_hl_timers, key)
   endif
 enddef
 
@@ -161,8 +192,9 @@ export def Update_highlights(id: number, key: string, highlights: list<any>, sta
       return
     endif
     const ns = Create_namespace(key)
+    Invalidate_highlights(bufnr, ns)
     coc#api#Buf_clear_namespace(bufnr, ns, start, end)
-    Add_highlights_timer(bufnr, ns, highlights, priority, tick)
+    Add_highlights_timer(bufnr, ns, highlights, priority, tick, s_hl_generation[Hl_key(bufnr, ns)])
   endif
 enddef
 
@@ -170,6 +202,7 @@ enddef
 export def Buffer_update(bufnr: number, key: any, highlights: list<any>, priority: any = null, changedtick: any = null): void
   if bufloaded(bufnr)
     const ns = Create_namespace(key)
+    Invalidate_highlights(bufnr, ns)
     coc#api#Buf_clear_namespace(bufnr, ns, 0, -1)
     if empty(highlights)
       return
@@ -178,16 +211,17 @@ export def Buffer_update(bufnr: number, key: any, highlights: list<any>, priorit
     if type(changedtick) == v:t_number && tick != changedtick
       return
     endif
+    const gen = s_hl_generation[Hl_key(bufnr, ns)]
     # highlight current region first
     const winid = bufwinid(bufnr)
     if winid == -1
-      Add_highlights_timer(bufnr, ns, highlights, priority, tick)
+      Add_highlights_timer(bufnr, ns, highlights, priority, tick, gen)
     else
       const info = getwininfo(winid)->get(0, {})
       const topline = info.topline
       const botline = info.botline
       if topline <= 5
-        Add_highlights_timer(bufnr, ns, highlights, priority, tick)
+        Add_highlights_timer(bufnr, ns, highlights, priority, tick, gen)
       else
         final curr_hls = []
         final other_hls = []
@@ -200,7 +234,7 @@ export def Buffer_update(bufnr: number, key: any, highlights: list<any>, priorit
           endif
         endfor
         const hls = extend(curr_hls, other_hls)
-        Add_highlights_timer(bufnr, ns, hls, priority, tick)
+        Add_highlights_timer(bufnr, ns, hls, priority, tick, gen)
       endif
     endif
   endif

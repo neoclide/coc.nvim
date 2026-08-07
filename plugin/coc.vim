@@ -676,7 +676,7 @@ function! s:ShowInfo()
     if !executable(node)
       call add(lines, 'Error: '.node.' is not executable!')
     else
-      let output = trim(system(node . ' --version'))
+      let output = trim(system(shellescape(node) . ' --version'))
       let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
       if empty(ms) || str2nr(ms[1]) < 20 || (str2nr(ms[1]) == 20 && str2nr(ms[2]) < 19)
         call add(lines, 'Error: Node version '.output.' < 20.19.0, please upgrade node.js')

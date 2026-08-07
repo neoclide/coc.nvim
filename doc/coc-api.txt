@@ -358,21 +358,28 @@ Recommended steps:
 
   • Install the NodeJS and coc.nvim type definitions by running
     `npm install @types/node@latest coc.nvim` in the extension folder.
-  • Bundle the JavaScript files with esbuild when using multiple Node
+  • Bundle the JavaScript files with Rolldown when using multiple Node
     dependencies, to reduce installation time. A typical build script looks
     like: >
 
       async function start() {
-        await require('esbuild').build({
-          entryPoints: ['src/index.ts'],
-          bundle: true,
-          minify: process.env.NODE_ENV === 'production',
-          sourcemap: process.env.NODE_ENV === 'development',
-          mainFields: ['module', 'main'],
-          external: ['coc.nvim'],
+        await require('rolldown').build({
+          input: 'src/index.ts',
           platform: 'node',
-          target: 'node20',
-          outfile: 'lib/index.js'
+          treeshake: true,
+          transform: {
+            target: 'node20'
+          },
+          resolve: {
+            mainFields: ['module', 'main']
+          },
+          external: ['coc.nvim'],
+          output: {
+            file: 'lib/index.js',
+            format: 'cjs',
+            minify: process.env.NODE_ENV === 'production',
+            sourcemap: process.env.NODE_ENV === 'development'
+          }
         })
       }
 
@@ -490,7 +497,7 @@ Use the log file: ~
 
 Add source map support: ~
 
-When the JavaScript code is bundled with esbuild, correct source map support
+When the JavaScript code is bundled with Rolldown, correct source map support
 for the error stack is useful.
 
 • Install source-map-support globally with

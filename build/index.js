@@ -43,6 +43,8 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var __toCommonJS = (mod) => __hasOwnProp.call(mod, "module.exports") ? mod["module.exports"] : __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 //#endregion
 let util = require("util");
+let path = require("path");
+path = __toESM(path);
 let child_process = require("child_process");
 let node_stream = require("node:stream");
 let net = require("net");
@@ -56713,10 +56715,10 @@ var require_unidecode = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 //#endregion
 //#region src/util/node.ts
-var fs$3, path$3, os$3, crypto$1, styles$1, stripAnsi, debounce, readline, child_process$1, glob, minimatch, which, semver, vm, net$2, fastDiff, unidecode;
+var fs$3, path$4, os$3, crypto$1, styles$1, stripAnsi, debounce, readline, child_process$1, glob, minimatch, which, semver, vm, net$2, fastDiff, unidecode;
 var init_node = __esmMin((() => {
 	fs$3 = require("fs");
-	path$3 = require("path");
+	path$4 = require("path");
 	os$3 = require("os");
 	crypto$1 = require("crypto");
 	styles$1 = (init_ansi_styles(), __toCommonJS(ansi_styles_exports)).default;
@@ -56893,7 +56895,7 @@ var init_log = __esmMin((() => {
 		}
 		getBackupResource() {
 			this.backupIndex = this.backupIndex > 5 ? 1 : this.backupIndex;
-			return path$3.join(path$3.dirname(this.fsPath), `${path$3.basename(this.fsPath)}_${this.backupIndex++}`);
+			return path$4.join(path$4.dirname(this.fsPath), `${path$4.basename(this.fsPath)}_${this.backupIndex++}`);
 		}
 	};
 }));
@@ -56987,7 +56989,7 @@ var logger_exports = /* @__PURE__ */ __exportAll({
 	emptyFile: () => emptyFile,
 	getLoggerFile: () => getLoggerFile,
 	getTimestamp: () => getTimestamp,
-	logger: () => logger$61,
+	logger: () => logger$62,
 	resolveLogFilepath: () => resolveLogFilepath
 });
 function resolveLogFilepath() {
@@ -56996,12 +56998,12 @@ function resolveLogFilepath() {
 	let dir = process.env.XDG_RUNTIME_DIR;
 	if (dir) try {
 		fs$3.accessSync(dir, fs$3.constants.R_OK | fs$3.constants.W_OK);
-		return path$3.join(dir, `coc-nvim-${process.pid}.log`);
+		return path$4.join(dir, `coc-nvim-${process.pid}.log`);
 	} catch (err) {}
 	let tmpdir = os$3.tmpdir();
-	dir = path$3.join(tmpdir, `coc.nvim-${process.pid}`);
+	dir = path$4.join(tmpdir, `coc.nvim-${process.pid}`);
 	fs$3.mkdirSync(dir, { recursive: true });
-	return path$3.join(dir, `coc-nvim.log`);
+	return path$4.join(dir, `coc-nvim.log`);
 }
 function emptyFile(filepath) {
 	if (fs$3.existsSync(filepath)) try {
@@ -57015,9 +57017,9 @@ function getLoggerFile() {
 	return logfile;
 }
 function createLogger(category = "coc.nvim") {
-	return logger$61.createLogger(category);
+	return logger$62.createLogger(category);
 }
-var logfile, level, logger$61;
+var logfile, level, logger$62;
 var init_logger$1 = __esmMin((() => {
 	init_log();
 	init_node();
@@ -57025,7 +57027,7 @@ var init_logger$1 = __esmMin((() => {
 	logfile = resolveLogFilepath();
 	emptyFile(logfile);
 	level = getConditionValue(process.env.NVIM_COC_LOG_LEVEL || "info", "off");
-	logger$61 = new FileLogger(logfile, textToLogLevel(level), {
+	logger$62 = new FileLogger(logfile, textToLogLevel(level), {
 		color: false,
 		userFormatters: true
 	});
@@ -66277,7 +66279,7 @@ var require_main$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.createMessageConnection = createMessageConnection;
 	const ril_1 = __importDefault(require_ril());
 	ril_1.default.install();
-	const path$2 = __importStar(require("path"));
+	const path$3 = __importStar(require("path"));
 	const os$2 = __importStar(require("os"));
 	const fs$2 = __importStar(require("fs"));
 	const crypto_1 = require("crypto");
@@ -66414,7 +66416,7 @@ var require_main$1 = /* @__PURE__ */ __commonJSMin(((exports) => {
 		if (limit !== void 0) randomLength = Math.min(limit - tmpDir.length - fixedLength, randomLength);
 		if (randomLength < 16) throw new Error(`Unable to generate a random pipe name with ${randomLength} characters.`);
 		const randomSuffix = (0, crypto_1.randomBytes)(Math.floor(randomLength / 2)).toString("hex");
-		return path$2.join(tmpDir, `lsp-${randomSuffix}.sock`);
+		return path$3.join(tmpDir, `lsp-${randomSuffix}.sock`);
 	}
 	function createClientPipeTransport(pipeName, encoding = "utf-8") {
 		let connectResolve;
@@ -69778,7 +69780,7 @@ var init_string$1 = __esmMin((() => {
 }));
 //#endregion
 //#region src/events.ts
-var logger$60, debounceTime$11, Events, events_default;
+var logger$61, debounceTime$11, Events, events_default;
 var init_events = __esmMin((() => {
 	init_logger$1();
 	init_util$8();
@@ -69787,7 +69789,7 @@ var init_events = __esmMin((() => {
 	init_object();
 	init_protocol$1();
 	init_string$1();
-	logger$60 = createLogger("events");
+	logger$61 = createLogger("events");
 	debounceTime$11 = getConditionValue(100, 10);
 	Events = class {
 		handlers = /* @__PURE__ */ new Map();
@@ -70041,12 +70043,12 @@ var init_events = __esmMin((() => {
 					let promiseFn = async () => {
 						let timer;
 						if (traceSlow) timer = setTimeout(() => {
-							logger$60.warn(`Slow "${event}" handler detected`, fn["stack"]);
+							logger$61.warn(`Slow "${event}" handler detected`, fn["stack"]);
 						}, this.timeout);
 						try {
 							await fn(args);
 						} catch (e) {
-							if (!shouldIgnore(e)) logger$60.error(`Error on event: ${event}`, e, fn["stack"]);
+							if (!shouldIgnore(e)) logger$61.error(`Error on event: ${event}`, e, fn["stack"]);
 						}
 						clearTimeout(timer);
 					};
@@ -70109,9 +70111,9 @@ var version = "0.0.82";
 //#region src/util/constants.ts
 function resolveDataHome() {
 	if (process.env.XDG_CONFIG_HOME) try {
-		if (fs$3.statSync(process.env.XDG_CONFIG_HOME).isDirectory()) return path$3.join(process.env.XDG_CONFIG_HOME, "coc");
+		if (fs$3.statSync(process.env.XDG_CONFIG_HOME).isDirectory()) return path$4.join(process.env.XDG_CONFIG_HOME, "coc");
 	} catch (_e) {}
-	return path$3.join(os$3.homedir(), ".config", "coc");
+	return path$4.join(os$3.homedir(), ".config", "coc");
 }
 var VERSION, isVim, floatHighlightGroup, CONFIG_FILE_NAME, configHome, dataHome, userConfigFile, pluginRoot;
 var init_constants = __esmMin((() => {
@@ -70121,10 +70123,10 @@ var init_constants = __esmMin((() => {
 	isVim = process.env.VIM_NODE_RPC == "1";
 	floatHighlightGroup = "CocFloating";
 	CONFIG_FILE_NAME = "coc-settings.json";
-	configHome = defaultValue(process.env.COC_VIMCONFIG, path$3.join(os$3.homedir(), ".vim"));
+	configHome = defaultValue(process.env.COC_VIMCONFIG, path$4.join(os$3.homedir(), ".vim"));
 	dataHome = defaultValue(process.env.COC_DATA_HOME, resolveDataHome());
-	userConfigFile = path$3.join(path$3.normalize(configHome), CONFIG_FILE_NAME);
-	pluginRoot = __filename.endsWith("index.js") ? path$3.dirname(__dirname) : path$3.resolve(__dirname, "../..");
+	userConfigFile = path$4.join(path$4.normalize(configHome), CONFIG_FILE_NAME);
+	pluginRoot = __filename.endsWith("index.js") ? path$4.dirname(__dirname) : path$4.resolve(__dirname, "../..");
 }));
 //#endregion
 //#region node_modules/jsonc-parser/lib/esm/impl/scanner.js
@@ -71788,12 +71790,26 @@ var init_platform = __esmMin((() => {
 }));
 //#endregion
 //#region src/util/fs.ts
+/**
+* Convert a file URI to a filesystem path.
+*
+* `vscode-uri` misreads a POSIX absolute path whose first segment is a single
+* letter followed by ':' (e.g. `/F:` or `/F:/x`) as a Windows drive path:
+* `URI.file('/F:').fsPath` returns `f:` (leading slash dropped, letter
+* lowercased). On POSIX, keep the URI's original absolute path for that shape
+* so workspace/root resolution and file operations never see a relative path.
+*/
+function uriToFsPath(uri) {
+	let u = typeof uri === "string" ? URI.parse(uri) : uri;
+	if (u.scheme === "file" && !isWindows && /^\/[a-zA-Z]:/.test(u.path)) return u.path;
+	return u.fsPath;
+}
 function watchFile(filepath, onChange, immediate = false, onError) {
 	let callback = debounce(onChange, 100);
 	let watcher;
 	try {
-		let dir = path$3.dirname(filepath);
-		let basename = path$3.basename(filepath);
+		let dir = path$4.dirname(filepath);
+		let basename = path$4.basename(filepath);
 		watcher = fs$3.watch(dir, {
 			persistent: true,
 			recursive: false,
@@ -71802,13 +71818,13 @@ function watchFile(filepath, onChange, immediate = false, onError) {
 			if (filename === void 0 || filename === basename) callback();
 		});
 		watcher.on("error", (err) => {
-			logger$59.error(`Error on watching ${filepath}`, err);
+			logger$60.error(`Error on watching ${filepath}`, err);
 			watcher?.close();
 			if (onError) onError(err);
 		});
 		if (immediate) setTimeout(onChange, 10);
 	} catch (e) {
-		logger$59.error(`Error on watching ${filepath}`, e);
+		logger$60.error(`Error on watching ${filepath}`, e);
 		if (onError) onError(e instanceof Error ? e : new Error(String(e)));
 	}
 	return import_main$1.Disposable.create(() => {
@@ -71820,17 +71836,17 @@ function loadJson$1(filepath) {
 	try {
 		let errors = [];
 		let data = parse(fs$3.readFileSync(filepath, "utf8"), errors, { allowTrailingComma: true });
-		if (errors.length > 0) logger$59.error(`Error on parse json file ${filepath}`, errors);
+		if (errors.length > 0) logger$60.error(`Error on parse json file ${filepath}`, errors);
 		return data ?? {};
 	} catch (e) {
 		return {};
 	}
 }
 function writeJson(filepath, obj) {
-	let dir = path$3.dirname(filepath);
+	let dir = path$4.dirname(filepath);
 	if (!fs$3.existsSync(dir)) {
 		fs$3.mkdirSync(dir, { recursive: true });
-		logger$59.info(`Creating directory ${dir}`);
+		logger$60.info(`Creating directory ${dir}`);
 	}
 	fs$3.writeFileSync(filepath, JSON.stringify(toObject(obj), null, 2), "utf8");
 }
@@ -71842,7 +71858,7 @@ async function statAsync(filepath) {
 	return stat;
 }
 function isDirectory(filepath) {
-	if (!filepath || !path$3.isAbsolute(filepath) || !fs$3.existsSync(filepath)) return false;
+	if (!filepath || !path$4.isAbsolute(filepath) || !fs$3.existsSync(filepath)) return false;
 	return fs$3.statSync(filepath).isDirectory();
 }
 async function remove(filepath) {
@@ -71873,11 +71889,11 @@ async function isGitIgnored(fullpath) {
 	if (!stat || !stat.isFile()) return false;
 	let root = null;
 	try {
-		let { stdout } = await (0, util.promisify)(exec$1)("git rev-parse --show-toplevel", { cwd: path$3.dirname(fullpath) });
+		let { stdout } = await (0, util.promisify)(exec$1)("git rev-parse --show-toplevel", { cwd: path$4.dirname(fullpath) });
 		root = stdout.trim();
 	} catch (e) {}
 	if (!root) return false;
-	let file = path$3.relative(root, fullpath);
+	let file = path$4.relative(root, fullpath);
 	try {
 		let { stdout } = await (0, util.promisify)(execFile)("git", [
 			"check-ignore",
@@ -71895,10 +71911,10 @@ function isFolderIgnored(folder, ignored) {
 function resolveRoot(folder, subs, cwd, bottomup = false, checkCwd = true, ignored = []) {
 	let dir = normalizeFilePath(folder);
 	if (checkCwd && cwd && isParentFolder(cwd, dir, true) && !isFolderIgnored(cwd, ignored) && inDirectory(cwd, subs)) return cwd;
-	let parts = dir.split(path$3.sep);
+	let parts = dir.split(path$4.sep);
 	if (bottomup) {
 		while (parts.length > 0) {
-			let dir = parts.join(path$3.sep);
+			let dir = parts.join(path$4.sep);
 			if (!isFolderIgnored(dir, ignored) && inDirectory(dir, subs)) return dir;
 			parts.pop();
 		}
@@ -71907,7 +71923,7 @@ function resolveRoot(folder, subs, cwd, bottomup = false, checkCwd = true, ignor
 		let curr = [parts.shift()];
 		for (let part of parts) {
 			curr.push(part);
-			let dir = curr.join(path$3.sep);
+			let dir = curr.join(path$4.sep);
 			if (!isFolderIgnored(dir, ignored) && inDirectory(dir, subs)) return dir;
 		}
 		return null;
@@ -71916,31 +71932,36 @@ function resolveRoot(folder, subs, cwd, bottomup = false, checkCwd = true, ignor
 function checkFolder(dir, patterns, token) {
 	return new Promise(async (resolve, reject) => {
 		if (isFalsyOrEmpty(patterns)) return resolve(false);
+		let disposable;
 		const ac = new AbortController();
-		if (token) token.onCancellationRequested(() => {
+		if (token) disposable = token.onCancellationRequested(() => {
 			ac.abort();
 			reject(new CancellationError());
 		});
-		let find = false;
-		let pattern = patterns.length == 1 ? patterns[0] : `{${patterns.join(",")}}`;
-		let gl = new glob.Glob(pattern, {
-			nosort: true,
-			signal: ac.signal,
-			ignore: ["node_modules/**", ".git/**"],
-			dot: true,
-			cwd: dir,
-			nodir: true,
-			absolute: false
-		});
 		try {
-			for await (const _file of gl) {
-				find = true;
-				break;
+			let find = false;
+			let pattern = patterns.length == 1 ? patterns[0] : `{${patterns.join(",")}}`;
+			let gl = new glob.Glob(pattern, {
+				nosort: true,
+				signal: ac.signal,
+				ignore: ["node_modules/**", ".git/**"],
+				dot: true,
+				cwd: dir,
+				nodir: true,
+				absolute: false
+			});
+			try {
+				for await (const _file of gl) {
+					find = true;
+					break;
+				}
+			} catch (e) {
+				logger$60.error(`Error on glob "${pattern}"`, dir, e);
 			}
-		} catch (e) {
-			logger$59.error(`Error on glob "${pattern}"`, dir, e);
+			resolve(find);
+		} finally {
+			if (disposable) disposable.dispose();
 		}
-		resolve(find);
 	});
 }
 function inDirectory(dir, subs) {
@@ -71978,12 +71999,12 @@ function findMatch(dir, subs) {
 	} catch (e) {}
 }
 function findUp$1(name, cwd) {
-	let root = path$3.parse(cwd).root;
+	let root = path$4.parse(cwd).root;
 	let subs = toArray(name);
 	while (cwd && cwd !== root) {
 		let find = findMatch(cwd, subs);
-		if (find) return path$3.join(cwd, find);
-		cwd = path$3.dirname(cwd);
+		if (find) return path$4.join(cwd, find);
+		cwd = path$4.dirname(cwd);
 	}
 	return null;
 }
@@ -72100,15 +72121,35 @@ function isFile(uri) {
 	return uri.startsWith("file:");
 }
 function normalizeFilePath(filepath) {
-	return URI.file(path$3.resolve(path$3.normalize(filepath))).fsPath;
+	return URI.file(path$4.resolve(path$4.normalize(filepath))).fsPath;
+}
+/**
+* Resolve symlinks for authorization checks. Returns the canonical path of
+* the nearest existing ancestor plus the remaining path components, so paths
+* that are about to be created are checked as well. Falls back to the input
+* when no ancestor resolves (e.g. a dangling root).
+*/
+function realFsPath(fsPath) {
+	let current = path$4.resolve(fsPath);
+	let suffix = [];
+	for (;;) try {
+		let resolved = fs$3.realpathSync(current);
+		if (suffix.length === 0) return resolved;
+		return path$4.join(resolved, ...suffix.reverse());
+	} catch (_e) {
+		let parent = path$4.dirname(current);
+		if (parent === current) return fsPath;
+		suffix.push(path$4.basename(current));
+		current = parent;
+	}
 }
 function isParentFolder(folder, filepath, checkEqual = false) {
 	let pdir = normalizeFilePath(folder);
 	let dir = normalizeFilePath(filepath);
 	if (sameFile(pdir, dir)) return checkEqual ? true : false;
-	return fileStartsWith(dir, pdir) && dir[pdir.length] == path$3.sep;
+	return fileStartsWith(dir, pdir) && dir[pdir.length] == path$4.sep;
 }
-var logger$59, exec$1, execFile, FileType;
+var logger$60, exec$1, execFile, FileType;
 var init_fs = __esmMin((() => {
 	init_main$1();
 	init_main$2();
@@ -72121,7 +72162,7 @@ var init_fs = __esmMin((() => {
 	init_object();
 	init_platform();
 	init_string$1();
-	logger$59 = createLogger("util-fs");
+	logger$60 = createLogger("util-fs");
 	exec$1 = child_process$1.exec;
 	execFile = child_process$1.execFile;
 	FileType = /* @__PURE__ */ function(FileType) {
@@ -72161,8 +72202,8 @@ var init_mru = __esmMin((() => {
 		*/
 		constructor(name, base, maximum = 5e3) {
 			this.maximum = maximum;
-			this.file = path$3.join(base || dataHome, name);
-			let dir = path$3.dirname(this.file);
+			this.file = path$4.join(base || dataHome, name);
+			let dir = path$4.dirname(this.file);
 			fs$3.mkdirSync(dir, { recursive: true });
 		}
 		/**
@@ -72400,7 +72441,7 @@ var init_extensionRegistry = __esmMin((() => {
 }));
 //#endregion
 //#region src/commands.ts
-var logger$58, CommandItem, extensionRegistry$3, CommandManager, commands_default;
+var logger$59, CommandItem, extensionRegistry$3, CommandManager, commands_default;
 var init_commands$2 = __esmMin((() => {
 	init_events();
 	init_logger$1();
@@ -72410,7 +72451,7 @@ var init_commands$2 = __esmMin((() => {
 	init_protocol$1();
 	init_registry$1();
 	init_string$1();
-	logger$58 = createLogger("commands");
+	logger$59 = createLogger("commands");
 	CommandItem = class {
 		id;
 		impl;
@@ -72500,7 +72541,7 @@ var init_commands$2 = __esmMin((() => {
 		*/
 		registerCommand(id, impl, thisArg, internal = false) {
 			if (id.startsWith("_")) internal = true;
-			if (this.commands.has(id)) logger$58.warn(`Command ${id} already registered`);
+			if (this.commands.has(id)) logger$59.warn(`Command ${id} already registered`);
 			this.commands.set(id, new CommandItem(id, impl, thisArg, internal));
 			return import_main$1.Disposable.create(() => {
 				this.commands.delete(id);
@@ -73827,7 +73868,7 @@ var init_fuzzyMatch = __esmMin((() => {
 	init_filter$1();
 	init_node();
 	init_string$1();
-	wasmFile = path$3.join(pluginRoot, "bin/fuzzy.wasm");
+	wasmFile = path$4.join(pluginRoot, "bin/fuzzy.wasm");
 	FuzzyMatch = class {
 		exports;
 		contentPtr;
@@ -73974,7 +74015,7 @@ var wasmPath, instance, StrWidth;
 var init_strwidth = __esmMin((() => {
 	init_constants();
 	init_node();
-	wasmPath = path$3.join(pluginRoot, "bin/strwidth.wasm");
+	wasmPath = path$4.join(pluginRoot, "bin/strwidth.wasm");
 	StrWidth = class StrWidth {
 		exports;
 		contentPtr;
@@ -83186,7 +83227,7 @@ function terminate(process, cwd, pt = platform) {
 		return false;
 	}
 	else if (pt === 2 || pt === 1) try {
-		let filepath = path$3.join(pluginRoot, "bin/terminateProcess.sh");
+		let filepath = path$4.join(pluginRoot, "bin/terminateProcess.sh");
 		return child_process$1.spawnSync(filepath, [process.pid.toString()]).error ? false : true;
 	} catch (err) {
 		return false;
@@ -83228,7 +83269,7 @@ var init_resolver = __esmMin((() => {
 			if (!executable("yarnpkg")) return Promise.resolve("");
 			if (this._yarnFolder) return Promise.resolve(this._yarnFolder);
 			return runCommand("yarnpkg global dir", {}, 3e3).then((root) => {
-				let folder = path$3.join(stripAnsi(root).trim(), "node_modules");
+				let folder = path$4.join(stripAnsi(root).trim(), "node_modules");
 				let exists = fs$3.existsSync(folder);
 				if (exists) this._yarnFolder = folder;
 				return exists ? folder : "";
@@ -83238,12 +83279,12 @@ var init_resolver = __esmMin((() => {
 			let nodeFolder = await this.nodeFolder;
 			let yarnFolder = await this.yarnFolder;
 			if (yarnFolder) {
-				let s = await statAsync(path$3.join(yarnFolder, mod, "package.json"));
-				if (s && s.isFile()) return path$3.join(yarnFolder, mod);
+				let s = await statAsync(path$4.join(yarnFolder, mod, "package.json"));
+				if (s && s.isFile()) return path$4.join(yarnFolder, mod);
 			}
 			if (nodeFolder) {
-				let s = await statAsync(path$3.join(nodeFolder, mod, "package.json"));
-				if (s && s.isFile()) return path$3.join(nodeFolder, mod);
+				let s = await statAsync(path$4.join(nodeFolder, mod, "package.json"));
+				if (s && s.isFile()) return path$4.join(nodeFolder, mod);
 			}
 			return null;
 		}
@@ -83298,12 +83339,12 @@ function getWatchmanPath(configurations) {
 }
 async function findUp(nvim, cwd, filename) {
 	let filepath = await nvim.call("coc#util#get_fullpath");
-	filepath = path$3.normalize(filepath);
-	let isFile = filepath && path$3.isAbsolute(filepath);
-	if (isFile && !isParentFolder(cwd, filepath, true)) return findUp$1(filename, path$3.dirname(filepath));
+	filepath = path$4.normalize(filepath);
+	let isFile = filepath && path$4.isAbsolute(filepath);
+	if (isFile && !isParentFolder(cwd, filepath, true)) return findUp$1(filename, path$4.dirname(filepath));
 	let res = findUp$1(filename, cwd);
 	if (res && res != os$3.homedir()) return res;
-	if (isFile) return findUp$1(filename, path$3.dirname(filepath));
+	if (isFile) return findUp$1(filename, path$4.dirname(filepath));
 	return null;
 }
 function resolveModule(name) {
@@ -87480,13 +87521,13 @@ function formatMessage(title, message, total) {
 	if (total) parts.push(total + "%");
 	return parts.join(" ");
 }
-var logger$57, ProgressNotification;
+var logger$58, ProgressNotification;
 var init_progress$1 = __esmMin((() => {
 	init_events();
 	init_logger$1();
 	init_protocol$1();
 	init_notification();
-	logger$57 = createLogger("model-progress");
+	logger$58 = createLogger("model-progress");
 	ProgressNotification = class extends Notification {
 		option;
 		tokenSource;
@@ -87511,7 +87552,7 @@ var init_progress$1 = __esmMin((() => {
 			this.disposables.push(tokenSource);
 			let total = 0;
 			if (!preferences.disabled) await super.show(preferences);
-			else logger$57.warn(`progress window disabled by configuration "notification.disabledProgressSources"`);
+			else logger$58.warn(`progress window disabled by configuration "notification.disabledProgressSources"`);
 			task({ report: (p) => {
 				if (!this.winid) return;
 				let { nvim } = this;
@@ -89884,7 +89925,7 @@ var properties = {
 	"suggest.reTriggerAfterIndent": {
 		"type": "boolean",
 		"description": "Re-trigger completion after indent changes.",
-		"scope": "language-overridable",
+		"scope": "application",
 		"default": true
 	},
 	"suggest.completionItemKindLabels": {
@@ -90191,7 +90232,7 @@ var properties = {
 	},
 	"inlineSuggest.triggerCompletionWait": {
 		"type": "integer",
-		"default": 0,
+		"default": 10,
 		"minimum": 0,
 		"maximum": 1e3,
 		"scope": "language-overridable",
@@ -90756,15 +90797,15 @@ function expandVariables(input, ctx = {}) {
 			case "workspace":
 			case "workspaceRoot":
 			case "workspaceFolder": return ctx.root ?? match;
-			case "workspaceFolderBasename": return ctx.root ? path$3.basename(ctx.root) : match;
+			case "workspaceFolderBasename": return ctx.root ? path$4.basename(ctx.root) : match;
 			case "file": return ctx.file ?? match;
-			case "fileDirname": return ctx.file ? path$3.dirname(ctx.file) : match;
-			case "fileExtname": return ctx.file ? path$3.extname(ctx.file) : match;
-			case "fileBasename": return ctx.file ? path$3.basename(ctx.file) : match;
+			case "fileDirname": return ctx.file ? path$4.dirname(ctx.file) : match;
+			case "fileExtname": return ctx.file ? path$4.extname(ctx.file) : match;
+			case "fileBasename": return ctx.file ? path$4.basename(ctx.file) : match;
 			case "fileBasenameNoExtension": {
 				if (!ctx.file) return match;
-				const base = path$3.basename(ctx.file);
-				return base.slice(0, base.length - path$3.extname(base).length);
+				const base = path$4.basename(ctx.file);
+				return base.slice(0, base.length - path$4.extname(base).length);
 			}
 			default: return match;
 		}
@@ -91857,7 +91898,7 @@ var init_registry = __esmMin((() => {
 	};
 	configurationRegistry$1 = new ConfigurationRegistry();
 	Registry.add(Extensions$1.Configuration, configurationRegistry$1);
-})), logger$56, jsonRegistry, configuration, Configurations;
+})), logger$57, jsonRegistry, configuration, Configurations;
 var init_configuration$2 = __esmMin((() => {
 	init_esm();
 	init_logger$1();
@@ -91878,7 +91919,7 @@ var init_configuration$2 = __esmMin((() => {
 	init_parser$1();
 	init_registry();
 	init_util$7();
-	logger$56 = createLogger("configurations");
+	logger$57 = createLogger("configurations");
 	jsonRegistry = Registry.as(Extensions$2.JSONContribution);
 	configuration = Registry.as(Extensions$1.Configuration);
 	Configurations = class {
@@ -91955,7 +91996,7 @@ var init_configuration$2 = __esmMin((() => {
 						keys.push(key);
 						let val = def.default;
 						addToValueTree(root, key, val, (msg) => {
-							logger$56.error(`Conflict configuration: ${msg}`);
+							logger$57.error(`Conflict configuration: ${msg}`);
 						});
 					} else toRemove.push(key);
 				}
@@ -92026,7 +92067,7 @@ var init_configuration$2 = __esmMin((() => {
 		}
 		folderToConfigfile(folder) {
 			if (sameFile(folder, os$3.homedir())) return void 0;
-			let filepath = path$3.join(folder, ".vim", CONFIG_FILE_NAME);
+			let filepath = path$4.join(folder, ".vim", CONFIG_FILE_NAME);
 			if (sameFile(filepath, this.userConfigFile)) return void 0;
 			return filepath;
 		}
@@ -92048,7 +92089,7 @@ var init_configuration$2 = __esmMin((() => {
 		* Add new folder config file.
 		*/
 		addFolderFile(configFilePath, fromCwd = false, resource) {
-			let folder = normalizeFilePath(path$3.resolve(configFilePath, "../.."));
+			let folder = normalizeFilePath(path$4.resolve(configFilePath, "../.."));
 			if (this._configuration.hasFolder(folder) || !fs$3.existsSync(configFilePath)) return false;
 			let configFile;
 			try {
@@ -92059,13 +92100,13 @@ var init_configuration$2 = __esmMin((() => {
 			this.watchFile(configFilePath, 3);
 			let model = this.parseConfigurationModel(configFilePath, configFile);
 			this._configuration.addFolderConfiguration(folder, model, resource);
-			logger$56.info(`Add folder configuration from ${fromCwd ? "cwd" : "file"}:`, configFilePath);
+			logger$57.info(`Add folder configuration from ${fromCwd ? "cwd" : "file"}:`, configFilePath);
 			return true;
 		}
 		watchFile(filepath, target) {
 			if (!filepath || !fs$3.existsSync(filepath) || this._watchedFiles.has(filepath) || this.noWatch) return;
 			this._watchedFiles.add(filepath);
-			const folder = target === 3 ? normalizeFilePath(path$3.resolve(filepath, "../..")) : void 0;
+			const folder = target === 3 ? normalizeFilePath(path$4.resolve(filepath, "../..")) : void 0;
 			let disposable = watchFile(filepath, () => {
 				let model = this.parseConfigurationModel(filepath);
 				this.changeConfiguration(target, model, folder);
@@ -92126,7 +92167,7 @@ var init_configuration$2 = __esmMin((() => {
 						folder = this._configuration.resolveFolder(resource) ?? this.resolveWorkspaceFolderForResource(resource);
 						if (!folder) {
 							console.error(`Unable to locate workspace folder configuration for ${resource}`);
-							logger$56.error(`Unable to locate workspace folder configuration`, resource, Error().stack);
+							logger$57.error(`Unable to locate workspace folder configuration`, resource, Error().stack);
 							return;
 						}
 					}
@@ -92168,7 +92209,7 @@ var init_configuration$2 = __esmMin((() => {
 			if (u.scheme !== "file") return false;
 			let dir = folder = findUp$1(".vim", u.fsPath);
 			if (!dir) return false;
-			folder = path$3.dirname(dir);
+			folder = path$4.dirname(dir);
 			let filepath = this.folderToConfigfile(folder);
 			if (filepath) {
 				this.addFolderFile(filepath, false, uri);
@@ -92187,7 +92228,7 @@ var init_configuration$2 = __esmMin((() => {
 				let configFilePath = this.folderToConfigfile(fsPath);
 				if (configFilePath) {
 					if (!fs$3.existsSync(configFilePath)) {
-						fs$3.mkdirSync(path$3.dirname(configFilePath), { recursive: true });
+						fs$3.mkdirSync(path$4.dirname(configFilePath), { recursive: true });
 						fs$3.writeFileSync(configFilePath, "{}", "utf8");
 					}
 					this.addFolderFile(configFilePath, false, resource);
@@ -92213,13 +92254,13 @@ var init_configuration$2 = __esmMin((() => {
 }));
 //#endregion
 //#region src/configuration/shape.ts
-var logger$55, ConfigurationProxy;
+var logger$56, ConfigurationProxy;
 var init_shape = __esmMin((() => {
 	init_main$1();
 	init_esm();
 	init_logger$1();
 	init_node();
-	logger$55 = createLogger("configuration-shape");
+	logger$56 = createLogger("configuration-shape");
 	ConfigurationProxy = class {
 		resolver;
 		_test;
@@ -92232,8 +92273,8 @@ var init_shape = __esmMin((() => {
 		}
 		async modifyConfiguration(fsPath, key, value) {
 			if (this._test) return;
-			logger$55.info(`modify configuration file: ${fsPath}`, key, value);
-			let dir = path$3.dirname(fsPath);
+			logger$56.info(`modify configuration file: ${fsPath}`, key, value);
+			let dir = path$4.dirname(fsPath);
 			let formattingOptions = {
 				tabSize: 2,
 				insertSpaces: true
@@ -92276,14 +92317,14 @@ function createCommand(id, event, autocmd) {
 	if (autocmd.nested) opt += " ++nested";
 	return `autocmd ${groupName} ${event}${opt}  call coc#rpc#${method}('doAutocmd', [${id}${args}])`;
 }
-var logger$54, AutocmdItem, groupName, Autocmds;
+var logger$55, AutocmdItem, groupName, Autocmds;
 var init_autocmds = __esmMin((() => {
 	init_logger$1();
 	init_array();
 	init_extensionRegistry();
 	init_lodash();
 	init_protocol$1();
-	logger$54 = createLogger("autocmds");
+	logger$55 = createLogger("autocmds");
 	AutocmdItem = class {
 		id;
 		option;
@@ -92311,13 +92352,13 @@ var init_autocmds = __esmMin((() => {
 			let autocmd = this.autocmds.get(id);
 			if (autocmd) {
 				let option = autocmd.option;
-				logger$54.trace(`Invoke autocmd from "${autocmd.extensiionName}"`, option);
+				logger$55.trace(`Invoke autocmd from "${autocmd.extensiionName}"`, option);
 				let tokenSource = new import_main$1.CancellationTokenSource();
 				let logged = false;
 				let logError = (e) => {
 					if (logged) return;
 					logged = true;
-					logger$54.error(`Error on autocmd "${option.event}"`, args, omit$2(option, ["callback", "stack"]), e);
+					logger$55.error(`Error on autocmd "${option.event}"`, args, omit$2(option, ["callback", "stack"]), e);
 				};
 				try {
 					let promise = Promise.resolve(option.callback.apply(option.thisArg, [...args, tokenSource.token]));
@@ -92327,7 +92368,7 @@ var init_autocmds = __esmMin((() => {
 						let tp = new Promise((resolve) => {
 							timer = setTimeout(() => {
 								tokenSource.cancel();
-								logger$54.error(`Autocmd timeout after ${timeout}ms`, omit$2(option, ["callback", "stack"]), autocmd.option.stack);
+								logger$55.error(`Autocmd timeout after ${timeout}ms`, omit$2(option, ["callback", "stack"]), autocmd.option.stack);
 								resolve(void 0);
 							}, timeout);
 						});
@@ -92413,6 +92454,7 @@ var init_contentProvider = __esmMin((() => {
 		nvim;
 		disposables = [];
 		providers = /* @__PURE__ */ new Map();
+		refreshSources = /* @__PURE__ */ new Map();
 		_onDidProviderChange = new import_main$1.Emitter();
 		onDidProviderChange = this._onDidProviderChange.event;
 		constructor(documents) {
@@ -92451,26 +92493,49 @@ var init_contentProvider = __esmMin((() => {
 			this.providers.set(scheme, provider);
 			this._onDidProviderChange.fire();
 			let disposables = [];
+			let refreshSources = /* @__PURE__ */ new Set();
 			if (provider.onDidChange) provider.onDidChange(async (uri) => {
-				let doc = this.documents.getDocument(uri.toString());
+				let key = uri.toString();
+				let doc = this.documents.getDocument(key);
 				if (!doc) return;
+				let previous = this.refreshSources.get(key);
+				if (previous) previous.cancel();
 				let tokenSource = new import_main$1.CancellationTokenSource();
-				let content = await Promise.resolve(provider.provideTextDocumentContent(uri, tokenSource.token));
-				await doc.buffer.setLines(content.split(/\r?\n/), {
-					start: 0,
-					end: -1,
-					strictIndexing: false
-				});
+				this.refreshSources.set(key, tokenSource);
+				refreshSources.add(tokenSource);
+				try {
+					let content = await Promise.resolve(provider.provideTextDocumentContent(uri, tokenSource.token));
+					if (tokenSource.token.isCancellationRequested || this.refreshSources.get(key) !== tokenSource) return;
+					await doc.buffer.setLines(content.split(/\r?\n/), {
+						start: 0,
+						end: -1,
+						strictIndexing: false
+					});
+				} finally {
+					refreshSources.delete(tokenSource);
+					if (this.refreshSources.get(key) === tokenSource) this.refreshSources.delete(key);
+					tokenSource.dispose();
+				}
 			}, null, disposables);
 			this.nvim.command(getAutocmdCommand(scheme), true);
 			return import_main$1.Disposable.create(() => {
 				this.providers.delete(scheme);
+				for (let source of refreshSources) {
+					source.cancel();
+					source.dispose();
+				}
+				refreshSources.clear();
 				disposeAll(disposables);
 				this.resetAutocmds();
 				this._onDidProviderChange.fire();
 			});
 		}
 		dispose() {
+			for (let source of this.refreshSources.values()) {
+				source.cancel();
+				source.dispose();
+			}
+			this.refreshSources.clear();
 			disposeAll(this.disposables);
 			this._onDidProviderChange.dispose();
 			this.providers.clear();
@@ -93534,7 +93599,7 @@ var init_buffer$6 = __esmMin((() => {
 					msg = `${diagnostic.message}\n\nRelated information:\n`;
 					for (const info of diagnostic.relatedInformation) {
 						const fsPath = URI.parse(info.location.uri).fsPath;
-						const basename = path$3.basename(fsPath);
+						const basename = path$4.basename(fsPath);
 						const line = info.location.range.start.line + 1;
 						const column = info.location.range.start.character + 1;
 						msg = `${msg}\n  * ${basename}#${line},${column}: ${info.message}`;
@@ -94393,7 +94458,7 @@ function addLocation(arr, location) {
 		});
 	}
 }
-var logger$53, Manager;
+var logger$54, Manager;
 var init_manager$3 = __esmMin((() => {
 	init_main$2();
 	init_logger$1();
@@ -94403,7 +94468,7 @@ var init_manager$3 = __esmMin((() => {
 	init_protocol$1();
 	init_string$1();
 	init_workspace$2();
-	logger$53 = createLogger("provider-manager");
+	logger$54 = createLogger("provider-manager");
 	Manager = class {
 		providers = /* @__PURE__ */ new Set();
 		hasProvider(document) {
@@ -94431,7 +94496,7 @@ var init_manager$3 = __esmMin((() => {
 			let serverCancelError;
 			results.forEach((res) => {
 				if (res.status === "rejected") {
-					if (!shouldIgnore(res.reason)) logger$53.error(`Provider error on ${name}:`, res.reason);
+					if (!shouldIgnore(res.reason)) logger$54.error(`Provider error on ${name}:`, res.reason);
 					if (token && !token.isCancellationRequested && isCancellationError(res.reason)) serverCancelError = res.reason;
 				}
 			});
@@ -94453,7 +94518,7 @@ var init_manager$3 = __esmMin((() => {
 		}
 		getProvideByExtension(document, extension) {
 			for (let item of this.providers) if (item.provider["__extensionName"] === extension) return item;
-			logger$53.warn(`User-specified formatter not found for ${document.languageId}:`, extension);
+			logger$54.warn(`User-specified formatter not found for ${document.languageId}:`, extension);
 		}
 		getFormatProvider(document) {
 			const userChoice = workspace_default.getConfiguration("coc.preferences", document).get("formatterExtension");
@@ -95073,11 +95138,11 @@ function isInlayHint(obj) {
 }
 function isValidInlayHint(hint, range) {
 	if (hint.label.length === 0 || Array.isArray(hint.label) && hint.label.every((part) => part.value.length === 0)) {
-		logger$52.warn("INVALID inlay hint, empty label", hint);
+		logger$53.warn("INVALID inlay hint, empty label", hint);
 		return false;
 	}
 	if (!isInlayHint(hint)) {
-		logger$52.warn("INVALID inlay hint", hint);
+		logger$53.warn("INVALID inlay hint", hint);
 		return false;
 	}
 	if (range && positionInRange(hint.position, range) !== 0) return false;
@@ -95087,13 +95152,13 @@ function getLabel(hint) {
 	if (typeof hint.label === "string") return hint.label;
 	return hint.label.map((o) => o.value).join("");
 }
-var logger$52, InlayHintManger;
+var logger$53, InlayHintManger;
 var init_inlayHintManager = __esmMin((() => {
 	init_main$2();
 	init_logger$1();
 	init_position();
 	init_manager$3();
-	logger$52 = createLogger("inlayHintManger");
+	logger$53 = createLogger("inlayHintManger");
 	InlayHintManger = class extends Manager {
 		register(selector, provider) {
 			return this.addProvider({
@@ -96741,7 +96806,11 @@ function fireLinesChanged(bufnr) {
 }
 function getUri(fullpath, id, buftype) {
 	if (!fullpath) return `untitled:${id}`;
-	if (path$3.isAbsolute(fullpath)) return URI.file(path$3.normalize(fullpath)).toString();
+	if (path$4.isAbsolute(fullpath)) {
+		fullpath = path$4.normalize(fullpath);
+		if (!isWindows && /^\/[a-zA-Z]:/.test(fullpath)) return "file://" + fullpath.split("/").map((seg) => encodeURIComponent(seg)).join("/");
+		return URI.file(fullpath).toString();
+	}
 	if (isUrl(fullpath)) return URI.parse(fullpath).toString();
 	if (buftype != "") return `${buftype}:${id}`;
 	return `unknown:${id}`;
@@ -96751,7 +96820,7 @@ function getNotAttachReason(buftype, enabled, size) {
 	if (enabled === 0) return `b:coc_enabled = 0`;
 	return `buffer size ${size} exceed coc.preferences.maxFileSize`;
 }
-var logger$51, MAX_EDITS, debounceTime$9, Document;
+var logger$52, MAX_EDITS, debounceTime$9, Document;
 var init_document$1 = __esmMin((() => {
 	init_main$2();
 	init_esm();
@@ -96764,13 +96833,14 @@ var init_document$1 = __esmMin((() => {
 	init_is();
 	init_node();
 	init_object();
+	init_platform();
 	init_position();
 	init_protocol$1();
 	init_string$1();
 	init_textedit();
 	init_chars();
 	init_textdocument();
-	logger$51 = createLogger("document");
+	logger$52 = createLogger("document");
 	MAX_EDITS = getConditionValue(200, 400);
 	debounceTime$9 = getConditionValue(150, 15);
 	Document = class {
@@ -97364,7 +97434,7 @@ var init_document$1 = __esmMin((() => {
 			this.lines = lines;
 			fireLinesChanged(this.bufnr);
 			this.fireContentChanges();
-			logger$51.error(`Buffer ${this.bufnr} not synchronized on vim9, consider send bug report!`);
+			logger$52.error(`Buffer ${this.bufnr} not synchronized on vim9, consider send bug report!`);
 		}
 	};
 }));
@@ -97531,7 +97601,7 @@ var require_bytes = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 //#endregion
 //#region src/core/documents.ts
-var logger$50, cwd, filetypeDelay, Documents;
+var logger$51, cwd, filetypeDelay, Documents;
 var init_documents = __esmMin((() => {
 	init_main$2();
 	init_esm();
@@ -97552,7 +97622,7 @@ var init_documents = __esmMin((() => {
 	init_platform();
 	init_protocol$1();
 	init_string$1();
-	logger$50 = createLogger("core-documents");
+	logger$51 = createLogger("core-documents");
 	cwd = normalizeFilePath(process.cwd());
 	filetypeDelay = getConditionValue(50, 10);
 	Documents = class {
@@ -97685,7 +97755,7 @@ var init_documents = __esmMin((() => {
 		resolveRoot(rootPatterns, requireRootPattern = false) {
 			let doc = this.getDocument(this.bufnr);
 			let resolved;
-			if (doc && doc.schema == "file") resolved = resolveRoot(path$3.dirname(URI.parse(doc.uri).fsPath), rootPatterns, this.cwd);
+			if (doc && doc.schema == "file") resolved = resolveRoot(path$4.dirname(URI.parse(doc.uri).fsPath), rootPatterns, this.cwd);
 			else resolved = resolveRoot(this.cwd, rootPatterns);
 			if (requireRootPattern && !resolved) throw new Error(`Required root pattern not resolved.`);
 			return resolved;
@@ -97776,11 +97846,11 @@ var init_documents = __esmMin((() => {
 		* Get filetype by check same extension name buffer.
 		*/
 		getLanguageId(filepath) {
-			let ext = path$3.extname(filepath);
+			let ext = path$4.extname(filepath);
 			if (!ext) return "";
 			for (let doc of this.attached()) {
 				let fsPath = URI.parse(doc.uri).fsPath;
-				if (path$3.extname(fsPath) == ext) return doc.languageId;
+				if (path$4.extname(fsPath) == ext) return doc.languageId;
 			}
 			return "";
 		}
@@ -97851,7 +97921,7 @@ var init_documents = __esmMin((() => {
 			let { bufnr } = opts;
 			if (this.buffers.has(bufnr)) return this.buffers.get(bufnr);
 			let doc = new Document(this.nvim.createBuffer(bufnr), this.nvim, this.convertFiletype(opts.filetype), opts);
-			if (opts.size > this.config.maxFileSize) logger$50.warn(`buffer ${opts.bufnr} size exceed maxFileSize ${this.config.maxFileSize}, not attached.`);
+			if (opts.size > this.config.maxFileSize) logger$51.warn(`buffer ${opts.bufnr} size exceed maxFileSize ${this.config.maxFileSize}, not attached.`);
 			this.buffers.set(bufnr, doc);
 			if (doc.attached) {
 				if (doc.schema == "file") {
@@ -97862,7 +97932,7 @@ var init_documents = __esmMin((() => {
 				this._onDidOpenTextDocument.fire(doc.textDocument);
 				doc.onDocumentChange((e) => this._onDidChangeDocument.fire(e));
 			}
-			logger$50.debug("buffer created", bufnr, doc.attached, doc.uri);
+			logger$51.debug("buffer created", bufnr, doc.attached, doc.uri);
 			return doc;
 		}
 		onBufEnter(bufnr) {
@@ -97888,7 +97958,7 @@ var init_documents = __esmMin((() => {
 			let doc = this.buffers.get(bufnr);
 			this.buffers.delete(bufnr);
 			if (!doc || !doc.attached) return;
-			logger$50.debug("document detach", bufnr, doc.uri);
+			logger$51.debug("document detach", bufnr, doc.uri);
 			this._onDidCloseDocument.fire(doc.textDocument);
 			doc.detach();
 			const uris = this.textDocuments.map((o) => URI.parse(o.uri));
@@ -97946,7 +98016,7 @@ var init_documents = __esmMin((() => {
 							i = i + 1;
 							if (i == total) cb(void 0);
 						}, (e) => {
-							logger$50.error(`Error on will save handler:`, e);
+							logger$51.error(`Error on will save handler:`, e);
 							i = i + 1;
 							if (i == total) cb(void 0);
 						});
@@ -97966,7 +98036,7 @@ var init_documents = __esmMin((() => {
 			let tokenSource = new import_main$1.CancellationTokenSource();
 			const tp = new Promise((c) => {
 				timer = setTimeout(() => {
-					logger$50.warn(`Format on save timeout after ${formatOnSaveTimeout}ms`, document.uri);
+					logger$51.warn(`Format on save timeout after ${formatOnSaveTimeout}ms`, document.uri);
 					tokenSource.cancel();
 					c(void 0);
 				}, formatOnSaveTimeout);
@@ -97977,7 +98047,7 @@ var init_documents = __esmMin((() => {
 			if (isFalsyOrEmpty(textEdits)) return;
 			await document.applyEdits(textEdits);
 			let extensionName = textEdits["__extensionName"];
-			logger$50.info(`Format buffer ${document.bufnr} by ${toText(extensionName)}`);
+			logger$51.info(`Format buffer ${document.bufnr} by ${toText(extensionName)}`);
 		}
 		async tryCodeActionsOnSave(doc) {
 			let conf = this.configurations.getConfiguration("editor", doc.textDocument).get("codeActionsOnSave", {});
@@ -97991,13 +98061,13 @@ var init_documents = __esmMin((() => {
 		shouldFormatOnSave(document) {
 			const config = this.configurations.getConfiguration("coc.preferences", document);
 			const filetypes = config.get("formatOnSaveFiletypes", null);
-			if (!(Array.isArray(filetypes) && (filetypes.includes("*") || filetypes.includes(document.languageId)) || config.get("formatOnSave", false))) return false;
+			if (!(Array.isArray(filetypes) ? filetypes.includes("*") || filetypes.includes(document.languageId) : config.get("formatOnSave", false))) return false;
 			if (!languages_default.hasFormatProvider(document)) {
-				logger$50.warn(`Format provider not found for ${document.uri}`);
+				logger$51.warn(`Format provider not found for ${document.uri}`);
 				return false;
 			}
 			if (!document || document.getVar("disable_autoformat", 0)) {
-				logger$50.warn(`Format ${document.uri} disabled by b:coc_disable_autoformat`);
+				logger$51.warn(`Format ${document.uri} disabled by b:coc_disable_autoformat`);
 				return false;
 			}
 			return true;
@@ -98158,7 +98228,7 @@ function renamed(editor, info) {
 	if (u.scheme === "file") return !sameFile(u.fsPath, info.fullpath);
 	return false;
 }
-var logger$49, Editors;
+var logger$50, Editors;
 var init_editors = __esmMin((() => {
 	init_main$2();
 	init_esm();
@@ -98169,7 +98239,7 @@ var init_editors = __esmMin((() => {
 	init_fs();
 	init_mutex();
 	init_protocol$1();
-	logger$49 = createLogger("core-editors");
+	logger$50 = createLogger("core-editors");
 	Editors = class {
 		documents;
 		disposables = [];
@@ -98308,7 +98378,7 @@ var init_editors = __esmMin((() => {
 						let editor = this.fromOptions(opts);
 						this.editors.set(winid, editor);
 						if (winid == this.winid) this.onChangeCurrent(editor);
-						logger$49.debug("editor created winid & bufnr & tabpageid: ", winid, opts.bufnr, opts.tabpageid);
+						logger$50.debug("editor created winid & bufnr & tabpageid: ", winid, opts.bufnr, opts.tabpageid);
 						changed = true;
 					} else if (this.editors.has(winid)) {
 						this.editors.delete(winid);
@@ -99148,11 +99218,11 @@ var require_fb_watchman = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 }));
 //#endregion
 //#region src/core/watchman.ts
-var logger$48, requiredCapabilities, Watchman;
+var logger$49, requiredCapabilities, Watchman;
 var init_watchman = __esmMin((() => {
 	init_logger$1();
 	init_node();
-	logger$48 = createLogger("core-watchman");
+	logger$49 = createLogger("core-watchman");
 	requiredCapabilities = [
 		"relative_root",
 		"cmd-watch-project",
@@ -99194,11 +99264,11 @@ var init_watchman = __esmMin((() => {
 			let { watch, warning, relative_path } = await this.command(["watch-project", root]);
 			if (!watch) return false;
 			if (warning) {
-				logger$48.warn(warning);
+				logger$49.warn(warning);
 				this.appendOutput(warning, "Warning");
 			}
 			this.relative_path = relative_path;
-			logger$48.info(`watchman watching project: ${root}`);
+			logger$49.info(`watchman watching project: ${root}`);
 			this.appendOutput(`watchman watching project: ${root}`);
 			let { clock } = await this.command(["clock", watch]);
 			let sub = {
@@ -99220,7 +99290,7 @@ var init_watchman = __esmMin((() => {
 			};
 			if (relative_path) {
 				sub.relative_root = relative_path;
-				root = path$3.join(watch, relative_path);
+				root = path$4.join(watch, relative_path);
 			}
 			let uid = crypto.randomUUID();
 			let { subscribe } = await this.command([
@@ -99251,7 +99321,7 @@ var init_watchman = __esmMin((() => {
 				files = files.filter((f) => f.type == "f" && minimatch(f.name, globPattern, { dot: true }));
 				if (!files.length) return;
 				let ev = Object.assign({}, change);
-				if (this.relative_path) ev.root = path$3.resolve(change.root, this.relative_path);
+				if (this.relative_path) ev.root = path$4.resolve(change.root, this.relative_path);
 				this.appendOutput(`file change of "${globPattern}" detected: ${JSON.stringify(ev, null, 2)}`);
 				cb(ev);
 			};
@@ -99305,6 +99375,8 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 		disposables = [];
 		channel;
 		creating = /* @__PURE__ */ new Map();
+		generations = /* @__PURE__ */ new Map();
+		disposed = false;
 		static watchers = /* @__PURE__ */ new Set();
 		_onDidCreateClient = new import_main$1.Emitter();
 		disabled;
@@ -99329,6 +99401,7 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 				});
 				e.removed.forEach((folder) => {
 					let root = URI.parse(folder.uri).fsPath;
+					this.invalidate(root);
 					let client = this.clientsMap.get(root);
 					if (client) {
 						this.clientsMap.delete(root);
@@ -99355,16 +99428,27 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 			if (this.has(root)) return this.waitClient(root);
 			let pending = this.creating.get(root);
 			if (pending) return pending;
-			let p = this.createClientInner(root);
+			let generation = this.generationOf(root);
+			let p = this.createClientInner(root, generation);
 			this.creating.set(root, p);
 			return p.finally(() => {
 				this.creating.delete(root);
 			});
 		}
-		async createClientInner(root) {
+		generationOf(root) {
+			return this.generations.get(root) ?? 0;
+		}
+		invalidate(root) {
+			this.generations.set(root, this.generationOf(root) + 1);
+		}
+		async createClientInner(root, generation) {
 			try {
 				let watchmanPath = await this.getWatchmanPath();
 				let client = await Watchman.createClient(watchmanPath, root, this.channel);
+				if (this.disposed || generation !== this.generationOf(root)) {
+					client.dispose();
+					return false;
+				}
 				this.clientsMap.set(root, client);
 				for (let watcher of FileSystemWatcherManager.watchers) watcher.listen(root, client);
 				this._onDidCreateClient.fire(root);
@@ -99396,6 +99480,7 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 			return fileWatcher;
 		}
 		dispose() {
+			this.disposed = true;
 			this._onDidCreateClient.dispose();
 			for (let client of this.clientsMap.values()) if (client) client.dispose();
 			this.clientsMap.clear();
@@ -99440,13 +99525,13 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 				let { root, files } = change;
 				if (basePath && !sameFile(root, basePath)) files = files.filter((f) => {
 					if (f.type != "f") return false;
-					let fullpath = path$3.join(root, f.name);
+					let fullpath = path$4.join(root, f.name);
 					if (!isParentFolder(basePath, fullpath)) return false;
-					return minimatch(path$3.relative(basePath, fullpath), pattern, { dot: true });
+					return minimatch(path$4.relative(basePath, fullpath), pattern, { dot: true });
 				});
 				else files = files.filter((f) => f.type == "f" && minimatch(f.name, pattern, { dot: true }));
 				for (let file of files) {
-					let uri = URI.file(path$3.join(root, file.name));
+					let uri = URI.file(path$4.join(root, file.name));
 					if (!file.exists) {
 						if (!ignoreDeleteEvents) this._onDidDelete.fire(uri);
 					} else if (file.new === true) {
@@ -99457,8 +99542,8 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 					let oldFile = files.find((o) => o.exists !== true);
 					let newFile = files.find((o) => o.exists === true);
 					if (oldFile.size == newFile.size) this._onDidRename.fire({
-						oldUri: URI.file(path$3.join(root, oldFile.name)),
-						newUri: URI.file(path$3.join(root, newFile.name))
+						oldUri: URI.file(path$4.join(root, oldFile.name)),
+						newUri: URI.file(path$4.join(root, newFile.name))
 					});
 				}
 				if (files.length > 2 && files.length % 2 == 0) {
@@ -99466,8 +99551,8 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 					if (oldFiles.length == newFiles.length) for (let oldFile of oldFiles) {
 						let newFile = newFiles.find((o) => o.size == oldFile.size && o.mtime_ms == oldFile.mtime_ms);
 						if (newFile) this._onDidRename.fire({
-							oldUri: URI.file(path$3.join(root, oldFile.name)),
-							newUri: URI.file(path$3.join(root, newFile.name))
+							oldUri: URI.file(path$4.join(root, oldFile.name)),
+							newUri: URI.file(path$4.join(root, newFile.name))
 						});
 					}
 				}
@@ -99482,6 +99567,8 @@ var init_fileSystemWatcher$1 = __esmMin((() => {
 			this._onDidRename.dispose();
 			this._onDidCreate.dispose();
 			this._onDidChange.dispose();
+			this._onDidDelete.dispose();
+			this._onDidListen.dispose();
 			disposeAll(this.disposables);
 		}
 	};
@@ -99663,10 +99750,10 @@ var init_editInspect = __esmMin((() => {
 			this.bufnr = buffer.id;
 			const relpath = (uri) => {
 				let fsPath = URI.parse(uri).fsPath;
-				return isParentFolder(cwd, fsPath, true) ? path$3.relative(cwd, fsPath) : fsPath;
+				return isParentFolder(cwd, fsPath, true) ? path$4.relative(cwd, fsPath) : fsPath;
 			};
 			const absPath = (filepath) => {
-				return path$3.isAbsolute(filepath) ? filepath : path$3.join(cwd, filepath);
+				return path$4.isAbsolute(filepath) ? filepath : path$4.join(cwd, filepath);
 			};
 			let highlighter = new Highlighter();
 			let map = grouByAnnotation(toArray(state.edit.documentChanges), state.edit.changeAnnotations ?? {});
@@ -99815,18 +99902,18 @@ var init_editInspect = __esmMin((() => {
 //#endregion
 //#region src/core/files.ts
 function fileMatch(root, relpath, pattern) {
-	let filepath = path$3.join(root, relpath);
+	let filepath = path$4.join(root, relpath);
 	if (typeof pattern !== "string") {
 		let base = pattern.baseUri.fsPath;
 		if (!isParentFolder(base, filepath)) return false;
-		return minimatch(path$3.relative(base, filepath), pattern.pattern, { dot: true });
+		return minimatch(path$4.relative(base, filepath), pattern.pattern, { dot: true });
 	}
 	return minimatch(relpath, pattern, { dot: true });
 }
 function fsPath(uri) {
-	return URI.parse(uri).fsPath;
+	return uriToFsPath(uri);
 }
-var logger$47, Files;
+var logger$48, Files;
 var init_files = __esmMin((() => {
 	init_main$2();
 	init_esm();
@@ -99840,7 +99927,7 @@ var init_files = __esmMin((() => {
 	init_protocol$1();
 	init_string$1();
 	init_textedit();
-	logger$47 = createLogger("core-files");
+	logger$48 = createLogger("core-files");
 	Files = class {
 		documents;
 		configurations;
@@ -99987,20 +100074,20 @@ var init_files = __esmMin((() => {
 					token: tokenSource.token
 				}, recovers);
 				tokenSource.cancel();
-				let dir = path$3.dirname(filepath);
+				let dir = path$4.dirname(filepath);
 				if (!fs$3.existsSync(dir)) {
 					let folder;
 					let curr = dir;
 					while (![
 						".",
 						"/",
-						path$3.parse(dir).root
+						path$4.parse(dir).root
 					].includes(curr)) {
-						if (fs$3.existsSync(path$3.dirname(curr))) {
+						if (fs$3.existsSync(path$4.dirname(curr))) {
 							folder = curr;
 							break;
 						}
-						curr = path$3.dirname(curr);
+						curr = path$4.dirname(curr);
 					}
 					fs$3.mkdirSync(dir, { recursive: true });
 					if (Array.isArray(recovers)) recovers.push(() => {
@@ -100046,12 +100133,12 @@ var init_files = __esmMin((() => {
 					});
 				}
 			}
-			let folder = path$3.join(os$3.tmpdir(), "coc-" + process.pid);
+			let folder = path$4.join(os$3.tmpdir(), "coc-" + process.pid);
 			fs$3.mkdirSync(folder, { recursive: true });
 			let md5 = crypto$1.createHash("md5").update(filepath).digest("hex");
 			if (isDir && recursive) {
-				let dest = path$3.join(folder, md5);
-				let dir = path$3.dirname(filepath);
+				let dest = path$4.join(folder, md5);
+				let dir = path$4.dirname(filepath);
 				fs$3.renameSync(filepath, dest);
 				if (Array.isArray(recovers)) recovers.push(async () => {
 					fs$3.mkdirSync(dir, { recursive: true });
@@ -100063,8 +100150,8 @@ var init_files = __esmMin((() => {
 					fs$3.mkdirSync(filepath);
 				});
 			} else {
-				let dest = path$3.join(folder, md5);
-				let dir = path$3.dirname(filepath);
+				let dest = path$4.join(folder, md5);
+				let dir = path$4.dirname(filepath);
 				fs$3.renameSync(filepath, dest);
 				if (Array.isArray(recovers)) recovers.push(() => {
 					fs$3.mkdirSync(dir, { recursive: true });
@@ -100087,8 +100174,8 @@ var init_files = __esmMin((() => {
 			let loaded = oldStat && oldStat.isDirectory() ? 0 : await nvim.call("bufloaded", [oldPath]);
 			if (!loaded && !oldStat) throw fileNotExists(oldPath);
 			let file = {
-				newUri: URI.parse(newPath),
-				oldUri: URI.parse(oldPath)
+				newUri: URI.file(newPath),
+				oldUri: URI.file(oldPath)
 			};
 			if (!opts.skipEvent) await this.fireWaitUntilEvent(this._onWillRenameFiles, { files: [file] }, recovers);
 			if (loaded) {
@@ -100200,7 +100287,7 @@ var init_files = __esmMin((() => {
 				};
 				this.nvim.redrawVim();
 			} catch (e) {
-				logger$47.error("Error on applyEdits:", edit, e);
+				logger$48.error("Error on applyEdits:", edit, e);
 				if (!nested) this.window.showErrorMessage(`Error on applyEdits: ${e}`);
 				await this.undoChanges(recovers);
 				return false;
@@ -100282,7 +100369,7 @@ var init_files = __esmMin((() => {
 				if (token?.isCancellationRequested) break;
 				for (let file of files) {
 					if (exclude && fileMatch(root, file, exclude)) continue;
-					res.push(URI.file(path$3.join(root, file)));
+					res.push(URI.file(path$4.join(root, file)));
 					if (res.length === maxResults) {
 						exceed = true;
 						break;
@@ -100313,7 +100400,7 @@ var init_files = __esmMin((() => {
 					let promise = Promise.race([thenable, tp]).then((edit) => {
 						clearTimeout(timer);
 						if (timedOut) {
-							logger$47.warn(`File operation waitUntil timed out after ${operationTimeout}ms, WorkspaceEdit from handler ignored`);
+							logger$48.warn(`File operation waitUntil timed out after ${operationTimeout}ms, WorkspaceEdit from handler ignored`);
 							return;
 						}
 						if (edit && WorkspaceEdit.is(edit)) return this.applyEdit(edit, true);
@@ -100345,13 +100432,13 @@ function toKeymapOption(option) {
 		silent: true
 	}, typeof option == "boolean" ? { sync: !option } : option);
 }
-var logger$46, Keymaps;
+var logger$47, Keymaps;
 var init_keymaps = __esmMin((() => {
 	init_logger$1();
 	init_constants();
 	init_protocol$1();
 	init_string$1();
-	logger$46 = createLogger("core-keymaps");
+	logger$47 = createLogger("core-keymaps");
 	Keymaps = class {
 		keymaps = /* @__PURE__ */ new Map();
 		nvim;
@@ -100361,7 +100448,7 @@ var init_keymaps = __esmMin((() => {
 		async doKeymap(key, defaultReturn) {
 			let keymap = this.keymaps.get(key) ?? this.keymaps.get("coc-" + key);
 			if (!keymap) {
-				logger$46.error(`keymap for ${key} not found`);
+				logger$47.error(`keymap for ${key} not found`);
 				return defaultReturn;
 			}
 			let [fn, repeat] = keymap;
@@ -100465,14 +100552,14 @@ var init_keymaps = __esmMin((() => {
 }));
 //#endregion
 //#region src/core/watchers.ts
-var logger$45, Watchers;
+var logger$46, Watchers;
 var init_watchers = __esmMin((() => {
 	init_events();
 	init_logger$1();
 	init_util$8();
 	init_protocol$1();
 	init_string$1();
-	logger$45 = createLogger("watchers");
+	logger$46 = createLogger("watchers");
 	Watchers = class {
 		nvim;
 		optionCallbacks = /* @__PURE__ */ new Map();
@@ -100487,7 +100574,7 @@ var init_watchers = __esmMin((() => {
 							await Promise.resolve(cb(oldValue, newValue));
 						} catch (e) {
 							this.nvim.errWriteLine(`Error on OptionSet '${changed}': ${toErrorText(e)}`);
-							logger$45.error(`Error on OptionSet callback:`, e);
+							logger$46.error(`Error on OptionSet callback:`, e);
 						}
 					})();
 				}));
@@ -100500,7 +100587,7 @@ var init_watchers = __esmMin((() => {
 							await Promise.resolve(cb(oldValue, newValue));
 						} catch (e) {
 							this.nvim.errWriteLine(`Error on GlobalChange '${changed}': ${toErrorText(e)}`);
-							logger$45.error(`Error on GlobalChange callback:`, e);
+							logger$46.error(`Error on GlobalChange callback:`, e);
 						}
 					})();
 				}));
@@ -100560,16 +100647,16 @@ var init_watchers = __esmMin((() => {
 //#endregion
 //#region src/core/workspaceFolder.ts
 function toWorkspaceFolder(fsPath) {
-	if (!fsPath || !path$3.isAbsolute(fsPath)) {
-		logger$44.error(`Invalid folder: ${fsPath}, full path required.`);
+	if (!fsPath || !path$4.isAbsolute(fsPath)) {
+		logger$45.error(`Invalid folder: ${fsPath}, full path required.`);
 		return;
 	}
 	return {
-		name: path$3.basename(fsPath),
+		name: path$4.basename(fsPath),
 		uri: URI.file(fsPath).toString()
 	};
 }
-var PatternType, logger$44, PatternTypes, checkPatternTimeout, extensionRegistry$2, WorkspaceFolderController;
+var PatternType, logger$45, PatternTypes, checkPatternTimeout, extensionRegistry$2, WorkspaceFolderController;
 var init_workspaceFolder = __esmMin((() => {
 	init_esm();
 	init_events();
@@ -100589,13 +100676,13 @@ var init_workspaceFolder = __esmMin((() => {
 		PatternType[PatternType["Global"] = 2] = "Global";
 		return PatternType;
 	}({});
-	logger$44 = createLogger("core-workspaceFolder");
+	logger$45 = createLogger("core-workspaceFolder");
 	PatternTypes = [
 		0,
 		1,
 		2
 	];
-	checkPatternTimeout = getConditionValue(5e3, 500);
+	checkPatternTimeout = getConditionValue(5e3, 100);
 	extensionRegistry$2 = Registry.as(Extensions$3.ExtensionContribution);
 	WorkspaceFolderController = class {
 		configurations;
@@ -100651,7 +100738,7 @@ var init_workspaceFolder = __esmMin((() => {
 			if (this._workspaceFolders.length === 0) return void 0;
 			let folders = Array.from(this._workspaceFolders).map((o) => URI.parse(o.uri).fsPath);
 			folders.sort((a, b) => b.length - a.length);
-			let fsPath = uri.fsPath;
+			let fsPath = uriToFsPath(uri);
 			let folder = folders.find((f) => isParentFolder(f, fsPath, true));
 			if (folder === void 0) return void 0;
 			return toWorkspaceFolder(folder);
@@ -100670,7 +100757,7 @@ var init_workspaceFolder = __esmMin((() => {
 			const folder = this.getWorkspaceFolder(resource);
 			if (!folder) return p;
 			if (typeof includeWorkspace === "undefined" && this._workspaceFolders) includeWorkspace = this._workspaceFolders.length > 1;
-			let result = path$3.relative(URI.parse(folder.uri).fsPath, resource.fsPath);
+			let result = path$4.relative(URI.parse(folder.uri).fsPath, resource.fsPath);
 			result = result == "" ? resource.fsPath : result;
 			if (includeWorkspace && folder.name) result = `${folder.name}/${result}`;
 			return result;
@@ -100686,7 +100773,7 @@ var init_workspaceFolder = __esmMin((() => {
 		resolveRoot(document, cwd, fireEvent, expand) {
 			if (document.buftype !== "" || document.schema !== "file") return null;
 			let u = URI.parse(document.uri);
-			let dir = isDirectory(u.fsPath) ? path$3.normalize(u.fsPath) : path$3.dirname(u.fsPath);
+			let dir = isDirectory(uriToFsPath(u)) ? path$4.normalize(uriToFsPath(u)) : path$4.dirname(uriToFsPath(u));
 			let { ignoredFiletypes, ignoredFolders, workspaceFolderCheckCwd, workspaceFolderFallbackCwd, bottomUpFiletypes } = this.config;
 			if (ignoredFiletypes?.includes(document.filetype)) return null;
 			ignoredFolders = Array.isArray(ignoredFolders) ? ignoredFolders.filter((s) => s && s.length > 0).map((s) => expand(s)) : [];
@@ -100782,21 +100869,23 @@ var init_workspaceFolder = __esmMin((() => {
 			let timer = setTimeout(() => {
 				tokenSource.cancel();
 			}, checkPatternTimeout);
-			let results = await Promise.allSettled(dirs.map((dir) => {
-				return this.checkFolder(dir, patterns, token).then((checked) => {
-					this._tokenSources.delete(tokenSource);
-					if (checked) {
-						find = true;
-						clearTimeout(timer);
-						tokenSource.cancel();
-					}
+			try {
+				(await Promise.allSettled(dirs.map((dir) => {
+					return this.checkFolder(dir, patterns, token).then((checked) => {
+						if (checked) {
+							find = true;
+							tokenSource.cancel();
+						}
+					});
+				}))).forEach((res) => {
+					if (res.status === "rejected" && !isCancellationError(res.reason)) logger$45.error(`checkPatterns error:`, patterns, res.reason);
 				});
-			}));
-			clearTimeout(timer);
-			results.forEach((res) => {
-				if (res.status === "rejected" && !isCancellationError(res.reason)) logger$44.error(`checkPatterns error:`, patterns, res.reason);
-			});
-			return find;
+				return find;
+			} finally {
+				clearTimeout(timer);
+				this._tokenSources.delete(tokenSource);
+				tokenSource.dispose();
+			}
 		}
 	};
 }));
@@ -100950,7 +101039,7 @@ var init_db$1 = __esmMin((() => {
 				let key = parts[i];
 				if (i == len - 1) {
 					obj[key] = data;
-					let dir = path$3.dirname(this.filepath);
+					let dir = path$4.dirname(this.filepath);
 					fs$3.mkdirSync(dir, { recursive: true });
 					fs$3.writeFileSync(this.filepath, JSON.stringify(origin, null, 2));
 					break;
@@ -100962,7 +101051,7 @@ var init_db$1 = __esmMin((() => {
 			}
 		}
 		load() {
-			let dir = path$3.dirname(this.filepath);
+			let dir = path$4.dirname(this.filepath);
 			if (!fs$3.existsSync(dir)) {
 				fs$3.mkdirSync(dir, { recursive: true });
 				fs$3.writeFileSync(this.filepath, "{}", "utf8");
@@ -101209,7 +101298,7 @@ var init_task = __esmMin((() => {
 }));
 //#endregion
 //#region src/workspace.ts
-var logger$43, methods, Workspace, workspace_default;
+var logger$44, methods, Workspace, workspace_default;
 var init_workspace$2 = __esmMin((() => {
 	init_esm();
 	init_configuration$2();
@@ -101244,7 +101333,7 @@ var init_workspace$2 = __esmMin((() => {
 	init_object();
 	init_processes();
 	init_protocol$1();
-	logger$43 = createLogger("workspace");
+	logger$44 = createLogger("workspace");
 	methods = [
 		"showMessage",
 		"runTerminalCommand",
@@ -101411,13 +101500,13 @@ var init_workspace$2 = __esmMin((() => {
 			for (let method of methods) Object.defineProperty(this, method, { get: () => {
 				return (...args) => {
 					let stack = "\n" + Error().stack.split("\n").slice(2, 4).join("\n");
-					logger$43.warn(`workspace.${method} is deprecated, please use window.${method} instead.`, stack);
+					logger$44.warn(`workspace.${method} is deprecated, please use window.${method} instead.`, stack);
 					return window[method].apply(window, args);
 				};
 			} });
 			for (let name of ["onDidOpenTerminal", "onDidCloseTerminal"]) Object.defineProperty(this, name, { get: () => {
 				let stack = "\n" + Error().stack.split("\n").slice(2, 4).join("\n");
-				logger$43.warn(`workspace.${name} is deprecated, please use window.${name} instead.`, stack);
+				logger$44.warn(`workspace.${name} is deprecated, please use window.${name} instead.`, stack);
 				return window[name];
 			} });
 			let env = this._env = await nvim.call("coc#util#vim_info");
@@ -101768,7 +101857,7 @@ var init_workspace$2 = __esmMin((() => {
 		* Create DB instance at extension root.
 		*/
 		createDatabase(name) {
-			return new DB(path$3.join(dataHome, name + ".json"));
+			return new DB(path$4.join(dataHome, name + ".json"));
 		}
 		registerBufferSync(create) {
 			return new BufferSync(create, this.documentsManager);
@@ -102037,7 +102126,7 @@ var init_TreeItem = __esmMin((() => {
 			this.collapsibleState = collapsibleState;
 			if (URI.isUri(label)) {
 				this.resourceUri = label;
-				this.label = path$3.basename(label.path);
+				this.label = path$4.basename(label.path);
 				this.id = label.toString();
 			} else this.label = label;
 		}
@@ -102045,7 +102134,7 @@ var init_TreeItem = __esmMin((() => {
 }));
 //#endregion
 //#region src/tree/TreeView.ts
-var logger$42, retryTimeout, maxRetry, highlightNamespace, signOffset, globalId, BasicTreeView;
+var logger$43, retryTimeout, maxRetry, highlightNamespace, signOffset, globalId, BasicTreeView;
 var init_TreeView = __esmMin((() => {
 	init_main$2();
 	init_commands$2();
@@ -102064,7 +102153,7 @@ var init_TreeView = __esmMin((() => {
 	init_workspace$2();
 	init_filter();
 	init_TreeItem();
-	logger$42 = createLogger("BasicTreeView");
+	logger$43 = createLogger("BasicTreeView");
 	retryTimeout = getConditionValue(500, 10);
 	maxRetry = getConditionValue(5, 1);
 	highlightNamespace = "tree";
@@ -102402,7 +102491,7 @@ var init_TreeView = __esmMin((() => {
 				release();
 			} catch (e) {
 				release();
-				logger$42.error(`Error on tree filter:`, e);
+				logger$43.error(`Error on tree filter:`, e);
 			}
 		}
 		async onHover(lnum) {
@@ -102486,7 +102575,7 @@ var init_TreeView = __esmMin((() => {
 				release();
 			} catch (e) {
 				let errMsg = `Error on tree refresh: ${e}`;
-				logger$42.error(errMsg, e);
+				logger$43.error(errMsg, e);
 				this.nvim.errWriteLine("[coc.nvim] " + errMsg);
 				release();
 			}
@@ -102864,7 +102953,7 @@ var init_TreeView = __esmMin((() => {
 				this.retryTimers = 0;
 				release();
 			} catch (err) {
-				logger$42.error("Error on render", err);
+				logger$43.error("Error on render", err);
 				this.renderedItems = [];
 				this.nodesMap.clear();
 				this.lineState = {
@@ -103790,7 +103879,7 @@ function getPlaceholderId(p) {
 	p.id = id++;
 	return p.id;
 }
-var logger$41, ULTISNIP_VARIABLES, id, snippet_id, knownRegexOptions, ultisnipSpecialEscape, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform$3, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
+var logger$42, ULTISNIP_VARIABLES, id, snippet_id, knownRegexOptions, ultisnipSpecialEscape, Scanner, Marker, Text, CodeBlock, TransformableMarker, Placeholder, Choice, Transform$3, ConditionString, FormatString, Variable, TextmateSnippet, SnippetParser, escapedCharacters;
 var init_parser = __esmMin((() => {
 	init_logger$1();
 	init_array();
@@ -103800,7 +103889,7 @@ var init_parser = __esmMin((() => {
 	init_string$1();
 	init_eval();
 	init_util$5();
-	logger$41 = createLogger("snippets-parser");
+	logger$42 = createLogger("snippets-parser");
 	ULTISNIP_VARIABLES = [
 		"VISUAL",
 		"YANK",
@@ -104909,7 +104998,7 @@ var init_parser = __esmMin((() => {
 					let c = this._accept(void 0, true);
 					if (c == "a") ascii = true;
 					else {
-						if (!knownRegexOptions.includes(c)) logger$41.error(`Unknown regex option: ${c}`);
+						if (!knownRegexOptions.includes(c)) logger$42.error(`Unknown regex option: ${c}`);
 						regexOptions += c;
 					}
 					continue;
@@ -105282,6 +105371,10 @@ var init_snippet = __esmMin((() => {
 			}
 			if (marker instanceof Text) {
 				let newText = new Text(preText + marker.value + afterText);
+				if (samePosition(range.start, parentRange.start) && samePosition(range.end, parentRange.end)) {
+					startIdx = 0;
+					deleteCount = children.length;
+				}
 				parentMarker.children.splice(startIdx, deleteCount, newText);
 				newText.parent = parentMarker;
 				mergeTexts(parentMarker, 0);
@@ -105594,9 +105687,9 @@ var init_variableResolve = __esmMin((() => {
 				"TM_FILEPATH"
 			].includes(name)) {
 				let filepath = await nvim.call("coc#util#get_fullpath");
-				if (name === "TM_FILENAME") return path$3.basename(filepath);
-				if (name === "TM_FILENAME_BASE") return path$3.basename(filepath, path$3.extname(filepath));
-				if (name === "TM_DIRECTORY") return path$3.dirname(filepath);
+				if (name === "TM_FILENAME") return path$4.basename(filepath);
+				if (name === "TM_FILENAME_BASE") return path$4.basename(filepath, path$4.extname(filepath));
+				if (name === "TM_DIRECTORY") return path$4.dirname(filepath);
 				if (name === "TM_FILEPATH") return filepath;
 			}
 			if (name === "YANK") return await nvim.call("getreg", ["\"\""]);
@@ -105647,7 +105740,7 @@ var init_variableResolve = __esmMin((() => {
 }));
 //#endregion
 //#region src/snippets/session.ts
-var logger$40, NAME_SPACE, SnippetSession;
+var logger$41, NAME_SPACE, SnippetSession;
 var init_session$3 = __esmMin((() => {
 	init_main$2();
 	init_events();
@@ -105669,7 +105762,7 @@ var init_session$3 = __esmMin((() => {
 	init_snippet();
 	init_util$5();
 	init_variableResolve();
-	logger$40 = createLogger("snippets-session");
+	logger$41 = createLogger("snippets-session");
 	NAME_SPACE = "snippets";
 	SnippetSession = class {
 		nvim;
@@ -105698,8 +105791,8 @@ var init_session$3 = __esmMin((() => {
 			if (edits.length === 1) return await this.start(toSnippetString(edits[0].snippet), edits[0].range, false);
 			const textDocument = this.document.textDocument;
 			const textEdits = filterSortEdits(textDocument, edits.map((e) => TextEdit.replace(e.range, toSnippetString(e.snippet))));
-			const sharedFinals = this.getSharedEditableFinals(textEdits.map((o) => o.newText));
-			if (sharedFinals.size === 0) return await this.insertNestedSnippetEdits(textEdits);
+			const editableFinals = this.getEditableFinals(textEdits.map((o) => o.newText));
+			if (editableFinals.size === 0) return await this.insertNestedSnippetEdits(textEdits);
 			const len = textEdits.length;
 			let combined = "";
 			const snippets = textEdits.map((o) => new SnippetParser().parse(o.newText));
@@ -105725,10 +105818,10 @@ var init_session$3 = __esmMin((() => {
 					if (m instanceof Placeholder && m.index === 0 && m.children.length > 0) {
 						needsFinalTabstop = true;
 						const key = this.getEditableFinalKey(m);
-						let index = sharedFinals.has(key) ? sharedIndexMap.get(key) : localFinalMap.get(key);
+						let index = editableFinals.has(key) ? sharedIndexMap.get(key) : localFinalMap.get(key);
 						if (index == null) {
 							index = nextIndex++;
-							if (sharedFinals.has(key)) sharedIndexMap.set(key, index);
+							if (editableFinals.has(key)) sharedIndexMap.set(key, index);
 							else localFinalMap.set(key, index);
 						}
 						m.index = index;
@@ -105751,7 +105844,7 @@ var init_session$3 = __esmMin((() => {
 		getEditableFinalKey(placeholder) {
 			return placeholder.toTextmateString();
 		}
-		getSharedEditableFinals(snippets) {
+		getEditableFinals(snippets) {
 			const counts = /* @__PURE__ */ new Map();
 			for (const text of snippets) {
 				const keys = /* @__PURE__ */ new Set();
@@ -105761,7 +105854,7 @@ var init_session$3 = __esmMin((() => {
 				});
 				for (const key of keys) counts.set(key, (counts.get(key) ?? 0) + 1);
 			}
-			return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key));
+			return new Set(counts.keys());
 		}
 		async insertNestedSnippetEdits(textEdits) {
 			const textDocument = this.document.textDocument;
@@ -105950,7 +106043,7 @@ var init_session$3 = __esmMin((() => {
 			if (current && current.index === 0) {
 				const { snippet } = current;
 				if (snippet === this.snippet.tmSnippet) {
-					logger$40.info("Jump to final placeholder, cancelling snippet session");
+					logger$41.info("Jump to final placeholder, cancelling snippet session");
 					this.deactivate();
 				} else {
 					let marker = snippet.parent;
@@ -105984,7 +106077,7 @@ var init_session$3 = __esmMin((() => {
 			if (!this.isActive) return;
 			let position = await window_default.getCursorPosition();
 			if (this.snippet && positionInRange(position, this.snippet.range) != 0) {
-				logger$40.info("Cursor insert out of range, cancelling snippet session");
+				logger$41.info("Cursor insert out of range, cancelling snippet session");
 				this.deactivate();
 			}
 		}
@@ -106039,7 +106132,7 @@ var init_session$3 = __esmMin((() => {
 			let c = comparePosition(change.range.start, range.end);
 			let insertEnd = emptyRange(change.range) && snippet.hasEndPlaceholder;
 			if (c > 0 || c === 0 && !insertEnd) {
-				logger$40.info("Content change after snippet");
+				logger$41.info("Content change after snippet");
 				this.textDocument = newDocument;
 				return;
 			}
@@ -106055,11 +106148,11 @@ var init_session$3 = __esmMin((() => {
 				else cc = change.range.start.character + change.text.length - changeEnd.character;
 				this.snippet.resetStartPosition(Position.create(start.line + lc, start.character + cc));
 				this.textDocument = newDocument;
-				logger$40.info("Content change before snippet, reset snippet position");
+				logger$41.info("Content change before snippet, reset snippet position");
 				return;
 			}
 			if (!rangeInRange(change.range, range)) {
-				logger$40.info("Before and snippet body changed, cancel snippet session");
+				logger$41.info("Before and snippet body changed, cancel snippet session");
 				this.deactivate();
 				return;
 			}
@@ -106080,7 +106173,7 @@ var init_session$3 = __esmMin((() => {
 			let changedRange = Range.create(start, getEnd(start, snippetText));
 			const expected = newDocument.getText(changedRange);
 			if (expected !== snippetText) {
-				logger$40.error(`Something went wrong with the snippet implementation`, change, snippetText, expected);
+				logger$41.error(`Something went wrong with the snippet implementation`, change, snippetText, expected);
 				this.deactivate();
 				return;
 			}
@@ -106094,7 +106187,7 @@ var init_session$3 = __esmMin((() => {
 				if (delta) this.nvim.call(`coc#cursor#move_to`, [cursor.line + delta.line, cursor.character + delta.character], true);
 			}
 			this.highlights();
-			logger$40.debug("update cost:", Date.now() - startTs, res.delta);
+			logger$41.debug("update cost:", Date.now() - startTs, res.delta);
 			this.trySelectNextOnDelete(current, nextPlaceholder).catch(onUnexpectedError);
 		}
 		async trySelectNextOnDelete(curr, next) {
@@ -106144,7 +106237,7 @@ var init_session$3 = __esmMin((() => {
 				-1
 			], true);
 			this._onActiveChange.fire(false);
-			logger$40.debug(`session ${this.bufnr} deactivate`);
+			logger$41.debug(`session ${this.bufnr} deactivate`);
 		}
 		get placeholder() {
 			if (!this.snippet || !this.current) return void 0;
@@ -107265,7 +107358,7 @@ function fixTextEdit(character, edit) {
 	}
 	return edit;
 }
-var logger$39, LanguageSource;
+var logger$40, LanguageSource;
 var init_source_language = __esmMin((() => {
 	init_main$2();
 	init_commands$2();
@@ -107281,7 +107374,7 @@ var init_source_language = __esmMin((() => {
 	init_string$1();
 	init_workspace$2();
 	init_util$4();
-	logger$39 = createLogger("source-language");
+	logger$40 = createLogger("source-language");
 	LanguageSource = class {
 		name;
 		shortcut;
@@ -107391,7 +107484,7 @@ var init_source_language = __esmMin((() => {
 				if (isSnippet) await manager_default$1.selectCurrentPlaceholder();
 			}
 			if (item.command) if (commands_default.has(item.command.command)) commands_default.execute(item.command);
-			else logger$39.warn(`Command "${item.command.command}" not registered to coc.nvim`);
+			else logger$40.warn(`Command "${item.command.command}" not registered to coc.nvim`);
 		}
 		async applyTextEdit(doc, additionalEdits, item, option) {
 			let { linenr, col } = option;
@@ -107532,7 +107625,7 @@ function insertSorted(arr, item, compare) {
 	}
 	arr.splice(low, 0, item);
 }
-var logger$38, MAX_DISTANCE, MIN_TIMEOUT, MAX_TIMEOUT, MAX_TRIGGER_WAIT, WORD_SOURCES, GRACEFUL_MAX_ITEMS, AGGRESSIVE_MAX_ITEMS, Complete;
+var logger$39, MAX_DISTANCE, MIN_TIMEOUT, MAX_TIMEOUT, MAX_TRIGGER_WAIT, WORD_SOURCES, GRACEFUL_MAX_ITEMS, AGGRESSIVE_MAX_ITEMS, Complete;
 var init_complete = __esmMin((() => {
 	init_main$2();
 	init_logger$1();
@@ -107547,7 +107640,7 @@ var init_complete = __esmMin((() => {
 	init_source_language();
 	init_util$4();
 	init_wordDistance();
-	logger$38 = createLogger("completion-complete");
+	logger$39 = createLogger("completion-complete");
 	MAX_DISTANCE = 2 << 20;
 	MIN_TIMEOUT = 50;
 	MAX_TIMEOUT = 15e3;
@@ -107655,18 +107748,18 @@ var init_complete = __esmMin((() => {
 			this.option.synname = res[0];
 			let variables = res[1];
 			if (variables.disable) {
-				logger$38.warn("suggest cancelled by b:coc_suggest_disable");
+				logger$39.warn("suggest cancelled by b:coc_suggest_disable");
 				return true;
 			}
 			if (!isFalsyOrEmpty(variables.disabled_sources)) {
 				this.sources = this.sources.filter((s) => !variables.disabled_sources.includes(s.name));
 				if (this.sources.length === 0) {
-					logger$38.warn("suggest cancelled by b:coc_disabled_sources");
+					logger$39.warn("suggest cancelled by b:coc_disabled_sources");
 					return true;
 				}
 			}
 			if (!isFalsyOrEmpty(variables.blacklist) && variables.blacklist.includes(this.option.input)) {
-				logger$38.warn("suggest cancelled by b:coc_suggest_blacklist");
+				logger$39.warn("suggest cancelled by b:coc_suggest_blacklist");
 				return true;
 			}
 			WordDistance.create(this.config.localityBonus, this.option, token).then((instance) => {
@@ -107691,7 +107784,7 @@ var init_complete = __esmMin((() => {
 					let names = Array.from(remains);
 					disposable.dispose();
 					tokenSource.cancel();
-					logger$38.warn(`Completion timeout after ${this.timeout}ms`, names);
+					logger$39.warn(`Completion timeout after ${this.timeout}ms`, names);
 					this.nvim.setVar(`coc_timeout_sources`, names, true);
 					resolve();
 				}, this.timeout);
@@ -107730,7 +107823,7 @@ var init_complete = __esmMin((() => {
 							return;
 						}
 						let len = result ? result.items.length : 0;
-						logger$38.debug(`Source "${sourceName}" finished with ${len} items ms cost:`, Date.now() - start);
+						logger$39.debug(`Source "${sourceName}" finished with ${len} items ms cost:`, Date.now() - start);
 						if (len > 0) {
 							if (number(result.startcol)) {
 								let line = opt.linenr - 1;
@@ -107749,7 +107842,7 @@ var init_complete = __esmMin((() => {
 							const items = result.items.reduce((items, item) => {
 								let completeItem = converter.convertToDurationItem(item);
 								if (!completeItem) {
-									logger$38.error(`Unexpected completion item from ${sourceName}:`, item);
+									logger$39.error(`Unexpected completion item from ${sourceName}:`, item);
 									return items;
 								}
 								map.set(completeItem, item);
@@ -107769,7 +107862,7 @@ var init_complete = __esmMin((() => {
 					});
 				});
 			} catch (err) {
-				logger$38.error("Complete error:", source.name, err);
+				logger$39.error("Complete error:", source.name, err);
 			}
 			this.completingSources.delete(sourceName);
 			return added;
@@ -107919,7 +108012,7 @@ var init_complete = __esmMin((() => {
 }));
 //#endregion
 //#region src/completion/floating.ts
-var logger$37, RESOLVE_TIMEOUT, Floating;
+var logger$38, RESOLVE_TIMEOUT, Floating;
 var init_floating = __esmMin((() => {
 	init_logger$1();
 	init_markdown();
@@ -107929,7 +108022,7 @@ var init_floating = __esmMin((() => {
 	init_protocol$1();
 	init_workspace$2();
 	init_util$4();
-	logger$37 = createLogger("completion-floating");
+	logger$38 = createLogger("completion-floating");
 	RESOLVE_TIMEOUT = getConditionValue(500, 50);
 	Floating = class {
 		config;
@@ -107945,7 +108038,7 @@ var init_floating = __esmMin((() => {
 				});
 			} catch (e) {
 				if (isCancellationError(e)) return;
-				logger$37.error(`Error on resolve complete item from ${source.name}:`, item, e);
+				logger$38.error(`Error on resolve complete item from ${source.name}:`, item, e);
 			}
 			if (showDocs) this.show(getDocumentations(item, opt.filetype, detailRendered));
 		}
@@ -110207,7 +110300,7 @@ function getAgent(endpoint, options) {
 			return null;
 		}
 		let rejectUnauthorized = typeof options.proxyStrictSSL === "boolean" ? options.proxyStrictSSL : true;
-		logger$36.info(`Using proxy ${proxy} from ${options.proxy ? "configuration" : "system environment"} for ${endpoint.hostname}:`);
+		logger$37.info(`Using proxy ${proxy} from ${options.proxy ? "configuration" : "system environment"} for ${endpoint.hostname}:`);
 		const agentOptions = { rejectUnauthorized };
 		return endpoint.protocol === "http:" ? new HttpProxyAgent(proxyURL, agentOptions) : new HttpsProxyAgent(proxyURL, agentOptions);
 	}
@@ -110248,6 +110341,21 @@ function resolveRequestOptions(url, options) {
 	if (options.buffer) opts.buffer = true;
 	return opts;
 }
+/**
+* Extract and validate the charset parameter of a Content-Type header.
+* Handles quoted values (charset="utf-8") and trailing parameters
+* (charset=utf-8; format=flowed); throws for unsupported encodings.
+*/
+function parseCharset(contentType) {
+	let match = /;\s*charset\s*=\s*"?([^";\s]+)"?/i.exec(contentType);
+	let encoding = match ? match[1] : "utf8";
+	let lower = encoding.toLowerCase();
+	if (lower === "iso-8859-1" || lower === "latin-1") encoding = "latin1";
+	else if (lower === "utf-16" || lower === "utf-16le" || lower === "ucs-2" || lower === "ucs2") encoding = "utf16le";
+	else if (lower === "us-ascii") encoding = "ascii";
+	if (!Buffer.isEncoding(encoding)) throw new Error(`Unsupported charset: ${encoding}`);
+	return encoding;
+}
 function request(url, data, opts, token, obj = {}) {
 	let mod = getRequestModule(url);
 	return new Promise((resolve, reject) => {
@@ -110271,9 +110379,8 @@ function request(url, data, opts, token, obj = {}) {
 				readable.on("end", () => {
 					clearTimeout(timer);
 					let buf = Buffer.concat(chunks);
-					if (!opts.buffer && (contentType.startsWith("application/json") || contentType.startsWith("text/"))) {
-						let ms = contentType.match(/charset=(\S+)/);
-						let encoding = ms ? ms[1] : "utf8";
+					if (!opts.buffer && (contentType.startsWith("application/json") || contentType.startsWith("text/"))) try {
+						let encoding = parseCharset(contentType);
 						let rawData = buf.toString(encoding);
 						if (!contentType.includes("application/json")) resolve(rawData);
 						else try {
@@ -110281,7 +110388,10 @@ function request(url, data, opts, token, obj = {}) {
 						} catch (e) {
 							reject(/* @__PURE__ */ new Error(`Parse response error: ${e}`));
 						}
-					} else resolve(buf);
+					} catch (e) {
+						reject(/* @__PURE__ */ new Error(`Decode response error: ${e instanceof Error ? e.message : String(e)}`));
+					}
+					else resolve(buf);
 				});
 				readable.on("error", (err) => {
 					reject(/* @__PURE__ */ new Error(`Connection error to ${url}: ${err.message}`));
@@ -110318,14 +110428,14 @@ function fetch(urlInput, options = {}, token) {
 	let url = toURL(urlInput);
 	let opts = resolveRequestOptions(url, options);
 	return request(url, options.data, opts, token).catch((err) => {
-		logger$36.error(`Fetch error for ${url}:`, opts, err);
+		logger$37.error(`Fetch error for ${url}:`, opts, err);
 		if (opts.agent && opts.agent.proxy) {
 			let { proxy } = opts.agent;
 			throw new Error(`Request failed using proxy ${proxy.host}: ${err.message}`);
 		} else throw err;
 	});
 }
-var import_follow_redirects, logger$36, timeout;
+var import_follow_redirects, logger$37, timeout;
 var init_fetch = __esmMin((() => {
 	init_decompress_response();
 	import_follow_redirects = require_follow_redirects();
@@ -110338,7 +110448,7 @@ var init_fetch = __esmMin((() => {
 	init_node();
 	init_string$1();
 	init_workspace$2();
-	logger$36 = createLogger("model-fetch");
+	logger$37 = createLogger("model-fetch");
 	timeout = getConditionValue(500, 50);
 }));
 //#endregion
@@ -112143,7 +112253,7 @@ var require_parser_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => 
 //#endregion
 //#region node_modules/unzip-stream/node_modules/mkdirp/index.js
 var require_mkdirp = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var path$1 = require("path");
+	var path$2 = require("path");
 	var fs$1 = require("fs");
 	var _0777 = parseInt("0777", 8);
 	module.exports = mkdirP.mkdirp = mkdirP.mkdirP = mkdirP;
@@ -112157,7 +112267,7 @@ var require_mkdirp = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		if (mode === void 0) mode = _0777;
 		if (!made) made = null;
 		var cb = f || function() {};
-		p = path$1.resolve(p);
+		p = path$2.resolve(p);
 		xfs.mkdir(p, mode, function(er) {
 			if (!er) {
 				made = made || p;
@@ -112166,8 +112276,8 @@ var require_mkdirp = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			switch (er.code) {
 				case "ENOENT":
 					/* istanbul ignore if */
-					if (path$1.dirname(p) === p) return cb(er);
-					mkdirP(path$1.dirname(p), opts, function(er, made) {
+					if (path$2.dirname(p) === p) return cb(er);
+					mkdirP(path$2.dirname(p), opts, function(er, made) {
 						/* istanbul ignore if */
 						if (er) cb(er, made);
 						else mkdirP(p, opts, cb, made);
@@ -112188,14 +112298,14 @@ var require_mkdirp = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		var xfs = opts.fs || fs$1;
 		if (mode === void 0) mode = _0777;
 		if (!made) made = null;
-		p = path$1.resolve(p);
+		p = path$2.resolve(p);
 		try {
 			xfs.mkdirSync(p, mode);
 			made = made || p;
 		} catch (err0) {
 			switch (err0.code) {
 				case "ENOENT":
-					made = sync(path$1.dirname(p), opts, made);
+					made = sync(path$2.dirname(p), opts, made);
 					sync(p, opts, made);
 					break;
 				default:
@@ -112217,7 +112327,7 @@ var require_mkdirp = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#region node_modules/unzip-stream/lib/extract.js
 var require_extract = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var fs = require("fs");
-	var path = require("path");
+	var path$1 = require("path");
 	var util$1 = require("util");
 	var mkdirp = require_mkdirp();
 	var Transform = require("stream").Transform;
@@ -112258,8 +112368,8 @@ var require_extract = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	};
 	Extract.prototype._processEntry = function(entry) {
 		var self = this;
-		var destPath = path.join(this.opts.path, entry.path);
-		var directory = entry.isDirectory ? destPath : path.dirname(destPath);
+		var destPath = path$1.join(this.opts.path, entry.path);
+		var directory = entry.isDirectory ? destPath : path$1.dirname(destPath);
 		this.unfinishedEntries++;
 		var writeFileFn = function() {
 			var pipedStream = fs.createWriteStream(destPath);
@@ -115983,7 +116093,7 @@ function getEtag(headers) {
 }
 function getExtname(dispositionHeader) {
 	let filename = require_content_disposition().parse(dispositionHeader).parameters.filename;
-	if (filename) return path$3.extname(filename);
+	if (filename) return path$4.extname(filename);
 }
 /**
 * Validate that zip entry path won't escape the dest folder. Absolute
@@ -115991,9 +116101,9 @@ function getExtname(dispositionHeader) {
 * previous unzip behavior.
 */
 function isSafeEntryPath(dest, entryPath) {
-	let destPath = path$3.join(dest, entryPath);
+	let destPath = path$4.join(dest, entryPath);
 	if (destPath === dest) return false;
-	return destPath.startsWith(dest + path$3.sep);
+	return destPath.startsWith(dest + path$4.sep);
 }
 /**
 * Extract zip entries to dest, reject when entry path tries to escape dest.
@@ -116028,8 +116138,8 @@ function extractZip(res, dest) {
 			notifyError(/* @__PURE__ */ new Error(`Zip entry path is invalid: ${entry.path}`));
 			return;
 		}
-		let filepath = path$3.join(dest, entry.path);
-		let dir = entry.isDirectory ? filepath : path$3.dirname(filepath);
+		let filepath = path$4.join(dest, entry.path);
+		let dir = entry.isDirectory ? filepath : path$4.dirname(filepath);
 		let p = mkdir(dir).then(() => {
 			if (entry.isDirectory) return;
 			return new Promise((resolve, reject) => {
@@ -116063,7 +116173,7 @@ function download(urlInput, options, token, obj = {}) {
 	let url = toURL(urlInput);
 	let { etagAlgorithm } = options;
 	let { dest, onProgress, extract } = options;
-	if (!dest || !path$3.isAbsolute(dest)) throw new Error(`Invalid dest path: ${dest}`);
+	if (!dest || !path$4.isAbsolute(dest)) throw new Error(`Invalid dest path: ${dest}`);
 	if (!fs$3.existsSync(dest)) fs$3.mkdirSync(dest, { recursive: true });
 	else {
 		let stat = fs$3.statSync(dest);
@@ -116072,7 +116182,7 @@ function download(urlInput, options, token, obj = {}) {
 	let mod = getRequestModule(url);
 	let opts = resolveRequestOptions(url, options);
 	if (!opts.agent && options.agent) opts.agent = options.agent;
-	let extname = path$3.extname(url.pathname);
+	let extname = path$4.extname(url.pathname);
 	return new Promise((resolve, reject) => {
 		if (token) {
 			let disposable = token.onCancellationRequested(() => {
@@ -116107,13 +116217,13 @@ function download(urlInput, options, token, obj = {}) {
 					if (hasTotal) {
 						let percent = (cur / total * 100).toFixed(1);
 						if (typeof onProgress === "function") onProgress(percent);
-						else logger$35.info(`Download ${url} progress ${percent}%`);
+						else logger$36.info(`Download ${url} progress ${percent}%`);
 					}
 				});
 				res.on("end", () => {
 					clearTimeout(timer);
 					timer = void 0;
-					logger$35.info("Download completed:", url);
+					logger$36.info("Download completed:", url);
 				});
 				let stream;
 				if (extract === "untar") {
@@ -116124,7 +116234,7 @@ function download(urlInput, options, token, obj = {}) {
 					}));
 				} else if (extract === "unzip") stream = extractZip(res, dest);
 				else {
-					dest = path$3.join(dest, `${crypto$1.randomUUID()}${extname}`);
+					dest = path$4.join(dest, `${crypto$1.randomUUID()}${extname}`);
 					stream = res.pipe(fs$3.createWriteStream(dest));
 				}
 				stream.on("finish", () => {
@@ -116134,7 +116244,7 @@ function download(urlInput, options, token, obj = {}) {
 							return;
 						}
 					}
-					logger$35.info(`Downloaded ${url} => ${dest}`);
+					logger$36.info(`Downloaded ${url} => ${dest}`);
 					setTimeout(() => {
 						resolve(dest);
 					}, 100);
@@ -116163,18 +116273,18 @@ function download(urlInput, options, token, obj = {}) {
 		req.end();
 	});
 }
-var logger$35;
+var logger$36;
 var init_download = __esmMin((() => {
 	init_logger$1();
 	init_node();
 	init_fetch();
-	logger$35 = createLogger("model-download");
+	logger$36 = createLogger("model-download");
 }));
 //#endregion
 //#region src/extension/installer.ts
 function registryUrl(home = os$3.homedir()) {
 	let res;
-	let filepath = path$3.join(home, ".npmrc");
+	let filepath = path$4.join(home, ".npmrc");
 	if (fs$3.existsSync(filepath)) try {
 		let content = fs$3.readFileSync(filepath, "utf8");
 		let uri;
@@ -116185,16 +116295,16 @@ function registryUrl(home = os$3.homedir()) {
 		}
 		if (uri) res = new URL(uri);
 	} catch (e) {
-		logger$34.debug("Error on parse .npmrc:", e);
+		logger$35.debug("Error on parse .npmrc:", e);
 	}
 	return res ?? new URL("https://registry.npmjs.org");
 }
 function isNpmCommand(exePath) {
-	let name = path$3.basename(exePath);
+	let name = path$4.basename(exePath);
 	return name === "npm" || name === "npm.CMD";
 }
 function isYarn(exePath) {
-	let name = path$3.basename(exePath);
+	let name = path$4.basename(exePath);
 	return [
 		"yarn",
 		"yarn.CMD",
@@ -116203,7 +116313,7 @@ function isYarn(exePath) {
 	].includes(name);
 }
 function isPnpm(exePath) {
-	let name = path$3.basename(exePath);
+	let name = path$4.basename(exePath);
 	return name === "pnpm" || name === "pnpm.CMD";
 }
 function isSymbolicLink(folder) {
@@ -116219,7 +116329,7 @@ function getExtensionDependencies(obj) {
 	if (obj.extensionDependencies?.length > 0) return [...new Set(obj.extensionDependencies)];
 	return [];
 }
-var logger$34, local_dependencies, Installer;
+var logger$35, local_dependencies, Installer;
 var init_installer = __esmMin((() => {
 	init_logger$1();
 	init_download();
@@ -116228,7 +116338,7 @@ var init_installer = __esmMin((() => {
 	init_node();
 	init_string$1();
 	init_workspace$2();
-	logger$34 = createLogger("extension-installer");
+	logger$35 = createLogger("extension-installer");
 	local_dependencies = [
 		"coc.nvim",
 		"esbuild",
@@ -116311,7 +116421,7 @@ var init_installer = __esmMin((() => {
 		async install() {
 			this.log(`Using npm from: ${this.npm}`);
 			let info = await this.getInfo();
-			logger$34.info(`Fetched info of ${this.def}`, info);
+			logger$35.info(`Fetched info of ${this.def}`, info);
 			let { name, version } = info;
 			let required = toText(info["engines.coc"]).replace(/^\^/, ">=");
 			if (required && !semver.satisfies(workspace_default.version, required)) throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`);
@@ -116320,19 +116430,19 @@ var init_installer = __esmMin((() => {
 				updated: await this.doInstall(info, /* @__PURE__ */ new Set()),
 				version,
 				url: this.url,
-				folder: path$3.join(this.root, info.name)
+				folder: path$4.join(this.root, info.name)
 			};
 		}
 		async update(url) {
 			if (url) this.url = url;
 			let version;
 			if (this.name) {
-				let folder = path$3.join(this.root, this.name);
+				let folder = path$4.join(this.root, this.name);
 				if (isSymbolicLink(folder)) {
 					this.log(`Skipped update for symbol link`);
 					return;
 				}
-				version = loadJson$1(path$3.join(folder, "package.json")).version;
+				version = loadJson$1(path$4.join(folder, "package.json")).version;
 			}
 			this.log(`Using npm from: ${this.npm}`);
 			let info = await this.getInfo();
@@ -116343,9 +116453,9 @@ var init_installer = __esmMin((() => {
 			let required = info["engines.coc"] ? info["engines.coc"].replace(/^\^/, ">=") : "";
 			if (required && !semver.satisfies(workspace_default.version, required)) throw new Error(`${info.version} requires coc.nvim ${required}, please update coc.nvim.`);
 			if (!await this.doInstall(info, /* @__PURE__ */ new Set())) return;
-			let jsonFile = path$3.join(this.root, info.name, "package.json");
+			let jsonFile = path$4.join(this.root, info.name, "package.json");
 			this.log(`Updated to v${info.version}`);
-			return path$3.dirname(jsonFile);
+			return path$4.dirname(jsonFile);
 		}
 		getInstallArguments(exePath, url) {
 			let env = "production";
@@ -116410,7 +116520,7 @@ var init_installer = __esmMin((() => {
 			});
 		}
 		async doInstall(info, installing = /* @__PURE__ */ new Set()) {
-			let dest = path$3.join(this.root, info.name);
+			let dest = path$4.join(this.root, info.name);
 			if (isSymbolicLink(dest)) return false;
 			if (installing.has(info.name)) {
 				this.log(`Skipping dependency: ${info.name} (already installed or in progress)`);
@@ -116418,7 +116528,7 @@ var init_installer = __esmMin((() => {
 			}
 			installing.add(info.name);
 			let key = info.name.replace(/\//g, "_");
-			let downloadFolder = path$3.join(this.root, `${key}-${crypto.randomUUID()}`);
+			let downloadFolder = path$4.join(this.root, `${key}-${crypto.randomUUID()}`);
 			let url = info["dist.tarball"];
 			this.log(`Downloading from ${url}`);
 			let etagAlgorithm = url.startsWith("https://registry.npmjs.org") ? "md5" : void 0;
@@ -116431,7 +116541,7 @@ var init_installer = __esmMin((() => {
 					onProgress: (p) => this.log(`Download progress ${p}%`, true)
 				});
 				this.log(`Extension download at ${downloadFolder}`);
-				obj = loadJson$1(path$3.join(downloadFolder, "package.json"));
+				obj = loadJson$1(path$4.join(downloadFolder, "package.json"));
 				await this.installDependencies(downloadFolder, getDependencies(obj));
 				const extensionDependencies = getExtensionDependencies(obj);
 				if (extensionDependencies.length > 0) {
@@ -116452,7 +116562,7 @@ var init_installer = __esmMin((() => {
 				throw e;
 			}
 			this.log(`Download extension ${info.name}@${info.version} at ${downloadFolder}`);
-			fs$3.mkdirSync(path$3.dirname(dest), { recursive: true });
+			fs$3.mkdirSync(path$4.dirname(dest), { recursive: true });
 			if (fs$3.existsSync(dest)) fs$3.rmSync(dest, {
 				force: true,
 				recursive: true
@@ -116481,7 +116591,7 @@ var init_memos = __esmMin((() => {
 		constructor(filepath) {
 			this.filepath = filepath;
 			if (!fs$3.existsSync(filepath)) {
-				fs$3.mkdirSync(path$3.dirname(filepath), { recursive: true });
+				fs$3.mkdirSync(path$4.dirname(filepath), { recursive: true });
 				fs$3.writeFileSync(filepath, "{}", "utf8");
 			}
 		}
@@ -116521,14 +116631,14 @@ var init_memos = __esmMin((() => {
 }));
 //#endregion
 //#region src/list/commandTask.ts
-var spawn$1, logger$33, CommandTask;
+var spawn$1, logger$34, CommandTask;
 var init_commandTask = __esmMin((() => {
 	init_logger$1();
 	init_util$8();
 	init_node();
 	init_workspace$2();
 	spawn$1 = child_process$1.spawn;
-	logger$33 = createLogger("list-commandTask");
+	logger$34 = createLogger("list-commandTask");
 	CommandTask = class extends events.EventEmitter {
 		opt;
 		disposables = [];
@@ -116551,7 +116661,7 @@ var init_commandTask = __esmMin((() => {
 				this.emit("error", e.message);
 			});
 			proc.stderr.on("data", (chunk) => {
-				logger$33.error(`[${cmd} Error]`, chunk.toString("utf8"));
+				logger$34.error(`[${cmd} Error]`, chunk.toString("utf8"));
 			});
 			const rl = readline.createInterface(proc.stdout);
 			rl.on("line", (line) => {
@@ -116940,14 +117050,14 @@ var init_fuzzy = __esmMin((() => {
 }));
 //#endregion
 //#region src/list/db.ts
-var logger$32, DB_PATH, DataBase, db_default;
+var logger$33, DB_PATH, DataBase, db_default;
 var init_db = __esmMin((() => {
 	init_logger$1();
 	init_constants();
 	init_node();
 	init_string$1();
-	logger$32 = createLogger("list-db");
-	DB_PATH = path$3.join(dataHome, "list_history.dat");
+	logger$33 = createLogger("list-db");
+	DB_PATH = path$4.join(dataHome, "list_history.dat");
 	DataBase = class {
 		folders = [];
 		names = [];
@@ -116957,7 +117067,7 @@ var init_db = __esmMin((() => {
 			try {
 				this.load();
 			} catch (e) {
-				logger$32.error(`Error on load db`, e);
+				logger$33.error(`Error on load db`, e);
 			}
 		}
 		get currItems() {
@@ -117016,7 +117126,7 @@ var init_db = __esmMin((() => {
 				nameBuf,
 				...bufs
 			]);
-			fs$3.mkdirSync(path$3.dirname(DB_PATH), { recursive: true });
+			fs$3.mkdirSync(path$4.dirname(DB_PATH), { recursive: true });
 			fs$3.writeFileSync(DB_PATH, resultBuf);
 			this._changed = false;
 		}
@@ -117064,7 +117174,7 @@ var init_db = __esmMin((() => {
 }));
 //#endregion
 //#region src/list/history.ts
-var logger$31, InputHistory;
+var logger$32, InputHistory;
 var init_history = __esmMin((() => {
 	init_node();
 	init_logger$1();
@@ -117072,7 +117182,7 @@ var init_history = __esmMin((() => {
 	init_fuzzy();
 	init_db();
 	init_string$1();
-	logger$31 = createLogger("list-history");
+	logger$32 = createLogger("list-history");
 	InputHistory = class {
 		prompt;
 		name;
@@ -117099,12 +117209,12 @@ var init_history = __esmMin((() => {
 		static migrate(folder) {
 			try {
 				let files = fs$3.readdirSync(folder);
-				files = files.filter((f) => f.startsWith("list-") && f.endsWith("-history.json") && fs$3.statSync(path$3.join(folder, f)).isFile());
+				files = files.filter((f) => f.startsWith("list-") && f.endsWith("-history.json") && fs$3.statSync(path$4.join(folder, f)).isFile());
 				if (files.length === 0) return;
 				let db = new DataBase();
 				for (let file of files) {
 					let name = file.match(/^list-(.*)-history.json$/)[1];
-					let content = fs$3.readFileSync(path$3.join(folder, file), "utf8");
+					let content = fs$3.readFileSync(path$4.join(folder, file), "utf8");
 					let obj = JSON.parse(content);
 					for (let [key, texts] of Object.entries(obj)) {
 						let folder = Buffer.from(key, "base64").toString("utf8");
@@ -117114,11 +117224,11 @@ var init_history = __esmMin((() => {
 					}
 				}
 				files.forEach((f) => {
-					fs$3.unlinkSync(path$3.join(folder, f));
+					fs$3.unlinkSync(path$4.join(folder, f));
 				});
 				db.save();
 			} catch (e) {
-				logger$31.error(`Error on migrate history:`, e);
+				logger$32.error(`Error on migrate history:`, e);
 			}
 		}
 		get curr() {
@@ -118282,7 +118392,7 @@ function parseInput(input) {
 	if (startIdx != input.length) res.push(input.slice(startIdx, input.length));
 	return res.map((s) => s.replace(/\\\s/g, " ").trim()).filter((s) => s.length > 0);
 }
-var logger$30, controlCode$1, WHITE_SPACE_CHARS, SEARCH_HL_GROUP, Worker;
+var logger$31, controlCode$1, WHITE_SPACE_CHARS, SEARCH_HL_GROUP, Worker;
 var init_worker = __esmMin((() => {
 	init_logger$1();
 	init_util$8();
@@ -118296,7 +118406,7 @@ var init_worker = __esmMin((() => {
 	init_string$1();
 	init_workspace$2();
 	init_configuration$1();
-	logger$30 = createLogger("list-worker");
+	logger$31 = createLogger("list-worker");
 	controlCode$1 = "\x1B";
 	WHITE_SPACE_CHARS = [32, 9];
 	SEARCH_HL_GROUP = "CocListSearch";
@@ -118337,10 +118447,25 @@ var init_worker = __esmMin((() => {
 			let { list, listOptions } = this;
 			this.loading = true;
 			let { interactive } = listOptions;
-			this.tokenSource = new import_main$1.CancellationTokenSource();
-			let token = this.tokenSource.token;
-			let items = await list.loadItems(context, token);
-			if (token.isCancellationRequested) return;
+			let source = this.tokenSource = new import_main$1.CancellationTokenSource();
+			let token = source.token;
+			let items;
+			try {
+				items = await list.loadItems(context, token);
+			} catch (e) {
+				if (this.tokenSource === source) {
+					this.tokenSource = null;
+					this.loading = false;
+				}
+				throw e;
+			}
+			if (token.isCancellationRequested) {
+				if (this.tokenSource === source) {
+					this.tokenSource = null;
+					this.loading = false;
+				}
+				return;
+			}
 			items = items ?? [];
 			if (Array.isArray(items)) {
 				this.tokenSource = null;
@@ -118439,7 +118564,7 @@ var init_worker = __esmMin((() => {
 					clearInterval(interval);
 					workspace_default.nvim.call("coc#prompt#stop_prompt", ["list"], true);
 					workspace_default.nvim.echoError(`Task error: ${error.toString()}`);
-					logger$30.error("List task error:", error);
+					logger$31.error("List task error:", error);
 				});
 				task.on("end", onEnd);
 			}
@@ -118639,12 +118764,15 @@ var init_worker = __esmMin((() => {
 }));
 //#endregion
 //#region src/list/session.ts
-var frames, debounceTime$7, ListSession;
+var logger$30, frames, debounceTime$7, ListSession;
 var init_session$2 = __esmMin((() => {
 	init_highlighter();
+	init_logger$1();
 	init_util$8();
+	init_errors();
 	init_node();
 	init_protocol$1();
+	init_string$1();
 	init_window();
 	init_workspace$2();
 	init_configuration$1();
@@ -118652,6 +118780,7 @@ var init_session$2 = __esmMin((() => {
 	init_history();
 	init_ui$1();
 	init_worker();
+	logger$30 = createLogger("list-session");
 	frames = [
 		"⠋",
 		"⠙",
@@ -119128,8 +119257,12 @@ var init_session$2 = __esmMin((() => {
 			this.listOptions.input = this.prompt.input;
 			if (this.listOptions.interactive) {
 				this.worker.stop();
-				this.timer = setTimeout(async () => {
-					await this.worker.loadItems(this.context);
+				this.timer = setTimeout(() => {
+					this.worker.loadItems(this.context).catch((e) => {
+						if (isCancellationError(e)) return;
+						window_default.showErrorMessage(`Error on reload "${this.list.name}": ${toErrorText(e)}`);
+						logger$30.error(`Error on reload ${this.list.name} list:`, e);
+					});
 				}, configuration_default.debounceTime);
 			} else this.worker.drawItems();
 		}
@@ -119150,7 +119283,7 @@ function fixWidth(str, width) {
 function formatUri(uri, cwd) {
 	if (!uri.startsWith("file:")) return uri;
 	let filepath = URI.parse(uri).fsPath;
-	return isParentFolder(cwd, filepath) ? path$3.relative(cwd, filepath) : filepath;
+	return isParentFolder(cwd, filepath) ? path$4.relative(cwd, filepath) : filepath;
 }
 function formatListItems(align, list) {
 	if (list.length === 0) return [];
@@ -119172,11 +119305,11 @@ function formatPath(format, pathToFormat) {
 	if (format === "hidden") return "";
 	else if (format === "full") return pathToFormat;
 	else if (format === "short") {
-		const segments = pathToFormat.split(path$3.sep);
+		const segments = pathToFormat.split(path$4.sep);
 		if (segments.length < 2) return pathToFormat;
-		return [...segments.slice(0, segments.length - 2).filter((seg) => seg.length > 0).map((seg) => seg[0]), segments[segments.length - 1]].join(path$3.sep);
+		return [...segments.slice(0, segments.length - 2).filter((seg) => seg.length > 0).map((seg) => seg[0]), segments[segments.length - 1]].join(path$4.sep);
 	} else {
-		const segments = pathToFormat.split(path$3.sep);
+		const segments = pathToFormat.split(path$4.sep);
 		return toText(segments[segments.length - 1]);
 	}
 }
@@ -119287,7 +119420,7 @@ var init_location = __esmMin((() => {
 			let ignoreFilepath = locs.every((o) => o.bufnr == bufnr);
 			return await Promise.all(locs.map((loc) => {
 				let filename = ignoreFilepath ? "" : loc.filename;
-				if (filename.length > 0 && path$3.isAbsolute(filename)) filename = isParentFolder(context.cwd, filename) ? path$3.relative(context.cwd, filename) : filename;
+				if (filename.length > 0 && path$4.isAbsolute(filename)) filename = isParentFolder(context.cwd, filename) ? path$4.relative(context.cwd, filename) : filename;
 				return this.createItem(filename, loc);
 			}));
 		}
@@ -119351,7 +119484,7 @@ var init_location = __esmMin((() => {
 //#endregion
 //#region src/list/source/diagnostics.ts
 function convertToLabel(item, cwd, includeCode, pathFormat = "full") {
-	const formattedPath = formatPath(pathFormat, isParentFolder(cwd, item.file) ? path$3.relative(cwd, item.file) : item.file);
+	const formattedPath = formatPath(pathFormat, isParentFolder(cwd, item.file) ? path$4.relative(cwd, item.file) : item.file);
 	const formattedPosition = pathFormat !== "hidden" ? [`${formattedPath}:${item.lnum}`] : [];
 	const source = includeCode ? `[${item.source} ${defaultValue(item.code, "")}]` : item.source;
 	return [
@@ -119503,7 +119636,7 @@ var init_extensions = __esmMin((() => {
 			});
 			this.addAction("configuration", async (item) => {
 				let { root } = item.data;
-				let jsonFile = path$3.join(root, "package.json");
+				let jsonFile = path$4.join(root, "package.json");
 				if (fs$3.existsSync(jsonFile)) {
 					let idx = fs$3.readFileSync(jsonFile, "utf8").split(/\r?\n/).findIndex((s) => s.includes("\"contributes\""));
 					await workspace_default.jumpTo(URI.file(jsonFile), {
@@ -119542,7 +119675,7 @@ var init_extensions = __esmMin((() => {
 			this.addAction("help", async (item) => {
 				let { root } = item.data;
 				let file = fs$3.readdirSync(root, { encoding: "utf8" }).find((f) => /^readme/i.test(f));
-				if (file) await workspace_default.jumpTo(URI.file(path$3.join(root, file)));
+				if (file) await workspace_default.jumpTo(URI.file(path$4.join(root, file)));
 			});
 			this.addAction("reload", async (item) => {
 				let { id } = item.data;
@@ -119827,11 +119960,11 @@ function getFilterText(s, kind) {
 async function loadCtagsSymbols(document, nvim, token) {
 	if (!which.sync("ctags", { nothrow: true })) return [];
 	let uri = URI.parse(document.uri);
-	let extname = path$3.extname(uri.fsPath);
+	let extname = path$4.extname(uri.fsPath);
 	let content = "";
 	let tempname = await nvim.call("tempname");
 	let filepath = `${tempname}.${extname}`;
-	let cwd = path$3.dirname(tempname);
+	let cwd = path$4.dirname(tempname);
 	let escaped = await nvim.call("fnameescape", filepath);
 	await writeFile(escaped, document.getDocumentContent());
 	try {
@@ -122937,6 +123070,7 @@ var init_textDocumentContent = __esmMin((() => {
 //#region src/language-client/textSynchronization.ts
 var DidOpenTextDocumentFeature, DidCloseTextDocumentFeature, DidChangeTextDocumentFeature, WillSaveFeature, WillSaveWaitUntilFeature, DidSaveTextDocumentFeature;
 var init_textSynchronization = __esmMin((() => {
+	init_esm();
 	init_util$8();
 	init_protocol$1();
 	init_workspace$2();
@@ -122947,7 +123081,17 @@ var init_textSynchronization = __esmMin((() => {
 		_delayOpen;
 		_pendingOpenListeners;
 		constructor(client, syncedDocuments) {
-			super(client, workspace_default.onDidOpenTextDocument, import_main$1.DidOpenTextDocumentNotification.type, "didOpen", (textDocument) => client.code2ProtocolConverter.asOpenTextDocumentParams(textDocument), TextDocumentEventFeature.textDocumentFilter);
+			super(client, workspace_default.onDidOpenTextDocument, import_main$1.DidOpenTextDocumentNotification.type, "didOpen", (textDocument) => {
+				let params = client.code2ProtocolConverter.asOpenTextDocumentParams(textDocument);
+				let languageIdMap = client.clientOptions.languageIdMap;
+				if (languageIdMap && params.textDocument) {
+					let uri = URI.parse(textDocument.uri);
+					let fsPath = uri.scheme === "file" ? uri.fsPath : textDocument.uri;
+					let languageId = languageIdMap[path.basename(fsPath)] ?? languageIdMap[fsPath];
+					if (languageId) params.textDocument.languageId = languageId;
+				}
+				return params;
+			}, TextDocumentEventFeature.textDocumentFilter);
 			this._syncedDocuments = syncedDocuments;
 			this._pendingOpenNotifications = /* @__PURE__ */ new Map();
 			this._delayOpen = defaultValue(defaultValue(client.clientOptions.textSynchronization, {}).delayOpenNotifications, false);
@@ -124305,6 +124449,7 @@ var init_client = __esmMin((() => {
 				connectionOptions: clientOptions.connectionOptions,
 				uriConverter: clientOptions.uriConverter,
 				textSynchronization: this.createTextSynchronizationOptions(clientOptions.textSynchronization),
+				languageIdMap: clientOptions.languageIdMap,
 				markdown
 			};
 		}
@@ -125393,14 +125538,14 @@ var init_client = __esmMin((() => {
 //#endregion
 //#region src/language-client/index.ts
 function getRuntimePath(runtime, serverWorkingDirectory) {
-	if (path$3.isAbsolute(runtime)) return runtime;
+	if (path$4.isAbsolute(runtime)) return runtime;
 	const mainRootPath = mainGetRootPath();
 	if (mainRootPath !== void 0) {
-		const result = path$3.join(mainRootPath, runtime);
+		const result = path$4.join(mainRootPath, runtime);
 		if (fs$3.existsSync(result)) return result;
 	}
 	if (serverWorkingDirectory !== void 0) {
-		const result = path$3.join(serverWorkingDirectory, runtime);
+		const result = path$4.join(serverWorkingDirectory, runtime);
 		if (fs$3.existsSync(result)) return result;
 	}
 	return runtime;
@@ -125412,7 +125557,7 @@ function mainGetRootPath() {
 }
 function getServerWorkingDir(options) {
 	let cwd = options && options.cwd;
-	if (cwd && !path$3.isAbsolute(cwd)) cwd = path$3.join(workspace_default.cwd, cwd);
+	if (cwd && !path$4.isAbsolute(cwd)) cwd = path$4.join(workspace_default.cwd, cwd);
 	if (!cwd) cwd = workspace_default.cwd;
 	return new Promise((s) => {
 		fs$3.lstat(cwd, (err, stats) => {
@@ -125967,7 +126112,7 @@ function getLanguageServerOptions(id, name, config, folder) {
 	let ignoredRootPaths = toArray(config.ignoredRootPaths);
 	let clientOptions = {
 		workspaceFolder: folder == null ? void 0 : {
-			name: path$3.basename(folder.fsPath),
+			name: path$4.basename(folder.fsPath),
 			uri: folder.toString()
 		},
 		rootPatterns: config.rootPatterns,
@@ -125983,6 +126128,7 @@ function getLanguageServerOptions(id, name, config, folder) {
 		diagnosticCollectionName: name,
 		outputChannelName: id,
 		stdioEncoding: config.stdioEncoding,
+		languageIdMap: config.languageIdMap,
 		progressOnInitialization: config.progressOnInitialization === true,
 		initializationOptions: config.initializationOptions ?? {}
 	};
@@ -126153,12 +126299,13 @@ var init_services$1 = __esmMin((() => {
 			let { id } = service;
 			if (this.registered.get(id)) return;
 			this.registered.set(id, service);
-			this.tryStartService(service);
+			let readyDisposable = this.tryStartService(service);
 			service.onServiceReady(() => {
 				logger$26.info(`service ${id} started`);
 			}, null, this.disposables);
 			return import_main$1.Disposable.create(() => {
 				if (!this.registered.has(id)) return;
+				if (readyDisposable) readyDisposable.dispose();
 				service.dispose();
 				this.registered.delete(id);
 			});
@@ -126170,8 +126317,10 @@ var init_services$1 = __esmMin((() => {
 			if (!events_default.ready) {
 				let disposable = events_default.on("ready", () => {
 					disposable.dispose();
+					if (this.registered.has(service.id) && this.registered.get(service.id) !== service) return;
 					if (this.shouldStart(service)) service.start();
 				});
+				return disposable;
 			} else if (this.shouldStart(service)) service.start();
 		}
 		getService(id) {
@@ -127262,15 +127411,15 @@ function generateToken() {
 * are cleaned up when a coc.nvim instance starts.
 */
 function getMcpDir() {
-	return process.env.COC_MCP_DIR || path$3.join(os$3.homedir(), ".coc", "mcp");
+	return process.env.COC_MCP_DIR || path$4.join(os$3.homedir(), ".coc", "mcp");
 }
 function getInstanceFilePath(pid, mcpDir = getMcpDir()) {
-	return path$3.join(mcpDir, `coc-${pid}.json`);
+	return path$4.join(mcpDir, `coc-${pid}.json`);
 }
 function writeInstanceFile(info, mcpDir = getMcpDir()) {
 	let filepath = getInstanceFilePath(info.pid, mcpDir);
 	try {
-		fs$3.mkdirSync(path$3.dirname(filepath), { recursive: true });
+		fs$3.mkdirSync(path$4.dirname(filepath), { recursive: true });
 		fs$3.writeFileSync(filepath, JSON.stringify(info, null, 2), {
 			encoding: "utf8",
 			mode: 384
@@ -127323,6 +127472,20 @@ var init_auth = __esmMin((() => {
 }));
 //#endregion
 //#region src/mcp/notifications.ts
+function editorStateParams(editor) {
+	return {
+		uri: editor ? editor.uri : null,
+		bufnr: editor ? editor.bufnr : null,
+		languageId: editor?.document ? editor.document.languageId : null
+	};
+}
+function serviceStateParams(stat, current) {
+	return {
+		id: stat.id,
+		state: current ? getStateName(current.state) : "running",
+		languageIds: stat.languageIds
+	};
+}
 var NotificationManager;
 var init_notifications = __esmMin((() => {
 	init_manager$4();
@@ -127373,11 +127536,7 @@ var init_notifications = __esmMin((() => {
 			}));
 			try {
 				this.disposables.push(window_default.onDidChangeActiveTextEditor((editor) => {
-					this.server.broadcastEvent("coc/editor_state_changed", {
-						uri: editor ? editor.uri : null,
-						bufnr: editor ? editor.bufnr : null,
-						languageId: editor && editor.document ? editor.document.languageId : null
-					});
+					this.server.broadcastEvent("coc/editor_state_changed", editorStateParams(editor));
 				}));
 			} catch (_e) {}
 			for (let stat of services_default.getServiceStats()) {
@@ -127385,11 +127544,7 @@ var init_notifications = __esmMin((() => {
 				if (!service) continue;
 				this.disposables.push(service.onServiceReady(() => {
 					let current = services_default.getService(stat.id);
-					this.server.broadcastEvent("coc/service_state_changed", {
-						id: stat.id,
-						state: current ? getStateName(current.state) : "running",
-						languageIds: stat.languageIds
-					});
+					this.server.broadcastEvent("coc/service_state_changed", serviceStateParams(stat, current));
 				}));
 			}
 		}
@@ -127429,7 +127584,7 @@ function errorResult(message) {
 */
 function toUri(input) {
 	if (input.includes("://")) return input;
-	return URI.file(path$3.resolve(input)).toString();
+	return URI.file(path$4.resolve(input)).toString();
 }
 function toFsPath(input) {
 	return URI.parse(toUri(input)).fsPath;
@@ -127484,26 +127639,52 @@ function collectEditUris(edit) {
 		if (!change) continue;
 		if (typeof change.textDocument?.uri === "string") uris.push(change.textDocument.uri);
 		if (typeof change.uri === "string") uris.push(change.uri);
+		if (typeof change.oldUri === "string") uris.push(change.oldUri);
+		if (typeof change.newUri === "string") uris.push(change.newUri);
 	}
 	return uris;
 }
 function globMatch(pattern, fsPath) {
 	let normalized = fsPath.replace(/\\/g, "/");
 	let p = pattern.replace(/\\/g, "/");
-	if (!path$3.isAbsolute(pattern)) {
+	if (!path$4.isAbsolute(pattern)) {
 		let root = "";
 		try {
 			root = workspace_default.root || process.cwd();
 		} catch (_e) {
 			root = process.cwd();
 		}
-		p = path$3.join(root, pattern).replace(/\\/g, "/");
+		p = path$4.join(root, pattern).replace(/\\/g, "/");
 	}
 	let isDir = false;
 	try {
 		isDir = fs$3.statSync(fsPath).isDirectory();
 	} catch (_e) {}
 	return minimatch(normalized, p, { dot: true }) || isDir && minimatch(normalized + "/", p, { dot: true });
+}
+/**
+* Return the pattern plus a variant with the static prefix resolved through
+* symlinks, so canonical paths (e.g. /private/tmp when /tmp is a link) still
+* match the user's allowedPaths globs.
+*/
+function globVariants(pattern) {
+	let variants = [pattern];
+	if (!path$4.isAbsolute(pattern)) return variants;
+	let metaIdx = pattern.search(/[*?[\]{}]/);
+	let staticPart = metaIdx === -1 ? pattern : pattern.slice(0, metaIdx);
+	let rest = metaIdx === -1 ? "" : pattern.slice(metaIdx);
+	let trimmed = staticPart.replace(/[\\/]+$/, "");
+	let staticDir = trimmed === "" ? staticPart : path$4.dirname(trimmed);
+	let base = trimmed === "" ? "" : path$4.basename(trimmed);
+	let resolved = realFsPath(staticDir);
+	if (resolved !== staticDir) {
+		let joined = base ? path$4.join(resolved, base) : resolved;
+		if (rest) {
+			let sepNeeded = metaIdx > 0 && /[\\/]/.test(pattern[metaIdx - 1]);
+			variants.push(joined + (sepNeeded ? "/" : "") + rest);
+		} else variants.push(joined);
+	}
+	return variants;
 }
 function folderPaths() {
 	try {
@@ -127526,11 +127707,13 @@ function checkPath(input, opts = {}) {
 	let fsPath = URI.parse(uri).fsPath;
 	let config = workspace_default.getConfiguration("mcp");
 	let denied = toArray(config.get("deniedPaths", []));
-	for (let glob of denied) if (glob && globMatch(glob, fsPath)) return `Path is denied by mcp.deniedPaths: ${glob}`;
+	let realPath = realFsPath(fsPath);
+	let paths = realPath === fsPath ? [fsPath] : [fsPath, realPath];
+	for (let glob of denied) if (glob && paths.some((p) => globVariants(glob).some((g) => globMatch(g, p)))) return `Path is denied by mcp.deniedPaths: ${glob}`;
 	let allowed = toArray(config.get("allowedPaths", []));
 	if (allowed.length > 0) {
-		for (let glob of allowed) if (globMatch(glob, fsPath)) return null;
-		return `Path is not allowed by mcp.allowedPaths: ${fsPath}`;
+		for (let p of paths) if (!allowed.some((glob) => glob && globVariants(glob).some((g) => globMatch(g, p)))) return `Path is not allowed by mcp.allowedPaths: ${fsPath}`;
+		return null;
 	}
 	let roots = folderPaths();
 	if (roots.length === 0) try {
@@ -127538,10 +127721,20 @@ function checkPath(input, opts = {}) {
 	} catch (_e) {
 		roots = [process.cwd()];
 	}
-	for (let root of roots) if (isParentFolder(root, fsPath, true)) return null;
+	let rootVariants = [];
+	for (let root of roots) {
+		rootVariants.push(root);
+		let resolved = realFsPath(root);
+		if (resolved !== root) rootVariants.push(resolved);
+	}
+	if (paths.every((p) => rootVariants.some((root) => isParentFolder(root, p, true)))) return null;
 	if (workspace_default.getDocument(uri)) return null;
 	if (!opts.write) {
-		if (isParentFolder(os$3.tmpdir(), fsPath, true)) return null;
+		let tmpdir = os$3.tmpdir();
+		let tmpVariants = [tmpdir];
+		let resolved = realFsPath(tmpdir);
+		if (resolved !== tmpdir) tmpVariants.push(resolved);
+		if (paths.every((p) => tmpVariants.some((t) => isParentFolder(t, p, true)))) return null;
 	}
 	return `Path is outside the workspace and not opened: ${fsPath}`;
 }
@@ -127738,6 +127931,7 @@ async function handleToolCall(server, session, id, params) {
 	let tokenSource = new import_main$1.CancellationTokenSource();
 	let start = Date.now();
 	let done = false;
+	let cancelled = false;
 	let timer;
 	let timeout = tool?.annotations?.readOnlyHint === true ? server.readTimeout : server.timeout;
 	const finish = (fn) => {
@@ -127747,7 +127941,7 @@ async function handleToolCall(server, session, id, params) {
 		session.pending.delete(id);
 		session.inFlight--;
 		tokenSource.dispose();
-		fn();
+		if (!cancelled) fn();
 	};
 	session.inFlight++;
 	try {
@@ -127763,7 +127957,11 @@ async function handleToolCall(server, session, id, params) {
 		})]);
 		else resultPromise = callPromise;
 		session.pending.set(id, {
-			cancel: () => tokenSource.cancel(),
+			cancel: () => {
+				cancelled = true;
+				tokenSource.cancel();
+				finish(() => {});
+			},
 			timer
 		});
 		let result = await resultPromise;
@@ -127785,6 +127983,7 @@ async function handleToolCall(server, session, id, params) {
 	}
 }
 async function handleMessage(server, session, msg) {
+	if (!session.active) return;
 	session.touch();
 	if (!msg || typeof msg !== "object" || msg.jsonrpc !== "2.0" || typeof msg.method !== "string") {
 		session.sendError(msg && typeof msg.id !== "undefined" ? msg.id : null, JSONRPC_INVALID_REQUEST, "Invalid message");
@@ -127975,7 +128174,7 @@ var init_framing = __esmMin((() => {
 		maxBytes;
 		onFrame;
 		onError;
-		buffer = "";
+		buffer = Buffer.alloc(0);
 		disposed = false;
 		constructor(maxBytes = DEFAULT_FRAME_MAX_BYTES, onFrame, onError) {
 			this.maxBytes = maxBytes;
@@ -127984,37 +128183,42 @@ var init_framing = __esmMin((() => {
 		}
 		push(chunk) {
 			if (this.disposed) return;
-			this.buffer += typeof chunk === "string" ? chunk : chunk.toString("utf8");
-			if (this.buffer.length > this.maxBytes && this.buffer.indexOf("\n") === -1) {
-				this.onError({ message: `Frame exceeds ${this.maxBytes} bytes` });
-				this.buffer = "";
-				return;
-			}
+			let buf = typeof chunk === "string" ? Buffer.from(chunk, "utf8") : chunk;
+			if (buf.length === 0) return;
+			this.buffer = this.buffer.length === 0 ? buf : Buffer.concat([this.buffer, buf]);
 			let index;
-			while ((index = this.buffer.indexOf("\n")) !== -1) {
-				let line = this.buffer.slice(0, index);
-				this.buffer = this.buffer.slice(index + 1);
+			while ((index = this.buffer.indexOf(10)) !== -1) {
+				let line = this.buffer.subarray(0, index);
+				this.buffer = this.buffer.subarray(index + 1);
 				if (line.length === 0) continue;
 				if (line.length > this.maxBytes) {
 					this.onError({ message: `Frame exceeds ${this.maxBytes} bytes` });
 					continue;
 				}
-				let msg;
-				try {
-					msg = JSON.parse(line);
-				} catch (e) {
-					this.onError({
-						message: e instanceof Error ? e.message : String(e),
-						raw: line
-					});
-					continue;
-				}
-				this.onFrame(msg);
+				this.processLine(line);
 			}
+			if (this.buffer.length > this.maxBytes) {
+				this.onError({ message: `Frame exceeds ${this.maxBytes} bytes` });
+				this.buffer = Buffer.alloc(0);
+			}
+		}
+		processLine(line) {
+			let text = line.toString("utf8");
+			let msg;
+			try {
+				msg = JSON.parse(text);
+			} catch (e) {
+				this.onError({
+					message: e instanceof Error ? e.message : String(e),
+					raw: text
+				});
+				return;
+			}
+			this.onFrame(msg);
 		}
 		dispose() {
 			this.disposed = true;
-			this.buffer = "";
+			this.buffer = Buffer.alloc(0);
 		}
 	};
 }));
@@ -128072,9 +128276,15 @@ var init_session$1 = __esmMin((() => {
 		* (and the exit notification) are processed in order so that shutdown/exit
 		* cannot cut off an in-flight tool call. Notifications such as
 		* notifications/cancelled are handled out of band and must not be queued.
+		* Once the session is closed, tasks that have not started yet are dropped:
+		* close is the session's execution boundary.
 		*/
 		enqueue(task) {
-			this.queue = this.queue.then(task, () => {});
+			let run = () => {
+				if (this.closed) return;
+				return task();
+			};
+			this.queue = this.queue.then(run, run);
 		}
 		touch() {
 			this.lastActiveAt = Date.now();
@@ -128139,6 +128349,11 @@ var init_session$1 = __esmMin((() => {
 			this.closed = true;
 			if (this.authTimer) clearTimeout(this.authTimer);
 			if (this.idleTimer) clearTimeout(this.idleTimer);
+			for (let pending of this.pending.values()) {
+				if (pending.timer) clearTimeout(pending.timer);
+				pending.cancel();
+			}
+			this.pending.clear();
 			this.onClose(this);
 			try {
 				this.socket.end();
@@ -128241,12 +128456,13 @@ var init_server = __esmMin((() => {
 		address;
 		disposed = false;
 		writeMutex = new Mutex();
+		toolChangeDisposable;
 		constructor(options, tools, resources) {
 			this.options = options;
 			this.ownsTools = tools === void 0;
 			this.tools = tools ?? new ToolRegistry();
 			this.resources = resources ?? new ResourceManager();
-			this.tools.onDidChange(() => {
+			this.toolChangeDisposable = this.tools.onDidChange(() => {
 				this.broadcastNotification(NOTIFICATION_TOOLS_LIST_CHANGED, void 0);
 			});
 		}
@@ -128341,11 +128557,7 @@ var init_server = __esmMin((() => {
 		cancelRequest(session, requestId) {
 			if (requestId === void 0 || requestId === null) return;
 			let pending = session.pending.get(requestId);
-			if (pending) {
-				pending.cancel();
-				if (pending.timer) clearTimeout(pending.timer);
-				session.pending.delete(requestId);
-			}
+			if (pending) pending.cancel();
 		}
 		/**
 		* Global write lock: mutating tool calls are serialized across all
@@ -128367,6 +128579,7 @@ var init_server = __esmMin((() => {
 		dispose() {
 			if (this.disposed) return;
 			this.disposed = true;
+			this.toolChangeDisposable.dispose();
 			for (let session of this.sessions.values()) session.close();
 			this.sessions.clear();
 			if (this.ownsTools) this.tools.dispose();
@@ -128385,6 +128598,7 @@ var init_server = __esmMin((() => {
 			if (!this.options.authRequired) session.authenticated = true;
 			this.sessions.set(session.id, session);
 			let splitter = new FrameSplitter(this.options.frameMaxBytes ?? 16777216, (msg) => {
+				if (!session.active) return;
 				let isRequest = typeof msg?.id !== "undefined";
 				let isExit = msg?.method === "notifications/exit";
 				if (isRequest || isExit) {
@@ -128397,6 +128611,10 @@ var init_server = __esmMin((() => {
 				this.handleFrameError(session, err);
 			});
 			socket.on("data", (chunk) => {
+				if (!session.active) {
+					socket.destroy();
+					return;
+				}
 				splitter.push(chunk);
 			});
 			socket.on("error", (err) => {
@@ -129272,7 +129490,6 @@ function hoverContents(contents) {
 	else if (item && typeof item === "object") {
 		let markdown = item;
 		if (typeof markdown.value === "string") parts.push(markdown.value);
-		else if (typeof item.value === "string") parts.push(item.value);
 	}
 	return parts;
 }
@@ -129365,8 +129582,7 @@ async function getDocumentSymbolResult(doc, serviceId, token) {
 		if (serviceId) {
 			let call = await serviceCall(serviceId, "textDocument/documentSymbol", { textDocument: { uri: doc.uri } }, token);
 			if (call.error) return { error: `Document symbol request failed: ${call.error}` };
-			let result = call.result;
-			return { symbols: Array.isArray(result) && result.length > 0 ? DocumentSymbol.is(result[0]) ? result : asDocumentSymbolTree(result) : null };
+			return { symbols: normalizeDocumentSymbols(call.result) };
 		}
 		if (!hasProvider("documentSymbol", doc)) return { error: `Document symbol provider not found for ${doc.uri}` };
 		try {
@@ -129375,6 +129591,10 @@ async function getDocumentSymbolResult(doc, serviceId, token) {
 			return { error: `Document symbol request failed: ${e instanceof Error ? e.message : String(e)}` };
 		}
 	});
+}
+function normalizeDocumentSymbols(result) {
+	if (!Array.isArray(result) || result.length === 0) return null;
+	return DocumentSymbol.is(result[0]) ? result : asDocumentSymbolTree(result);
 }
 async function runBatchMethod(method, doc, pos, serviceId, maxResults, includeDeclaration, token) {
 	switch (method) {
@@ -129429,6 +129649,74 @@ function codeActionSummary(action) {
 			command: action.command.command,
 			title: action.command.title
 		} : void 0
+	};
+}
+function hoverResultText(hovers) {
+	return hovers.map((h) => h.contents.join("\n\n")).filter(Boolean).join("\n\n---\n\n") || "No hover content";
+}
+function signatureResultText(result) {
+	if (result.signatures.length === 0) return "No signature help";
+	return result.signatures.map((signature, index) => {
+		return `${index === result.activeSignature ? "*" : " "} ${signature.label}`;
+	}).join("\n");
+}
+function documentSymbolsText(limited) {
+	if (limited.items.length === 0) return "No document symbols";
+	return limited.items.map((symbol) => `${"  ".repeat(symbol.depth)}${symbol.name} (${symbol.kind})`).join("\n") + (limited.truncated ? `\n\nTruncated: showing ${limited.items.length} of ${limited.total} symbols (raise maxResults to return more)` : "");
+}
+function workspaceSymbolsText(limited) {
+	if (limited.items.length === 0) return "No workspace symbols";
+	return limited.items.map((symbol) => `${symbol.name} (${symbol.kind})${symbol.containerName ? " in " + symbol.containerName : ""}`).join("\n") + (limited.truncated ? `\n\nTruncated: showing ${limited.items.length} of ${limited.total} symbols (raise maxResults to return more)` : "");
+}
+function batchResultText(method, result) {
+	if (result?.error) return `${method}: error - ${result.error}`;
+	if (result?.locations) return `${method}: ${result.returned} of ${result.count} location(s)${result.truncated ? " (truncated)" : ""}`;
+	if (result?.symbols) return `${method}: ${result.returned} of ${result.count} symbol(s)${result.truncated ? " (truncated)" : ""}`;
+	if (result?.hovers) return `${method}: ${result.count} hover item(s)`;
+	if (result?.signatures) return `${method}: ${result.signatures.length} signature(s)`;
+	return `${method}: done`;
+}
+function diagnosticText(diagnostic) {
+	let severity = [
+		"Error",
+		"Warning",
+		"Information",
+		"Hint"
+	][(diagnostic.severity ?? 1) - 1] ?? "Unknown";
+	let pos = diagnostic.range.start;
+	let codeText = "";
+	let code = diagnostic.code;
+	if (code != null) codeText = typeof code === "object" ? String(code.value) : String(code);
+	return `${severity} ${pos.line + 1}:${pos.character + 1} ${diagnostic.message}${codeText ? ` [${codeText}]` : ""}`;
+}
+function diagnosticsText(limited) {
+	if (limited.items.length === 0) return "No diagnostics";
+	return limited.items.map(diagnosticText).join("\n") + (limited.truncated ? `\n\nTruncated: showing ${limited.items.length} of ${limited.total} diagnostics (raise maxResults to return more)` : "");
+}
+function codeActionsText(actions, limited) {
+	if (actions.length === 0) return "No code actions";
+	return actions.map((action, index) => `${index}. ${action.title}${action.disabled ? " (disabled: " + action.disabled.reason + ")" : ""}`).join("\n") + (limited.truncated ? `\n\nTruncated: showing ${actions.length} of ${limited.total} actions (raise maxResults to return more)` : "");
+}
+function selectCodeAction(actions, args) {
+	let action;
+	if (typeof args?.title === "string") {
+		action = actions.find((item) => item.title === args.title);
+		if (!action) return { error: `Code action not found: ${args.title}` };
+	} else if (typeof args?.index === "number") {
+		action = actions[args.index];
+		if (!action) return { error: `Code action at index ${args.index} not found` };
+	} else return { error: "title or index is required" };
+	if (action.disabled) return { error: `Code action "${action.title}" is disabled: ${action.disabled.reason}` };
+	return { action };
+}
+function serviceCapabilitySummary(stat, service) {
+	let init = service?.client?.initializeResult;
+	return {
+		id: stat.id,
+		state: stat.state,
+		languageIds: stat.languageIds,
+		capabilities: init?.capabilities ?? null,
+		serverInfo: init?.serverInfo ?? null
 	};
 }
 function symbolKindName(kind) {
@@ -129560,7 +129848,7 @@ function createLspTools() {
 				let res = await getHoverResult(doc, pos, configuredServiceId(doc), context.token);
 				if ("error" in res) return errorResult(res.error);
 				let list = res.hovers.map(hoverSummary);
-				return textResult(list.map((h) => h.contents.join("\n\n")).filter(Boolean).join("\n\n---\n\n") || "No hover content", {
+				return textResult(hoverResultText(list), {
 					uri: doc.uri,
 					position: pos,
 					count: list.length,
@@ -129619,9 +129907,7 @@ function createLspTools() {
 					position: pos,
 					...signatureSummary(res.help)
 				};
-				return textResult(result.signatures.length === 0 ? "No signature help" : result.signatures.map((s, i) => {
-					return `${i === result.activeSignature ? "*" : " "} ${s.label}`;
-				}).join("\n"), result);
+				return textResult(signatureResultText(result), result);
 			}
 		},
 		{
@@ -129681,7 +129967,7 @@ function createLspTools() {
 					truncated: limited.truncated,
 					symbols: limited.items
 				};
-				return textResult(limited.items.length === 0 ? "No document symbols" : limited.items.map((s) => `${"  ".repeat(s.depth)}${s.name} (${s.kind})`).join("\n") + (limited.truncated ? `\n\nTruncated: showing ${limited.items.length} of ${limited.total} symbols (raise maxResults to return more)` : ""), result);
+				return textResult(documentSymbolsText(limited), result);
 			}
 		},
 		{
@@ -129749,7 +130035,7 @@ function createLspTools() {
 					truncated: limited.truncated,
 					symbols: limited.items
 				};
-				return textResult(limited.items.length === 0 ? "No workspace symbols" : limited.items.map((s) => `${s.name} (${s.kind})${s.containerName ? " in " + s.containerName : ""}`).join("\n") + (limited.truncated ? `\n\nTruncated: showing ${limited.items.length} of ${limited.total} symbols (raise maxResults to return more)` : ""), result);
+				return textResult(workspaceSymbolsText(limited), result);
 			}
 		},
 		{
@@ -129905,15 +130191,7 @@ function createLspTools() {
 						results[m] = { error: `Batch method ${m} failed: ${e instanceof Error ? e.message : String(e)}` };
 					}
 				}));
-				return textResult(methods.map((m) => {
-					let r = results[m];
-					if (r?.error) return `${m}: error - ${r.error}`;
-					if (r?.locations) return `${m}: ${r.returned} of ${r.count} location(s)${r.truncated ? " (truncated)" : ""}`;
-					if (r?.symbols) return `${m}: ${r.returned} of ${r.count} symbol(s)${r.truncated ? " (truncated)" : ""}`;
-					if (r?.hovers) return `${m}: ${r.count} hover item(s)`;
-					if (r?.signatures) return `${m}: ${r.signatures.length} signature(s)`;
-					return `${m}: done`;
-				}).join("\n"), {
+				return textResult(methods.map((method) => batchResultText(method, results[method])).join("\n"), {
 					uri: doc.uri,
 					position: pos ?? null,
 					results
@@ -129982,19 +130260,7 @@ function createLspTools() {
 					truncated: limited.truncated,
 					diagnostics: limited.items
 				};
-				return textResult(limited.items.length === 0 ? "No diagnostics" : limited.items.map((d) => {
-					let severity = [
-						"Error",
-						"Warning",
-						"Information",
-						"Hint"
-					][(d.severity ?? 1) - 1] ?? "Unknown";
-					let pos = d.range.start;
-					let codeText = "";
-					let code = d.code;
-					if (code != null) codeText = typeof code === "object" ? String(code.value) : String(code);
-					return `${severity} ${pos.line + 1}:${pos.character + 1} ${d.message}${codeText ? ` [${codeText}]` : ""}`;
-				}).join("\n") + (limited.truncated ? `\n\nTruncated: showing ${limited.items.length} of ${limited.total} diagnostics (raise maxResults to return more)` : ""), result);
+				return textResult(diagnosticsText(limited), result);
 			}
 		},
 		{
@@ -130066,7 +130332,7 @@ function createLspTools() {
 					truncated: limited.truncated,
 					actions
 				};
-				return textResult(actions.length === 0 ? "No code actions" : actions.map((a, i) => `${i}. ${a.title}${a.disabled ? " (disabled: " + a.disabled.reason + ")" : ""}`).join("\n") + (limited.truncated ? `\n\nTruncated: showing ${actions.length} of ${limited.total} actions (raise maxResults to return more)` : ""), result);
+				return textResult(codeActionsText(actions, limited), result);
 			}
 		},
 		{
@@ -130105,15 +130371,9 @@ function createLspTools() {
 			handler: async (args, context) => {
 				let list = await getCodeActionList(args, context);
 				if (list.error) return errorResult(list.error);
-				let selected;
-				if (typeof args?.title === "string") {
-					selected = list.actions.find((a) => a.title === args.title);
-					if (!selected) return errorResult(`Code action not found: ${args.title}`);
-				} else if (typeof args?.index === "number") {
-					selected = list.actions[args.index];
-					if (!selected) return errorResult(`Code action at index ${args.index} not found`);
-				} else return errorResult("title or index is required");
-				if (selected.disabled) return errorResult(`Code action "${selected.title}" is disabled: ${selected.disabled.reason}`);
+				let selection = selectCodeAction(list.actions, args);
+				if (selection.error) return errorResult(selection.error);
+				let selected = selection.action;
 				let resolved;
 				try {
 					resolved = await languages_default.resolveCodeAction(selected, context.token);
@@ -130370,16 +130630,7 @@ function createLspTools() {
 				idempotentHint: true
 			},
 			handler: async () => {
-				let servicesList = services_default.getServiceStats().map((stat) => {
-					let init = services_default.getService(stat.id)?.client?.initializeResult;
-					return {
-						id: stat.id,
-						state: stat.state,
-						languageIds: stat.languageIds,
-						capabilities: init?.capabilities ?? null,
-						serverInfo: init?.serverInfo ?? null
-					};
-				});
+				let servicesList = services_default.getServiceStats().map((stat) => serviceCapabilitySummary(stat, services_default.getService(stat.id)));
 				let result = {
 					count: servicesList.length,
 					services: servicesList
@@ -130598,15 +130849,20 @@ async function getVisualSelection(doc, nvim) {
 		let end = Position.create(Math.max(sl, cl), 0);
 		range = Range.create(start, end);
 	} else {
-		let endLine = lineText(doc, cl - 1);
-		if (exclusive && !(sl === cl && startChar === endChar)) endChar = endChar - 1;
-		if (endChar !== endLine.length) endChar = endChar + 1;
 		let start = Position.create(sl - 1, startChar);
 		let end = Position.create(cl - 1, endChar);
 		if (end.line < start.line || end.line === start.line && end.character < start.character) {
 			let tmp = start;
 			start = end;
 			end = tmp;
+		}
+		let samePosition = start.line === end.line && start.character === end.character;
+		if (!exclusive || samePosition) {
+			let endLine = lineText(doc, end.line);
+			if (end.character !== endLine.length) {
+				let character = Array.from(endLine.slice(end.character))[0];
+				end = Position.create(end.line, end.character + (character?.length ?? 0));
+			}
 		}
 		range = Range.create(start, end);
 	}
@@ -130832,7 +131088,7 @@ function searchWithRg(pattern, args, root, maxResults) {
 				let line = output.slice(0, idx);
 				output = output.slice(idx + 1);
 				let match = parseRgLine(line);
-				if (match) {
+				if (match && !checkPath(match.file)) {
 					results.push(match);
 					if (results.length >= maxResults) {
 						done = true;
@@ -130855,8 +131111,9 @@ function escapeRegExp(text) {
 	return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 async function searchWithJs(pattern, args, root, maxResults) {
-	let uris = await workspace_default.findFiles(typeof args.include === "string" && args.include ? args.include : "**/*", args.exclude || null, 500);
-	let flags = args.caseSensitive === true ? "g" : "gi";
+	let include = new RelativePattern$1(URI.file(root), typeof args.include === "string" && args.include ? args.include : "**/*");
+	let uris = await workspace_default.findFiles(include, args.exclude || null, 500);
+	let flags = args.caseSensitive === true ? "" : "i";
 	let source = args.regex === true ? pattern : escapeRegExp(pattern);
 	let re;
 	try {
@@ -130868,6 +131125,7 @@ async function searchWithJs(pattern, args, root, maxResults) {
 	for (let uri of uris) {
 		if (results.length >= maxResults) break;
 		let filepath = uri.fsPath;
+		if (checkPath(filepath)) continue;
 		let content;
 		try {
 			if (fs$3.statSync(filepath).size > 2 * 1024 * 1024) continue;
@@ -131265,8 +131523,9 @@ function createWorkspaceTools() {
 			},
 			annotations: { destructiveHint: true },
 			handler: async (args) => {
-				let filepath = toFsPath(args?.filepath);
-				if (!filepath) return errorResult("filepath is required");
+				let input = args?.filepath;
+				if (typeof input !== "string" || input.length === 0) return errorResult("filepath is required");
+				let filepath = toFsPath(input);
 				let denied = checkPath(filepath, { write: true });
 				if (denied) return errorResult(denied);
 				try {
@@ -131315,9 +131574,11 @@ function createWorkspaceTools() {
 			},
 			annotations: { destructiveHint: true },
 			handler: async (args) => {
-				let oldPath = toFsPath(args?.oldPath);
-				let newPath = toFsPath(args?.newPath);
-				if (!oldPath || !newPath) return errorResult("oldPath and newPath are required");
+				let oldInput = args?.oldPath;
+				let newInput = args?.newPath;
+				if (typeof oldInput !== "string" || oldInput.length === 0 || typeof newInput !== "string" || newInput.length === 0) return errorResult("oldPath and newPath are required");
+				let oldPath = toFsPath(oldInput);
+				let newPath = toFsPath(newInput);
 				let denied = checkPath(oldPath, { write: true }) ?? checkPath(newPath, { write: true });
 				if (denied) return errorResult(denied);
 				try {
@@ -131364,8 +131625,9 @@ function createWorkspaceTools() {
 			},
 			annotations: { destructiveHint: true },
 			handler: async (args) => {
-				let filepath = toFsPath(args?.filepath);
-				if (!filepath) return errorResult("filepath is required");
+				let input = args?.filepath;
+				if (typeof input !== "string" || input.length === 0) return errorResult("filepath is required");
+				let filepath = toFsPath(input);
 				let denied = checkPath(filepath, { write: true });
 				if (denied) return errorResult(denied);
 				try {
@@ -131387,6 +131649,7 @@ function createWorkspaceTools() {
 }
 var init_workspace$1 = __esmMin((() => {
 	init_esm();
+	init_relativePattern();
 	init_services$1();
 	init_node();
 	init_workspace$2();
@@ -131421,6 +131684,8 @@ var init_mcp = __esmMin((() => {
 	logger$19 = createLogger("mcp");
 	McpService = class {
 		server;
+		startPromise;
+		generation = 0;
 		notifications;
 		token = "";
 		registry;
@@ -131472,21 +131737,36 @@ var init_mcp = __esmMin((() => {
 		/**
 		* Start the MCP socket server. No-op when mcp.autoStart is false, unless
 		* force is true (`:CocCommand mcp.start` starts the server regardless).
+		* Concurrent calls share a single start flow; a stop() while starting
+		* invalidates the pending start so its server and discovery artifacts are
+		* never published.
 		*/
-		async start(force = false) {
-			if (this.server) return;
+		start(force = false) {
+			if (this.server) return Promise.resolve();
+			if (this.startPromise) return this.startPromise;
+			let promise = this.doStart(force);
+			this.startPromise = promise;
+			promise.then(() => {
+				if (this.startPromise === promise) this.startPromise = void 0;
+			}, () => {
+				if (this.startPromise === promise) this.startPromise = void 0;
+			});
+			return promise;
+		}
+		async doStart(force) {
 			let config = this.getConfig();
 			if (!force && !config.autoStart) {
 				logger$19.info("MCP server disabled by configuration");
 				return;
 			}
+			let generation = this.generation;
 			let pid = process.pid;
 			if (workspace_default.nvim) try {
 				pid = await workspace_default.nvim.call("getpid", []);
 			} catch (_e) {}
 			this.pid = pid;
 			let token = generateToken();
-			let socketPath = config.transport === "unix" ? path$3.join(getMcpDir(), `coc-${process.pid}.sock`) : void 0;
+			let socketPath = config.transport === "unix" ? path$4.join(getMcpDir(), `coc-${process.pid}.sock`) : void 0;
 			try {
 				fs$3.mkdirSync(getMcpDir(), { recursive: true });
 			} catch (e) {
@@ -131511,6 +131791,10 @@ var init_mcp = __esmMin((() => {
 			}, registry, new ResourceManager());
 			try {
 				let address = await server.listen();
+				if (generation !== this.generation) {
+					server.dispose();
+					return;
+				}
 				this.server = server;
 				this.notifications = new NotificationManager(server);
 				this.vimLeaveDisposable = events_default.on("VimLeavePre", () => {
@@ -131564,9 +131848,10 @@ var init_mcp = __esmMin((() => {
 		* Stop the MCP socket server and remove the discovery file.
 		*/
 		stop() {
-			if (!this.server) return;
-			this.server.dispose();
+			this.generation++;
+			let server = this.server;
 			this.server = void 0;
+			if (server) server.dispose();
 			if (this.notifications) {
 				this.notifications.dispose();
 				this.notifications = void 0;
@@ -132133,7 +132418,7 @@ function makeRequireFunction(cocExports) {
 function compileInSandbox(sandbox, cocExports) {
 	return function(content, filename) {
 		const require = makeRequireFunction.call(this, cocExports);
-		const dirname = path$3.dirname(filename);
+		const dirname = path$4.dirname(filename);
 		const newContent = content.startsWith("#!") ? content.replace(/^#!.*/, "") : content;
 		const wrapper = Module.wrap(newContent);
 		const compiledWrapper = vm.runInContext(wrapper, sandbox, { filename });
@@ -132226,7 +132511,7 @@ function createExtension(id, filename, isEmpty) {
 		deactivate: null
 	};
 	const sandbox = createSandbox(filename, getLogger(!global.__isMain && true, id), id);
-	let root = path$3.dirname(filename);
+	let root = path$4.dirname(filename);
 	if (fs$3.existsSync(root)) try {
 		root = fs$3.realpathSync(root);
 	} catch (e) {}
@@ -132315,17 +132600,17 @@ function getEntryFile(main) {
 	return main;
 }
 async function loadGlobalJsonAsync(folder, version) {
-	let content = await readFile(path$3.join(folder, "package.json"), "utf8");
+	let content = await readFile(path$4.join(folder, "package.json"), "utf8");
 	let packageJSON = JSON.parse(content);
 	let { engines } = packageJSON;
 	let main = getEntryFile(packageJSON.main);
 	if (!engines || typeof engines.coc !== "string" && typeof engines.vscode !== "string") throw new Error("Invalid engines field");
 	if (Object.keys(engines).includes("coc") && !semver.satisfies(version, engines["coc"].replace(/^\^/, ">="))) throw new Error(`coc.nvim version not match, required ${engines["coc"]}`);
-	if (!engines.vscode && !fs$3.existsSync(path$3.join(folder, main))) throw new Error(`main file ${main} not found, you may need to build the project.`);
+	if (!engines.vscode && !fs$3.existsSync(path$4.join(folder, main))) throw new Error(`main file ${main} not found, you may need to build the project.`);
 	return packageJSON;
 }
 function loadExtensionJson(folder, version, errors) {
-	let jsonFile = path$3.join(folder, "package.json");
+	let jsonFile = path$4.join(folder, "package.json");
 	if (!fs$3.existsSync(jsonFile)) {
 		errors.push(`package.json not found in ${folder}`);
 		return;
@@ -132335,7 +132620,7 @@ function loadExtensionJson(folder, version, errors) {
 	let main = getEntryFile(packageJSON.main);
 	if (!name) errors.push(`can't find name in package.json`);
 	if (!engines || !objectLiteral(engines)) errors.push(`invalid engines in ${jsonFile}`);
-	if (engines && !engines.vscode && !fs$3.existsSync(path$3.join(folder, main))) errors.push(`main file ${main} not found, you may need to build the project.`);
+	if (engines && !engines.vscode && !fs$3.existsSync(path$4.join(folder, main))) errors.push(`main file ${main} not found, you may need to build the project.`);
 	if (engines) {
 		let keys = Object.keys(engines);
 		if (!keys.includes("coc") && !keys.includes("vscode")) errors.push(`Engines in package.json doesn't have coc or vscode`);
@@ -132362,7 +132647,7 @@ function checkExtensionRoot(root) {
 			fs$3.unlinkSync(root);
 			fs$3.mkdirSync(root, { recursive: true });
 		}
-		let jsonFile = path$3.join(root, "package.json");
+		let jsonFile = path$4.join(root, "package.json");
 		if (!fs$3.existsSync(jsonFile)) fs$3.writeFileSync(jsonFile, "{\"dependencies\":{}}", "utf8");
 	} catch (e) {
 		console.error(`Unexpected error when check data home ${root}: ${e}`);
@@ -132410,7 +132695,7 @@ var init_stat = __esmMin((() => {
 		}
 		migrate() {
 			let curr = loadJson(this.jsonFile);
-			let db = path$3.join(this.folder, "db.json");
+			let db = path$4.join(this.folder, "db.json");
 			let changed = false;
 			if (fs$3.existsSync(db)) {
 				let obj = loadJson(db);
@@ -132452,7 +132737,7 @@ var init_stat = __esmMin((() => {
 			this.localExtensions.set(name, folder);
 		}
 		getFolder(name) {
-			if (this.extensions.has(name)) return path$3.join(this.folder, "node_modules", name);
+			if (this.extensions.has(name)) return path$4.join(this.folder, "node_modules", name);
 			return this.localExtensions.get(name);
 		}
 		getExtensionsStat() {
@@ -132530,7 +132815,7 @@ var init_stat = __esmMin((() => {
 			});
 			let currentUrls = [];
 			let exists = [];
-			for (let [key, val] of Object.entries(dependencies)) if (fs$3.existsSync(path$3.join(this.folder, "node_modules", key, "package.json"))) {
+			for (let [key, val] of Object.entries(dependencies)) if (fs$3.existsSync(path$4.join(this.folder, "node_modules", key, "package.json"))) {
 				exists.push(key);
 				if (typeof val === "string" && /^https?:/.test(val)) currentUrls.push(val);
 			}
@@ -132549,7 +132834,7 @@ var init_stat = __esmMin((() => {
 			writeJson(this.jsonFile, curr);
 		}
 		get jsonFile() {
-			return path$3.join(this.folder, "package.json");
+			return path$4.join(this.folder, "package.json");
 		}
 	};
 }));
@@ -132640,8 +132925,8 @@ var init_manager = __esmMin((() => {
 		return ExtensionType;
 	}({});
 	extensionRegistry = Registry.as(Extensions$3.ExtensionContribution);
-	memos = new Memos(path$3.resolve(dataHome, "memos.json"));
-	memos.merge(path$3.resolve(dataHome, "../memos.json"));
+	memos = new Memos(path$4.resolve(dataHome, "memos.json"));
+	memos.merge(path$4.resolve(dataHome, "../memos.json"));
 	configurationRegistry = Registry.as(Extensions$1.Configuration);
 	ExtensionManager = class {
 		states;
@@ -132653,7 +132938,7 @@ var init_manager = __esmMin((() => {
 		_onDidLoadExtension = new import_main$1.Emitter();
 		_onDidActiveExtension = new import_main$1.Emitter();
 		_onDidUnloadExtension = new import_main$1.Emitter();
-		singleExtensionsRoot = path$3.join(configHome, "coc-extensions");
+		singleExtensionsRoot = path$4.join(configHome, "coc-extensions");
 		modulesFolder;
 		onDidLoadExtension = this._onDidLoadExtension.event;
 		onDidActiveExtension = this._onDidActiveExtension.event;
@@ -132661,7 +132946,7 @@ var init_manager = __esmMin((() => {
 		constructor(states, folder) {
 			this.states = states;
 			this.folder = folder;
-			this.modulesFolder = path$3.join(this.folder, "node_modules");
+			this.modulesFolder = path$4.join(this.folder, "node_modules");
 		}
 		activateExtensions() {
 			this.activated = true;
@@ -132681,7 +132966,7 @@ var init_manager = __esmMin((() => {
 			let folder = this.singleExtensionsRoot;
 			let files = await getJsFiles(folder);
 			await Promise.allSettled(files.map((file) => {
-				return this.loadExtensionFile(path$3.join(folder, file));
+				return this.loadExtensionFile(path$4.join(folder, file));
 			}));
 		}
 		attachEvents() {
@@ -132925,16 +133210,16 @@ var init_manager = __esmMin((() => {
 		async loadExtensionFile(filepath, noActive = false) {
 			let stat = await statAsync(filepath);
 			if (!stat || !stat.isFile()) return;
-			let filename = path$3.basename(filepath);
-			let basename = path$3.basename(filepath, ".js");
+			let filename = path$4.basename(filepath);
+			let basename = path$4.basename(filepath, ".js");
 			let name = "single-" + basename;
-			let root = path$3.dirname(filepath);
+			let root = path$4.dirname(filepath);
 			let packageJSON = {
 				name,
 				main: filename,
 				engines: { coc: ">=0.0.82" }
 			};
-			let obj = loadJson$1(path$3.join(root, basename + ".json"));
+			let obj = loadJson$1(path$4.join(root, basename + ".json"));
 			for (const attr of ["activationEvents", "contributes"]) packageJSON[attr] = obj[attr];
 			await this.unloadExtension(name);
 			await this.registerExtension(root, packageJSON, 2, noActive);
@@ -132953,7 +133238,7 @@ var init_manager = __esmMin((() => {
 			if (this.states.isDisabled(id)) return;
 			let isActive = false;
 			let result;
-			let filename = path$3.join(root, packageJSON.main || "index.js");
+			let filename = path$4.join(root, packageJSON.main || "index.js");
 			let extensionPath = extensionType === 2 ? filename : root;
 			let exports;
 			let ext;
@@ -132972,8 +133257,8 @@ var init_manager = __esmMin((() => {
 								extensionPath,
 								globalState: memos.createMemento(`${id}|global`),
 								workspaceState: memos.createMemento(`${id}|${workspace_default.rootPath}`),
-								asAbsolutePath: (relativePath) => path$3.join(root, relativePath),
-								storagePath: path$3.join(this.folder, `${id}-data`),
+								asAbsolutePath: (relativePath) => path$4.join(root, relativePath),
+								storagePath: path$4.join(this.folder, `${id}-data`),
 								logger: createLogger(`extension:${id}`)
 							};
 							let res = await Promise.resolve(ext.activate(context));
@@ -132992,7 +133277,7 @@ var init_manager = __esmMin((() => {
 				id,
 				packageJSON,
 				extensionPath,
-				extensionUri: URI.parse(extensionPath),
+				extensionUri: URI.file(extensionPath),
 				get _exports() {
 					return isTester ? ext : void 0;
 				},
@@ -133067,7 +133352,7 @@ var init_manager = __esmMin((() => {
 				await this.unloadExtension(id);
 				this.states.removeExtension(id);
 				extensionRegistry.unregistExtension(id);
-				await remove(path$3.join(this.modulesFolder, id));
+				await remove(path$4.join(this.modulesFolder, id));
 			}
 			if (filtered.length > 0) window_default.showWarningMessage(`Global extensions ${filtered.join(", ")} not found`);
 			if (globals.length > 0) window_default.showInformationMessage(`Removed extensions: ${globals.join(" ")}`);
@@ -133082,7 +133367,7 @@ var init_manager = __esmMin((() => {
 			} else {
 				this.states.setDisable(id, false);
 				if (id.startsWith("single-")) {
-					let filepath = path$3.join(this.singleExtensionsRoot, `${id.replace(/^single-/, "")}.js`);
+					let filepath = path$4.join(this.singleExtensionsRoot, `${id.replace(/^single-/, "")}.js`);
 					await this.loadExtensionFile(filepath);
 				} else {
 					let folder = this.states.getFolder(id);
@@ -133117,7 +133402,7 @@ var init_manager = __esmMin((() => {
 		async load(filepath, active) {
 			let name;
 			if (isDirectory(filepath)) {
-				name = loadJson$1(path$3.join(filepath, "package.json")).name;
+				name = loadJson$1(path$4.join(filepath, "package.json")).name;
 				await this.loadExtension(filepath, true);
 			} else name = await this.loadExtensionFile(filepath, true);
 			if (!name) throw new Error(`Unable to load extension at ${filepath}`);
@@ -133329,7 +133614,11 @@ var init_ui = __esmMin((() => {
 			let isSync = events_default.requesting === true;
 			let { nvim } = workspace_default;
 			nvim.pauseNotification();
-			nvim.command(isSync ? "enew" : this.settings.updateUIInTab ? "tabnew" : "vs +enew", true);
+			let name = "[Coc Extensions]";
+			let setup = "buftype=nofile bufhidden=wipe nobuflisted";
+			if (isSync) nvim.command(`edit +setl\\ ${setup} ${name}`, true);
+			else if (this.settings.updateUIInTab) nvim.command(`tabnew +setl\\ ${setup} ${name}`, true);
+			else nvim.command(`vs +setl\\ ${setup} ${name}`, true);
 			nvim.call("bufnr", ["%"], true);
 			nvim.command("setl buftype=nofile bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1", true);
 			if (!isSync) nvim.command("nnoremap <silent><nowait><buffer> q :q<CR>", true);
@@ -133374,7 +133663,7 @@ var init_extension = __esmMin((() => {
 	init_stat();
 	init_ui();
 	logger$15 = createLogger("extensions-index");
-	EXTENSIONS_FOLDER = path$3.join(dataHome, "extensions");
+	EXTENSIONS_FOLDER = path$4.join(dataHome, "extensions");
 	Extensions = class {
 		/**
 		* @internal
@@ -133387,7 +133676,7 @@ var init_extension = __esmMin((() => {
 		/**
 		* @internal
 		*/
-		modulesFolder = path$3.join(EXTENSIONS_FOLDER, "node_modules");
+		modulesFolder = path$4.join(EXTENSIONS_FOLDER, "node_modules");
 		globalPromise;
 		constructor() {
 			checkExtensionRoot(EXTENSIONS_FOLDER);
@@ -133658,7 +133947,7 @@ var init_extension = __esmMin((() => {
 		async globalExtensions() {
 			if (process.env.COC_NO_PLUGINS == "1") return [];
 			return (await Promise.all(Array.from(this.states.activated(), async (key) => {
-				let root = path$3.join(this.modulesFolder, key);
+				let root = path$4.join(this.modulesFolder, key);
 				try {
 					return {
 						root,
@@ -133679,7 +133968,7 @@ var init_extension = __esmMin((() => {
 			let lockedExtensions = this.states.lockedExtensions;
 			let infos = [];
 			Object.entries(dependencies).map(([key, val]) => {
-				let root = path$3.join(this.modulesFolder, key);
+				let root = path$4.join(this.modulesFolder, key);
 				let errors = [];
 				let obj = loadExtensionJson(root, VERSION, errors);
 				if (errors.length > 0) {
@@ -133743,7 +134032,7 @@ var init_extension = __esmMin((() => {
 			let files = fs$3.readdirSync(this.modulesFolder);
 			for (let file of files) {
 				if (folders.includes(file)) continue;
-				let p = path$3.join(this.modulesFolder, file);
+				let p = path$4.join(this.modulesFolder, file);
 				let stat = fs$3.lstatSync(p);
 				if (stat.isSymbolicLink()) fs$3.unlinkSync(p);
 				else if (stat.isDirectory()) fs$3.rmSync(p, {
@@ -134256,7 +134545,7 @@ function getLastPart(text) {
 	return text.slice(begin);
 }
 async function getFileItem(root, filename) {
-	let stat = await statAsync(path$3.join(root, filename));
+	let stat = await statAsync(path$4.join(root, filename));
 	if (stat) {
 		let dir = stat.isDirectory();
 		return {
@@ -134275,8 +134564,8 @@ function filterFiles(files, ignoreHidden, ignorePatterns = []) {
 	});
 }
 function getDirectory(pathstr, root) {
-	let part = /[\\/]$/.test(pathstr) ? pathstr : path$3.dirname(pathstr);
-	return path$3.isAbsolute(pathstr) ? part : path$3.join(root, part);
+	let part = /[\\/]$/.test(pathstr) ? pathstr : path$4.dirname(pathstr);
+	return path$4.isAbsolute(pathstr) ? part : path$4.join(root, part);
 }
 async function getItemsFromRoot(pathstr, root, ignoreHidden, ignorePatterns) {
 	let res = [];
@@ -134360,15 +134649,15 @@ var init_file = __esmMin((() => {
 		}
 		async getRoot(pathstr, part, filepath, cwd) {
 			let root;
-			let dirname = filepath ? path$3.dirname(filepath) : "";
+			let dirname = filepath ? path$4.dirname(filepath) : "";
 			if (pathstr.startsWith(".")) root = filepath ? dirname : cwd;
-			else if (this.isWindows && /^\w+:/.test(pathstr)) root = /[\\/]$/.test(pathstr) ? pathstr : path$3.win32.dirname(pathstr);
-			else if (!this.isWindows && pathstr.startsWith("/")) root = pathstr.endsWith("/") ? pathstr : path$3.posix.dirname(pathstr);
+			else if (this.isWindows && /^\w+:/.test(pathstr)) root = /[\\/]$/.test(pathstr) ? pathstr : path$4.win32.dirname(pathstr);
+			else if (!this.isWindows && pathstr.startsWith("/")) root = pathstr.endsWith("/") ? pathstr : path$4.posix.dirname(pathstr);
 			else if (part) {
-				let exists = await fs$3.promises.access(path$3.join(dirname, part)).then(() => true, () => false);
+				let exists = await fs$3.promises.access(path$4.join(dirname, part)).then(() => true, () => false);
 				if (exists) root = dirname;
 				else {
-					exists = await fs$3.promises.access(path$3.join(cwd, part)).then(() => true, () => false);
+					exists = await fs$3.promises.access(path$4.join(cwd, part)).then(() => true, () => false);
 					if (exists) root = cwd;
 				}
 			} else root = cwd;
@@ -134381,14 +134670,14 @@ var init_file = __esmMin((() => {
 			if (!option || option.startcol < opt.col) return null;
 			let { pathstr, part, startcol } = option;
 			let startPart = opt.col == startcol ? "" : byteSlice(opt.line, opt.col, startcol);
-			let ext = path$3.extname(path$3.basename(filepath));
+			let ext = path$4.extname(path$4.basename(filepath));
 			let cwd = await this.nvim.call("getcwd", []);
 			let root = await this.getRoot(pathstr, part, filepath, cwd);
 			if (!root || token.isCancellationRequested) return null;
 			let items = await getItemsFromRoot(pathstr, root, this.getConfig("ignoreHidden", true), this.getConfig("ignorePatterns", []));
 			let trimExt = this.shouldTrim(ext);
 			return { items: items.map((item) => {
-				let ex = path$3.extname(item.word);
+				let ex = path$4.extname(item.word);
 				item.word = trimExt && ex === ext ? item.word.replace(ext, "") : item.word;
 				return {
 					word: `${startPart}${item.word}`,
@@ -134495,8 +134784,8 @@ var init_sources = __esmMin((() => {
 		async createVimSourceExtension(filepath) {
 			let { nvim } = this;
 			try {
-				let name = path$3.basename(filepath, ".vim");
-				await nvim.command(`source ${filepath.split(path$3.sep).join(path$3.posix.sep)}`);
+				let name = path$4.basename(filepath, ".vim");
+				await nvim.command(`source ${filepath.split(path$4.sep).join(path$4.posix.sep)}`);
 				let fns = await nvim.call("coc#_remote_fns", name);
 				let lowercased = fns.map((fn) => fn[0].toLowerCase() + fn.slice(1));
 				for (let fn of ["init", "complete"]) if (!lowercased.includes(fn)) throw new Error(`function "coc#source#${name}#${fn}" not found`);
@@ -134584,10 +134873,10 @@ var init_sources = __esmMin((() => {
 		async createVimSources(pluginPath) {
 			if (this.remoteSourcePaths.includes(pluginPath) || !pluginPath) return;
 			this.remoteSourcePaths.push(pluginPath);
-			let folder = path$3.join(pluginPath, "autoload/coc/source");
+			let folder = path$4.join(pluginPath, "autoload/coc/source");
 			let stat = await statAsync(folder);
 			if (stat && stat.isDirectory()) {
-				let files = (await fs$3.promises.readdir(folder)).filter((s) => s.endsWith(".vim")).map((s) => path$3.join(folder, s));
+				let files = (await fs$3.promises.readdir(folder)).filter((s) => s.endsWith(".vim")).map((s) => path$4.join(folder, s));
 				await Promise.allSettled(files.map((p) => this.createVimSourceExtension(p)));
 			}
 		}
@@ -134964,7 +135253,8 @@ var init_completion = __esmMin((() => {
 					let pre = byteSlice(option.line, 0, option.col);
 					if (this.selectedItem) {
 						let { word, startcol } = this.popupEvent;
-						if (byteSlice(option.line, 0, startcol) + word == info.pre) {
+						let unchangedNoinsert = !this.popupEvent.inserted && option.bufnr == bufnr && option.linenr == info.lnum && pre + this.pum.search == info.pre && shouldStop(bufnr, info, option);
+						if (byteSlice(option.line, 0, startcol) + word == info.pre || unchangedNoinsert) {
 							this.pretext = info.pre;
 							return;
 						}
@@ -135716,6 +136006,10 @@ var init_cursors = __esmMin((() => {
 			this.disposables.push(commands_default.registerCommand("editor.action.addRanges", async (ranges) => {
 				await this.addRanges(ranges);
 			}, null, true));
+			this.disposables.push(commands_default.registerCommand("editor.action.cancelRanges", async () => {
+				let doc = await workspace_default.document;
+				this.cancel(doc.bufnr);
+			}, null, true));
 		}
 		loadConfiguration(e) {
 			if (!e || e.affectsConfiguration("cursors")) {
@@ -135891,7 +136185,7 @@ var init_LocationsDataProvider = __esmMin((() => {
 		}
 		getTreeItem(element) {
 			let item = new TreeItem(element.name, element.children ? 2 : 1);
-			if (this.config.enableTooltip) item.tooltip = path$3.relative(workspace_default.cwd, URI.parse(element.uri).fsPath);
+			if (this.config.enableTooltip) item.tooltip = path$4.relative(workspace_default.cwd, URI.parse(element.uri).fsPath);
 			if (typeof element.detail === "string" && element.detail.length > 0 && element.name !== element.detail) item.description = element.detail;
 			item.deprecated = element.tags?.includes(SymbolTag.Deprecated);
 			item.icon = this.getIcon(element.kind);
@@ -136109,6 +136403,8 @@ function toCodeActionText(action) {
 	let text = action.title;
 	let tooltip = action.command?.tooltip;
 	if (tooltip) text = `${text} - ${tooltip}`;
+	let kind = action.kind;
+	if (kind && kind.length > 0) text = `${text} [${kind.split(".")[0]}]`;
 	return text.length > 80 ? `${text.slice(0, 77)}...` : text;
 }
 var logger$11, CodeActions;
@@ -139136,7 +139432,7 @@ var init_buffer$2 = __esmMin((() => {
 						highlighter.addLine("　");
 						highlighter.addLine("　");
 						let lnum = count + highlighter.length;
-						highlighter.addText(`${isParentFolder(cwd, item.filepath) ? path$3.relative(cwd, item.filepath) : item.filepath}`);
+						highlighter.addText(`${isParentFolder(cwd, item.filepath) ? path$4.relative(cwd, item.filepath) : item.filepath}`);
 						let n = String(range.start + 1).length + String(range.end).length + 4;
 						if (!this.srcId) highlighter.addText(" ".repeat(n));
 						let base = 0 - highlighter.length - count;
@@ -139247,8 +139543,8 @@ var init_buffer$2 = __esmMin((() => {
 			return await readFileLines(fsPath, start, end - 1);
 		}
 		getAbsolutePath(filepath) {
-			if (path$3.isAbsolute(filepath)) return filepath;
-			return path$3.join(this.opts.cwd, filepath);
+			if (path$4.isAbsolute(filepath)) return filepath;
+			return path$4.join(this.opts.cwd, filepath);
 		}
 		/**
 		* Use conceal/virtual text to add lineNr
@@ -139283,7 +139579,7 @@ var init_buffer$2 = __esmMin((() => {
 				}
 				let id = 2e3;
 				for (let item of fileItems) {
-					let col = byteLength(`${cwd ? path$3.relative(cwd, item.filepath) : item.filepath}`) + 1;
+					let col = byteLength(`${cwd ? path$4.relative(cwd, item.filepath) : item.filepath}`) + 1;
 					for (let range of item.ranges) {
 						let end = range.start + range.lines.length;
 						let text = `:${range.start + 1}:${end}`;
@@ -139419,7 +139715,7 @@ var init_search = __esmMin((() => {
 					if (items.length == 0) return;
 					if (items[0].foreground == "black") {
 						fileItem = {
-							filepath: path$3.join(cwd, items[0].text),
+							filepath: path$4.join(cwd, items[0].text),
 							ranges: []
 						};
 						return;
@@ -139495,7 +139791,7 @@ var init_search = __esmMin((() => {
 			].concat(defaultArgs, args);
 			let p = getPathFromArgs(args);
 			if (p) argList.pop();
-			argList.push("--", p ? path$3.isAbsolute(p) ? p : `./${p.replace(/^\.\//, "")}` : "./");
+			argList.push("--", p ? path$4.isAbsolute(p) ? p : `./${p.replace(/^\.\//, "")}` : "./");
 			this.task = new Task();
 			this.task.start(cmd, argList, cwd);
 			let mutex = new Mutex();
@@ -141879,7 +142175,7 @@ var init_workspace = __esmMin((() => {
 			commands_default.register({
 				id: "workspace.writeHeapSnapshot",
 				execute: async () => {
-					let filepath = path$3.join(os$3.homedir(), `${crypto$1.randomUUID()}-${process.pid}.heapsnapshot`);
+					let filepath = path$4.join(os$3.homedir(), `${crypto$1.randomUUID()}-${process.pid}.heapsnapshot`);
 					(0, v8.writeHeapSnapshot)(filepath);
 					window_default.showInformationMessage(`Create heapdump at: ${filepath}`);
 					return filepath;
@@ -141911,7 +142207,7 @@ var init_workspace = __esmMin((() => {
 		async openLocalConfig() {
 			let fsPath = await this.nvim.call("coc#util#get_fullpath", []);
 			let filetype = await this.nvim.eval("&filetype");
-			if (!fsPath || !path$3.isAbsolute(fsPath)) {
+			if (!fsPath || !path$4.isAbsolute(fsPath)) {
 				window_default.showWarningMessage(`Current buffer doesn't have valid file path.`);
 				return;
 			}
@@ -141927,12 +142223,12 @@ var init_workspace = __esmMin((() => {
 				return;
 			}
 			let root = URI.parse(folder.uri).fsPath;
-			let dir = path$3.join(root, ".vim");
+			let dir = path$4.join(root, ".vim");
 			if (!fs$3.existsSync(dir)) {
 				if (!await window_default.showPrompt(`Would you like to create folder'${root}/.vim'?`)) return;
 				fs$3.mkdirSync(dir);
 			}
-			await workspace_default.jumpTo(URI.file(path$3.join(dir, CONFIG_FILE_NAME)));
+			await workspace_default.jumpTo(URI.file(path$4.join(dir, CONFIG_FILE_NAME)));
 		}
 		async renameCurrent() {
 			let { nvim } = this;
@@ -142038,14 +142334,14 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-10d5951 2026-08-05 16:44:52 +0800";
+			let version = workspace_default.version + "-d7f0b57 2026-08-07 23:12:47 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
 			lines.push("vim version: " + first + `${isVim ? " " + workspace_default.env.version : ""}`);
 			lines.push("node version: " + process.version);
 			lines.push("coc.nvim version: " + version);
-			lines.push("coc.nvim directory: " + path$3.dirname(__dirname));
+			lines.push("coc.nvim directory: " + path$4.dirname(__dirname));
 			lines.push("term: " + defaultValue(process.env.TERM_PROGRAM, process.env.TERM));
 			lines.push("platform: " + process.platform);
 			lines.push("");
@@ -142060,7 +142356,7 @@ var init_workspace = __esmMin((() => {
 				let content = fs$3.readFileSync(file, { encoding: "utf8" });
 				lines.push(...content.split(/\r?\n/).map((line) => stripAnsi(line)));
 			}
-			await this.nvim.command("vnew +setl\\ buftype=nofile\\ bufhidden=wipe\\ nobuflisted");
+			await this.nvim.command("vnew +setl\\ buftype=nofile\\ bufhidden=wipe\\ nobuflisted [Coc Info]");
 			await (await this.nvim.buffer).setLines(lines, {
 				start: 0,
 				end: -1,

@@ -535,7 +535,7 @@ function! coc#dialog#change_input_value(winid, bufnr, value) abort
     call win_gotoid(a:winid)
   endif
   if s:is_vim
-    if !s:term_support
+    if s:term_support && bufloaded(a:bufnr) && getbufvar(a:bufnr, '&buftype') ==# 'terminal'
       call term_sendkeys(a:bufnr, "\<C-u>\<C-k>".a:value)
     endif
     " call timer_start(3000, { -> term_sendkeys(bufnr, "\<C-u>\<C-k>abcd")})
@@ -703,7 +703,9 @@ function! s:get_prompt_dimension(title, default, opts) abort
     if marginTop is v:null
       let row = (&lines - &cmdheight - 2) / 2
     else
-      let row = marginTop < 2 ? 1 : min([marginTop, &columns - &cmdheight])
+      " Limit by the available height, not the terminal width, so a large
+      " marginTop cannot push the prompt off screen.
+      let row = marginTop < 2 ? 1 : min([marginTop, &lines - &cmdheight - 2])
     endif
     let config = {
           \ 'col': float2nr((&columns - width) / 2),

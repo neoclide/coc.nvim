@@ -65,8 +65,8 @@ function! coc#task#start(id, opts)
 endfunction
 
 function! coc#task#stop(id)
-  let job = get(s:running_task, a:id, v:null)
-  if !job | return | endif
+  if !has_key(s:running_task, a:id) | return | endif
+  let job = s:running_task[a:id]
   if s:is_vim
     call job_stop(job, 'term')
   else
