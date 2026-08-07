@@ -267,6 +267,9 @@ describe('vim api', () => {
 
   it('should keep retriggered pum on noinsert navigation', async () => {
     helper.updateConfiguration('suggest.noselect', true, disposables)
+    let feedkeys = vi.fn((keys: string): void => {
+      nvim.call('feedkeys', [keys, 'in'], true)
+    })
     let disposable = languages.registerCompletionItemProvider('issue-5409', '5409', null, {
       provideCompletionItems: document => {
         if (document.getText().includes('"inlayHint.position": ')) {
@@ -298,18 +301,18 @@ describe('vim api', () => {
       await nvim.input('a')
       nvim.call('coc#start', { source: 'issue-5409' }, true)
       await helper.waitPopup()
-      let keys = await nvim.call('coc#pum#next', [0])
-      await nvim.call('feedkeys', [keys, 'in'])
+      let keys = await nvim.call('coc#pum#next', [0]) as string
+      feedkeys(keys)
       await helper.waitValue(() => helper.completion.selectedItem?.word.includes('inlayHint.position'), true)
-      keys = await nvim.call('coc#pum#confirm')
-      await nvim.call('feedkeys', [keys, 'in'])
+      keys = await nvim.call('coc#pum#confirm') as string
+      feedkeys(keys)
       await helper.waitValue(async () => (await nvim.line).startsWith('{"inlayHint.position": '), true)
       await helper.waitValue(() => helper.completion.activeItems.some(item => item.word.includes('"inline"')), true)
       await helper.waitFor('coc#pum#visible', [], 1)
 
       let textChanged = events.race(['TextChangedI'], 1000)
-      keys = await nvim.call('coc#pum#next', [0])
-      await nvim.call('feedkeys', [keys, 'in'])
+      keys = await nvim.call('coc#pum#next', [0]) as string
+      feedkeys(keys)
       expect(await textChanged).toBeDefined()
       expect(await nvim.call('coc#pum#visible')).toBe(1)
       expect(helper.completion.isActivated).toBe(true)
