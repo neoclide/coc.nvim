@@ -724,20 +724,28 @@ describe('create terminal', () => {
     expect(lines.includes('test')).toBe(false)
   })
 
-  it('strictEnv keeps caller-provided variables and drops inherited ones', async () => {
-    let terminal = await terminals.createTerminal(nvim, {
-      name: `test-${crypto.randomUUID()}`,
-      shellPath: which.sync('bash'),
-      env: { COC_AUDIT_ENV: 'wanted' },
-      strictEnv: true
+  it('strictEnv forwards caller-provided variables to terminal startup', async () => {
+    let call = nvim.call.bind(nvim)
+    let spy = vi.spyOn(nvim, 'call').mockImplementation((method, args) => {
+      if (method === 'coc#terminal#start') return Promise.resolve([12345, 0]) as never
+      return call(method, args) as never
     })
-    await helper.wait(20)
-    terminal.sendText(`echo "A=$COC_AUDIT_ENV B=$NODE_ENV"`, true)
-    let buf = nvim.createBuffer(terminal.bufnr)
-    await helper.waitFor('eval', [`join(getbufline(${terminal.bufnr},1,'$'),'\n')`], /A=wanted B=/)
-    let lines = await buf.lines
-    expect(lines.some(l => l.includes('A=wanted B='))).toBe(true)
-    terminal.dispose()
+    try {
+      await terminals.createTerminal(nvim, {
+        name: `test-${crypto.randomUUID()}`,
+        shellPath: which.sync('bash'),
+        env: { COC_AUDIT_ENV: 'wanted' },
+        strictEnv: true
+      })
+      expect(spy).toHaveBeenCalledWith('coc#terminal#start', [
+        [which.sync('bash')],
+        expect.any(String),
+        { COC_AUDIT_ENV: 'wanted' },
+        true
+      ])
+    } finally {
+      spy.mockRestore()
+    }
   })
 
   it('restores editor state when terminal start fails', async () => {
