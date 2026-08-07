@@ -2,13 +2,14 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import util from 'util'
-import { Position, Range, TextEdit, type Disposable } from 'vscode-languageserver-protocol'
+import { InsertTextFormat, Position, Range, TextEdit, type Disposable } from 'vscode-languageserver-protocol'
 import sources from '../completion/sources'
 import type { CompleteResult, ExtendedCompleteItem } from '../completion/types'
 import * as funcs from '../core/funcs'
 import * as ui from '../core/ui'
 import events from '../events'
 import type { VirtualTextItem } from '../handler/inlayHint/buffer'
+import languages from '../languages'
 import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
 import mcp from '../mcp'
 import { getInstanceFilePath, readDiscoveryFile } from '../mcp/auth'
@@ -256,6 +257,63 @@ describe('vim api', () => {
       await helper.waitPopup()
       await nvim.call('coc#pum#select', [0, 1, 1])
       await helper.waitValue(() => line, 'foo')
+    } finally {
+      await nvim.input('<esc>')
+      await helper.waitFor('mode', [], 'n')
+      disposable.dispose()
+      await nvim.command('silent! %bwipeout!')
+    }
+  })
+
+  it('should keep retriggered pum on noinsert navigation', async () => {
+    helper.updateConfiguration('suggest.noselect', true, disposables)
+    let disposable = languages.registerCompletionItemProvider('issue-5409', '5409', null, {
+      provideCompletionItems: document => {
+        if (document.getText().includes('"inlayHint.position": ')) {
+          return [{ label: '"inline"' }, { label: '"eol"' }]
+        }
+        return [{
+          label: 'inlayHint.position',
+          insertText: '"inlayHint.position": $1',
+          insertTextFormat: InsertTextFormat.Snippet,
+          filterText: '"inlayHint.position"',
+          command: { title: 'Suggest', command: 'editor.action.triggerSuggest' },
+          textEdit: {
+            range: Range.create(0, 1, 0, 12),
+            newText: '"inlayHint.position": $1'
+          }
+        }]
+      }
+    })
+    await nvim.setLine('{"inlayHint}')
+    await nvim.call('cursor', [1, 11])
+    await nvim.input('a')
+    try {
+      nvim.call('coc#start', { source: 'issue-5409' }, true)
+      await helper.waitPopup()
+      await nvim.input('<esc>')
+      await helper.waitFor('mode', [], 'n')
+      await helper.waitFor('coc#pum#visible', [], 0)
+
+      await nvim.input('a')
+      nvim.call('coc#start', { source: 'issue-5409' }, true)
+      await helper.waitPopup()
+      let keys = await nvim.call('coc#pum#next', [0])
+      await nvim.call('feedkeys', [keys, 'in'])
+      await helper.waitValue(() => helper.completion.selectedItem?.word.includes('inlayHint.position'), true)
+      keys = await nvim.call('coc#pum#confirm')
+      await nvim.call('feedkeys', [keys, 'in'])
+      await helper.waitValue(async () => (await nvim.line).startsWith('{"inlayHint.position": '), true)
+      await helper.waitValue(() => helper.completion.activeItems.some(item => item.word.includes('"inline"')), true)
+      await helper.waitFor('coc#pum#visible', [], 1)
+
+      let textChanged = events.race(['TextChangedI'], 1000)
+      keys = await nvim.call('coc#pum#next', [0])
+      await nvim.call('feedkeys', [keys, 'in'])
+      expect(await textChanged).toBeDefined()
+      expect(await nvim.call('coc#pum#visible')).toBe(1)
+      expect(helper.completion.isActivated).toBe(true)
+      expect(helper.completion.selectedItem?.word).toContain('"inline"')
     } finally {
       await nvim.input('<esc>')
       await helper.waitFor('mode', [], 'n')

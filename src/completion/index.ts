@@ -265,7 +265,14 @@ export class Completion implements Disposable {
         let pre = byteSlice(option.line, 0, option.col)
         if (this.selectedItem) {
           let { word, startcol } = this.popupEvent
-          if (byteSlice(option.line, 0, startcol) + word == info.pre) {
+          // A completion command may retrigger before Vim delivers TextChangedI
+          // for the confirmed item. Keep noinsert navigation on the new pum.
+          let unchangedNoinsert = !this.popupEvent.inserted
+            && option.bufnr == bufnr
+            && option.linenr == info.lnum
+            && pre + this.pum.search == info.pre
+            && shouldStop(bufnr, info, option)
+          if (byteSlice(option.line, 0, startcol) + word == info.pre || unchangedNoinsert) {
             this.pretext = info.pre
             return
           }
