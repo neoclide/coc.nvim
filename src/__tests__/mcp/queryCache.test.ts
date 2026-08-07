@@ -100,4 +100,10 @@ describe('mcp QueryCache', () => {
     expect(cache.size).toBe(0)
     expect(cache.get('a')).toBeUndefined()
   })
+
+  it('handles a non-positive entry limit without looping', () => {
+    let cache = new QueryCache<string>({ maxEntries: -1, ttlMs: 1000 })
+    cache.set('a', '1')
+    expect(cache.size).toBe(0)
+  })
 })

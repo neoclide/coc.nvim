@@ -264,15 +264,16 @@ describe('semanticTokens', () => {
     })
 
     it('should show highlight info for empty legend', async () => {
-      helper.updateConfiguration('semanticTokens.filetypes', ['*'])
-      disposables.push(languages.registerDocumentRangeSemanticTokensProvider([{ language: '*' }], {
-        provideDocumentRangeSemanticTokens: (_, range) => {
-          return {
-            data: []
-          }
-        }
-      }, { tokenModifiers: [], tokenTypes: [] }))
-      await semanticTokens.showHighlightInfo()
+      let doc = await workspace.document
+      let item = semanticTokens.getItem(doc.bufnr)
+      let stateSpy = vi.spyOn(item, 'checkState').mockImplementation(() => {})
+      let legendSpy = vi.spyOn(languages, 'getLegend').mockReturnValue({ tokenModifiers: [], tokenTypes: [] })
+      try {
+        await semanticTokens.showHighlightInfo()
+      } finally {
+        stateSpy.mockRestore()
+        legendSpy.mockRestore()
+      }
       let buf = await nvim.buffer
       let lines = await buf.lines
       let content = lines.join('\n')

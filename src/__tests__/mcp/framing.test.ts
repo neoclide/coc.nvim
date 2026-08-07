@@ -8,6 +8,10 @@ describe('mcp framing', () => {
     expect(buf.toString('utf8')).toBe('{"jsonrpc":"2.0","id":1,"method":"ping"}\n')
   })
 
+  it('rejects values that JSON cannot serialize', () => {
+    expect(() => encodeMessage(undefined)).toThrow('Unable to serialize message to JSON')
+  })
+
   it('should split frames arriving in separate chunks', () => {
     let frames: any[] = []
     let errors: any[] = []
@@ -30,6 +34,16 @@ describe('mcp framing', () => {
     expect(frames.length).toBe(2)
     expect(frames[0].id).toBe(1)
     expect(frames[1].id).toBe(2)
+  })
+
+  it('accepts string chunks and ignores empty or disposed input', () => {
+    let frames: any[] = []
+    let splitter = new FrameSplitter(1024, msg => frames.push(msg), () => {})
+    splitter.push('')
+    splitter.push('{"id":1}\n')
+    splitter.dispose()
+    splitter.push('{"id":2}\n')
+    expect(frames).toEqual([{ id: 1 }])
   })
 
   it('should report JSON parse errors with the raw line', () => {

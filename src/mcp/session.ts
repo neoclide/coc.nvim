@@ -58,12 +58,13 @@ export class Session {
    * close is the session's execution boundary.
    */
   public enqueue(task: () => Promise<void>): void {
-    this.queue = this.queue.then(() => {
+    let run = (): Promise<void> | undefined => {
       if (this.closed) return
       return task()
-    }, () => {
-      // keep the chain alive even if a previous task failed
-    })
+    }
+    // Run the current task from either branch: a rejected previous task must
+    // not consume and silently drop the next queued request.
+    this.queue = this.queue.then(run, run)
   }
 
   public touch(): void {

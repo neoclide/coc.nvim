@@ -16,12 +16,12 @@ import { positionInRange } from '../../util/position'
  * diagnostics) for agents that need current context.
  */
 
-function lineText(doc: Document, line: number): string {
+export function lineText(doc: Document, line: number): string {
   if (line < 0 || line >= doc.lineCount) return ''
   return doc.getLines(line, line + 1)[0] ?? ''
 }
 
-function innermostSymbol(symbols: DocumentSymbol[] | null | undefined, pos: Position): { name: string, kind: string } | null {
+export function innermostSymbol(symbols: DocumentSymbol[] | null | undefined, pos: Position): { name: string, kind: string } | null {
   let best: { name: string, kind: string, depth: number } | null = null
   let walk = (list: DocumentSymbol[] | undefined, depth: number): void => {
     for (let s of list ?? []) {
@@ -48,7 +48,7 @@ interface VisualSelection {
  * range; the range is normalized so backwards selections still return the
  * selected text.
  */
-async function getVisualSelection(doc: Document, nvim: Neovim): Promise<VisualSelection | null> {
+export async function getVisualSelection(doc: Document, nvim: Neovim): Promise<VisualSelection | null> {
   let mode = await nvim.call('mode', []) as string
   if (mode !== 'v' && mode !== 'V' && mode !== '\x16') return null
   let [sl, sc, cl, cc, exclusive] = await nvim.eval(`[line('v'), col('v'), line('.'), col('.'), &selection ==# 'exclusive']`) as [number, number, number, number, boolean]
@@ -61,17 +61,23 @@ async function getVisualSelection(doc: Document, nvim: Neovim): Promise<VisualSe
     let end = Position.create(Math.max(sl, cl), 0)
     range = Range.create(start, end)
   } else {
-    let endLine = lineText(doc, cl - 1)
-    if (exclusive && !(sl === cl && startChar === endChar)) {
-      endChar = endChar - 1
-    }
-    if (endChar !== endLine.length) endChar = endChar + 1
     let start = Position.create(sl - 1, startChar)
     let end = Position.create(cl - 1, endChar)
     if (end.line < start.line || (end.line === start.line && end.character < start.character)) {
       let tmp = start
       start = end
       end = tmp
+    }
+    // Vim's mark and cursor columns both point at characters, while an LSP
+    // range has an exclusive end. Normalize first so backwards selections
+    // extend the actual range end rather than the current cursor endpoint.
+    let samePosition = start.line === end.line && start.character === end.character
+    if (!exclusive || samePosition) {
+      let endLine = lineText(doc, end.line)
+      if (end.character !== endLine.length) {
+        let character = Array.from(endLine.slice(end.character))[0]
+        end = Position.create(end.line, end.character + (character?.length ?? 0))
+      }
     }
     range = Range.create(start, end)
   }

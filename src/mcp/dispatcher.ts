@@ -18,7 +18,7 @@ function logAudit(session: Session, message: string): void {
   }
 }
 
-function normalizeResult(result: any, protocolVersion: string | undefined): any {
+export function normalizeResult(result: any, protocolVersion: string | undefined): any {
   if (
     result &&
     Array.isArray(result.content) &&
@@ -41,7 +41,7 @@ function normalizeResult(result: any, protocolVersion: string | undefined): any 
   return normalized
 }
 
-function handleInitialize(server: McpServer, session: Session, id: number | string | null, params: any): void {
+export function handleInitialize(server: McpServer, session: Session, id: number | string | null, params: any): void {
   let protocolVersion = params?.protocolVersion
   if (typeof protocolVersion !== 'string' || !P.SUPPORTED_PROTOCOL_VERSIONS.includes(protocolVersion)) {
     session.sendError(

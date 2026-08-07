@@ -1,4 +1,5 @@
-import { EXIT_TIMEOUT, gracefulExit, setExitHook } from '../../exit'
+import { EXIT_TIMEOUT, gracefulExit, registerExitHandlers, setExitHook } from '../../exit'
+import mcp from '../../mcp'
 import services from '../../services'
 
 describe('gracefulExit()', () => {
@@ -37,6 +38,31 @@ describe('gracefulExit()', () => {
       expect(exitCode).toBe(0)
     } finally {
       vi.useRealTimers()
+    }
+  })
+
+  it('should register signal handlers and ignore repeated signals', async () => {
+    let handlers = new Map<string, (...args: any[]) => void>()
+    let onSpy = vi.spyOn(process, 'on').mockImplementation(((event: string, listener: (...args: any[]) => void) => {
+      handlers.set(event, listener)
+      return process
+    }) as any)
+    let mcpSpy = vi.spyOn(mcp, 'stop')
+    stopSpy = vi.spyOn(services, 'stopAll').mockResolvedValue(undefined)
+    try {
+      registerExitHandlers()
+      expect(handlers.has('SIGTERM')).toBe(true)
+      expect(handlers.has('SIGINT')).toBe(true)
+      handlers.get('SIGTERM')!()
+      handlers.get('SIGINT')!()
+      await vi.waitFor(() => {
+        expect(exitCode).toBe(0)
+      })
+      expect(mcpSpy).toHaveBeenCalledTimes(1)
+      expect(stopSpy).toHaveBeenCalledTimes(1)
+    } finally {
+      onSpy.mockRestore()
+      mcpSpy.mockRestore()
     }
   })
 })

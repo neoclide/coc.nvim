@@ -1,30 +1,47 @@
 'use strict'
-import { CodeAction, Command, DocumentSymbol, Hover, Position, Range, SignatureHelp, SymbolKind } from 'vscode-languageserver-types'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { CodeAction, Command, Diagnostic, DiagnosticSeverity, DocumentSymbol, Hover, Position, Range, SignatureHelp, SymbolKind } from 'vscode-languageserver-types'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import languages, { ProviderName } from '../../languages'
 import {
   BATCH_METHODS,
   BATCH_POSITION_METHODS,
+  batchResultText,
+  codeActionsText,
   codeActionSummary,
   configuredServiceId,
   countTextEdits,
+  diagnosticText,
+  diagnosticsText,
+  documentSymbolsText,
   flattenSymbols,
   fullRange,
+  getDocumentSymbolResult,
+  getHoverResult,
+  getLocationResult,
+  getSignatureResult,
+  hasProvider,
   hoverContents,
+  hoverResultText,
   hoverSummary,
   limitResults,
   locationOutputSchema,
   locationText,
   maxResultsFromArgs,
   normalizeLocations,
+  normalizeDocumentSymbols,
   positionFromArgs,
   positionInputSchema,
   queryCacheKey,
   rangeFromArgs,
+  selectCodeAction,
+  serviceCapabilitySummary,
   ServiceLimiter,
+  signatureResultText,
   signatureSummary,
-  symbolKindName
+  symbolKindName,
+  workspaceSymbolsText
 } from '../../mcp/tools/lsp'
-import { CancellationTokenSource } from '../../util/protocol'
+import { CancellationToken, CancellationTokenSource } from '../../util/protocol'
 import workspace from '../../workspace'
 
 describe('mcp lsp helpers', () => {
@@ -42,6 +59,8 @@ describe('mcp lsp helpers', () => {
     expect(maxResultsFromArgs({ maxResults: 0 }, 200)).toBe(1)
     expect(maxResultsFromArgs({ maxResults: 5000 }, 200)).toBe(1000)
     expect(maxResultsFromArgs({ maxResults: 5 }, 200)).toBe(5)
+    expect(maxResultsFromArgs({ maxResults: Infinity }, 200)).toBe(200)
+    expect(maxResultsFromArgs({ maxResults: 2.9 }, 200)).toBe(2)
   })
 
   it('limitResults truncates and reports totals', () => {
@@ -60,6 +79,10 @@ describe('mcp lsp helpers', () => {
     let range = rangeFromArgs({ range: { start: { line: 0, character: 0 }, end: { line: 1, character: 1 } } })
     expect(range).toEqual(Range.create(0, 0, 1, 1))
     expect(rangeFromArgs({})).toBeNull()
+    expect(rangeFromArgs({ range: { end: { line: 1, character: 1 } } })).toBeNull()
+    expect(rangeFromArgs({ range: { start: { line: 0, character: 0 } } })).toBeNull()
+    expect(rangeFromArgs({ range: { start: {}, end: { line: 1, character: 1 } } })).toBeNull()
+    expect(rangeFromArgs({ range: { start: { line: 0, character: 0 }, end: {} } })).toBeNull()
   })
 
   it('fullRange spans the whole document text', () => {
@@ -76,6 +99,8 @@ describe('mcp lsp helpers', () => {
     expect(locationText('References', items, { items, total: 5, truncated: true })).toContain('1 of 5 results')
     expect(locationText('References', items, { items, total: 1, truncated: false })).toContain('1 result')
     expect(locationText('References', [], undefined)).toContain('no results')
+    expect(locationText('References', [{ uri: 'file:///no-range' }])).toContain('file:///no-range')
+    expect(locationText('References', [items[0], items[0]])).toContain('2 results')
   })
 
   it('normalizeLocations handles Location, LocationLink and dedupes', () => {
@@ -87,6 +112,12 @@ describe('mcp lsp helpers', () => {
     expect(result[1]).toEqual({ uri: 'file:///b.ts', range: link.targetSelectionRange, targetRange: link.targetRange })
     expect(normalizeLocations(null)).toEqual([])
     expect(normalizeLocations(loc)).toEqual([{ uri: 'file:///a.ts', range: loc.range }])
+    let linkWithoutSelection = { targetUri: 'file:///c.ts', targetRange: Range.create(2, 0, 2, 1) }
+    expect(normalizeLocations([null, 1, {}, linkWithoutSelection, linkWithoutSelection])).toEqual([{
+      uri: 'file:///c.ts',
+      range: linkWithoutSelection.targetRange,
+      targetRange: linkWithoutSelection.targetRange
+    }])
   })
 
   it('configuredServiceId reads mcp.languageServiceMap', () => {
@@ -212,6 +243,7 @@ describe('mcp lsp helpers', () => {
     expect(hoverContents(['a', { value: 'b' }] as any)).toEqual(['a', 'b'])
     let hover: Hover = { contents: [{ value: 'x' }] as any, range: Range.create(0, 0, 0, 1) }
     expect(hoverSummary(hover)).toEqual({ contents: ['x'], range: hover.range })
+    expect(hoverContents([null, 1, {}, { value: 2 }])).toEqual([])
   })
 
   it('signatureSummary renders labels and parameters', () => {
@@ -231,6 +263,16 @@ describe('mcp lsp helpers', () => {
     expect(summary.signatures[0].label).toBe('fn(a)')
     expect(summary.signatures[0].parameters[0].documentation).toBe('param')
     expect(signatureSummary(undefined).activeSignature).toBe(-1)
+    let markup = signatureSummary({
+      signatures: [{
+        label: 'fn()',
+        documentation: { kind: 'markdown', value: 'markdown docs' },
+        parameters: [{ label: [0, 2], documentation: { kind: 'plaintext', value: 'parameter docs' } }]
+      }]
+    })
+    expect(markup.signatures[0].documentation).toBe('markdown docs')
+    expect(markup.signatures[0].parameters[0].documentation).toBe('parameter docs')
+    expect(signatureSummary({ signatures: [{ label: 'bare' }] }).signatures[0].parameters).toEqual([])
   })
 
   it('flattenSymbols walks the tree with depth and truncates', () => {
@@ -245,12 +287,101 @@ describe('mcp lsp helpers', () => {
     expect(flattenSymbols(null, 10).items).toEqual([])
   })
 
+  it('normalizes document symbols from both LSP response shapes', () => {
+    expect(normalizeDocumentSymbols(null)).toBeNull()
+    expect(normalizeDocumentSymbols([])).toBeNull()
+    let symbol = DocumentSymbol.create('root', undefined, SymbolKind.Class, Range.create(0, 0, 1, 0), Range.create(0, 0, 0, 4))
+    expect(normalizeDocumentSymbols([symbol])).toEqual([symbol])
+    let flat: any = { name: 'flat', kind: SymbolKind.Function, location: { uri: 'file:///a', range: Range.create(0, 0, 0, 1) } }
+    expect(normalizeDocumentSymbols([flat])![0].name).toBe('flat')
+  })
+
+  it('queries provider-backed hover, signature, symbols and locations directly', async () => {
+    let doc: any = { uri: 'file:///helpers.ts', version: 1, languageId: 'typescript', textDocument: {} }
+    let provider = vi.spyOn(languages, 'hasProvider').mockReturnValue(true)
+    let hover = vi.spyOn(languages, 'getHover').mockResolvedValue([{ contents: 'hover' } as Hover])
+    let signature = vi.spyOn(languages, 'getSignatureHelp').mockResolvedValue({ signatures: [{ label: 'fn()' }] })
+    let symbols = vi.spyOn(languages, 'getDocumentSymbol').mockResolvedValue([])
+    try {
+      expect(await getHoverResult(doc, Position.create(0, 0), undefined, CancellationToken.None)).toEqual({ hovers: [{ contents: 'hover' }] })
+      expect(await getSignatureResult(doc, Position.create(0, 1), undefined, CancellationToken.None)).toEqual({ help: { signatures: [{ label: 'fn()' }] } })
+      expect(await getDocumentSymbolResult(doc, undefined, CancellationToken.None)).toEqual({ symbols: [] })
+      let query: any = {
+        provider: ProviderName.Definition,
+        label: 'Definition',
+        cacheKey: 'helper-location',
+        fetch: vi.fn().mockResolvedValue([{ uri: 'file:///target', range: Range.create(0, 0, 0, 1) }]),
+        serviceMethod: 'textDocument/definition',
+        buildParams: vi.fn()
+      }
+      expect(await getLocationResult(doc, Position.create(0, 2), undefined, query, CancellationToken.None)).toMatchObject({
+        locations: [{ uri: 'file:///target' }]
+      })
+    } finally {
+      provider.mockRestore()
+      hover.mockRestore()
+      signature.mockRestore()
+      symbols.mockRestore()
+    }
+  })
+
+  it('turns provider exceptions and missing providers into query errors', async () => {
+    let doc: any = { uri: 'file:///errors.ts', version: 2, languageId: 'typescript', textDocument: {} }
+    let provider = vi.spyOn(languages, 'hasProvider').mockReturnValue(false)
+    try {
+      expect(await getHoverResult(doc, Position.create(0, 0), undefined, CancellationToken.None)).toHaveProperty('error')
+      expect(await getSignatureResult(doc, Position.create(0, 1), undefined, CancellationToken.None)).toHaveProperty('error')
+      expect(await getDocumentSymbolResult(doc, undefined, CancellationToken.None)).toHaveProperty('error')
+    } finally {
+      provider.mockRestore()
+    }
+    provider = vi.spyOn(languages, 'hasProvider').mockReturnValue(true)
+    let hover = vi.spyOn(languages, 'getHover').mockRejectedValueOnce('hover failed').mockRejectedValueOnce(new Error('hover error'))
+    let signature = vi.spyOn(languages, 'getSignatureHelp').mockRejectedValueOnce(new Error('signature failed')).mockRejectedValueOnce('signature string')
+    let symbols = vi.spyOn(languages, 'getDocumentSymbol').mockRejectedValueOnce('symbols failed').mockRejectedValueOnce(new Error('symbols error'))
+    try {
+      expect((await getHoverResult(doc, Position.create(1, 0), undefined, CancellationToken.None) as any).error).toContain('hover failed')
+      expect((await getHoverResult(doc, Position.create(2, 0), undefined, CancellationToken.None) as any).error).toContain('hover error')
+      expect((await getSignatureResult(doc, Position.create(1, 1), undefined, CancellationToken.None) as any).error).toContain('signature failed')
+      expect((await getSignatureResult(doc, Position.create(2, 1), undefined, CancellationToken.None) as any).error).toContain('signature string')
+      expect((await getDocumentSymbolResult({ ...doc, version: 3 }, undefined, CancellationToken.None) as any).error).toContain('symbols failed')
+      expect((await getDocumentSymbolResult({ ...doc, version: 4 }, undefined, CancellationToken.None) as any).error).toContain('symbols error')
+      let query: any = {
+        provider: ProviderName.Definition,
+        label: 'Definition',
+        cacheKey: 'helper-location-error',
+        fetch: vi.fn().mockRejectedValue('location failed'),
+        serviceMethod: 'textDocument/definition',
+        buildParams: vi.fn()
+      }
+      expect((await getLocationResult(doc, Position.create(1, 2), undefined, query, CancellationToken.None) as any).error).toContain('location failed')
+      query.cacheKey = 'helper-location-error-object'
+      query.fetch = vi.fn().mockRejectedValue(new Error('location error'))
+      expect((await getLocationResult(doc, Position.create(2, 2), undefined, query, CancellationToken.None) as any).error).toContain('location error')
+    } finally {
+      provider.mockRestore()
+      hover.mockRestore()
+      signature.mockRestore()
+      symbols.mockRestore()
+    }
+  })
+
+  it('hasProvider handles provider manager errors', () => {
+    let spy = vi.spyOn(languages, 'hasProvider').mockImplementation(() => { throw new Error('failed') })
+    try {
+      expect(hasProvider(ProviderName.Hover, { textDocument: {} } as any)).toBe(false)
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
   it('countTextEdits counts changes and documentChanges', () => {
     expect(countTextEdits({
       changes: { 'file:///a.ts': [{}, {}] },
       documentChanges: [{ edits: [{}] }]
     })).toBe(3)
     expect(countTextEdits({})).toBe(0)
+    expect(countTextEdits({ changes: { a: null }, documentChanges: [null, {}, { edits: 'invalid' }] })).toBe(0)
   })
 
   it('codeActionSummary extracts action metadata', () => {
@@ -262,6 +393,37 @@ describe('mcp lsp helpers', () => {
     let withEdit = CodeAction.create('fix')
     withEdit.edit = { changes: {} }
     expect(codeActionSummary(withEdit).hasEdit).toBe(true)
+    let disabled = CodeAction.create('disabled')
+    disabled.kind = 'quickfix'
+    disabled.isPreferred = true
+    disabled.disabled = { reason: 'not applicable' }
+    expect(codeActionSummary(disabled)).toMatchObject({
+      kind: 'quickfix',
+      isPreferred: true,
+      disabled: { reason: 'not applicable' }
+    })
+  })
+
+  it('selectCodeAction validates title, index and disabled actions', () => {
+    let first = CodeAction.create('first')
+    let disabled = CodeAction.create('disabled')
+    disabled.disabled = { reason: 'reason' }
+    let actions = [first, disabled]
+    expect(selectCodeAction(actions, { title: 'first' }).action).toBe(first)
+    expect(selectCodeAction(actions, { index: 0 }).action).toBe(first)
+    expect(selectCodeAction(actions, { title: 'missing' }).error).toContain('not found')
+    expect(selectCodeAction(actions, { index: 9 }).error).toContain('not found')
+    expect(selectCodeAction(actions, {}).error).toContain('required')
+    expect(selectCodeAction(actions, { index: 1 }).error).toContain('disabled')
+  })
+
+  it('summarizes service capabilities with absent optional data', () => {
+    let stat = { id: 'test', state: 'running', languageIds: ['vim'] }
+    expect(serviceCapabilitySummary(stat)).toMatchObject({ capabilities: null, serverInfo: null })
+    expect(serviceCapabilitySummary(stat, { client: { initializeResult: { capabilities: { hoverProvider: true }, serverInfo: { name: 'server' } } } })).toMatchObject({
+      capabilities: { hoverProvider: true }, serverInfo: { name: 'server' }
+    })
+    expect(serviceCapabilitySummary(stat, { client: {} })).toMatchObject({ capabilities: null, serverInfo: null })
   })
 
   it('symbolKindName maps numeric and string kinds', () => {
@@ -279,6 +441,9 @@ describe('mcp lsp helpers', () => {
     expect(schema.properties.maxResults).toBeDefined()
     expect(schema.properties.serviceId).toBeUndefined()
     expect(locationOutputSchema().properties.locations).toBeDefined()
+    expect(positionInputSchema({ custom: { type: 'boolean' } }).properties.custom).toBeDefined()
+    let itemSchema = { type: 'string' }
+    expect(locationOutputSchema(itemSchema).properties.locations.items).toBe(itemSchema)
   })
 
   it('batch method sets are consistent', () => {
@@ -286,5 +451,46 @@ describe('mcp lsp helpers', () => {
     expect(BATCH_METHODS).toContain('document_symbols')
     expect(BATCH_POSITION_METHODS.has('document_symbols')).toBe(false)
     expect(BATCH_POSITION_METHODS.has('definition')).toBe(true)
+  })
+
+  it('renders hover, signature and symbol results', () => {
+    expect(hoverResultText([])).toBe('No hover content')
+    expect(hoverResultText([{ contents: ['a', 'b'] }, { contents: ['c'] }])).toBe('a\n\nb\n\n---\n\nc')
+    expect(signatureResultText({ signatures: [], activeSignature: -1 })).toBe('No signature help')
+    expect(signatureResultText({ signatures: [{ label: 'a' }, { label: 'b' }], activeSignature: 1 })).toBe('  a\n* b')
+    expect(documentSymbolsText({ items: [], total: 0, truncated: false })).toBe('No document symbols')
+    expect(documentSymbolsText({ items: [{ depth: 1, name: 'child', kind: 'Method' }], total: 2, truncated: true })).toContain('Truncated')
+    expect(documentSymbolsText({ items: [{ depth: 0, name: 'root', kind: 'Class' }], total: 1, truncated: false })).not.toContain('Truncated')
+    expect(workspaceSymbolsText({ items: [], total: 0, truncated: false })).toBe('No workspace symbols')
+    expect(workspaceSymbolsText({ items: [{ name: 'a', kind: 'Class', containerName: 'ns' }], total: 2, truncated: true })).toContain('in ns')
+    expect(workspaceSymbolsText({ items: [{ name: 'b', kind: 'Method' }], total: 1, truncated: false })).toBe('b (Method)')
+  })
+
+  it('renders all batch result variants', () => {
+    expect(batchResultText('hover', { error: 'failed' })).toContain('error - failed')
+    expect(batchResultText('definition', { locations: [], returned: 1, count: 2, truncated: true })).toContain('(truncated)')
+    expect(batchResultText('definition', { locations: [], returned: 1, count: 1, truncated: false })).not.toContain('(truncated)')
+    expect(batchResultText('document_symbols', { symbols: [], returned: 1, count: 2, truncated: true })).toContain('symbol(s)')
+    expect(batchResultText('document_symbols', { symbols: [], returned: 1, count: 1, truncated: false })).not.toContain('(truncated)')
+    expect(batchResultText('hover', { hovers: [], count: 2 })).toContain('2 hover')
+    expect(batchResultText('signature_help', { signatures: [{}, {}] })).toContain('2 signature')
+    expect(batchResultText('other', {})).toBe('other: done')
+  })
+
+  it('renders diagnostics and code actions', () => {
+    let plain = Diagnostic.create(Range.create(0, 0, 0, 1), 'plain')
+    let numbered = Diagnostic.create(Range.create(1, 1, 1, 2), 'numbered', DiagnosticSeverity.Warning, 7)
+    let objectCode = Diagnostic.create(Range.create(2, 0, 2, 1), 'object', 99 as DiagnosticSeverity)
+    objectCode.code = { value: 'E1', target: '' } as any
+    expect(diagnosticText(plain)).toBe('Error 1:1 plain')
+    expect(diagnosticText(numbered)).toContain('Warning 2:2 numbered [7]')
+    expect(diagnosticText(objectCode)).toContain('Unknown 3:1 object [E1]')
+    expect(diagnosticsText({ items: [], total: 0, truncated: false })).toBe('No diagnostics')
+    expect(diagnosticsText({ items: [plain], total: 2, truncated: true })).toContain('Truncated')
+    expect(diagnosticsText({ items: [plain], total: 1, truncated: false })).not.toContain('Truncated')
+    expect(codeActionsText([], { items: [], total: 0, truncated: false })).toBe('No code actions')
+    let actions = [{ title: 'fix' }, { title: 'skip', disabled: { reason: 'disabled' } }]
+    expect(codeActionsText(actions, { items: actions, total: 3, truncated: true })).toContain('disabled: disabled')
+    expect(codeActionsText(actions, { items: actions, total: 2, truncated: false })).not.toContain('Truncated')
   })
 })

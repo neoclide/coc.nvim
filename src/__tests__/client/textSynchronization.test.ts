@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DocumentSelector, Position, Range, TextDocumentSaveReason, TextDocumentSyncKind, TextEdit, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest } from 'vscode-languageserver-protocol'
+import { DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DocumentSelector, Position, Range, TextDocumentSaveReason, TextDocumentSyncKind, TextEdit, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from '../../language-client/index'
@@ -97,26 +97,39 @@ describe('TextDocumentSynchronization', () => {
         documentSelector: [{ language: 'vim' }],
         languageIdMap: { 't.vim': 'myvim', [path.join(os.tmpdir(), 'full.vim')]: 'fullvim' }
       })
-      await client.start()
-      let uri = URI.file(path.join(os.tmpdir(), 't.vim'))
-      let doc = await workspace.loadFile(uri.toString())
-      expect(doc.languageId).toBe('vim')
-      let res = await client.sendRequest('getLastOpen') as any
-      expect(res.uri).toBe(doc.uri)
-      expect(res.languageId).toBe('myvim')
-      // full path key
-      uri = URI.file(path.join(os.tmpdir(), 'full.vim'))
-      doc = await workspace.loadFile(uri.toString())
-      res = await client.sendRequest('getLastOpen') as any
-      expect(res.uri).toBe(doc.uri)
-      expect(res.languageId).toBe('fullvim')
-      // unmatched file keeps original languageId
-      uri = URI.file(path.join(os.tmpdir(), 'other.vim'))
-      doc = await workspace.loadFile(uri.toString())
-      res = await client.sendRequest('getLastOpen') as any
-      expect(res.uri).toBe(doc.uri)
-      expect(res.languageId).toBe('vim')
-      await client.stop()
+      let sent: DidOpenTextDocumentParams | undefined
+      let spy = vi.spyOn(client, 'sendNotification').mockImplementation((_type, params) => {
+        sent = params as DidOpenTextDocumentParams
+        return Promise.resolve()
+      })
+      let feature = client.getFeature(DidOpenTextDocumentNotification.method)
+      feature.register({ id: crypto.randomUUID(), registerOptions: { documentSelector: [{ language: 'vim' }] } })
+      let sendOpen = async (filepath: string): Promise<[TextDocument, DidOpenTextDocumentParams]> => {
+        sent = undefined
+        let doc = TextDocument.create(URI.file(filepath).toString(), 'vim', 1, '')
+        let provider = feature.getProvider(doc)
+        expect(provider).toBeDefined()
+        await provider.send(doc)
+        expect(sent).toBeDefined()
+        return [doc, sent]
+      }
+      try {
+        let [doc, params] = await sendOpen(path.join(os.tmpdir(), 't.vim'))
+        expect(doc.languageId).toBe('vim')
+        expect(params.textDocument.uri).toBe(doc.uri)
+        expect(params.textDocument.languageId).toBe('myvim')
+        // full path key
+        let [fullDoc, fullParams] = await sendOpen(path.join(os.tmpdir(), 'full.vim'))
+        expect(fullParams.textDocument.uri).toBe(fullDoc.uri)
+        expect(fullParams.textDocument.languageId).toBe('fullvim')
+        // unmatched file keeps original languageId
+        let [otherDoc, otherParams] = await sendOpen(path.join(os.tmpdir(), 'other.vim'))
+        expect(otherParams.textDocument.uri).toBe(otherDoc.uri)
+        expect(otherParams.textDocument.languageId).toBe('vim')
+      } finally {
+        feature.dispose()
+        spy.mockRestore()
+      }
     })
 
     it('should work with middleware', async () => {

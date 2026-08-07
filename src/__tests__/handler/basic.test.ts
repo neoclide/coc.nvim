@@ -7,6 +7,7 @@ import commandManager from '../../commands'
 import CommandsHandler from '../../handler/commands'
 import SelectionRange from '../../handler/selectionRange'
 import languages, { ProviderName } from '../../languages'
+import listManager from '../../list/manager'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
@@ -389,8 +390,10 @@ describe('Commands', () => {
 
   describe('runCommand', () => {
     it('should open command list without id', async () => {
+      let start = vi.spyOn(listManager, 'start').mockResolvedValue()
       await commands.runCommand()
-      await helper.waitFor('bufname', ['%'], 'list:///commands')
+      expect(start).toHaveBeenCalledWith(['commands'])
+      start.mockRestore()
     })
   })
 })

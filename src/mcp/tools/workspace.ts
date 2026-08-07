@@ -20,7 +20,7 @@ interface SearchMatch {
   text: string
 }
 
-function findRg(): string | null {
+export function findRg(): string | null {
   try {
     return which.sync('rg')
   } catch (_e) {
@@ -28,7 +28,7 @@ function findRg(): string | null {
   }
 }
 
-function parseRgLine(line: string): SearchMatch | null {
+export function parseRgLine(line: string): SearchMatch | null {
   try {
     let obj = JSON.parse(line)
     if (obj.type !== 'match') return null
@@ -44,7 +44,7 @@ function parseRgLine(line: string): SearchMatch | null {
   }
 }
 
-function searchWithRg(pattern: string, args: any, root: string, maxResults: number): Promise<SearchMatch[]> {
+export function searchWithRg(pattern: string, args: any, root: string, maxResults: number): Promise<SearchMatch[]> {
   return new Promise((resolve, reject) => {
     let rg = findRg()
     if (!rg) {
@@ -99,7 +99,7 @@ function searchWithRg(pattern: string, args: any, root: string, maxResults: numb
   })
 }
 
-function escapeRegExp(text: string): string {
+export function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
@@ -142,7 +142,7 @@ export async function searchWithJs(pattern: string, args: any, root: string, max
   return results
 }
 
-function getConfigValue(key: string): any {
+export function getConfigValue(key: string): any {
   try {
     let conf: any = workspace.configurations.configuration.getValue(undefined, {})
     if (!key) return conf
@@ -476,8 +476,9 @@ export function createWorkspaceTools(): McpTool[] {
       },
       annotations: { destructiveHint: true },
       handler: async (args: any) => {
-        let filepath = toFsPath(args?.filepath)
-        if (!filepath) return errorResult('filepath is required')
+        let input = args?.filepath
+        if (typeof input !== 'string' || input.length === 0) return errorResult('filepath is required')
+        let filepath = toFsPath(input)
         let denied = checkPath(filepath, { write: true })
         if (denied) return errorResult(denied)
         try {
@@ -517,9 +518,13 @@ export function createWorkspaceTools(): McpTool[] {
       },
       annotations: { destructiveHint: true },
       handler: async (args: any) => {
-        let oldPath = toFsPath(args?.oldPath)
-        let newPath = toFsPath(args?.newPath)
-        if (!oldPath || !newPath) return errorResult('oldPath and newPath are required')
+        let oldInput = args?.oldPath
+        let newInput = args?.newPath
+        if (typeof oldInput !== 'string' || oldInput.length === 0 || typeof newInput !== 'string' || newInput.length === 0) {
+          return errorResult('oldPath and newPath are required')
+        }
+        let oldPath = toFsPath(oldInput)
+        let newPath = toFsPath(newInput)
         let denied = checkPath(oldPath, { write: true }) ?? checkPath(newPath, { write: true })
         if (denied) return errorResult(denied)
         try {
@@ -556,8 +561,9 @@ export function createWorkspaceTools(): McpTool[] {
       },
       annotations: { destructiveHint: true },
       handler: async (args: any) => {
-        let filepath = toFsPath(args?.filepath)
-        if (!filepath) return errorResult('filepath is required')
+        let input = args?.filepath
+        if (typeof input !== 'string' || input.length === 0) return errorResult('filepath is required')
+        let filepath = toFsPath(input)
         let denied = checkPath(filepath, { write: true })
         if (denied) return errorResult(denied)
         try {

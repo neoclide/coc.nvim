@@ -8,12 +8,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import diagnosticManager from '../../diagnostic/manager'
 import languages from '../../languages'
 import { createDocumentTools } from '../../mcp/tools/document'
-import { NotificationManager } from '../../mcp/notifications'
+import { editorStateParams, NotificationManager, serviceStateParams } from '../../mcp/notifications'
 import { ResourceManager } from '../../mcp/resources'
 import { McpServer } from '../../mcp/server'
 import { ToolRegistry } from '../../mcp/tools'
+import services, { ServiceStat } from '../../services'
 import helper from '../helper'
-import { CancellationToken } from '../../util/protocol'
+import { CancellationToken, Emitter } from '../../util/protocol'
 import workspace from '../../workspace'
 import { TestClient } from './testClient'
 
@@ -70,6 +71,17 @@ afterAll(async () => {
 })
 
 describe('mcp notifications and resources', () => {
+  it('builds editor and service notification payloads', () => {
+    expect(editorStateParams(null)).toEqual({ uri: null, bufnr: null, languageId: null })
+    expect(editorStateParams({ uri: 'file:///a', bufnr: 1 })).toEqual({ uri: 'file:///a', bufnr: 1, languageId: null })
+    expect(editorStateParams({ uri: 'file:///a', bufnr: 1, document: { languageId: 'vim' } })).toEqual({
+      uri: 'file:///a', bufnr: 1, languageId: 'vim'
+    })
+    let stat = { id: 'test', languageIds: ['vim'] }
+    expect(serviceStateParams(stat)).toEqual({ id: 'test', state: 'running', languageIds: ['vim'] })
+    expect(serviceStateParams(stat, { state: ServiceStat.Stopped })).toEqual({ id: 'test', state: 'stopped', languageIds: ['vim'] })
+  })
+
   it('delivers coc/document_saved to subscribed sessions', async () => {
     let sub = await client.request(10, 'coc/subscribe', { events: ['coc/document_saved'] })
     expect(sub.subscribed).toEqual(['coc/document_saved'])
@@ -150,6 +162,23 @@ describe('mcp notifications and resources', () => {
     expect(read.contents[0].text).toBe('resource disk\n')
   })
 
+  it('returns -32002 when a document resource cannot be read from disk', async () => {
+    let missing = path.join(tmpdir, 'missing-resource.txt')
+    let resourceUri = 'coc://documents/' + encodeURIComponent(URI.file(missing).toString())
+    await expect(client.request(38, 'resources/read', { uri: resourceUri })).rejects.toThrow('-32002')
+  })
+
+  it('returns -32002 when a document resource is denied by path policy', async () => {
+    let denied = path.join(tmpdir, 'denied-resource.txt')
+    workspace.configurations.updateMemoryConfig({ 'mcp.deniedPaths': [denied] })
+    try {
+      let resourceUri = 'coc://documents/' + encodeURIComponent(URI.file(denied).toString())
+      await expect(client.request(39, 'resources/read', { uri: resourceUri })).rejects.toThrow('-32002')
+    } finally {
+      workspace.configurations.updateMemoryConfig({ 'mcp.deniedPaths': [] })
+    }
+  })
+
   it('reads coc://diagnostics, coc://services and coc://workspace', async () => {
     let diag = await client.request(33, 'resources/read', { uri: 'coc://diagnostics' })
     expect(typeof diag.contents[0].text).toBe('string')
@@ -185,5 +214,42 @@ describe('mcp notifications and resources', () => {
     workspace.workspaceFolderControl.addWorkspaceFolder(otherDir, true)
     let msg = await notified
     expect(msg.params.added.map((f: any) => f.uri)).toContain(URI.file(otherDir).toString())
+  })
+
+  it('delivers coc/service_state_changed when a registered service becomes ready', async () => {
+    let ready = new Emitter<void>()
+    let serviceDisposable = services.register({
+      id: 'mcp-notification-test-service',
+      name: 'MCP notification test service',
+      state: ServiceStat.Running,
+      selector: [{ language: 'text' }],
+      onServiceReady: ready.event,
+      start: () => {},
+      stop: () => {},
+      restart: () => {},
+      dispose: () => {}
+    })
+    let manager = new NotificationManager(server)
+    try {
+      let resource = await client.request(43, 'resources/read', { uri: 'coc://services' })
+      let stats = JSON.parse(resource.contents[0].text)
+      expect(stats.find((item: any) => item.id === 'mcp-notification-test-service')).toMatchObject({
+        state: 'running',
+        capabilities: null
+      })
+      await client.request(42, 'coc/subscribe', { events: ['coc/service_state_changed'] })
+      let notified = client.waitNotification('coc/service_state_changed')
+      ready.fire()
+      let msg = await notified
+      expect(msg.params).toEqual({
+        id: 'mcp-notification-test-service',
+        state: 'running',
+        languageIds: ['text']
+      })
+    } finally {
+      manager.dispose()
+      serviceDisposable.dispose()
+      ready.dispose()
+    }
   })
 })

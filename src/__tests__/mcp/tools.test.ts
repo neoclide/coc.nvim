@@ -88,4 +88,11 @@ describe('mcp ToolRegistry whitelist', () => {
     registry.setAllowedTools(null)
     expect(registry.list().tools.map(t => t.name)).toEqual(['a', 'b'])
   })
+
+  it('clears registered tools on dispose', () => {
+    let registry = sampleRegistry()
+    registry.unregister('missing')
+    registry.dispose()
+    expect(registry.list().tools).toEqual([])
+  })
 })

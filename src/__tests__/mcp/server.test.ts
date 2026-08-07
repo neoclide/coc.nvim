@@ -81,6 +81,20 @@ describe('mcp server lifecycle', () => {
     return client
   }
 
+  it('rejects unix transport without a socket path', async () => {
+    let invalid = new McpServer({
+      transport: 'unix',
+      host: '127.0.0.1',
+      port: 0,
+      token: 'test-token',
+      authRequired: true,
+      maxClients: 1,
+      timeout: 1000
+    })
+    await expect(invalid.listen()).rejects.toThrow('socketPath is required')
+    invalid.dispose()
+  })
+
   it('rejects invalid auth with -32001 and closes the connection', async () => {
     let client = new TestClient(address.port)
     let error: any

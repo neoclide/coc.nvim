@@ -6,10 +6,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   createDiscoveryInfo,
   generateToken,
+  getMcpDir,
   getInstanceFilePath,
   listInstances,
   readDiscoveryFile,
   removeInstanceFile,
+  removeSocketFile,
   writeInstanceFile
 } from '../../mcp/auth'
 import type { DiscoveryInfo } from '../../mcp/auth'
@@ -25,6 +27,19 @@ afterAll(() => {
 })
 
 describe('mcp auth', () => {
+  it('uses COC_MCP_DIR when configured', () => {
+    let previous = process.env.COC_MCP_DIR
+    process.env.COC_MCP_DIR = dir
+    try {
+      expect(getMcpDir()).toBe(dir)
+      delete process.env.COC_MCP_DIR
+      expect(getMcpDir()).toContain(path.join('.coc', 'mcp'))
+    } finally {
+      if (previous === undefined) delete process.env.COC_MCP_DIR
+      else process.env.COC_MCP_DIR = previous
+    }
+  })
+
   it('should generate a 64 char hex token', () => {
     let token = generateToken()
     expect(token).toMatch(/^[0-9a-f]{64}$/)
@@ -90,6 +105,41 @@ describe('mcp auth', () => {
     expect(readDiscoveryFile(file)).toBeNull()
     fs.writeFileSync(file, JSON.stringify({ version: 1, pid: 'a', token: 'x' }))
     expect(readDiscoveryFile(file)).toBeNull()
+    for (let value of [
+      { version: 1, pid: 1, token: '', transport: 'tcp', host: 'x', port: 1 },
+      { version: 1, pid: 1, token: 'x', transport: 'invalid' },
+      { version: 1, pid: 1, token: 'x', transport: 'tcp', port: 1 },
+      { version: 1, pid: 1, token: 'x', transport: 'tcp', host: 'x' },
+      { version: 1, pid: 1, token: 'x', transport: 'unix' }
+    ]) {
+      fs.writeFileSync(file, JSON.stringify(value))
+      expect(readDiscoveryFile(file)).toBeNull()
+    }
     expect(readDiscoveryFile(path.join(dir, 'missing.json'))).toBeNull()
+  })
+
+  it('ignores unrelated instance files and missing cleanup targets', () => {
+    fs.writeFileSync(path.join(dir, 'unrelated.json'), '{}')
+    expect(listInstances(dir)).toEqual([])
+    expect(() => removeInstanceFile(999999, dir)).not.toThrow()
+    expect(() => removeSocketFile(path.join(dir, 'missing.sock'))).not.toThrow()
+  })
+
+  it('should return no instances when the MCP directory does not exist', () => {
+    expect(listInstances(path.join(dir, 'missing-directory'))).toEqual([])
+  })
+
+  it('should ignore instance file write errors', () => {
+    let notDirectory = path.join(dir, 'not-a-directory')
+    fs.writeFileSync(notDirectory, 'file')
+    let info = createDiscoveryInfo({
+      transport: 'tcp',
+      host: '127.0.0.1',
+      port: 1234,
+      token: 'token',
+      pid: process.pid
+    })
+    expect(() => writeInstanceFile(info, notDirectory)).not.toThrow()
+    expect(fs.existsSync(getInstanceFilePath(process.pid, notDirectory))).toBe(false)
   })
 })

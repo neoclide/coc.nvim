@@ -48,7 +48,7 @@ export function maxResultsFromArgs(args: any, fallback: number): number {
   return Math.min(Math.max(1, Math.floor(n)), MAX_RESULTS_HARD_LIMIT)
 }
 
-interface LimitedList<T> {
+export interface LimitedList<T> {
   items: T[]
   total: number
   truncated: boolean
@@ -499,8 +499,6 @@ export function hoverContents(contents: any): string[] {
       let markdown = item as MarkupContent
       if (typeof markdown.value === 'string') {
         parts.push(markdown.value)
-      } else if (typeof (item as any).value === 'string') {
-        parts.push((item as any).value)
       }
     }
   }
@@ -610,11 +608,7 @@ export async function getDocumentSymbolResult(
     if (serviceId) {
       let call = await serviceCall(serviceId, 'textDocument/documentSymbol', { textDocument: { uri: doc.uri } }, token)
       if (call.error) return { error: `Document symbol request failed: ${call.error}` }
-      let result = call.result
-      let symbols = Array.isArray(result) && result.length > 0
-        ? (DocumentSymbol.is(result[0]) ? result : asDocumentSymbolTree(result))
-        : null
-      return { symbols }
+      return { symbols: normalizeDocumentSymbols(call.result) }
     }
     if (!hasProvider(ProviderName.DocumentSymbol, doc)) return { error: `Document symbol provider not found for ${doc.uri}` }
     try {
@@ -623,6 +617,11 @@ export async function getDocumentSymbolResult(
       return { error: `Document symbol request failed: ${e instanceof Error ? e.message : String(e)}` }
     }
   })
+}
+
+export function normalizeDocumentSymbols(result: any): DocumentSymbol[] | null {
+  if (!Array.isArray(result) || result.length === 0) return null
+  return DocumentSymbol.is(result[0]) ? result : asDocumentSymbolTree(result)
 }
 
 export const BATCH_METHODS: string[] = [
@@ -702,6 +701,90 @@ export function codeActionSummary(action: CodeAction): any {
       command: action.command.command,
       title: action.command.title
     } : undefined
+  }
+}
+
+export function hoverResultText(hovers: any[]): string {
+  return hovers.map(h => h.contents.join('\n\n')).filter(Boolean).join('\n\n---\n\n') || 'No hover content'
+}
+
+export function signatureResultText(result: { signatures: Array<{ label: string }>, activeSignature: number }): string {
+  if (result.signatures.length === 0) return 'No signature help'
+  return result.signatures.map((signature, index) => {
+    let mark = index === result.activeSignature ? '*' : ' '
+    return `${mark} ${signature.label}`
+  }).join('\n')
+}
+
+export function documentSymbolsText(limited: LimitedList<any>): string {
+  if (limited.items.length === 0) return 'No document symbols'
+  return limited.items.map(symbol => `${'  '.repeat(symbol.depth)}${symbol.name} (${symbol.kind})`).join('\n')
+    + (limited.truncated ? `\n\nTruncated: showing ${limited.items.length} of ${limited.total} symbols (raise maxResults to return more)` : '')
+}
+
+export function workspaceSymbolsText(limited: LimitedList<any>): string {
+  if (limited.items.length === 0) return 'No workspace symbols'
+  return limited.items.map(symbol => `${symbol.name} (${symbol.kind})${symbol.containerName ? ' in ' + symbol.containerName : ''}`).join('\n')
+    + (limited.truncated ? `\n\nTruncated: showing ${limited.items.length} of ${limited.total} symbols (raise maxResults to return more)` : '')
+}
+
+export function batchResultText(method: string, result: any): string {
+  if (result?.error) return `${method}: error - ${result.error}`
+  if (result?.locations) return `${method}: ${result.returned} of ${result.count} location(s)${result.truncated ? ' (truncated)' : ''}`
+  if (result?.symbols) return `${method}: ${result.returned} of ${result.count} symbol(s)${result.truncated ? ' (truncated)' : ''}`
+  if (result?.hovers) return `${method}: ${result.count} hover item(s)`
+  if (result?.signatures) return `${method}: ${result.signatures.length} signature(s)`
+  return `${method}: done`
+}
+
+export function diagnosticText(diagnostic: Diagnostic): string {
+  let severity = ['Error', 'Warning', 'Information', 'Hint'][(diagnostic.severity ?? 1) - 1] ?? 'Unknown'
+  let pos = diagnostic.range.start
+  let codeText = ''
+  let code = diagnostic.code
+  if (code != null) {
+    codeText = typeof code === 'object'
+      ? String((code as { value: string | number }).value)
+      : String(code as string | number)
+  }
+  return `${severity} ${pos.line + 1}:${pos.character + 1} ${diagnostic.message}${codeText ? ` [${codeText}]` : ''}`
+}
+
+export function diagnosticsText(limited: LimitedList<Diagnostic>): string {
+  if (limited.items.length === 0) return 'No diagnostics'
+  return limited.items.map(diagnosticText).join('\n')
+    + (limited.truncated ? `\n\nTruncated: showing ${limited.items.length} of ${limited.total} diagnostics (raise maxResults to return more)` : '')
+}
+
+export function codeActionsText(actions: any[], limited: LimitedList<any>): string {
+  if (actions.length === 0) return 'No code actions'
+  return actions.map((action, index) => `${index}. ${action.title}${action.disabled ? ' (disabled: ' + action.disabled.reason + ')' : ''}`).join('\n')
+    + (limited.truncated ? `\n\nTruncated: showing ${actions.length} of ${limited.total} actions (raise maxResults to return more)` : '')
+}
+
+export function selectCodeAction(actions: CodeAction[], args: any): { action?: CodeAction, error?: string } {
+  let action: CodeAction | undefined
+  if (typeof args?.title === 'string') {
+    action = actions.find(item => item.title === args.title)
+    if (!action) return { error: `Code action not found: ${args.title}` }
+  } else if (typeof args?.index === 'number') {
+    action = actions[args.index]
+    if (!action) return { error: `Code action at index ${args.index} not found` }
+  } else {
+    return { error: 'title or index is required' }
+  }
+  if (action.disabled) return { error: `Code action "${action.title}" is disabled: ${action.disabled.reason}` }
+  return { action }
+}
+
+export function serviceCapabilitySummary(stat: { id: string, state: string, languageIds: string[] }, service?: { client?: { initializeResult?: any } }): any {
+  let init = service?.client?.initializeResult
+  return {
+    id: stat.id,
+    state: stat.state,
+    languageIds: stat.languageIds,
+    capabilities: init?.capabilities ?? null,
+    serverInfo: init?.serverInfo ?? null
   }
 }
 
@@ -817,7 +900,7 @@ export function createLspTools(): McpTool[] {
         let res = await getHoverResult(doc, pos, configuredServiceId(doc), context.token)
         if ('error' in res) return errorResult(res.error)
         let list = res.hovers.map(hoverSummary)
-        let text = list.map(h => h.contents.join('\n\n')).filter(Boolean).join('\n\n---\n\n') || 'No hover content'
+        let text = hoverResultText(list)
         let result = { uri: doc.uri, position: pos, count: list.length, hovers: list }
         return textResult(text, result)
       }
@@ -863,12 +946,7 @@ export function createLspTools(): McpTool[] {
         let res = await getSignatureResult(doc, pos, configuredServiceId(doc), context.token)
         if ('error' in res) return errorResult(res.error)
         let result = { uri: doc.uri, position: pos, ...signatureSummary(res.help) }
-        let text = result.signatures.length === 0
-          ? 'No signature help'
-          : result.signatures.map((s, i) => {
-            let mark = i === result.activeSignature ? '*' : ' '
-            return `${mark} ${s.label}`
-          }).join('\n')
+        let text = signatureResultText(result)
         return textResult(text, result)
       }
     },
@@ -903,10 +981,7 @@ export function createLspTools(): McpTool[] {
         if ('error' in res) return errorResult(res.error)
         let limited = flattenSymbols(res.symbols, maxResultsFromArgs(args, 500))
         let result = { uri: doc.uri, count: limited.total, returned: limited.items.length, truncated: limited.truncated, symbols: limited.items }
-        let text = limited.items.length === 0
-          ? 'No document symbols'
-          : limited.items.map(s => `${'  '.repeat(s.depth)}${s.name} (${s.kind})`).join('\n')
-          + (limited.truncated ? `\n\nTruncated: showing ${limited.items.length} of ${limited.total} symbols (raise maxResults to return more)` : '')
+        let text = documentSymbolsText(limited)
         return textResult(text, result)
       }
     },
@@ -950,10 +1025,7 @@ export function createLspTools(): McpTool[] {
         }))
         let limited = limitResults(list, maxResultsFromArgs(args, 500))
         let result = { query, count: limited.total, returned: limited.items.length, truncated: limited.truncated, symbols: limited.items }
-        let text = limited.items.length === 0
-          ? 'No workspace symbols'
-          : limited.items.map(s => `${s.name} (${s.kind})${s.containerName ? ' in ' + s.containerName : ''}`).join('\n')
-          + (limited.truncated ? `\n\nTruncated: showing ${limited.items.length} of ${limited.total} symbols (raise maxResults to return more)` : '')
+        let text = workspaceSymbolsText(limited)
         return textResult(text, result)
       }
     },
@@ -1076,15 +1148,7 @@ export function createLspTools(): McpTool[] {
             results[m] = { error: `Batch method ${m} failed: ${e instanceof Error ? e.message : String(e)}` }
           }
         }))
-        let text = methods.map((m: string) => {
-          let r = results[m]
-          if (r?.error) return `${m}: error - ${r.error}`
-          if (r?.locations) return `${m}: ${r.returned} of ${r.count} location(s)${r.truncated ? ' (truncated)' : ''}`
-          if (r?.symbols) return `${m}: ${r.returned} of ${r.count} symbol(s)${r.truncated ? ' (truncated)' : ''}`
-          if (r?.hovers) return `${m}: ${r.count} hover item(s)`
-          if (r?.signatures) return `${m}: ${r.signatures.length} signature(s)`
-          return `${m}: done`
-        }).join('\n')
+        let text = methods.map((method: string) => batchResultText(method, results[method])).join('\n')
         let result = { uri: doc.uri, position: pos ?? null, results }
         return textResult(text, result)
       }
@@ -1125,20 +1189,7 @@ export function createLspTools(): McpTool[] {
         }
         let limited = limitResults(diagnostics, maxResultsFromArgs(args, 100))
         let result = { uri: ref.uri, count: limited.total, returned: limited.items.length, truncated: limited.truncated, diagnostics: limited.items }
-        let text = limited.items.length === 0
-          ? 'No diagnostics'
-          : limited.items.map(d => {
-            let severity = ['Error', 'Warning', 'Information', 'Hint'][(d.severity ?? 1) - 1] ?? 'Unknown'
-            let pos = d.range.start
-            let codeText = ''
-            let code = d.code
-            if (code != null) {
-              codeText = typeof code === 'object'
-                ? String((code as { value: string | number }).value)
-                : String(code as string | number)
-            }
-            return `${severity} ${pos.line + 1}:${pos.character + 1} ${d.message}${codeText ? ` [${codeText}]` : ''}`
-          }).join('\n') + (limited.truncated ? `\n\nTruncated: showing ${limited.items.length} of ${limited.total} diagnostics (raise maxResults to return more)` : '')
+        let text = diagnosticsText(limited)
         return textResult(text, result)
       }
     },
@@ -1185,10 +1236,7 @@ export function createLspTools(): McpTool[] {
         let limited = limitResults(list.actions, maxResultsFromArgs(args, 100))
         let actions = limited.items.map(codeActionSummary)
         let result = { uri: list.doc.uri, count: limited.total, returned: actions.length, truncated: limited.truncated, actions }
-        let text = actions.length === 0
-          ? 'No code actions'
-          : actions.map((a, i) => `${i}. ${a.title}${a.disabled ? ' (disabled: ' + a.disabled.reason + ')' : ''}`).join('\n')
-          + (limited.truncated ? `\n\nTruncated: showing ${actions.length} of ${limited.total} actions (raise maxResults to return more)` : '')
+        let text = codeActionsText(actions, limited)
         return textResult(text, result)
       }
     },
@@ -1219,19 +1267,9 @@ export function createLspTools(): McpTool[] {
       handler: async (args: any, context: ToolContext) => {
         let list = await getCodeActionList(args, context)
         if (list.error) return errorResult(list.error)
-        let selected: CodeAction | undefined
-        if (typeof args?.title === 'string') {
-          selected = list.actions.find(a => a.title === args.title)
-          if (!selected) return errorResult(`Code action not found: ${args.title}`)
-        } else if (typeof args?.index === 'number') {
-          selected = list.actions[args.index]
-          if (!selected) return errorResult(`Code action at index ${args.index} not found`)
-        } else {
-          return errorResult('title or index is required')
-        }
-        if (selected.disabled) {
-          return errorResult(`Code action "${selected.title}" is disabled: ${selected.disabled.reason}`)
-        }
+        let selection = selectCodeAction(list.actions, args)
+        if (selection.error) return errorResult(selection.error)
+        let selected = selection.action!
         let resolved: CodeAction | undefined
         try {
           resolved = await languages.resolveCodeAction(selected, context.token)
@@ -1450,17 +1488,7 @@ export function createLspTools(): McpTool[] {
       annotations: { readOnlyHint: true, idempotentHint: true },
       handler: async () => {
         let all = services.getServiceStats()
-        let servicesList = all.map(stat => {
-          let service = services.getService(stat.id)
-          let init = service?.client?.initializeResult
-          return {
-            id: stat.id,
-            state: stat.state,
-            languageIds: stat.languageIds,
-            capabilities: init?.capabilities ?? null,
-            serverInfo: init?.serverInfo ?? null
-          }
-        })
+        let servicesList = all.map(stat => serviceCapabilitySummary(stat, services.getService(stat.id)))
         let result = { count: servicesList.length, services: servicesList }
         let text = servicesList.length === 0
           ? 'No language servers running'

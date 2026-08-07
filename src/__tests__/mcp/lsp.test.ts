@@ -4,10 +4,11 @@ import os from 'os'
 import path from 'path'
 import { URI } from 'vscode-uri'
 import { Position, Range } from 'vscode-languageserver-types'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import commands from '../../commands'
 import diagnosticManager from '../../diagnostic/manager'
 import events from '../../events'
+import languages from '../../languages'
 import { createLspTools, getServiceLimiter, lspQueryCache, MAX_STUCK_REQUESTS, withServiceLimit } from '../../mcp/tools/lsp'
 import services, { ServiceStat } from '../../services'
 import helper from '../helper'
@@ -166,6 +167,13 @@ describe('mcp lsp tools', () => {
     expect(result.structuredContent.diagnostics[0].message).toBe('diagnostic')
   })
 
+  it('lsp/diagnostics requires an open document', async () => {
+    let unopened = path.join(tmpdir, 'unopened-diagnostics.txt')
+    fs.writeFileSync(unopened, 'plain\n')
+    let result = await tool('lsp/diagnostics').handler({ uri: unopened }, { token })
+    expect(result.content[0].text).toContain('not open')
+  })
+
   it('lsp/code_actions lists actions without applying', async () => {
     let result = await tool('lsp/code_actions').handler({ uri: file }, { token })
     expect(result.isError).toBeFalsy()
@@ -223,6 +231,16 @@ describe('mcp lsp tools', () => {
     expect(results.document_symbols.symbols[0].name).toBe('name')
   })
 
+  it('lsp/batch dispatches every supported query method', async () => {
+    let result = await tool('lsp/batch').handler({
+      uri: file,
+      position: { line: 1, character: 1 },
+      methods: ['signature_help', 'declaration', 'type_definition', 'implementation']
+    }, { token })
+    expect(result.isError).toBeFalsy()
+    expect(Object.keys(result.structuredContent.results)).toEqual(['signature_help', 'declaration', 'type_definition', 'implementation'])
+  })
+
   it('lsp/batch rejects unknown methods', async () => {
     let result = await tool('lsp/batch').handler({
       uri: file,
@@ -231,6 +249,129 @@ describe('mcp lsp tools', () => {
     }, { token })
     expect(result.isError).toBeTruthy()
     expect(result.content[0].text).toContain('bogus')
+  })
+
+  it('validates required arguments across LSP tools', async () => {
+    for (let name of ['lsp/hover', 'lsp/signature_help', 'lsp/definition', 'lsp/declaration',
+      'lsp/type_definition', 'lsp/implementation', 'lsp/references', 'lsp/rename']) {
+      let result = await tool(name).handler({ uri: file }, { token })
+      expect(result.isError).toBe(true)
+      expect(result.content[0].text).toContain('position')
+    }
+    expect((await tool('lsp/workspace_symbols').handler({}, { token })).isError).toBe(true)
+    expect((await tool('lsp/batch').handler({}, { token })).isError).toBe(true)
+    expect((await tool('lsp/batch').handler({ uri: file, methods: ['hover'] }, { token })).content[0].text).toContain('position')
+    expect((await tool('lsp/execute_command').handler({}, { token })).isError).toBe(true)
+    expect((await tool('lsp/request').handler({}, { token })).isError).toBe(true)
+    expect((await tool('lsp/rename').handler({ uri: file, position: { line: 0, character: 0 }, newName: '' }, { token })).content[0].text).toContain('newName')
+  })
+
+  it('propagates document resolution errors across LSP tools', async () => {
+    let args = { uri: '/etc/passwd', position: { line: 0, character: 0 }, methods: ['hover'] }
+    for (let name of ['lsp/hover', 'lsp/signature_help', 'lsp/document_symbols', 'lsp/definition',
+      'lsp/batch', 'lsp/diagnostics', 'lsp/code_actions', 'lsp/apply_code_action', 'lsp/rename']) {
+      let result = await tool(name).handler(args, { token })
+      expect(result.isError).toBe(true)
+    }
+  })
+
+  it('reports unavailable configured services for direct query tools', async () => {
+    workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': { vim: 'missing' } })
+    try {
+      for (let name of ['lsp/hover', 'lsp/signature_help', 'lsp/document_symbols']) {
+        let result = await tool(name).handler({ uri: file, position: { line: 1, character: 1 } }, { token })
+        expect(result.isError).toBe(true)
+        expect(result.content[0].text).toContain('missing')
+      }
+    } finally {
+      workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': { vim: 'test' } })
+    }
+  })
+
+  it('validates code action selection and resolution', async () => {
+    let apply = tool('lsp/apply_code_action')
+    expect((await apply.handler({ uri: file }, { token })).content[0].text).toContain('title or index')
+    expect((await apply.handler({ uri: file, title: 'missing' }, { token })).content[0].text).toContain('not found')
+    expect((await apply.handler({ uri: file, index: 99 }, { token })).content[0].text).toContain('not found')
+    let resolve = vi.spyOn(languages, 'resolveCodeAction').mockResolvedValueOnce(undefined)
+    try {
+      expect((await apply.handler({ uri: file, title: 'title' }, { token })).content[0].text).toContain('Failed to resolve')
+    } finally {
+      resolve.mockRestore()
+    }
+    resolve = vi.spyOn(languages, 'resolveCodeAction').mockRejectedValueOnce(new Error('resolve failed'))
+    try {
+      expect((await apply.handler({ uri: file, title: 'title' }, { token })).content[0].text).toContain('resolve failed')
+    } finally {
+      resolve.mockRestore()
+    }
+  })
+
+  it('handles edit-only code actions and code action filters', async () => {
+    let actions = vi.spyOn(languages, 'getCodeActions').mockResolvedValueOnce(undefined as any)
+    try {
+      let empty = await tool('lsp/code_actions').handler({ uri: file, kind: 'quickfix' }, { token })
+      expect(empty.structuredContent.actions).toEqual([])
+    } finally {
+      actions.mockRestore()
+    }
+    let resolve = vi.spyOn(languages, 'resolveCodeAction').mockResolvedValueOnce({ title: 'title', edit: { changes: {} } })
+    let apply = vi.spyOn(workspace, 'applyEdit').mockResolvedValueOnce(true)
+    try {
+      let result = await tool('lsp/apply_code_action').handler({ uri: file, title: 'title' }, { token })
+      expect(result.structuredContent.actions).toEqual(['edit'])
+    } finally {
+      resolve.mockRestore()
+      apply.mockRestore()
+    }
+  })
+
+  it('uses provider aggregation for rename when no service is mapped', async () => {
+    workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': {} })
+    try {
+      let result = await tool('lsp/rename').handler({
+        uri: file, position: { line: 1, character: 1 }, newName: 'provider-name', preview: true
+      }, { token })
+      expect(result.isError).toBeFalsy()
+      expect(result.structuredContent.preview).toBe(true)
+    } finally {
+      workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': { vim: 'test' } })
+    }
+  })
+
+  it('reports downstream LSP and edit failures', async () => {
+    let symbols = vi.spyOn(languages, 'getWorkspaceSymbols').mockRejectedValueOnce(new Error('symbols failed'))
+    try {
+      expect((await tool('lsp/workspace_symbols').handler({ query: 'x' }, { token })).content[0].text).toContain('symbols failed')
+    } finally {
+      symbols.mockRestore()
+    }
+    symbols = vi.spyOn(languages, 'getWorkspaceSymbols').mockRejectedValueOnce('symbols string')
+    try {
+      expect((await tool('lsp/workspace_symbols').handler({ query: 'x' }, { token })).content[0].text).toContain('symbols string')
+    } finally {
+      symbols.mockRestore()
+    }
+    let diagnostics = vi.spyOn(diagnosticManager, 'getDiagnosticsInRange').mockImplementationOnce(() => { throw new Error('diagnostics failed') })
+    try {
+      expect((await tool('lsp/diagnostics').handler({ uri: file }, { token })).content[0].text).toContain('diagnostics failed')
+    } finally {
+      diagnostics.mockRestore()
+    }
+    let apply = vi.spyOn(workspace, 'applyEdit').mockRejectedValueOnce(new Error('rename apply failed'))
+    try {
+      let result = await tool('lsp/rename').handler({ uri: file, position: { line: 1, character: 1 }, newName: 'renamed' }, { token })
+      expect(result.content[0].text).toContain('rename apply failed')
+    } finally {
+      apply.mockRestore()
+    }
+    let send = vi.spyOn(services, 'sendRequest').mockRejectedValue(new Error('request failed'))
+    try {
+      expect((await tool('lsp/execute_command').handler({ serviceId: 'test', command: 'x' }, { token })).content[0].text).toContain('request failed')
+      expect((await tool('lsp/request').handler({ serviceId: 'test', method: 'custom/test' }, { token })).content[0].text).toContain('request failed')
+    } finally {
+      send.mockRestore()
+    }
   })
 
   it('lsp/batch allows document_symbols without position', async () => {

@@ -4,7 +4,7 @@ import os from 'os'
 import path from 'path'
 import { Position, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import languages from '../../languages'
 import { createDocumentTools } from '../../mcp/tools/document'
 import helper from '../helper'
@@ -54,6 +54,25 @@ describe('mcp document tools', () => {
     let doc = workspace.getDocument(uri)!
     let full = result.structuredContent.lineCount
     expect(full).toBe(doc.lineCount)
+    let range = await tool('document/read').handler({
+      uri: file,
+      range: { start: { line: 0, character: 1 }, end: { line: 0, character: 4 } }
+    }, { token })
+    expect(range.structuredContent.text).toBe('lph')
+  })
+
+  it('document/read and read_lines report missing disk files', async () => {
+    let missing = path.join(tmpdir, 'missing.txt')
+    for (let args of [
+      { uri: missing },
+      { uri: missing, startLine: 0, endLine: 2 },
+      { uri: missing, range: { start: { line: 0, character: 0 }, end: { line: 1, character: 0 } } }
+    ]) {
+      let result = await tool('document/read').handler(args, { token })
+      expect(result.isError).toBe(true)
+    }
+    let lines = await tool('document/read_lines').handler({ uri: missing }, { token })
+    expect(lines.isError).toBe(true)
   })
 
   it('document/read falls back to disk for unopened files', async () => {
@@ -65,6 +84,10 @@ describe('mcp document tools', () => {
     expect(result.structuredContent.text).toBe('disk content\n')
     let lines = await tool('document/read_lines').handler({ uri: other, startLine: 0, endLine: 1 }, { token })
     expect(lines.structuredContent.lines).toEqual([{ line: 0, text: 'disk content' }])
+    let startOnly = await tool('document/read').handler({ uri: other, startLine: -1 }, { token })
+    expect(startOnly.structuredContent.text).toBe('disk content')
+    let endOnly = await tool('document/read').handler({ uri: other, endLine: 1 }, { token })
+    expect(endOnly.structuredContent.text).toBe('disk content')
   })
 
   it('document/read reads a line window from a large unopened file', async () => {
@@ -140,11 +163,17 @@ describe('mcp document tools', () => {
     ])
   })
 
+  it('document/read_lines rejects paths outside the workspace', async () => {
+    expect((await tool('document/read_lines').handler({ uri: '/etc/passwd' }, { token })).isError).toBe(true)
+  })
+
   it('document/read_lines caps the window with maxLines', async () => {
     let result = await tool('document/read_lines').handler({ uri: file, startLine: 0, endLine: 10, maxLines: 2 }, { token })
     expect(result.isError).toBeFalsy()
     expect(result.structuredContent.lines.length).toBe(2)
     expect(result.structuredContent.endLine).toBe(2)
+    let defaulted = await tool('document/read_lines').handler({ uri: file, maxLines: 0 }, { token })
+    expect(defaulted.structuredContent.lines).toHaveLength(1)
   })
 
   it('document/apply_edits updates the buffer and fires didChange', async () => {
@@ -190,6 +219,21 @@ describe('mcp document tools', () => {
     expect(result.isError).toBe(true)
   })
 
+  it('document/apply_edits reports editor failures', async () => {
+    let doc = workspace.getDocument(uri)!
+    let spy = vi.spyOn(doc, 'applyEdits').mockRejectedValueOnce(new Error('apply failed'))
+    try {
+      let result = await tool('document/apply_edits').handler({
+        uri: file,
+        target: 'buffer',
+        edits: [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, newText: 'x' }]
+      }, { token })
+      expect(result.content[0].text).toContain('apply failed')
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
   it('document/apply_edits with target both writes disk', async () => {
     let doc = workspace.getDocument(uri)!
     let result = await tool('document/apply_edits').handler({
@@ -232,6 +276,17 @@ describe('mcp document tools', () => {
     expect(result.isError).toBeFalsy()
     expect(result.structuredContent.saved).toBe(true)
     expect(fs.readFileSync(other, 'utf8')).toBe('before\n')
+  })
+
+  it('document/write reports save failures', async () => {
+    let spy = vi.spyOn(workspace.nvim, 'call').mockRejectedValueOnce(new Error('save failed'))
+    try {
+      let result = await tool('document/write').handler({ uri: file }, { token })
+      expect(result.isError).toBe(true)
+      expect(result.content[0].text).toContain('save failed')
+    } finally {
+      spy.mockRestore()
+    }
   })
 
   it('document/format without a provider returns formatted false', async () => {
@@ -311,6 +366,27 @@ describe('mcp document tools', () => {
     expect(result.structuredContent.count).toBe(2)
     await helper.waitValue(() => helper.nvim.call('bufloaded', [f1]), 1)
     await helper.waitValue(() => helper.nvim.call('bufloaded', [f2]), 1)
+  })
+
+  it('document/open validates targets and supports line and column fragments', async () => {
+    expect((await tool('document/open').handler({}, { token })).isError).toBe(true)
+    expect((await tool('document/open').handler({ files: [] }, { token })).content[0].text).toContain('no files')
+    expect((await tool('document/open').handler({ files: [null] }, { token })).isError).toBe(true)
+    let target = path.join(tmpdir, 'open-position.txt')
+    fs.writeFileSync(target, 'one\ntwo\n')
+    let result = await tool('document/open').handler({ uri: target, line: 2.8, col: 2.9 }, { token })
+    expect(result.isError).toBeFalsy()
+    expect(await helper.nvim.eval('[line("."), col(".")]')).toEqual([2, 2])
+  })
+
+  it('document/open reports openResource failures', async () => {
+    let spy = vi.spyOn(workspace, 'openResource').mockRejectedValueOnce(new Error('open failed'))
+    try {
+      let result = await tool('document/open').handler({ uri: file }, { token })
+      expect(result.content[0].text).toContain('open failed')
+    } finally {
+      spy.mockRestore()
+    }
   })
 
   it('rejects paths outside the workspace', async () => {

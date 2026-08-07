@@ -8,6 +8,30 @@ import window from '../window'
 import workspace from '../workspace'
 import type { McpServer } from './server'
 
+export function editorStateParams(editor: { uri: string, bufnr: number, document?: { languageId: string } } | null | undefined): {
+  uri: string | null
+  bufnr: number | null
+  languageId: string | null
+} {
+  return {
+    uri: editor ? editor.uri : null,
+    bufnr: editor ? editor.bufnr : null,
+    languageId: editor?.document ? editor.document.languageId : null
+  }
+}
+
+export function serviceStateParams(stat: { id: string, languageIds: string[] }, current?: { state: number }): {
+  id: string
+  state: string
+  languageIds: string[]
+} {
+  return {
+    id: stat.id,
+    state: current ? getStateName(current.state) : 'running',
+    languageIds: stat.languageIds
+  }
+}
+
 /**
  * Bridges coc.nvim events to MCP `coc/*` notifications. Only sessions that
  * subscribed via coc/subscribe receive an event.
@@ -53,11 +77,7 @@ export class NotificationManager implements Disposable {
     }))
     try {
       this.disposables.push(window.onDidChangeActiveTextEditor(editor => {
-        this.server.broadcastEvent('coc/editor_state_changed', {
-          uri: editor ? editor.uri : null,
-          bufnr: editor ? editor.bufnr : null,
-          languageId: editor && editor.document ? editor.document.languageId : null
-        })
+        this.server.broadcastEvent('coc/editor_state_changed', editorStateParams(editor))
       }))
     } catch (_e) {
       // window is not attached to a plugin instance (e.g. tests)
@@ -68,11 +88,7 @@ export class NotificationManager implements Disposable {
       if (!service) continue
       this.disposables.push(service.onServiceReady(() => {
         let current = services.getService(stat.id)
-        this.server.broadcastEvent('coc/service_state_changed', {
-          id: stat.id,
-          state: current ? getStateName(current.state) : 'running',
-          languageIds: stat.languageIds
-        })
+        this.server.broadcastEvent('coc/service_state_changed', serviceStateParams(stat, current))
       }))
     }
   }

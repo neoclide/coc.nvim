@@ -8,6 +8,7 @@ import { getInstanceFilePath, readDiscoveryFile } from '../../mcp/auth'
 import mcp from '../../mcp'
 import { McpServer } from '../../mcp/server'
 import workspace from '../../workspace'
+import { TestClient } from './testClient'
 
 describe('mcp service', () => {
   async function waitForInstanceFile(timeout = 2000): Promise<string> {
@@ -22,7 +23,7 @@ describe('mcp service', () => {
 
   afterEach(() => {
     mcp.stop()
-    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false, 'mcp.allowedTools': [] })
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false, 'mcp.allowedTools': [], 'mcp.transport': 'auto' })
   })
 
   it('starts the socket server and writes the per-instance discovery file', async () => {
@@ -38,7 +39,7 @@ describe('mcp service', () => {
       expect(status.socketPath).toBeTruthy()
     }
     expect(status.tools).toEqual(expect.arrayContaining(['workspace/info', 'workspace/configuration']))
-    let instancePath = getInstanceFilePath(process.pid)
+    let instancePath = await waitForInstanceFile()
     let info = readDiscoveryFile(instancePath)
     expect(info).not.toBeNull()
     expect(info!.token.length).toBe(64)
@@ -85,6 +86,21 @@ describe('mcp service', () => {
     expect(fs.existsSync(instancePath)).toBe(true)
   })
 
+  it('handles a server listen failure without publishing the service', async () => {
+    let listenSpy = vi.spyOn(McpServer.prototype, 'listen').mockRejectedValue(new Error('listen failed'))
+    let disposeSpy = vi.spyOn(McpServer.prototype, 'dispose')
+    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.transport': 'tcp' })
+    try {
+      await mcp.start()
+      expect(mcp.running).toBe(false)
+      expect(disposeSpy).toHaveBeenCalled()
+      expect(fs.existsSync(getInstanceFilePath(process.pid))).toBe(false)
+    } finally {
+      listenSpy.mockRestore()
+      disposeSpy.mockRestore()
+    }
+  })
+
   it('serializes concurrent starts into a single server', async () => {
     let releaseListen: () => void = () => {}
     let listenSpy = vi.spyOn(McpServer.prototype, 'listen').mockImplementation(() => new Promise(resolve => {
@@ -129,15 +145,24 @@ describe('mcp service', () => {
   it('formats human-readable status lines', async () => {
     workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.allowedTools': ['document/read', 'lsp/references'] })
     await mcp.start()
-    let lines = mcp.getStatusLines()
-    expect(lines[0]).toBe('MCP server: running')
-    expect(lines.join('\n')).toContain('transport:')
-    expect(lines.join('\n')).toContain('cwd:')
-    expect(lines.join('\n')).toContain('clients:')
-    expect(lines.join('\n')).toContain('tools:')
-    expect(lines.join('\n')).toContain('    document/read')
-    expect(lines.join('\n')).toContain('    lsp/references')
-    mcp.stop()
+    let info = readDiscoveryFile(await waitForInstanceFile())!
+    let client = new TestClient(info.transport === 'tcp' ? info.port! : info.socketPath!)
+    try {
+      await client.request(0, 'coc/auth', { token: info.token, clientInfo: { name: 'status-client', version: '1' } })
+      await client.request(1, 'initialize', { protocolVersion: '2025-06-18', capabilities: {} })
+      let lines = mcp.getStatusLines()
+      expect(lines[0]).toBe('MCP server: running')
+      expect(lines.join('\n')).toContain('transport:')
+      expect(lines.join('\n')).toContain('cwd:')
+      expect(lines.join('\n')).toContain('clients: 1')
+      expect(lines.join('\n')).toContain('status-client')
+      expect(lines.join('\n')).toContain('tools:')
+      expect(lines.join('\n')).toContain('    document/read')
+      expect(lines.join('\n')).toContain('    lsp/references')
+    } finally {
+      client.close()
+      mcp.stop()
+    }
     expect(mcp.getStatusLines()).toEqual(['MCP server: not running'])
   })
 
@@ -209,6 +234,15 @@ describe('mcp service', () => {
       handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
     })).toThrow(/already registered/)
     disposable.dispose()
+  })
+
+  it('rejects extension tools without a name', () => {
+    expect(() => mcp.registerTool({
+      name: '',
+      description: 'missing name',
+      inputSchema: { type: 'object' },
+      handler: () => ({ content: [] })
+    })).toThrow('Tool name is required')
   })
 
   it('keeps extension tools across server restarts', async () => {

@@ -14,7 +14,7 @@ const logger = createLogger('mcp-document')
 
 const MAX_READ_BYTES = 2 * 1024 * 1024
 
-function readDiskText(uri: string): { text: string, error?: string } {
+export function readDiskText(uri: string): { text: string, error?: string } {
   let filepath = toFsPath(uri)
   try {
     let stat = fs.statSync(filepath)
@@ -31,7 +31,7 @@ function readDiskText(uri: string): { text: string, error?: string } {
  * Read a line window (0-based, end exclusive) from disk without loading the
  * whole file, using coc's incremental readFileLines.
  */
-async function readDiskWindow(uri: string, startLine: number, endLine: number): Promise<{ lines: string[], error?: string }> {
+export async function readDiskWindow(uri: string, startLine: number, endLine: number): Promise<{ lines: string[], error?: string }> {
   let filepath = toFsPath(uri)
   try {
     // readFileLines end is inclusive
@@ -46,7 +46,7 @@ async function readDiskWindow(uri: string, startLine: number, endLine: number): 
  * Reconstruct the exact text of an LSP range from a line window read from
  * disk (lines[0] corresponds to range.start.line).
  */
-function windowToRangeText(lines: string[], range: any): string {
+export function windowToRangeText(lines: string[], range: any): string {
   if (lines.length === 0) return ''
   let start = range.start
   let end = range.end
@@ -60,7 +60,7 @@ function windowToRangeText(lines: string[], range: any): string {
     lines[lines.length - 1].slice(0, end.character)
 }
 
-function lineWindow(doc: Document, startLine: number | undefined, endLine: number | undefined): string {
+export function lineWindow(doc: Document, startLine: number | undefined, endLine: number | undefined): string {
   let start = Math.max(0, startLine ?? 0)
   let end = endLine ?? doc.lineCount
   if (end <= start) return ''
@@ -68,7 +68,7 @@ function lineWindow(doc: Document, startLine: number | undefined, endLine: numbe
   return lines.join('\n')
 }
 
-function toTextEdits(args: any): TextEdit[] | null {
+export function toTextEdits(args: any): TextEdit[] | null {
   let edits = args?.edits
   if (!Array.isArray(edits) || edits.length === 0) return null
   let result: TextEdit[] = []

@@ -3,7 +3,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { checkPath } from '../../mcp/tools/util'
+import { checkPath, collectEditUris, errorResult, folderPaths, globMatch, globVariants, textResult, toFsPath, toUri } from '../../mcp/tools/util'
 import workspace from '../../workspace'
 
 let tmpdir: string
@@ -22,6 +22,43 @@ afterAll(() => {
 })
 
 describe('mcp path validation', () => {
+  it('constructs results and normalizes paths', () => {
+    expect(textResult('text')).toEqual({ content: [{ type: 'text', text: 'text' }] })
+    expect(textResult('text', null).structuredContent).toBeNull()
+    expect(errorResult('bad')).toMatchObject({ isError: true })
+    let uri = toUri(path.join(tmpdir, 'file.txt'))
+    expect(uri).toMatch(/^file:/)
+    expect(toUri('untitled://one')).toBe('untitled://one')
+    expect(toFsPath(uri)).toBe(path.join(tmpdir, 'file.txt'))
+  })
+
+  it('collects every WorkspaceEdit URI form', () => {
+    expect(collectEditUris({
+      changes: { 'file:///a': [] },
+      documentChanges: [
+        null,
+        { textDocument: { uri: 'file:///b' } },
+        { uri: 'file:///c' },
+        { oldUri: 'file:///d', newUri: 'file:///e' },
+        { textDocument: { uri: 1 }, uri: 1 }
+      ]
+    })).toEqual(['file:///a', 'file:///b', 'file:///c', 'file:///d', 'file:///e'])
+    expect(collectEditUris(null)).toEqual([])
+    expect(collectEditUris({ changes: null, documentChanges: {} })).toEqual([])
+  })
+
+  it('matches glob variants for files, directories and missing paths', () => {
+    let file = path.join(allowedDir, 'file.txt')
+    fs.writeFileSync(file, 'x')
+    expect(globMatch(path.join(tmpdir, '**'), file)).toBe(true)
+    expect(globMatch(path.join(tmpdir, '**'), tmpdir)).toBe(true)
+    expect(globMatch(path.join(tmpdir, 'missing*'), path.join(tmpdir, 'missing.txt'))).toBe(true)
+    expect(globMatch('package.json', path.join(process.cwd(), 'package.json'))).toBe(true)
+    expect(globVariants('relative/**')).toEqual(['relative/**'])
+    expect(globVariants(file)[0]).toBe(file)
+    expect(folderPaths()).toEqual(workspace.folderPaths)
+  })
+
   it('allows files inside the workspace root by default', () => {
     expect(checkPath(path.join(process.cwd(), 'package.json'))).toBeNull()
   })

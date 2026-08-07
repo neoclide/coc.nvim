@@ -4,9 +4,18 @@ import os from 'os'
 import path from 'path'
 import { URI } from 'vscode-uri'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { createWorkspaceTools, searchWithJs } from '../../mcp/tools/workspace'
+import {
+  createWorkspaceTools,
+  escapeRegExp,
+  findRg,
+  getConfigValue,
+  parseRgLine,
+  searchWithJs,
+  searchWithRg
+} from '../../mcp/tools/workspace'
 import helper from '../helper'
 import { CancellationToken } from '../../util/protocol'
+import { which } from '../../util/node'
 import workspace from '../../workspace'
 
 let tmpdir: string
@@ -46,6 +55,52 @@ function tool(name: string) {
 }
 
 describe('mcp workspace tools', () => {
+  it('parses ripgrep JSON match lines', () => {
+    let match = parseRgLine(JSON.stringify({
+      type: 'match',
+      data: {
+        path: { text: '/tmp/a.ts' },
+        lines: { text: '你hello\n' },
+        line_number: 2,
+        submatches: [{ start: 3 }]
+      }
+    }))
+    expect(match).toEqual({ file: '/tmp/a.ts', line: 1, column: 1, text: '你hello' })
+    expect(parseRgLine(JSON.stringify({
+      type: 'match',
+      data: { path: { text: '/tmp/a.ts' }, lines: { text: 1 } }
+    }))).toEqual({ file: '/tmp/a.ts', line: 0, column: 0, text: '' })
+    expect(parseRgLine('{invalid')).toBeNull()
+    expect(parseRgLine(JSON.stringify({ type: 'summary' }))).toBeNull()
+    expect(parseRgLine(JSON.stringify({ type: 'match' }))).toBeNull()
+    expect(parseRgLine(JSON.stringify({ type: 'match', data: {} }))).toBeNull()
+    expect(parseRgLine(JSON.stringify({ type: 'match', data: { path: {} } }))).toBeNull()
+    expect(parseRgLine(JSON.stringify({
+      type: 'match', data: { path: { text: '/tmp/b.ts' }, lines: { text: 'text' }, submatches: [] }
+    }))).toEqual({ file: '/tmp/b.ts', line: 0, column: 0, text: 'text' })
+  })
+
+  it('escapes regex syntax and reads nested configuration', () => {
+    expect(escapeRegExp('a.*[b]')).toBe('a\\.\\*\\[b\\]')
+    expect(getConfigValue('mcp.autoStart')).toBe(false)
+    expect(getConfigValue('mcp.notFound')).toBeUndefined()
+    expect(getConfigValue('mcp.notFound.child')).toBeUndefined()
+    expect(getConfigValue('')).toBeTruthy()
+  })
+
+  it('runs ripgrep with case and glob options and stops at maxResults', async () => {
+    expect(findRg()).toBeTruthy()
+    let matches = await searchWithRg('HELLO', {
+      caseSensitive: false,
+      include: '**/*.ts',
+      exclude: 'b.ts'
+    }, tmpdir, 1)
+    expect(matches).toHaveLength(1)
+    expect(path.basename(matches[0].file)).toBe('a.ts')
+    let exact = await searchWithRg('hello', { regex: true, caseSensitive: true }, tmpdir, 10)
+    expect(exact.length).toBeGreaterThan(0)
+  })
+
   it('workspace/files lists files by glob', async () => {
     let result = await tool('workspace/files').handler({ include: '**/*.ts' }, { token })
     expect(result.isError).toBeFalsy()
@@ -80,6 +135,36 @@ describe('mcp workspace tools', () => {
     let jsMatches = await searchWithJs('hello', { include: '**/*.ts' }, tmpdir, 100)
     expect(jsMatches.length).toBeGreaterThan(0)
     expect(jsMatches[0].text).toContain('hello')
+  })
+
+  it('workspace/search falls back when ripgrep is unavailable', async () => {
+    let spy = vi.spyOn(which, 'sync').mockImplementation(() => { throw new Error('missing') })
+    try {
+      expect(findRg()).toBeNull()
+      let result = await tool('workspace/search').handler({ pattern: 'hello', include: '**/*.ts', root: tmpdir }, { token })
+      expect(result.isError).toBeFalsy()
+      expect(result.structuredContent.engine).toBe('js')
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('workspace/search reports non-Error fallback failures', async () => {
+    let whichSpy = vi.spyOn(which, 'sync').mockImplementation(() => { throw new Error('missing') })
+    let filesSpy = vi.spyOn(workspace, 'findFiles').mockRejectedValueOnce('find failed')
+    try {
+      let result = await tool('workspace/search').handler({ pattern: 'hello', root: tmpdir }, { token })
+      expect(result.content[0].text).toContain('find failed')
+    } finally {
+      whichSpy.mockRestore()
+      filesSpy.mockRestore()
+    }
+  })
+
+  it('workspace/configuration accepts an omitted key', async () => {
+    let result = await tool('workspace/configuration').handler({}, { token })
+    expect(result.structuredContent.key).toBe('')
+    expect(result.structuredContent.value).toBeTruthy()
   })
 
   it('workspace/search filters files in deniedPaths and scopes to the root', async () => {
@@ -142,6 +227,75 @@ describe('mcp workspace tools', () => {
     // 'x*' matches once at index 0 of every line (including the trailing
     // empty line) without looping forever
     expect(matches.filter(m => m.file === file).map(m => m.line)).toEqual([0, 1, 2])
+  })
+
+  it('JS search handles defaults, case sensitivity, limits and skipped files', async () => {
+    let binary = path.join(tmpdir, 'binary.dat')
+    let large = path.join(tmpdir, 'large.dat')
+    fs.writeFileSync(binary, 'hello\0world')
+    fs.writeFileSync(large, 'hello' + 'x'.repeat(2 * 1024 * 1024))
+    expect(await searchWithJs('HELLO', { caseSensitive: true }, tmpdir, 10)).toEqual([])
+    let limited = await searchWithJs('hello', {}, tmpdir, 1)
+    expect(limited).toHaveLength(1)
+    await expect(searchWithJs('[', { regex: true }, tmpdir, 10)).rejects.toThrow('Invalid regex')
+  })
+
+  it('validates required arguments for workspace tools', async () => {
+    for (let [name, args, message] of [
+      ['workspace/search', {}, 'pattern is required'],
+      ['workspace/files', {}, 'include glob is required'],
+      ['workspace/apply_edit', {}, 'edit (WorkspaceEdit) is required'],
+      ['workspace/create_file', {}, 'filepath is required'],
+      ['workspace/rename_file', {}, 'oldPath and newPath are required'],
+      ['workspace/delete_file', {}, 'filepath is required']
+    ] as Array<[string, Record<string, unknown>, string]>) {
+      let result = await tool(name).handler(args, { token })
+      expect(result.isError).toBe(true)
+      expect(result.content[0].text).toContain(message)
+    }
+  })
+
+  it('reports workspace operation failures', async () => {
+    let createSpy = vi.spyOn(workspace, 'createFile').mockRejectedValue(new Error('create failed'))
+    let renameSpy = vi.spyOn(workspace, 'renameFile').mockRejectedValue(new Error('rename failed'))
+    let deleteSpy = vi.spyOn(workspace, 'deleteFile').mockRejectedValue(new Error('delete failed'))
+    let applySpy = vi.spyOn(workspace, 'applyEdit').mockRejectedValue(new Error('apply failed'))
+    try {
+      let create = await tool('workspace/create_file').handler({ filepath: path.join(tmpdir, 'fail-create') }, { token })
+      expect(create.content[0].text).toContain('create failed')
+      let rename = await tool('workspace/rename_file').handler({
+        oldPath: path.join(tmpdir, 'a.ts'),
+        newPath: path.join(tmpdir, 'fail-rename')
+      }, { token })
+      expect(rename.content[0].text).toContain('rename failed')
+      let remove = await tool('workspace/delete_file').handler({ filepath: path.join(tmpdir, 'a.ts') }, { token })
+      expect(remove.content[0].text).toContain('delete failed')
+      let apply = await tool('workspace/apply_edit').handler({ edit: { changes: {} } }, { token })
+      expect(apply.content[0].text).toContain('apply failed')
+    } finally {
+      createSpy.mockRestore()
+      renameSpy.mockRestore()
+      deleteSpy.mockRestore()
+      applySpy.mockRestore()
+    }
+  })
+
+  it('reports non-Error workspace operation failures', async () => {
+    let createSpy = vi.spyOn(workspace, 'createFile').mockRejectedValue('create string')
+    let renameSpy = vi.spyOn(workspace, 'renameFile').mockRejectedValue('rename string')
+    let deleteSpy = vi.spyOn(workspace, 'deleteFile').mockRejectedValue('delete string')
+    let applySpy = vi.spyOn(workspace, 'applyEdit').mockRejectedValue('apply string')
+    try {
+      expect((await tool('workspace/create_file').handler({ filepath: path.join(tmpdir, 'fail-create') }, { token })).content[0].text).toContain('create string')
+      expect((await tool('workspace/rename_file').handler({ oldPath: path.join(tmpdir, 'a.ts'), newPath: path.join(tmpdir, 'fail-rename') }, { token })).content[0].text).toContain('rename string')
+      expect((await tool('workspace/delete_file').handler({ filepath: path.join(tmpdir, 'a.ts') }, { token })).content[0].text).toContain('delete string')
+      expect((await tool('workspace/apply_edit').handler({ edit: { changes: {} } }, { token })).content[0].text).toContain('apply string')
+    } finally {
+      createSpy.mockRestore()
+      renameSpy.mockRestore()
+      deleteSpy.mockRestore()
+      applySpy.mockRestore()
+    }
   })
 
   it('workspace/create_file creates a file on disk and buffer', async () => {

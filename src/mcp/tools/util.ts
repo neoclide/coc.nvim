@@ -101,7 +101,7 @@ export function collectEditUris(edit: any): string[] {
   return uris
 }
 
-function globMatch(pattern: string, fsPath: string): boolean {
+export function globMatch(pattern: string, fsPath: string): boolean {
   let normalized = fsPath.replace(/\\/g, '/')
   let p = pattern.replace(/\\/g, '/')
   if (!path.isAbsolute(pattern)) {
@@ -129,7 +129,7 @@ function globMatch(pattern: string, fsPath: string): boolean {
  * symlinks, so canonical paths (e.g. /private/tmp when /tmp is a link) still
  * match the user's allowedPaths globs.
  */
-function globVariants(pattern: string): string[] {
+export function globVariants(pattern: string): string[] {
   let variants = [pattern]
   if (!path.isAbsolute(pattern)) return variants
   let metaIdx = pattern.search(/[*?[\]{}]/)
@@ -152,7 +152,7 @@ function globVariants(pattern: string): string[] {
   return variants
 }
 
-function folderPaths(): string[] {
+export function folderPaths(): string[] {
   try {
     return workspace.folderPaths
   } catch (_e) {
