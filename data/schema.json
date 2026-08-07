@@ -636,6 +636,12 @@
       "description": "Set to false to disable float/popup support for the actions menu.",
       "default": true
     },
+    "coc.preferences.codeActionsShowKind": {
+      "type": "boolean",
+      "scope": "application",
+      "description": "Set to true to show kind in the code actions menu.",
+      "default": true
+    },
     "coc.preferences.autoApplySingleQuickfix": {
       "type": "boolean",
       "scope": "application",
