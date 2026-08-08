@@ -34,10 +34,6 @@ let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
 let s:root = expand('<sfile>:h:h')
 
-if get(g:, 'coc_start_at_startup', 1) && !s:is_gvim
-  call coc#rpc#start_server()
-endif
-
 function! CocTagFunc(pattern, flags, info) abort
   " tagfunc can't be set in the sandbox mode, preload the following functions
   silent! call coc#cursor#move_to()
@@ -745,6 +741,11 @@ command! -nargs=0 -bar CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=* -bar -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
 
 call s:Enable(1)
+
+if get(g:, 'coc_start_at_startup', 1) && !s:is_gvim
+  call coc#rpc#start_server()
+endif
+
 augroup coc_dynamic_autocmd
   autocmd!
 augroup END
