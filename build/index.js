@@ -124592,6 +124592,7 @@ var init_client = __esmMin((() => {
 				const _sendNotification = this._clientOptions.middleware.sendNotification;
 				return await Promise.resolve(_sendNotification ? _sendNotification(type, connection.sendNotification.bind(connection), params) : connection.sendNotification(type, params));
 			} catch (error) {
+				if (this._disposed === "disposing" || this._disposed === "disposed") return;
 				this.error(`Sending notification ${toMethod(type)} failed.`, error);
 				if ([4, 5].includes(this._state)) return;
 				throw error;
@@ -142334,7 +142335,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-d7f0b57 2026-08-07 23:12:47 +0800";
+			let version = workspace_default.version + "-80ff8ac 2026-08-08 17:57:31 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
