@@ -201,6 +201,7 @@
       "type": "array",
       "default": [],
       "description": "Features disabled for this language server.",
+      "uniqueItems": true,
       "items": {
         "type": "string",
         "enum": [
