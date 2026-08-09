@@ -392,6 +392,9 @@ describe('InstallBuffer', () => {
     disposables.push(buf)
     events.requesting = true
     await buf.start(['a', 'b', 'c'])
+    // scratch buffer should carry a meaningful name (#5061)
+    const bufname = await nvim.call('bufname', ['%']) as string
+    expect(bufname).toBe('[Coc Extensions]')
     let wins = await nvim.windows
     expect(wins.length).toBe(1)
     global.__TEST__ = true
