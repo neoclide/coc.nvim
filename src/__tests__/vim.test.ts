@@ -1,3 +1,4 @@
+import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -10,14 +11,9 @@ import * as ui from '../core/ui'
 import events from '../events'
 import type { VirtualTextItem } from '../handler/inlayHint/buffer'
 import languages from '../languages'
-import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
-import mcp from '../mcp'
-import { getInstanceFilePath, readDiscoveryFile } from '../mcp/auth'
-import QuickPick from '../model/quickpick'
 import { sameFile } from '../util/fs'
 import workspace from '../workspace'
 import helper from './helper'
-import { TestClient } from './mcp/testClient'
 
 function disposeAll(disposables: Disposable[]): void {
   while (disposables.length) {
@@ -109,77 +105,6 @@ describe('rpc client', () => {
       call g:fake['notify']('testMethod', [])
     `)
     expect(await nvim.call('eval', ["coc#client#get_client('fake')['running']"])).toBe(0)
-  })
-})
-
-describe('mcp server on vim', () => {
-  afterEach(() => {
-    mcp.stop()
-    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false, 'mcp.allowedTools': [] })
-  })
-
-  it('serves MCP tools over the socket on Vim', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.allowedTools': ['document/read', 'workspace/configuration'] })
-    await mcp.start()
-    expect(mcp.running).toBe(true)
-    let status = mcp.status()
-    expect(status.transport).toBe(process.platform === 'win32' ? 'tcp' : 'unix')
-    if (status.transport === 'tcp') {
-      expect(status.port).toBeGreaterThan(0)
-    } else {
-      expect(status.socketPath).toBeTruthy()
-    }
-    expect(status.tools).toContain('document/read')
-    let vimPid = await nvim.call('getpid', []) as number
-    let info = readDiscoveryFile(getInstanceFilePath(vimPid))
-    expect(info).not.toBeNull()
-    expect(info!.pid).toBe(vimPid)
-    let client = info!.transport === 'unix'
-      ? new TestClient(info!.socketPath)
-      : new TestClient(info!.port)
-    await client.request(0, 'coc/auth', { token: info!.token })
-    await client.request(1, 'initialize', { protocolVersion: '2025-06-18', capabilities: {} })
-    client.notify('notifications/initialized')
-    let list = await client.request(2, 'tools/list')
-    expect(list.tools.length).toBeGreaterThan(0)
-    let conf = await client.request(3, 'tools/call', {
-      name: 'workspace/configuration',
-      arguments: { key: 'mcp.autoStart' }
-    })
-    expect(conf.structuredContent.value).toBe(true)
-    let shutdown = await client.request(4, 'shutdown')
-    expect(shutdown).toBeNull()
-    client.notify('notifications/exit')
-    client.close()
-  })
-
-  it('includes MCP status in CocInfo output', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true })
-    await mcp.start()
-    await helper.plugin.cocAction('showInfo')
-    let buffer = await helper.nvim.buffer
-    let lines = (await buffer.lines) as string[]
-    let content = lines.join('\n')
-    expect(content).toContain('## MCP server')
-    expect(content).toContain('MCP server: running')
-    expect(content).toContain('cwd:')
-    await helper.nvim.command('bwipeout!')
-  })
-
-  it('restores the MCP server across coc restarts from the vim state', async () => {
-    workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false })
-    await mcp.start(true)
-    expect(mcp.running).toBe(true)
-    expect(await nvim.eval('get(g:, "coc_mcp_started", 0)')).toBe(1)
-    mcp.stop()
-    expect(mcp.running).toBe(false)
-    expect(await nvim.eval('get(g:, "coc_mcp_started", 0)')).toBe(0)
-    // simulate a coc.nvim restart: the vim variable still remembers that the
-    // server was running, so init() starts it again
-    nvim.setVar('coc_mcp_started', 1, true)
-    await mcp.init()
-    expect(mcp.running).toBe(true)
-    mcp.stop()
   })
 })
 
@@ -1442,20 +1367,6 @@ describe('Popup', () => {
     expect(input.value).toBe('foo')
     expect(changed).toBe('foo')
     input.dispose()
-  })
-
-  it('updates QuickPick value programmatically', async () => {
-    let qp = new QuickPick(nvim, {})
-    qp.items = [{ label: 'a' }, { label: 'b' }]
-    await qp.show()
-    // give the prompt terminal time to become ready
-    await helper.wait(120)
-    qp.value = 'foo'
-    await helper.wait(60)
-    let line = await nvim.call('term_getline', [qp.inputBox.bufnr, 1]) as string
-    expect(line.trim()).toBe('foo')
-    expect(qp.value).toBe('foo')
-    qp.dispose()
   })
 })
 

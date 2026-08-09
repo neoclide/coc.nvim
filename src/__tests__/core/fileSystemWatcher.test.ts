@@ -34,14 +34,14 @@ function wait(ms: number): Promise<any> {
   })
 }
 
-function createFileChange(file: string, isNew = true, exists = true): FileChangeItem {
+function createFileChange(file: string, isNew = true, exists = true, mtime = Date.now()): FileChangeItem {
   return {
     size: 1,
     name: file,
     exists,
     new: isNew,
     type: 'f',
-    mtime_ms: Date.now()
+    mtime_ms: mtime
   }
 }
 
@@ -382,10 +382,12 @@ describe('fileSystemWatcher', () => {
       newFiles.push(e.newUri.fsPath)
     })
     let changes: FileChangeItem[] = [
-      createFileChange(`a/1`, false, false),
-      createFileChange(`a/2`, false, false),
-      createFileChange(`b/1`, true, true),
-      createFileChange(`b/2`, true, true),
+      // Pair a/1 with b/1 and a/2 with b/2 via distinct mtimes so rename
+      // detection is deterministic instead of racing the millisecond clock.
+      createFileChange(`a/1`, false, false, 1),
+      createFileChange(`a/2`, false, false, 2),
+      createFileChange(`b/1`, true, true, 1),
+      createFileChange(`b/2`, true, true, 2),
     ]
     sendSubscription(watcher.subscribe, cwd, changes)
     await helper.waitValue(() => {

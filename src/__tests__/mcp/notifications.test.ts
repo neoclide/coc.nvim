@@ -2,9 +2,9 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-types'
+import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import diagnosticManager from '../../diagnostic/manager'
 import languages from '../../languages'
 import { createDocumentTools } from '../../mcp/tools/document'
@@ -15,6 +15,7 @@ import { ToolRegistry } from '../../mcp/tools'
 import services, { ServiceStat } from '../../services'
 import helper from '../helper'
 import { CancellationToken, Emitter } from '../../util/protocol'
+import window from '../../window'
 import workspace from '../../workspace'
 import { TestClient } from './testClient'
 
@@ -26,6 +27,7 @@ let server: McpServer
 let notifications: NotificationManager
 let address: { host: string, port: number, socketPath: string }
 let client: TestClient
+let cursorSpy: ReturnType<typeof vi.spyOn>
 const token = CancellationToken.None
 
 async function connect(): Promise<TestClient> {
@@ -38,6 +40,13 @@ async function connect(): Promise<TestClient> {
 
 beforeAll(async () => {
   await helper.setup()
+  // The diagnostic update chain fires a fire-and-forget nvim request through
+  // DiagnosticBuffer.checkFloat -> window.getCursorPosition. Mock the cursor
+  // lookup so that request cannot still be pending when afterAll detaches the
+  // transport, which otherwise surfaces as an unhandled "transport
+  // disconnected" rejection on slow CI. The mock must stay active through
+  // afterAll because disposing the diagnostic collection fires the same chain.
+  cursorSpy = vi.spyOn(window, 'getCursorPosition').mockResolvedValue(Position.create(0, 0))
   tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-notify-'))
   workspace.workspaceFolderControl.addWorkspaceFolder(tmpdir, true)
   file = path.join(tmpdir, 'sample.txt')
@@ -67,6 +76,7 @@ afterAll(async () => {
   notifications.dispose()
   for (let d of disposables) d.dispose()
   await helper.shutdown()
+  cursorSpy.mockRestore()
   fs.rmSync(tmpdir, { recursive: true, force: true })
 })
 

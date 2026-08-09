@@ -22,15 +22,22 @@ describe('gracefulExit()', () => {
 
   it('should stop services before exit', async () => {
     stopSpy = vi.spyOn(services, 'stopAll').mockResolvedValue(undefined)
-    gracefulExit('SIGTERM')
-    await vi.waitFor(() => {
-      expect(exitCode).toBe(0)
-    })
-    expect(stopSpy).toHaveBeenCalledWith(EXIT_TIMEOUT)
+    let mcpSpy = vi.spyOn(mcp, 'stop')
+    try {
+      gracefulExit('SIGTERM')
+      await vi.waitFor(() => {
+        expect(exitCode).toBe(0)
+      })
+      expect(stopSpy).toHaveBeenCalledWith(EXIT_TIMEOUT)
+      expect(mcpSpy).toHaveBeenCalledTimes(1)
+    } finally {
+      mcpSpy.mockRestore()
+    }
   })
 
   it('should exit on timeout when stop hangs', async () => {
     stopSpy = vi.spyOn(services, 'stopAll').mockImplementation(() => new Promise(() => {}))
+    let mcpSpy = vi.spyOn(mcp, 'stop')
     vi.useFakeTimers()
     try {
       gracefulExit('SIGTERM')
@@ -38,6 +45,7 @@ describe('gracefulExit()', () => {
       expect(exitCode).toBe(0)
     } finally {
       vi.useRealTimers()
+      mcpSpy.mockRestore()
     }
   })
 

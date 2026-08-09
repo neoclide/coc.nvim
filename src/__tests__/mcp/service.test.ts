@@ -1,7 +1,8 @@
 'use strict'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 import events from '../../events'
 import { gracefulExit, setExitHook } from '../../exit'
 import { getInstanceFilePath, readDiscoveryFile } from '../../mcp/auth'
@@ -9,6 +10,13 @@ import mcp from '../../mcp'
 import { McpServer } from '../../mcp/server'
 import workspace from '../../workspace'
 import { TestClient } from './testClient'
+
+// no-isolate worker threads share one process pid and the default COC_MCP_DIR,
+// so a concurrent mcp.stop() in a sibling test (e.g. exit.test) can delete the
+// per-instance discovery file this file is polling. Use a dedicated directory
+// to make the assertions deterministic regardless of what runs in parallel.
+const mcpDir = path.join(os.tmpdir(), `coc-mcp-service-${process.pid}`)
+process.env.COC_MCP_DIR = mcpDir
 
 describe('mcp service', () => {
   async function waitForInstanceFile(timeout = 2000): Promise<string> {
@@ -24,6 +32,10 @@ describe('mcp service', () => {
   afterEach(() => {
     mcp.stop()
     workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false, 'mcp.allowedTools': [], 'mcp.transport': 'auto' })
+  })
+
+  afterAll(() => {
+    fs.rmSync(mcpDir, { recursive: true, force: true })
   })
 
   it('starts the socket server and writes the per-instance discovery file', async () => {
