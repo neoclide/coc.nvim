@@ -5480,7 +5480,7 @@ declare module 'coc.nvim' {
      *
      * @deprecated use clearNamespace() instead.
      */
-    clearHighlight(args?: BufferClearHighlight)
+    clearHighlight(args?: BufferClearHighlight): void
 
     /**
      * Add highlight to ranges by notification, works on both vim & neovim.
@@ -5502,7 +5502,7 @@ declare module 'coc.nvim' {
      * @param lineStart Start of line, 0 based, default to 0.
      * @param lineEnd End of line, 0 based, default to -1.
      */
-    clearNamespace(key: number | string, lineStart?: number, lineEnd?: number)
+    clearNamespace(key: number | string, lineStart?: number, lineEnd?: number): void
   }
 
   export interface Window extends BaseApi<Window> {
@@ -7700,7 +7700,7 @@ declare module 'coc.nvim' {
     /**
      * Headers of the request.
      */
-    headers?: any
+    headers?: Record<string, string>
     /**
      * User for http basic auth, should use with password
      */
