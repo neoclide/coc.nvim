@@ -65,6 +65,7 @@ export default class Plugin {
     this.addAction('attach', () => workspace.attach())
     this.addAction('detach', () => workspace.detach())
     this.addAction('doKeymap', (key: string, defaultReturn: string) => this.handler.workspace.doKeymap(key, defaultReturn))
+    this.addAction('doInsertKeymap', (key: string, ...args: any[]) => this.handler.workspace.doInsertKeymap(key, ...args))
     this.addAction('registerExtensions', (...folders: string[]) => extensions.manager.loadExtension(folders), 'registExtensions')
     this.addAction('snippetCheck', (checkExpand: boolean, checkJump: boolean) => this.handler.workspace.snippetCheck(checkExpand, checkJump))
     this.addAction('snippetInsert', (range: Range, newText: string, mode?: InsertTextMode, ultisnip?: UltiSnippetOption) => snippetManager.insertSnippet(newText, true, range, mode, ultisnip))

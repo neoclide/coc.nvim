@@ -4615,6 +4615,25 @@ declare module 'coc.nvim' {
     special?: boolean
   }
 
+  export interface InsertKeymapText {
+    /** Literal text to insert. */
+    text: string
+  }
+
+  export interface InsertKeymapKey {
+    /** One special key in Vim key notation, for example `<Left>` or `<C-G>`. */
+    key: string
+  }
+
+  export type InsertKeymapResult = ReadonlyArray<InsertKeymapText | InsertKeymapKey>
+
+  export interface InsertKeymapOption {
+    /** Buffer number, or current buffer with `true` or `0`. */
+    buffer?: number | boolean
+    /** Vim expressions evaluated when the mapping is invoked. */
+    arglist?: string[]
+  }
+
   export interface BufferHighlight {
     /**
      * Name of the highlight group to use
@@ -10652,6 +10671,24 @@ declare module 'coc.nvim' {
      * @returns {Disposable}
      */
     export function registerExprKeymap(mode: MapMode, rhs: string, fn: () => ProviderResult<string>, buffer?: number | boolean, cancel?: boolean): Disposable
+
+    /**
+     * Register a dynamic insert-mode mapping.
+     *
+     * The callback runs at the mapping's execution point and returns literal
+     * text and special keys to execute in order. Use `option.arglist` to pass
+     * current editor state without making nested editor requests. The callback
+     * must not change text, switch windows, or run `:normal` while the
+     * expression mapping is being evaluated.
+     *
+     * Vim cannot guarantee ordering for channel-backed expression results
+     * during batched `:normal` or macro input.
+     *
+     * @param key lhs of the insert-mode mapping.
+     * @param fn callback receiving evaluated `arglist` values and returning ordered text/key parts.
+     * @param option Mapping options.
+     */
+    export function registerInsertKeymap(key: string, fn: (...args: any[]) => ProviderResult<InsertKeymapResult>, option?: InsertKeymapOption): Disposable
 
     /**
      * Register local keymap with callback.

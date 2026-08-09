@@ -7,6 +7,7 @@ Extension introduction 				|coc-api-intro|
 Extension package json 				|coc-api-json|
 Single file extensions 				|coc-api-single|
 Create custom Extensions 			|coc-api-extension|
+Dynamic insert keymaps 				|coc-api-insert-keymap|
 Lua API 					|coc-api-lua|
 MCP API 					|coc-api-mcp|
 Debug extensions 				|coc-api-debug|
@@ -387,6 +388,46 @@ Recommended steps:
         console.error(e)
       })
 <
+------------------------------------------------------------------------------
+DYNAMIC INSERT KEYMAPS 				*coc-api-insert-keymap*
+
+Use `workspace.registerInsertKeymap()` when an insert-mode mapping must inspect
+the current editor state and return keys without calling `feedkeys()` from the
+callback: >
+
+  const disposable = workspace.registerInsertKeymap('(', state => {
+    const [line, position] = state
+    if (line[position[1]] === ')') return [{ key: '<Right>' }]
+    return [{ text: '()' }, { key: '<Left>' }]
+  }, {
+    arglist: ['[getline("."), coc#util#cursor()]']
+  })
+<
+The callback receives each Vim expression in `arglist` as one argument.  The
+expressions are evaluated when the mapping is invoked, so they can provide the
+current line, cursor, buffer number, options, or buffer variables without a
+nested editor request.  Use the `buffer` option with a buffer number, `true`,
+or `0` to create a buffer-local mapping.
+
+Each returned item is either `{ text: string }` for literal text or
+`{ key: string }` for one special key in |key-notation|, such as `<Left>` or
+`<C-G>`.  Text that looks like key notation remains literal.  Items execute in
+array order.
+
+The callback is evaluated synchronously by the insert expression mapping.  It
+may update extension-owned JavaScript state, but should not call editor APIs,
+change text, switch windows, or run `:normal`; pass required editor state with
+`arglist` instead.  In particular, Vim's synchronous channel waits may process
+other channel messages, so nested editor requests are unsafe in this callback.
+
+On Neovim, returning the result directly keeps `:normal` and macro typeahead
+ordered without a nested `feedkeys()` call.  Vim supports the same API for
+ordinary insert mappings, but its channel-backed expression mappings cannot
+guarantee result ordering for batched `:normal` or macro input; keep such Vim
+logic local to Vimscript when that guarantee is required.
+
+The returned Disposable removes the mapping.
+
 ------------------------------------------------------------------------------
 LUA API 						*coc-api-lua*
 

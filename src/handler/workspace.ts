@@ -250,6 +250,10 @@ export default class WorkspaceHandler {
     return await workspace.keymaps.doKeymap(key, defaultReturn)
   }
 
+  public async doInsertKeymap(key: string, ...args: any[]) {
+    return await workspace.keymaps.doInsertKeymap(key, ...args)
+  }
+
   public async snippetCheck(checkExpand: boolean, checkJump: boolean): Promise<boolean> {
     if (checkJump) {
       let jumpable = snippetManager.jumpable()

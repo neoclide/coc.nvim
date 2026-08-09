@@ -479,6 +479,60 @@ describe('workspace utility', () => {
     disposable.dispose()
   })
 
+  it('should resolve dynamic insert keymaps against current state', async () => {
+    let state = (value: [string, [number, number]]): [string, number] => {
+      return [value[0], value[1][1]]
+    }
+    let option = { arglist: ['[getline("."), coc#util#cursor()]'] }
+    let move = (key: '<Left>' | '<Right>') => [{ key: '<C-G>' }, { text: 'U' }, { key }]
+    let mappings: Disposable[] = []
+    mappings.push(workspace.registerInsertKeymap('(', () => {
+      return [{ text: '()' }, ...move('<Left>')]
+    }))
+    mappings.push(workspace.registerInsertKeymap("'", value => {
+      let [line, index] = state(value)
+      return line[index] === "'" ? move('<Right>') : [{ text: "''" }, ...move('<Left>')]
+    }, option))
+    mappings.push(workspace.registerInsertKeymap(')', value => {
+      let [line, index] = state(value)
+      return line[index] === ')' ? move('<Right>') : [{ text: ')' }]
+    }, option))
+    mappings.push(workspace.registerInsertKeymap('[', value => {
+      let [line, index] = state(value)
+      return [{ text: line.slice(0, index).endsWith('a') ? '[]' : 'stale' }, ...move('<Left>')]
+    }, option))
+    await helper.waitValue(async () => {
+      let output = await nvim.exec('imap (', true)
+      return output.includes('coc#_insert_keymap')
+    }, true)
+
+    try {
+      let outputs: string[] = []
+      for (let i = 0; i < 20; i++) {
+        await nvim.command('enew!')
+        await nvim.setLine('seed')
+        await nvim.command("normal O('')")
+        await helper.waitValue(async () => await nvim.getLine(), "('')")
+        outputs.push(await nvim.getLine())
+      }
+      expect([...new Set(outputs)]).toEqual(["('')"])
+      await nvim.command('enew!')
+      await nvim.command('normal Oa[')
+      await helper.waitValue(async () => await nvim.getLine(), 'a[]')
+      let local = workspace.registerInsertKeymap(']', () => [{ text: '[]' }, { key: '<Left>' }], { buffer: true })
+      mappings.push(local)
+      await helper.waitValue(async () => {
+        let rhs = await nvim.call('maparg', [']', 'i']) as string
+        return rhs.includes('coc#_insert_keymap')
+      }, true)
+      await nvim.command('normal O]')
+      expect(await nvim.getLine()).toBe('[]')
+    } finally {
+      disposeAll(mappings)
+      await nvim.eval('1')
+    }
+  })
+
   it('should check nvim version', async () => {
     expect(workspace.has('patch-7.4.248')).toBe(false)
     expect(workspace.has('nvim-0.5.0')).toBe(true)

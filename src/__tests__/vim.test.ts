@@ -68,6 +68,30 @@ describe('workspace', () => {
     expect(helper.workspace.has('nvim-0.4.0')).toBe(false)
     expect(helper.workspace.has('patch-9.0.0000')).toBe(true)
   })
+
+  it('should evaluate dynamic insert keymaps', async () => {
+    let value: string | undefined
+    let mapping = workspace.registerInsertKeymap('[', current => {
+      value = current
+      return [{ text: '<left>' }, { key: '<Left>' }]
+    }, { buffer: true, arglist: ['getline(".")'] })
+    await nvim.setLine('current state')
+    await helper.waitValue(async () => {
+      let rhs = await nvim.call('maparg', ['[', 'i']) as string
+      return rhs.includes('coc#_insert_keymap')
+    }, true)
+
+    try {
+      let rhs = await nvim.call('maparg', ['[', 'i']) as string
+      let result = await nvim.eval(rhs) as string
+      expect(value).toBe('current state')
+      expect(result.startsWith('<left>')).toBe(true)
+      expect(result.length).toBeGreaterThan('<left>'.length)
+    } finally {
+      mapping.dispose()
+      await helper.waitValue(async () => await nvim.call('maparg', ['[', 'i']), '')
+    }
+  })
 })
 
 describe('rpc client', () => {

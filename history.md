@@ -2,6 +2,12 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-10
+
+- Add `workspace.registerInsertKeymap()` for dynamic insert mappings that
+  return ordered literal text and special keys directly, with current Vim
+  state supplied through evaluated `arglist` expressions.
+
 ## 2026-08-07
 
 - Add `languageserver.<name>.languageIdMap` configuration which maps a

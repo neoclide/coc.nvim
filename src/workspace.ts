@@ -15,7 +15,7 @@ import Editors from './core/editors'
 import { FileSystemWatcher, FileSystemWatcherManager } from './core/fileSystemWatcher'
 import Files, { FileCreateEvent, FileDeleteEvent, FileRenameEvent, FileWillCreateEvent, FileWillDeleteEvent, FileWillRenameEvent, TextDocumentWillSaveEvent } from './core/files'
 import { callAsync, createNameSpace, findUp, getWatchmanPath, has, resolveModule, score } from './core/funcs'
-import Keymaps, { KeymapCallback, LocalMode, MapMode } from './core/keymaps'
+import Keymaps, { InsertKeymapCallback, InsertKeymapOption, KeymapCallback, LocalMode, MapMode } from './core/keymaps'
 import * as ui from './core/ui'
 import Watchers from './core/watchers'
 import WorkspaceFolderController from './core/workspaceFolder'
@@ -611,6 +611,10 @@ export class Workspace {
 
   public registerExprKeymap(mode: 'i' | 'n' | 'v' | 's' | 'x', key: string, fn: KeymapCallback, buffer = false, cancel = true): Disposable {
     return this.keymaps.registerExprKeymap(mode, key, fn, buffer, cancel)
+  }
+
+  public registerInsertKeymap(key: string, fn: InsertKeymapCallback, option?: InsertKeymapOption): Disposable {
+    return this.keymaps.registerInsertKeymap(key, fn, option)
   }
 
   public registerLocalKeymap(bufnr: number, mode: LocalMode, key: string, fn: KeymapCallback, notify: KeymapOption | boolean = false): Disposable {

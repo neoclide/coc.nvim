@@ -10,6 +10,20 @@ const logger = createLogger('core-keymaps')
 export type MapMode = 'n' | 'i' | 'v' | 'x' | 's' | 'o' | '!' | 't' | 'c' | 'l'
 export type LocalMode = 'n' | 'i' | 'v' | 's' | 'x'
 export type KeymapCallback = () => Promise<string> | string | void | Promise<void>
+export interface InsertKeymapText {
+  text: string
+}
+export interface InsertKeymapKey {
+  key: string
+}
+export type InsertKeymapResult = ReadonlyArray<InsertKeymapText | InsertKeymapKey>
+export type InsertKeymapCallback = (...args: any[]) => Promise<InsertKeymapResult> | InsertKeymapResult | void | Promise<void>
+export interface InsertKeymapOption {
+  /** Buffer number, or current buffer with true or 0. */
+  buffer?: number | boolean
+  /** Vim expressions evaluated when the mapping is invoked. */
+  arglist?: string[]
+}
 
 export function getKeymapModifier(mode: MapMode, cmd?: boolean): string {
   if (cmd) return '<Cmd>'
@@ -25,6 +39,8 @@ export function getBufnr(buffer: number | boolean): number {
 
 export default class Keymaps {
   private readonly keymaps: Map<string, [KeymapCallback, boolean]> = new Map()
+  private readonly insertKeymaps: Map<string, InsertKeymapCallback> = new Map()
+  private insertKeymapId = 0
   private nvim: Neovim
 
   public attach(nvim: Neovim): void {
@@ -42,6 +58,16 @@ export default class Keymaps {
     if (repeat) await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`)
     if (res == null) return defaultReturn
     return res as string
+  }
+
+  public async doInsertKeymap(key: string, ...args: any[]): Promise<InsertKeymapResult> {
+    let fn = this.insertKeymaps.get(key)
+    if (!fn) {
+      logger.error(`insert keymap for ${key} not found`)
+      return []
+    }
+    let res = await Promise.resolve(fn(...args))
+    return Array.isArray(res) ? res : []
   }
 
   /**
@@ -102,6 +128,35 @@ export default class Keymaps {
         nvim.call('coc#compat#buf_del_keymap', [bufnr, mode, lhs], true)
       } else {
         nvim.deleteKeymap(mode, lhs)
+      }
+    })
+  }
+
+  /**
+   * Register an insert-mode mapping whose callback returns literal text and
+   * special keys to execute in order at the mapping's actual execution point.
+   * Vim cannot guarantee ordering during batched :normal or macro input.
+   */
+  public registerInsertKeymap(lhs: string, fn: InsertKeymapCallback, option: InsertKeymapOption = {}): Disposable {
+    let { buffer = false, arglist = [] } = option
+    let bufnr = getBufnr(buffer)
+    let id = `insert-${++this.insertKeymapId}`
+    let { nvim } = this
+    let opts: VimKeymapOption = { noremap: true, silent: true, nowait: true, expr: true }
+    let args = arglist.length ? `, ${arglist.join(', ')}` : ''
+    let rhs = `coc#_insert_keymap('${id}'${args})`
+    this.insertKeymaps.set(id, fn)
+    if (buffer !== false) {
+      nvim.call('coc#compat#buf_add_keymap', [bufnr, 'i', lhs, rhs, { ...opts, replace_keycodes: true }], true)
+    } else {
+      nvim.setKeymap('i', lhs, rhs, opts)
+    }
+    return Disposable.create(() => {
+      this.insertKeymaps.delete(id)
+      if (buffer !== false) {
+        nvim.call('coc#compat#buf_del_keymap', [bufnr, 'i', lhs], true)
+      } else {
+        nvim.deleteKeymap('i', lhs)
       }
     })
   }
