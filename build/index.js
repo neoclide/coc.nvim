@@ -88096,6 +88096,7 @@ var definitions = {
 		"type": "array",
 		"default": [],
 		"description": "Features disabled for this language server.",
+		"uniqueItems": true,
 		"items": {
 			"type": "string",
 			"enum": [
@@ -100441,6 +100442,8 @@ var init_keymaps = __esmMin((() => {
 	logger$47 = createLogger("core-keymaps");
 	Keymaps = class {
 		keymaps = /* @__PURE__ */ new Map();
+		insertKeymaps = /* @__PURE__ */ new Map();
+		insertKeymapId = 0;
 		nvim;
 		attach(nvim) {
 			this.nvim = nvim;
@@ -100456,6 +100459,15 @@ var init_keymaps = __esmMin((() => {
 			if (repeat) await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`);
 			if (res == null) return defaultReturn;
 			return res;
+		}
+		async doInsertKeymap(key, ...args) {
+			let fn = this.insertKeymaps.get(key);
+			if (!fn) {
+				logger$47.error(`insert keymap for ${key} not found`);
+				return [];
+			}
+			let res = await Promise.resolve(fn(...args));
+			return Array.isArray(res) ? res : [];
 		}
 		/**
 		* Register global <Plug>(coc-${key}) key mapping.
@@ -100520,6 +100532,45 @@ var init_keymaps = __esmMin((() => {
 					lhs
 				], true);
 				else nvim.deleteKeymap(mode, lhs);
+			});
+		}
+		/**
+		* Register an insert-mode mapping whose callback returns literal text and
+		* special keys to execute in order at the mapping's actual execution point.
+		* Vim cannot guarantee ordering during batched :normal or macro input.
+		*/
+		registerInsertKeymap(lhs, fn, option = {}) {
+			let { buffer = false, arglist = [] } = option;
+			let bufnr = getBufnr(buffer);
+			let id = `insert-${++this.insertKeymapId}`;
+			let { nvim } = this;
+			let opts = {
+				noremap: true,
+				silent: true,
+				nowait: true,
+				expr: true
+			};
+			let rhs = `coc#_insert_keymap('${id}'${arglist.length ? `, ${arglist.join(", ")}` : ""})`;
+			this.insertKeymaps.set(id, fn);
+			if (buffer !== false) nvim.call("coc#compat#buf_add_keymap", [
+				bufnr,
+				"i",
+				lhs,
+				rhs,
+				{
+					...opts,
+					replace_keycodes: true
+				}
+			], true);
+			else nvim.setKeymap("i", lhs, rhs, opts);
+			return import_main$1.Disposable.create(() => {
+				this.insertKeymaps.delete(id);
+				if (buffer !== false) nvim.call("coc#compat#buf_del_keymap", [
+					bufnr,
+					"i",
+					lhs
+				], true);
+				else nvim.deleteKeymap("i", lhs);
 			});
 		}
 		registerLocalKeymap(bufnr, mode, lhs, fn, option) {
@@ -101836,6 +101887,9 @@ var init_workspace$2 = __esmMin((() => {
 		}
 		registerExprKeymap(mode, key, fn, buffer = false, cancel = true) {
 			return this.keymaps.registerExprKeymap(mode, key, fn, buffer, cancel);
+		}
+		registerInsertKeymap(key, fn, option) {
+			return this.keymaps.registerInsertKeymap(key, fn, option);
 		}
 		registerLocalKeymap(bufnr, mode, key, fn, notify = false) {
 			if (typeof arguments[0] === "string") {
@@ -133616,10 +133670,9 @@ var init_ui = __esmMin((() => {
 			let { nvim } = workspace_default;
 			nvim.pauseNotification();
 			let name = "[Coc Extensions]";
-			let setup = "buftype=nofile bufhidden=wipe nobuflisted";
-			if (isSync) nvim.command(`edit +setl\\ ${setup} ${name}`, true);
-			else if (this.settings.updateUIInTab) nvim.command(`tabnew +setl\\ ${setup} ${name}`, true);
-			else nvim.command(`vs +setl\\ ${setup} ${name}`, true);
+			if (isSync) nvim.command(`edit ${name}`, true);
+			else if (this.settings.updateUIInTab) nvim.command(`tabnew ${name}`, true);
+			else nvim.command(`vs ${name}`, true);
 			nvim.call("bufnr", ["%"], true);
 			nvim.command("setl buftype=nofile bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1", true);
 			if (!isSync) nvim.command("nnoremap <silent><nowait><buffer> q :q<CR>", true);
@@ -142324,6 +142377,9 @@ var init_workspace = __esmMin((() => {
 		async doKeymap(key, defaultReturn = "") {
 			return await workspace_default.keymaps.doKeymap(key, defaultReturn);
 		}
+		async doInsertKeymap(key, ...args) {
+			return await workspace_default.keymaps.doInsertKeymap(key, ...args);
+		}
 		async snippetCheck(checkExpand, checkJump) {
 			if (checkJump) {
 				if (manager_default$1.jumpable()) return true;
@@ -142335,7 +142391,7 @@ var init_workspace = __esmMin((() => {
 		}
 		async showInfo() {
 			let lines = [];
-			let version = workspace_default.version + "-80ff8ac 2026-08-08 17:57:31 +0800";
+			let version = workspace_default.version + "-10d02fc 2026-08-10 10:02:00 +0800";
 			lines.push("## versions");
 			lines.push("");
 			let first = (await this.nvim.call("execute", ["version"])).trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, "").trim();
@@ -142699,6 +142755,7 @@ var init_plugin = __esmMin((() => {
 			this.addAction("attach", () => workspace_default.attach());
 			this.addAction("detach", () => workspace_default.detach());
 			this.addAction("doKeymap", (key, defaultReturn) => this.handler.workspace.doKeymap(key, defaultReturn));
+			this.addAction("doInsertKeymap", (key, ...args) => this.handler.workspace.doInsertKeymap(key, ...args));
 			this.addAction("registerExtensions", (...folders) => extension_default.manager.loadExtension(folders), "registExtensions");
 			this.addAction("snippetCheck", (checkExpand, checkJump) => this.handler.workspace.snippetCheck(checkExpand, checkJump));
 			this.addAction("snippetInsert", (range, newText, mode, ultisnip) => manager_default$1.insertSnippet(newText, true, range, mode, ultisnip));

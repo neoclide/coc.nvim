@@ -59,6 +59,36 @@ function! coc#_insert_key(method, key, ...) abort
   return prefix."\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
 endfunction
 
+" Resolve a dynamic insert mapping at its execution point.  Neovim replaces
+" the returned <key> notation for expr mappings; Vim needs actual key codes.
+function! coc#_insert_keymap(key, ...) abort
+  let parts = coc#rpc#request('doInsertKeymap', [a:key] + a:000)
+  if type(parts) != v:t_list
+    return ''
+  endif
+  let result = ''
+  for part in parts
+    if type(part) != v:t_dict
+      continue
+    endif
+    if has_key(part, 'text') && type(part.text) == v:t_string
+      let result .= has('nvim') ? substitute(part.text, '<', '<lt>', 'g') : part.text
+    elseif has_key(part, 'key') && type(part.key) == v:t_string
+      if part.key !~# '^<[^<>"[:cntrl:]]\+>$'
+        throw 'Invalid insert keymap key: ' . string(part.key)
+      endif
+      if has('nvim')
+        let result .= part.key
+      else
+        let code = ''
+        execute 'let code = "\' . part.key . '"'
+        let result .= code
+      endif
+    endif
+  endfor
+  return result
+endfunction
+
 " used for statusline
 function! coc#status(...)
   let info = get(b:, 'coc_diagnostic_info', {})
