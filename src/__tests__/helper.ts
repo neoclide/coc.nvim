@@ -19,12 +19,39 @@ import { OutputChannel } from '../types'
 import { equals } from '../util/object'
 import { terminate } from '../util/processes'
 import type { Workspace } from '../workspace'
+import type { TreeNode } from '../tree/BasicDataProvider'
 const vimrc = path.resolve(__dirname, 'vimrc')
 
 export interface CursorPosition {
   bufnum: number
   lnum: number
   col: number
+}
+
+export type NodeDef = [string, NodeDef[]?]
+
+export interface CustomNode extends TreeNode {
+  kind?: string
+  x?: number
+  y?: number
+}
+
+export function createNode(label: string, children?: TreeNode[], key?: string, tooltip?: string): CustomNode {
+  let res: TreeNode = { label }
+  if (children) res.children = children
+  if (tooltip) res.tooltip = tooltip
+  if (key) res.key = key
+  return res
+}
+
+export function createNodes(defs: NodeDef[]): TreeNode[] {
+  return defs.map(o => {
+    let children
+    if (Array.isArray(o[1])) {
+      children = createNodes(o[1])
+    }
+    return createNode(o[0], children)
+  })
 }
 
 const nullChannel: OutputChannel = {

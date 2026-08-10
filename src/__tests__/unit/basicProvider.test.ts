@@ -4,29 +4,14 @@ import { TreeItemCollapsibleState } from '../../tree'
 import { HistoryInput } from '../../tree/filter'
 import BasicDataProvider, { TreeNode } from '../../tree/BasicDataProvider'
 import { disposeAll } from '../../util'
+import { createNode, createNodes, CustomNode, NodeDef } from '../helper'
 
 let disposables: Disposable[] = []
-
-type NodeDef = [string, NodeDef[]?]
-
-interface CustomNode extends TreeNode {
-  kind?: string
-  x?: number
-  y?: number
-}
 
 afterEach(async () => {
   disposeAll(disposables)
   disposables = []
 })
-
-function createNode(label: string, children?: TreeNode[], key?: string, tooltip?: string): CustomNode {
-  let res: TreeNode = { label }
-  if (children) res.children = children
-  if (tooltip) res.tooltip = tooltip
-  if (key) res.key = key
-  return res
-}
 
 let defaultDef: NodeDef[] = [
   ['a', [['c'], ['d']]],
@@ -61,16 +46,6 @@ function findNode(label: string, nodes: ReadonlyArray<TreeNode>): TreeNode | und
       if (find) return find
     }
   }
-}
-
-export function createNodes(defs: NodeDef[]): TreeNode[] {
-  return defs.map(o => {
-    let children
-    if (Array.isArray(o[1])) {
-      children = createNodes(o[1])
-    }
-    return createNode(o[0], children)
-  })
 }
 
 describe('HistoryInput()', () => {

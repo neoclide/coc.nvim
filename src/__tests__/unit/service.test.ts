@@ -9,7 +9,7 @@ import { getInstanceFilePath, readDiscoveryFile } from '../../mcp/auth'
 import mcp from '../../mcp'
 import { McpServer } from '../../mcp/server'
 import workspace from '../../workspace'
-import { TestClient } from './testClient'
+import { TestClient } from '../mcp/testClient'
 
 // no-isolate worker threads share one process pid and the default COC_MCP_DIR,
 // so a concurrent mcp.stop() in a sibling test (e.g. exit.test) can delete the

@@ -6,7 +6,7 @@ import { createWorkspaceTools } from '../../mcp/tools/workspace'
 import { McpServer } from '../../mcp/server'
 import { McpTool, ToolRegistry } from '../../mcp/tools'
 import { encodeMessage } from '../../mcp/framing'
-import { TestClient } from './testClient'
+import { TestClient } from '../mcp/testClient'
 
 async function authInit(client: TestClient): Promise<void> {
   await client.request(0, 'coc/auth', { token: 'sec-token' })

@@ -6,7 +6,7 @@ import path from 'path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { McpServer } from '../../mcp/server'
 import { McpTool, ToolRegistry } from '../../mcp/tools'
-import { TestClient } from './testClient'
+import { TestClient } from '../mcp/testClient'
 
 function echoTool(): McpTool {
   return {

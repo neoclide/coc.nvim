@@ -6,7 +6,7 @@ import type { TestSpecification } from 'vitest/node'
 
 const SLOW_TEST_DURATION = 1000
 
-function runCommand(command) {
+function runCommand(command: string) {
   return execSync(command, {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -56,7 +56,7 @@ export default defineConfig({
         isolate: false,
         // globalSetup
         include: runCommand('rg --files-without-match -F \'await helper.setup\' -g \'*.test.ts\' src/__tests__'),
-        exclude: ['src/__tests__/configuration/configurationModel.test.ts'],
+        exclude: ['src/__tests__/unit/configurationModel.test.ts'],
       },
     }, {
       extends: true,
@@ -64,7 +64,7 @@ export default defineConfig({
         name: 'parallel-isolate',
         isolate: true,
         pool: 'forks',
-        include: [...runCommand('rg -l -F \'await helper.setup\' -g \'*.test.ts\' src/__tests__'), 'src/__tests__/configuration/configurationModel.test.ts'],
+        include: [...runCommand('rg -l -F \'await helper.setup\' -g \'*.test.ts\' src/__tests__'), 'src/__tests__/unit/configurationModel.test.ts'],
         exclude: ['src/__tests__/vim.test.ts'],
       },
     }, {

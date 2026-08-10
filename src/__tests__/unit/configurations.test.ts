@@ -21,7 +21,7 @@ function U(fsPath: string): string {
 }
 
 function createConfigurations(): Configurations {
-  let userConfigFile = path.join(__dirname, './settings.json')
+  let userConfigFile = path.join(__dirname, '../configuration/settings.json')
   return new Configurations(userConfigFile)
 }
 
@@ -295,7 +295,7 @@ describe('Configurations', () => {
     })
 
     it('should get user and workspace configuration', () => {
-      let userConfigFile = path.join(__dirname, './settings.json')
+      let userConfigFile = path.join(__dirname, '../configuration/settings.json')
       let configurations = new Configurations(userConfigFile)
       disposables.push(configurations)
       let data = configurations.configuration.toData()

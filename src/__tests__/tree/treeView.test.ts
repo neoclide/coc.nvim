@@ -10,10 +10,7 @@ import TreeView from '../../tree/TreeView'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import window from '../../window'
-import helper from '../helper'
-import { createNodes } from './basicProvider.test'
-
-type NodeDef = [string, NodeDef[]?]
+import helper, { createNodes, NodeDef } from '../helper'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
