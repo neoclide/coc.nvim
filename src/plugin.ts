@@ -251,7 +251,6 @@ export default class Plugin {
         await window.echoLines(mcp.getStatusLines())
       }
     }, false, 'Show MCP server status')
-    void mcp.init(mcpStarted)
     listManager.registerLists()
     await extensions.activateExtensions()
     workspace.configurations.flushConfigurations()
@@ -259,6 +258,7 @@ export default class Plugin {
     nvim.setVar('coc_service_initialized', 1, true)
     nvim.call('coc#util#do_autocmd', ['CocNvimInit'], true)
     nvim.resumeNotification(false, true)
+    void mcp.init(mcpStarted)
     const duration = typeof global.__starttime === 'number' ? Date.now() - global.__starttime : 0
     logger.info(`coc.nvim initialized with node: ${process.version} after`, duration)
     this.ready = true

@@ -138,7 +138,7 @@ function! coc#ui#run_terminal(opts, cb)
 endfunction
 
 function! coc#ui#fix() abort
-  let file = s:root .. '/rolldown.config.mjs'
+  let file = s:root .. '/esbuild.js'
   if filereadable(file)
     let opts = {
           \ 'cmd': 'npm ci',

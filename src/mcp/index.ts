@@ -122,7 +122,7 @@ class McpService implements Disposable {
       return
     }
     let generation = this.generation
-    let pid = this.pid = workspace.env.pid
+    let pid = this.pid = workspace.env ? workspace.env.pid : process.pid
     let token = generateToken()
     let socketPath = config.transport === 'unix'
       ? path.join(getMcpDir(), `coc-${process.pid}.sock`)
@@ -181,7 +181,9 @@ class McpService implements Disposable {
         cwd,
         workspaceRoot: root
       }))
-      workspace.nvim.setVar('coc_mcp_started', 1, true)
+      if (workspace.nvim) {
+        workspace.nvim.setVar('coc_mcp_started', 1, true)
+      }
       let location = config.transport === 'unix' ? address.socketPath : `${address.host}:${address.port}`
       logger.info(`MCP server listening on ${location}, tools: ${server.tools.list().tools.length}`)
     } catch (e) {
@@ -233,11 +235,7 @@ class McpService implements Disposable {
     }
     this.pid = 0
     if (workspace.nvim) {
-      try {
-        workspace.nvim.setVar('coc_mcp_started', 0, true)
-      } catch (_e) {
-        // ignore
-      }
+      workspace.nvim.setVar('coc_mcp_started', 0, true)
     }
     logger.info('MCP server stopped')
   }

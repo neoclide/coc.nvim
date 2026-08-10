@@ -13,11 +13,11 @@
   "scripts": {
     "lint": "oxlint . && nvim --headless -u NONE -c 'helptags doc' -c 'q'",
     "lint:typecheck": "tsc -p tsconfig.json",
-    "build": "rolldown -c",
-    "watch": "rolldown -c -w",
+    "build": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
     "test": "vitest run",
     "test-build": "vitest run --coverage",
-    "prepare": "rolldown -c"
+    "prepare": "node esbuild.js"
   },
   "repository": {
     "type": "git",
@@ -41,9 +41,9 @@
     "@types/unidecode": "^1.1.0",
     "@types/which": "^3.0.4",
     "@vitest/coverage-v8": "^4.1.10",
+    "esbuild": "^0.28.2",
     "oxlint": "^1.75.0",
     "oxlint-tsgolint": "^7.0.2001",
-    "rolldown": "^1.1.3",
     "typescript": "^6.0.3",
     "vitest": "^4.1.10",
     "vscode-languageserver": "^10.1.0"
