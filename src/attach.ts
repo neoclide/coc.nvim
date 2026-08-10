@@ -41,7 +41,7 @@ export default (opts: Attach, requestApi = false): Plugin => {
   nvim.on('notification', async (method, args) => {
     switch (method) {
       case 'VimEnter': {
-        await plugin.init(args[0])
+        await plugin.init(args[0], args[1] === 1)
         break
       }
       case 'Log': {

@@ -212,7 +212,7 @@ export default class Plugin {
     if (alias) this.actions.set(alias, fn)
   }
 
-  public async init(rtp: string): Promise<void> {
+  public async init(rtp: string, mcpStarted = false): Promise<void> {
     if (this.initialized) return
     this.initialized = true
     let { nvim } = this
@@ -251,7 +251,7 @@ export default class Plugin {
         await window.echoLines(mcp.getStatusLines())
       }
     }, false, 'Show MCP server status')
-    void mcp.init()
+    void mcp.init(mcpStarted)
     listManager.registerLists()
     await extensions.activateExtensions()
     workspace.configurations.flushConfigurations()

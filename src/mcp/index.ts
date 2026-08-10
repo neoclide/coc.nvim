@@ -122,26 +122,12 @@ class McpService implements Disposable {
       return
     }
     let generation = this.generation
-    // The instance file is keyed by the vim pid so the bridge can detect a
-    // coc.nvim restart (same vim, new node process) from the file change.
-    let pid = process.pid
-    if (workspace.nvim) {
-      try {
-        pid = await workspace.nvim.call('getpid', []) as number
-      } catch (_e) {
-        // keep the node pid when the editor is unavailable
-      }
-    }
-    this.pid = pid
+    let pid = this.pid = workspace.env.pid
     let token = generateToken()
     let socketPath = config.transport === 'unix'
       ? path.join(getMcpDir(), `coc-${process.pid}.sock`)
       : undefined
-    try {
-      fs.mkdirSync(getMcpDir(), { recursive: true })
-    } catch (e) {
-      logger.error('Failed to create MCP directory', e)
-    }
+    fs.mkdirSync(getMcpDir(), { recursive: true })
     let registry = this.getRegistry()
     registry.setAllowedTools(config.allowedTools)
     let server = new McpServer({
@@ -195,13 +181,7 @@ class McpService implements Disposable {
         cwd,
         workspaceRoot: root
       }))
-      if (workspace.nvim) {
-        try {
-          workspace.nvim.setVar('coc_mcp_started', 1, true)
-        } catch (_e) {
-          // ignore: state restore is best-effort
-        }
-      }
+      workspace.nvim.setVar('coc_mcp_started', 1, true)
       let location = config.transport === 'unix' ? address.socketPath : `${address.host}:${address.port}`
       logger.info(`MCP server listening on ${location}, tools: ${server.tools.list().tools.length}`)
     } catch (e) {
@@ -215,16 +195,8 @@ class McpService implements Disposable {
    * or when it was running before a coc.nvim restart (`:CocRestart`), whose
    * started state is kept in a vim variable.
    */
-  public async init(): Promise<void> {
-    let saved = 0
-    if (workspace.nvim) {
-      try {
-        saved = await workspace.nvim.eval('get(g:, "coc_mcp_started", 0)') as number
-      } catch (_e) {
-        // ignore: no vim variable yet
-      }
-    }
-    if (saved === 1) {
+  public async init(started: boolean = false): Promise<void> {
+    if (started) {
       await this.start(true)
     } else {
       await this.start()
