@@ -146,12 +146,10 @@ describe('typings declarations', () => {
         nsMembers.set(st.name.text, collectNamespaceMembers(st.body))
       }
     }
-    // runtime exports that typings intentionally keep type-only
-    let typeOnlyExports = new Set(['Mru', 'FloatFactory'])
     let runtimeNames = Object.keys(exportObj).filter(k => {
       return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(k) && !k.startsWith('__') && k !== 'default'
     })
-    let missingInTypings = runtimeNames.filter(k => !valueNames.has(k) && !typeOnlyExports.has(k))
+    let missingInTypings = runtimeNames.filter(k => !valueNames.has(k))
     expect(missingInTypings).toEqual([])
     let missingAtRuntime = [...valueNames].filter(n => !Object.prototype.hasOwnProperty.call(exportObj, n))
     expect(missingAtRuntime).toEqual([])

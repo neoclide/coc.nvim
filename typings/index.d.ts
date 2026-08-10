@@ -7420,7 +7420,6 @@ declare module 'coc.nvim' {
    * Build buffer with lines and highlights
    */
   export class Highlighter {
-    constructor(srcId?: number)
     /**
      * Add a line with highlight group.
      */
@@ -7584,9 +7583,12 @@ declare module 'coc.nvim' {
      * Should align columns when true.
      */
     get alignColumns(): boolean
+    protected get floatPreview(): boolean
     protected get hlGroup(): string
     protected get previewHeight(): number
     protected get splitRight(): boolean
+    protected get toplineStyle(): string
+    protected get toplineOffset(): number
     /**
      * Parse argument string array for argument object from `this.options`.
      * Could be used inside `this.loadItems()`
@@ -7615,7 +7617,7 @@ declare module 'coc.nvim' {
     /**
      * Convert location to a `Location` object.
      */
-    public convertLocation(location: Location | LocationWithLine | string): Promise<Location>
+    public convertLocation(location: LocationWithTarget | LocationWithLine | string): Promise<LocationWithTarget>
     /**
      * Jump to location
      */
@@ -7627,7 +7629,7 @@ declare module 'coc.nvim' {
     /**
      * Preview location.
      */
-    protected previewLocation(location: Location, context: ListContext): Promise<void>
+    protected previewLocation(location: LocationWithTarget, context: ListContext): Promise<void>
     /**
      * Preview lines.
      */
@@ -7640,6 +7642,10 @@ declare module 'coc.nvim' {
      * Invoked for listItems or listTask, could throw error when failed to load.
      */
     abstract loadItems(context: ListContext, token?: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>
+    /**
+     * Dispose the list, dispose registered disposables.
+     */
+    dispose(): void
   }
 
   export class Mutex {
@@ -7843,7 +7849,7 @@ declare module 'coc.nvim' {
   /**
    * Create promise resolved after ms milliseconds.
    */
-  export function wait(ms: number): Promise<any>
+  export function wait(ms: number): Promise<void>
 
   /**
    * Run command with `child_process.exec`, CancellationError is rejected when timeout or cancelled.
@@ -9302,7 +9308,7 @@ declare module 'coc.nvim' {
     /**
      * A human-readable string describing this item. When `falsy`, it is derived from {@link TreeItem.resourceUri resourceUri}.
      */
-    label?: string | TreeItemLabel
+    label: string | TreeItemLabel
 
     /**
      * Description rendered less prominently after label.
@@ -9852,12 +9858,25 @@ declare module 'coc.nvim' {
   /**
    * Store & retrieve most recent used items.
    */
-  export interface Mru {
+  export class Mru {
+    /**
+     * @param name unique name
+     * @param base optional directory name, default to data root of coc.nvim
+     * @param maximum maximum number of items, default to 5000
+     */
+    constructor(
+      name: string,
+      base?: string,
+      maximum?: number
+    )
     /**
      * Load iems from mru file
      */
-
     load(): Promise<string[]>
+    /**
+     * Load lines from mru file synchronously.
+     */
+    loadSync(): string[]
     /**
      * Add item to mru file.
      */
@@ -9866,7 +9885,6 @@ declare module 'coc.nvim' {
     /**
      * Remove item from mru file.
      */
-
     remove(item: string): Promise<void>
 
     /**
@@ -11587,7 +11605,8 @@ declare module 'coc.nvim' {
     right?: number
   }
 
-  export interface FloatFactory {
+  export class FloatFactory {
+    constructor(nvim: Neovim)
     /**
      * Show documentations in float window/popup.
      * Window and buffer are reused when possible.
@@ -12360,6 +12379,14 @@ declare module 'coc.nvim' {
   // }}
 
   // listManager module {{
+  export interface LocationWithTarget extends Location {
+    /**
+     * The full target range of this link. If the target for example is a symbol then target range is the
+     * range enclosing this symbol not including leading/trailing whitespace but everything else like comments. This information is typically used to highlight the range in the editor.
+     */
+    targetRange?: Range
+  }
+
   export interface LocationWithLine {
     /**
      * Uri of the location.
@@ -12407,7 +12434,7 @@ declare module 'coc.nvim' {
     /**
      * Location of the item.
      */
-    location?: Location | LocationWithLine | string
+    location?: LocationWithTarget | LocationWithLine | string
     /**
      * Custom data of the item.
      */
@@ -12420,6 +12447,10 @@ declare module 'coc.nvim' {
      * Whether the item is resolved.
      */
     resolved?: boolean
+    /**
+     * Whether the location of the item has been converted.
+     */
+    converted?: boolean
   }
 
   export type ListMode = 'normal' | 'insert'
@@ -12812,7 +12843,7 @@ declare module 'coc.nvim' {
      * be resolved - either a string or a function with which a nested snippet can be created.
      * @return This snippet string.
      */
-    appendVariable(name: string, defaultValue: string | ((snippet: SnippetString) => any)): SnippetString
+    appendVariable(name: string, defaultValue?: string | ((snippet: SnippetString) => any)): SnippetString
   }
   /**
    * Manage snippet sessions.
@@ -15401,7 +15432,7 @@ declare module 'coc.nvim' {
     /**
      * Current running state.
      */
-    readonly serviceState: ServiceStat
+    readonly serviceState: ClientState
     /**
      * Whether the language client has been started.
      */
