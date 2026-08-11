@@ -67,12 +67,10 @@ function! coc#_insert_keymap(key, ...) abort
     return ''
   endif
   let prefix = ''
-  if get(a:, 1, 1)
-    if coc#pum#visible()
-      let prefix = "\<C-r>=coc#pum#close()\<CR>"
-    elseif pumvisible()
-      let prefix = "\<C-x>\<C-z>"
-    endif
+  if coc#pum#visible()
+    let prefix = "\<C-r>=coc#pum#close()\<CR>"
+  elseif pumvisible()
+    let prefix = "\<C-x>\<C-z>"
   endif
   let result = ''
   for part in parts
