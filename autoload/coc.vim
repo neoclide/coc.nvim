@@ -66,6 +66,14 @@ function! coc#_insert_keymap(key, ...) abort
   if type(parts) != v:t_list
     return ''
   endif
+  let prefix = ''
+  if get(a:, 1, 1)
+    if coc#pum#visible()
+      let prefix = "\<C-r>=coc#pum#close()\<CR>"
+    elseif pumvisible()
+      let prefix = "\<C-x>\<C-z>"
+    endif
+  endif
   let result = ''
   for part in parts
     if type(part) != v:t_dict
@@ -86,7 +94,7 @@ function! coc#_insert_keymap(key, ...) abort
       endif
     endif
   endfor
-  return result
+  return prefix.result
 endfunction
 
 " used for statusline
