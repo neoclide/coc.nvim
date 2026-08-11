@@ -1,5 +1,9 @@
 'use strict'
+import { EventEmitter } from 'events'
 import http, { IncomingHttpHeaders, IncomingMessage } from 'http'
+import { pipeline } from 'stream/promises'
+import { getFileNameLowLevel, open } from 'yauzl'
+import type { Entry, ZipFile } from 'yauzl'
 import { createLogger } from '../logger'
 import { crypto, fs, path } from '../util/node'
 import { CancellationToken } from '../util/protocol'
@@ -56,65 +60,94 @@ function isSafeEntryPath(dest: string, entryPath: string): boolean {
   return destPath.startsWith(dest + path.sep)
 }
 
+function openZip(filepath: string): Promise<ZipFile> {
+  return new Promise((resolve, reject) => {
+    // Decode names ourselves so absolute paths can retain the established
+    // behavior of being extracted below dest after path.join normalization.
+    open(filepath, { lazyEntries: true, decodeStrings: false }, (error, zipfile) => {
+      if (error) reject(error)
+      else resolve(zipfile)
+    })
+  })
+}
+
+function openZipEntry(zipfile: ZipFile, entry: Entry): Promise<NodeJS.ReadableStream> {
+  return new Promise((resolve, reject) => {
+    zipfile.openReadStream(entry, (error, stream) => {
+      if (error) reject(error)
+      else resolve(stream)
+    })
+  })
+}
+
+async function unzipFile(filepath: string, dest: string): Promise<void> {
+  let zipfile = await openZip(filepath)
+  return await new Promise<void>((resolve, reject) => {
+    let settled = false
+    const fail = (error: Error): void => {
+      if (settled) return
+      settled = true
+      zipfile.close()
+      reject(error)
+    }
+    zipfile.on('error', fail)
+    zipfile.on('end', () => {
+      if (settled) return
+      settled = true
+      resolve()
+    })
+    zipfile.on('entry', (entry: Entry) => {
+      let entryPath = getFileNameLowLevel(entry.generalPurposeBitFlag, entry.fileNameRaw, entry.extraFields, false)
+      // Preserve unzip-stream's behavior: neutralize parent segments instead
+      // of allowing them to escape dest or rejecting the whole archive.
+      entryPath = entryPath.replace(/(?<=^|[/\\]+)[.][.]+(?=[/\\]+|$)/g, '.')
+      if (!isSafeEntryPath(dest, entryPath)) {
+        fail(new Error(`Zip entry path is invalid: ${entryPath}`))
+        return
+      }
+      let target = path.join(dest, entryPath)
+      let isDirectory = entryPath.endsWith('/')
+      void fs.promises.mkdir(isDirectory ? target : path.dirname(target), { recursive: true }).then(async () => {
+        if (!isDirectory) {
+          let input = await openZipEntry(zipfile, entry)
+          await pipeline(input, fs.createWriteStream(target))
+        }
+        zipfile.readEntry()
+      }, fail).catch(fail)
+    })
+    zipfile.readEntry()
+  })
+}
+
 /**
- * Extract zip entries to dest, reject when entry path tries to escape dest.
+ * Save a zip response to a temporary file and extract entries to dest.
+ * yauzl uses random access, so archive data stays off the JS heap while each
+ * entry is still decompressed through a stream.
  */
-function extractZip(res: IncomingMessage, dest: string): any {
-  const unzip = require('unzip-stream')
-  const parser = unzip.Parse()
-  let err: Error | null = null
-  let pending: Promise<void>[] = []
-  let dirs: { [key: string]: Promise<void> } = {}
-  const notifyError = (error: Error): void => {
-    if (!err) {
-      err = error
-      parser.emit('error', error)
-      parser.destroy()
-    }
+function extractZip(res: IncomingMessage, dest: string): EventEmitter {
+  let emitter = new EventEmitter()
+  let archive = path.join(dest, `.coc-download-${crypto.randomUUID()}.zip`)
+  let output = fs.createWriteStream(archive)
+  let settled = false
+  const finish = (error?: Error): void => {
+    if (settled) return
+    settled = true
+    void fs.promises.unlink(archive).catch(e => {
+      if (e.code !== 'ENOENT') logger.warn(`Unable to remove temporary archive ${archive}:`, e)
+    }).then(() => {
+      if (error) emitter.emit('error', error)
+      else emitter.emit('finish')
+    })
   }
-  const mkdir = (dir: string): Promise<void> => {
-    if (dirs[dir]) return dirs[dir]
-    let p = fs.promises.mkdir(dir, { recursive: true }).then(() => {}).catch(e => {
-      notifyError(e instanceof Error ? e : new Error(String(e)))
-    })
-    dirs[dir] = p
-    return p
-  }
-  parser.on('entry', (entry: any) => {
-    if (err) {
-      entry.autodrain()
-      return
-    }
-    if (!isSafeEntryPath(dest, entry.path)) {
-      entry.autodrain()
-      notifyError(new Error(`Zip entry path is invalid: ${entry.path}`))
-      return
-    }
-    let filepath = path.join(dest, entry.path)
-    let dir = entry.isDirectory ? filepath : path.dirname(filepath)
-    let p = mkdir(dir).then(() => {
-      if (entry.isDirectory) return
-      return new Promise<void>((resolve, reject) => {
-        let ws = fs.createWriteStream(filepath)
-        ws.on('error', reject)
-        ws.on('close', resolve)
-        entry.pipe(ws)
-      })
-    }).catch(e => {
-      if (!entry.isDirectory) entry.autodrain()
-      notifyError(e instanceof Error ? e : new Error(String(e)))
-    })
-    pending.push(p)
+  output.on('error', finish)
+  output.on('finish', () => {
+    void unzipFile(archive, dest).then(() => finish(), finish)
   })
-  parser.on('finish', () => {
-    Promise.all(pending).then(() => {
-      if (!err) parser.emit('done')
-    }, e => {
-      notifyError(e instanceof Error ? e : new Error(String(e)))
-    })
+  res.on('error', error => {
+    output.destroy(error)
   })
-  res.pipe(parser)
-  return parser
+  res.pipe(output)
+  return emitter
 }
 
 /**
