@@ -1,20 +1,13 @@
-import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
+import { nvim } from '../sharedUtil'
 'use strict'
 import Prompt from '../../list/prompt'
 import { IList, ListOptions } from '../../list/types'
 import Worker from '../../list/worker'
-import { Neovim } from '@chemzqm/neovim'
 import type WorkerType from '../../list/worker'
-import { before, describe, it } from 'node:test'
+import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
-
-let nvim: Neovim
-
-before(async () => {
-  nvim = workspace.nvim
-})
 
 function createWorker(loadItems: IList['loadItems']): WorkerType {
   let prompt = new Prompt(nvim)

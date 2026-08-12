@@ -1,5 +1,5 @@
-import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
+import { nvim } from '../sharedUtil'
 import BasicList from '../../list/basic'
 import listConfiguration, { ListConfiguration } from '../../list/configuration'
 import manager from '../../list/manager'
@@ -7,7 +7,6 @@ import { IList, ListContext, ListItem } from '../../list/types'
 import { QuickfixItem } from '../../types'
 import { disposeAll } from '../../util/index'
 import window from '../../window'
-import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import { afterEach, before, describe, it } from 'node:test'
@@ -34,7 +33,6 @@ class TestList extends BasicList {
   }
 }
 
-let nvim: Neovim
 let disposables: Disposable[] = []
 let callSpy: any
 let commandSpy: any
@@ -92,7 +90,6 @@ const lineList: IList = {
 }
 
 before(async () => {
-  nvim = workspace.nvim
   await nvim.setVar('coc_jump_locations', locations)
 })
 
