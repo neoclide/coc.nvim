@@ -2,6 +2,7 @@ import * as shared from '../sharedUtil'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { PassThrough } from 'stream'
 import { CancellationToken, CodeActionRequest, CodeLensRequest, CompletionRequest, DidChangeWorkspaceFoldersNotification, DidCreateFilesNotification, DidDeleteFilesNotification, DidRenameFilesNotification, DocumentLinkRequest, DocumentSymbolRequest, ExecuteCommandRequest, InlayHintRequest, InlineValueRequest, Position, Range, RenameRequest, SemanticTokensRegistrationType, SymbolInformation, SymbolKind, TextDocumentContentRequest, WillDeleteFilesRequest, WillRenameFilesRequest, WorkspaceFolder, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
@@ -13,6 +14,7 @@ import type { TextDocumentContentProviderShape } from '../../language-client/tex
 import workspace from '../../workspace'
 import { afterEach, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+import { createDynamicServer } from './server/inProcessDynamicServer'
 
 
 afterEach(editorReset)
@@ -31,14 +33,23 @@ describe('DynamicFeature', () => {
       },
       middleware
     }
-    let serverModule = path.join(import.meta.dirname, './server/dynamicServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      module: serverModule,
-      transport: lsclient.TransportKind.ipc
-    }
+    let serverOptions: lsclient.ServerOptions = inProcessDynamicServer()
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     await client.start()
     return client
+  }
+
+  /**
+   * Starts the dynamic server in-process over a duplex stream pair instead of
+   * forking a child process (see inProcessDynamicServer.ts).
+   */
+  function inProcessDynamicServer(): lsclient.ServerOptions {
+    return async () => {
+      let serverInput = new PassThrough()
+      let serverOutput = new PassThrough()
+      createDynamicServer(serverInput, serverOutput)
+      return { reader: serverOutput, writer: serverInput }
+    }
   }
 
   describe('RenameFeature', () => {
