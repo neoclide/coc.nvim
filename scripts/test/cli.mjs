@@ -57,13 +57,10 @@ const {values, positionals} = parseArgs({
 })
 
 /**
- * Node's test coverage needs --enable-source-maps from process start: the
- * parent's run() reads it via parseCommandLine() to decide whether to map
- * the bundle's V8 coverage back to src/*.ts (nvim/vim lanes are aggregated
- * here), and unit worker threads inherit the parent's execArgv. It cannot
- * be enabled after startup, so when --coverage is requested without it we
- * re-exec ourselves with the flag. --experimental-test-coverage is not
- * required here — run({coverage: true}) enables the profiler directly.
+ * Raw V8 coverage needs --enable-source-maps from process start so the
+ * source-map-cache is populated in the coverage JSON, and unit worker threads
+ * inherit the parent's execArgv. It cannot be enabled after startup, so when
+ * --coverage is requested without it we re-exec ourselves with the flag.
  * Returns the child's exit info when re-executing, null otherwise.
  */
 async function reexecWithCoverageFlags() {
@@ -87,9 +84,9 @@ if (values.coverage && !values.list) {
 
 // V8 coverage must be on before any unit worker thread starts, otherwise the
 // worker's profiler connection never initializes and its coverage is empty.
-// Raw coverage files copied here by node:test are gitignored; the merged
-// report is what coverage/lcov.info is built from, and the raw directory is
-// removed once that report has been written.
+// Workers/editor children inherit NODE_V8_COVERAGE from here and write their
+// raw coverage files next to the bundle; raw-coverage.mjs rebuilds the report
+// from them. The raw directory is removed once that report has been written.
 if (values.coverage) {
   process.env.NODE_V8_COVERAGE = path.join(projectRoot, '.cache', 'coc-test', 'coverage')
   await fs.mkdir(process.env.NODE_V8_COVERAGE, {recursive: true})
@@ -144,7 +141,6 @@ async function runLane(lane, {files, jobs, reporter}) {
   return await runUnit(files, {
     lane,
     concurrency: jobs,
-    coverage: values.coverage,
     testNamePattern,
     keepTemp: values['keep-temp'],
     forceExit: values['force-exit'],
@@ -178,16 +174,11 @@ let timings = await loadTimings()
 let failed = 0
 const laneResults = []
 const finalFailures = []
-const coverageSummaries = []
-let coverageFailed = false
 
 async function collect(lane, result, files) {
   laneResults.push({lane, durationMs: result.durationMs, result: result.stats, files})
   if (result.stats.failed > 0) failed += result.stats.failed
-  if (values.coverage && result.stats.diagnostics.some(message => /code coverage/i.test(message))) coverageFailed = true
   finalFailures.push(...result.stats.failures)
-  if (Array.isArray(result.coverage)) coverageSummaries.push(...result.coverage)
-  else if (result.coverage) coverageSummaries.push(result.coverage)
   timings = await persistTimings(timings, result)
   for (const message of result.stats.diagnostics) {
     reporter.error(`[test] ${message}`)
@@ -262,9 +253,6 @@ if (editorResult.value) {
       reporter.error(`[test] ${message}`)
     }
     finalFailures.push(...result.stats.failures)
-    if (values.coverage && result.stats.diagnostics.some(message => /code coverage/i.test(message))) coverageFailed = true
-    if (Array.isArray(result.coverage)) coverageSummaries.push(...result.coverage)
-    else if (result.coverage) coverageSummaries.push(result.coverage)
 }
 reporter.finish()
 
@@ -276,21 +264,13 @@ const totalTests = laneResults.reduce((sum, lane) => {
 }, 0)
 console.log(`total: ${formatCount(totalFiles, 'file')}, ${formatCount(totalTests, 'test')}, ${formatDuration(totalDuration)}`)
 if (values.coverage) {
-  let merged
-  if (coverageFailed) {
-    // node:test's summary() can be knocked out by a truncated raw coverage
-    // file (a process killed on timeout); rebuild from the raw files it
-    // copied back into NODE_V8_COVERAGE, skipping unparseable ones.
-    const rawFiles = buildSummaryFromRawDir(process.env.NODE_V8_COVERAGE)
-    merged = filterSrcCoverage(mergeCoverageSummaries([{files: rawFiles}]))
-    if (merged.size > 0) {
-      console.error('[test] Warning: coverage summary was rebuilt from raw V8 files and may be partial')
-    } else {
-      failed += 1
-    }
-  } else {
-    merged = filterSrcCoverage(mergeCoverageSummaries(coverageSummaries))
-  }
+  // node:test's per-worker coverage summary is unreliable for worker threads
+  // (large esbuild enums collapse to a single V8 block and lose most lines),
+  // so build the report from the raw V8 files written through
+  // NODE_V8_COVERAGE instead.
+  const rawFiles = buildSummaryFromRawDir(process.env.NODE_V8_COVERAGE)
+  const merged = filterSrcCoverage(mergeCoverageSummaries([{files: rawFiles}]))
+  if (merged.size === 0) failed += 1
   const totals = coverageTotals(Array.from(merged.values()))
   writeLcov(toLcov(Array.from(merged.values())))
   printCoverageSummary(Array.from(merged.values()), totals)

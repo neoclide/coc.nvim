@@ -6,7 +6,7 @@ import {parentPort, workerData} from 'node:worker_threads'
 import {projectRoot} from './paths.mjs'
 import {initializeTestHooks} from './bundle-hooks.mjs'
 
-const {files, coverage, testNamePattern, shardTimeoutMs, testTimeout} = workerData
+const {files, testNamePattern, shardTimeoutMs, testTimeout} = workerData
 const requestedFiles = new Set(files)
 const startedFiles = new Set()
 const finishedFiles = new Set()
@@ -50,17 +50,11 @@ async function main() {
     // them against cwd before spawning.
     files: files.map(file => (path.isAbsolute(file) ? path.relative(projectRoot, file) : file)),
     timeout: testTimeout,
-    coverage,
     testNamePatterns: testNamePattern ? [new RegExp(testNamePattern)] : undefined,
     signal: abort.signal,
   }
-  if (coverage) {
-    runOptions.coverageIncludeGlobs = ['src/**/*.ts', '.cache/coc-test/bundle.js']
-    runOptions.coverageExcludeGlobs = ['src/__tests__/**', '**/*.test.ts', '**/*.d.ts', '**/*.json']
-  }
   const stream = run(runOptions)
   const stats = {passed: 0, failed: 0, skipped: 0, todo: 0, failures: [], diagnostics: []}
-  let coverageSummary
   const fileDurations = new Map()
   const fileLeafStats = new Map()
   const failedFiles = new Set()
@@ -106,9 +100,6 @@ async function main() {
       case 'test:todo':
         stats.todo++
         break
-      case 'test:coverage':
-        coverageSummary = data?.summary
-        break
       case 'test:diagnostic':
         if (!/^(tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) /.test(data.message)) {
           stats.diagnostics.push(data.message)
@@ -152,7 +143,7 @@ async function main() {
   }
   parentPort.postMessage({
     type: 'result',
-    result: {stats, timings, leafStats, coverage: coverageSummary, timedOut: abort.signal.aborted},
+    result: {stats, timings, leafStats, timedOut: abort.signal.aborted},
   })
 
   function addDuration(data) {

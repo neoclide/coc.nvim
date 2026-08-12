@@ -14,9 +14,9 @@ function isSrcFile(absPath) {
 }
 
 /**
- * Merges the per-process/per-worker `test:coverage` summaries collected by
- * the runner. Line/branch/function hit counts are summed across lanes; a
- * line stays covered as long as any process executed it.
+ * Merges the per-process/per-worker coverage summaries rebuilt from raw V8
+ * files. Line/branch/function hit counts are summed across lanes; a line
+ * stays covered as long as any process executed it.
  */
 export function mergeCoverageSummaries(summaries) {
   const files = new Map()
@@ -46,7 +46,7 @@ export function mergeCoverageSummaries(summaries) {
 /**
  * Keeps only project src/**\/*.ts files that were actually executed during
  * the run. Files no process imported have no V8 coverage data and are left
- * out — matching node:test's own summary, which only counts loaded modules.
+ * out.
  */
 export function filterSrcCoverage(merged) {
   const result = new Map()
