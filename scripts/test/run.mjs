@@ -198,6 +198,7 @@ function runEditorProcess(
     // file with a parent-side kill so the pool slot is never leaked forever.
     const killTimer = setTimeout(() => {
       if (settled) return
+      killedByTimeout = true
       // detached: true gives the child its own process group, so a negative
       // pid also terminates the nvim/vim process it spawned.
       try {
@@ -219,6 +220,7 @@ function runEditorProcess(
     let result
     let processError
     let settled = false
+    let killedByTimeout = false
     const finish = (fn, value) => {
       if (settled) return
       settled = true
@@ -226,6 +228,28 @@ function runEditorProcess(
       signal.removeEventListener('abort', onAbort)
       fn(value)
     }
+    const timeoutFailure = () => ({
+      stats: {
+        passed: 0,
+        failed: 1,
+        skipped: 0,
+        todo: 0,
+        failures: [{
+          name: 'file timed out',
+          file,
+          details: {
+            error: {
+              message: `editor worker killed after ${shardTimeoutMs + 10_000}ms`,
+            },
+          },
+        }],
+        diagnostics: [],
+      },
+      timings: {[file]: 0},
+      leafStats: {[file]: {passed: 0, failed: 0}},
+      coverage: undefined,
+      timedOut: true,
+    })
     const onAbort = () => {
       try {
         process.kill(-child.pid, 'SIGTERM')
@@ -283,10 +307,10 @@ function runEditorProcess(
     // fully closed, including error/abort paths.
     child.on('close', code => {
       if (result) finish(resolve, result)
-      else finish(reject,
-        processError ?? (signal.aborted && signal.reason instanceof Error
-          ? signal.reason
-          : new Error(`editor worker ${id} exited with code ${code}`)))
+      else if (killedByTimeout) finish(resolve, timeoutFailure())
+      else finish(reject, processError ?? (signal.aborted && signal.reason instanceof Error
+        ? signal.reason
+        : new Error(`editor worker ${id} exited with code ${code}`)))
     })
     const editor = testCompiler.recordFor(file).editor
     if (!editor) throw new Error(`coc-test: editor kind not found for ${file}`)

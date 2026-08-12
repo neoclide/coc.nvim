@@ -78,6 +78,10 @@ async function registerLinkedEditingProvider(content: string, position: Position
   disposables.push(languages.registerLinkedEditingRangeProvider([{ language: '*' }], {
     provideLinkedEditingRanges: (doc, pos) => {
       let document = workspace.getDocument(doc.uri)
+      // A delayed linked-editing request can arrive after the editor reset
+      // wiped the buffer; treat a missing document as no provider result
+      // instead of crashing an async continuation after the test ended.
+      if (!document) return null
       let range = document.getWordRangeAtPosition(pos)
       if (!range) return null
       let text = doc.getText(range)
