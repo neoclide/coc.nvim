@@ -14,7 +14,7 @@ process.once('message', message => {
 async function main(options) {
   const {file, editor, coverage, testNamePattern, shardTimeoutMs, testTimeout} = options
   const {records, editorSessionSource} = await requestCompiledRecords([file])
-  initializeTestHooks(records, editor, editorSessionSource)
+  initializeTestHooks(records, editor, editorSessionSource, testNamePattern)
   const abort = new AbortController()
   const timeoutTimer = setTimeout(() => abort.abort(), shardTimeoutMs)
   timeoutTimer.unref?.()
