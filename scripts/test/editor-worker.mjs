@@ -18,21 +18,6 @@ async function main(options) {
   const records = await requestCompiledRecords([file])
   const {initializeTestHooks} = await import('./bundle-hooks.mjs')
   initializeTestHooks(records, editor)
-  // Start the editor session before node:test loads the test module: test
-  // helpers like sharedUtil capture `workspace.nvim` at module-evaluation
-  // time, and the plugin wiring that defines it only exists after attach().
-  const {start} = await import('coc-test/edit_session')
-  let startTimer
-  try {
-    await Promise.race([
-      start(editor),
-      new Promise((_, reject) => {
-        startTimer = setTimeout(() => reject(new Error('edit_session start timeout after 20s')), 20000)
-      })
-    ])
-  } finally {
-    clearTimeout(startTimer)
-  }
   const abort = new AbortController()
   const timeoutTimer = setTimeout(() => abort.abort(), shardTimeoutMs)
   timeoutTimer.unref?.()

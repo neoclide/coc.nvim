@@ -1,11 +1,16 @@
+import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
-import { nvim } from '../sharedUtil'
+import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import Menu, { isMenuItem, toIndexText } from '../../model/menu'
-import { afterEach, describe, it } from 'node:test'
+import { afterEach, before, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
+let nvim: Neovim
 let menu: Menu
+before(async () => {
+  nvim = workspace.nvim
+})
 
 afterEach(editorReset)
 

@@ -1,13 +1,18 @@
+import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
-import { nvim } from '../sharedUtil'
+import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import Picker, { toPickerItems } from '../../model/picker'
 import { QuickPickItem } from '../../types'
-import { afterEach, describe, it } from 'node:test'
+import { afterEach, before, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
+let nvim: Neovim
 let picker: Picker
+before(async () => {
+  nvim = workspace.nvim
+})
 
 afterEach(() => {
   if (picker) picker.dispose()

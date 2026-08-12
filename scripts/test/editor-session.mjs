@@ -147,17 +147,4 @@ export async function reset(t) {
 export async function stop() {
   if (server) server.close()
   if (proc) terminate(proc)
-  if (plugin) {
-    // Deliberately do NOT call plugin.dispose(): it tears down bundle
-    // singletons and leaves language client IPC sockets half-closed, which
-    // hangs the child process. Stop registered services explicitly after
-    // ending the editor so their sockets/forks cannot keep the test child
-    // alive.
-    // const services = bundle['src/services'].default
-    // try {
-    //   await services.stopAll()
-    // } catch (e) {
-    //   console.error('edit_session stopAll error', e)
-    // }
-  }
 }

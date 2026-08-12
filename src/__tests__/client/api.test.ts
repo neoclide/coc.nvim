@@ -1,11 +1,20 @@
+import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
-import { nvim } from '../sharedUtil'
+// Merged from rpc.test.ts, lua_api.test.ts and progressPart.test.ts to share
+// a single nvim session and reduce per-file startup overhead.
+import { Neovim } from '@chemzqm/neovim'
 import { Emitter, Event, NotificationHandler, WorkDoneProgressBegin, WorkDoneProgressEnd, WorkDoneProgressReport } from 'vscode-languageserver-protocol'
 import { ProgressContext, ProgressPart } from '../../language-client/progressPart'
 import { afterEach, before, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
 type ProgressType = WorkDoneProgressBegin | WorkDoneProgressReport | WorkDoneProgressEnd
+
+let nvim: Neovim
+
+before(async () => {
+  nvim = workspace.nvim
+})
 
 describe('rpc client', () => {
   it('should report live channel as running', async t => {
