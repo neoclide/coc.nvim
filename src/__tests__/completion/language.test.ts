@@ -150,8 +150,7 @@ describe('language source', () => {
       await nvim.input('(')
       await shared.waitValue(() => completion.isActivated, false)
       await shared.waitFor('getline', ['.'], 'foo()')
-      await nvim.input('<esc>')
-      await shared.waitFor('mode', [], 'n')
+      await nvim.command('stopinsert')
     })
 
     it('should not feedkeys when have paried characters before', async t => {

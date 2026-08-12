@@ -13,8 +13,8 @@ process.once('message', message => {
 
 async function main(options) {
   const {file, editor, coverage, testNamePattern, shardTimeoutMs, testTimeout} = options
-  const records = await requestCompiledRecords([file])
-  initializeTestHooks(records, editor)
+  const {records, editorSessionSource} = await requestCompiledRecords([file])
+  initializeTestHooks(records, editor, editorSessionSource)
   const abort = new AbortController()
   const timeoutTimer = setTimeout(() => abort.abort(), shardTimeoutMs)
   timeoutTimer.unref?.()
@@ -119,7 +119,7 @@ function requestCompiledRecords(files) {
     const onMessage = message => {
       if (message.type !== 'compiled') return
       process.off('message', onMessage)
-      resolve(message.records)
+      resolve({records: message.records, editorSessionSource: message.editorSessionSource})
     }
     process.on('message', onMessage)
     process.send?.({type: 'request-compiled', files})

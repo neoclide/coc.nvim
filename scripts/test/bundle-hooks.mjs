@@ -13,7 +13,6 @@ const TEST_TS_RE = new RegExp(
   `^file://${projectRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/src/__tests__/.*\\.ts$`
 )
 const sessionKey = 'coc-test/edit_session'
-const editorSessionPath = path.join(projectRoot, 'scripts', 'test', 'editor-session.mjs')
 const compiled = new Map()
 let initialized = false
 
@@ -59,15 +58,15 @@ function srcKeyFor(resolved) {
  * entry or dependency. Records are passed directly by the execution endpoint;
  * no process-global handoff is used.
  */
-export function initializeTestHooks(records, editor) {
+export function initializeTestHooks(records, editor, sessionSource) {
   if (initialized) throw new Error('coc-test: test hooks already initialized')
   initialized = true
   for (const record of records) compiled.set(record.url, record)
   setupTestEnvironment(editor)
-  registerTestHooks()
+  registerTestHooks(sessionSource)
 }
 
-function registerTestHooks() {
+function registerTestHooks(sessionSource) {
   registerHooks({
     resolve(specifier, context, nextResolve) {
       if (specifier === sessionKey) {
@@ -127,7 +126,7 @@ function registerTestHooks() {
       if (url === 'coc-test:edit_session') {
         return {
           format: 'module',
-          source: fs.readFileSync(editorSessionPath, 'utf8'),
+          source: sessionSource ?? '',
           shortCircuit: true,
         }
       }
