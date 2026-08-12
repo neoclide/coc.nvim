@@ -2,7 +2,7 @@
 
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { projectRoot } from './paths.mjs'
+import {projectRoot} from './paths.mjs'
 
 const testsDir = path.join(projectRoot, 'src', '__tests__')
 const unitPrefix = path.join('src', '__tests__', 'unit') + path.sep
@@ -39,7 +39,7 @@ export async function discoverTests(extraFiles = []) {
       if (abs.endsWith('.test.ts')) all.push(abs)
     }
   } else {
-    const entries = await fs.readdir(testsDir, { recursive: true, withFileTypes: true })
+    const entries = await fs.readdir(testsDir, {recursive: true, withFileTypes: true})
     for (const entry of entries) {
       if (!entry.isFile() || !entry.name.endsWith('.test.ts')) continue
       all.push(path.join(entry.parentPath, entry.name))
@@ -54,17 +54,17 @@ export async function discoverTests(extraFiles = []) {
   for (const file of all) {
     const rel = path.relative(projectRoot, file)
     if (rel.startsWith(unitPrefix)) {
-      unit.push({ file: rel, lane: 'unit', isolated: ISOLATED_UNIT_TESTS.includes(rel), runnable: true })
+      unit.push({file: rel, lane: 'unit', isolated: ISOLATED_UNIT_TESTS.includes(rel), runnable: true})
     } else if (VIM_TESTS.includes(rel)) {
-      vim.push({ file: rel, lane: 'vim', isolated: false, runnable: true })
+      vim.push({file: rel, lane: 'vim', isolated: false, runnable: true})
     } else {
-      nvim.push({ file: rel, lane: 'nvim', isolated: false, runnable: true })
+      nvim.push({file: rel, lane: 'nvim', isolated: false, runnable: true})
     }
   }
-  return { unit, nvim, vim, excluded }
+  return {unit, nvim, vim, excluded}
 }
 
 export async function discoverUnitTests(extraFiles = []) {
-  const { unit, excluded } = await discoverTests(extraFiles)
-  return { unit, excluded }
+  const {unit, excluded} = await discoverTests(extraFiles)
+  return {unit, excluded}
 }
