@@ -17,6 +17,7 @@ import {
   PublishDiagnosticsNotification,
   RegistrationRequest,
   RenameRequest,
+  ResponseError,
   ShowDocumentParams,
   ShowDocumentRequest,
   ShowMessageNotification,
@@ -50,18 +51,35 @@ export function createEventServer(input: NodeJS.ReadableStream, output: NodeJS.W
     new StreamMessageReader(input),
     new StreamMessageWriter(output)
   )
-  let options: { trace?: boolean; utf8?: boolean } = {}
+  // process.exit() in a real server closes the OS pipe; destroy both stream
+  // ends to reproduce that close for the client instead of only disposing the
+  // protocol connection (which leaves the PassThrough streams open).
+  const simulateExit = (): void => {
+    connection.dispose()
+    ;(output as unknown as { destroy?: () => void }).destroy?.()
+    ;(input as unknown as { destroy?: () => void }).destroy?.()
+  }
+  let options: { trace?: boolean; utf8?: boolean; throwError?: boolean; normalThrow?: boolean } = {}
   // Track opened documents so the edits handler can report a bumped version,
   // mirroring eventServer.js's TextDocuments.
   const documents = new Map<string, number>()
 
-  connection.onRequest(InitializeRequest.type, (params: InitializeParams): InitializeResult => {
-    options = params.initializationOptions as { trace?: boolean; utf8?: boolean } ?? {}
+  connection.onRequest(InitializeRequest.type, (params: InitializeParams): InitializeResult | ResponseError<{retry: boolean}> => {
+    options = params.initializationOptions as { trace?: boolean; utf8?: boolean; throwError?: boolean; normalThrow?: boolean } ?? {}
     if (options.trace) {
       setTimeout(() => {
         void connection.sendNotification(LogTraceNotification.type, { message: 'This is a trace message' })
         void connection.sendNotification(LogTraceNotification.type, { message: 'This is a trace message', verbose: 'verbose info' })
       }, 1)
+    }
+    if (options.throwError) {
+      // Mirror eventServer.js: signal a retryable initialize failure, then
+      // drop the connection so a retry races a dead server.
+      setTimeout(simulateExit, 10)
+      return new ResponseError(1, 'message', { retry: true })
+    }
+    if (options.normalThrow) {
+      throw new Error('normal throw error')
     }
     if (options.utf8) {
       return { capabilities: { positionEncoding: PositionEncodingKind.UTF8 } }
@@ -70,6 +88,9 @@ export function createEventServer(input: NodeJS.ReadableStream, output: NodeJS.W
   })
   connection.onRequest(ShutdownRequest.type, () => undefined)
   connection.onNotification(ExitNotification.type, () => connection.dispose())
+  connection.onRequest('doExit', () => {
+    setTimeout(simulateExit, 30)
+  })
 
   connection.onNotification(DidOpenTextDocumentNotification.type, params => {
     documents.set(params.textDocument.uri, params.textDocument.version)
