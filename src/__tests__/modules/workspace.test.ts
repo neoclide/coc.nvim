@@ -1,7 +1,8 @@
-import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import cp from 'child_process'
 import fs from 'fs'
+import assert from 'node:assert/strict'
+import { afterEach, before, describe, it } from 'node:test'
 import os from 'os'
 import path from 'path'
 import { Disposable } from 'vscode-languageserver-protocol'
@@ -10,10 +11,8 @@ import { URI } from 'vscode-uri'
 import { userSettingsSchemaId } from '../../configuration'
 import events from '../../events'
 import { disposeAll } from '../../util'
-import * as processes from '../../util/processes'
 import workspace, { Workspace } from '../../workspace'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import * as shared from '../sharedUtil'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -657,7 +656,7 @@ describe('workspace events', () => {
     // aborts the BufWritePre RPC chain. Fire the write as a notification so
     // the expected error does not surface as a request error on this test
     // (and does not leak into the next test's BufWritePre).
-    await nvim.command('wa', true)
+    nvim.command('wa', true)
     await shared.waitValue(() => doc.getDocumentContent().includes('bar'), true)
     let content = doc.getDocumentContent()
     assert.match(content, new RegExp('bar'))
