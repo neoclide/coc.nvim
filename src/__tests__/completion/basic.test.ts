@@ -1692,6 +1692,7 @@ describe('completion', () => {
 
   describe('Navigate list', () => {
     it('should navigate completion list', async t => {
+      await workspace.document
       shared.updateConfiguration('suggest.noselect', true)
       await create(['foo', 'foot'], true)
       let items = completion.activeItems
@@ -1709,6 +1710,7 @@ describe('completion', () => {
     })
 
     it('should not cancel when cursor moved to end of inserted word', async t => {
+      await workspace.document
       shared.updateConfiguration('suggest.noselect', true)
       await create(['foo', 'foot'], true)
       let items = completion.activeItems
