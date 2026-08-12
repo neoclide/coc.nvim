@@ -1,4 +1,4 @@
-import type { Buffer } from '@chemzqm/neovim'
+import type { Buffer, Neovim } from '@chemzqm/neovim'
 import crypto from 'crypto'
 import fs from 'fs'
 import os from 'os'
@@ -15,6 +15,16 @@ import type { OutputChannel } from '../types'
 import workspace from '../workspace'
 
 const testsRoot = import.meta.dirname
+
+/**
+ * The live nvim instance of the current editor test session. Editor workers
+ * start their session before loading test modules, so the plugin wiring that
+ * defines `workspace.nvim` is already in place when this module evaluates.
+ */
+export const nvim: Neovim = workspace.nvim
+if (!nvim) {
+  throw new Error('sharedUtil: editor session must be started before test modules load')
+}
 
 export function wait(ms = 30): Promise<void> {
   return new Promise(resolve => {

@@ -1,14 +1,11 @@
-import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
-import { Neovim } from '@chemzqm/neovim'
+import { nvim } from '../sharedUtil'
 import { TerminalModel } from '../../model/terminal'
 import { after, before, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
-let nvim: Neovim
 let terminal: TerminalModel
 before(async () => {
-  nvim = workspace.nvim
   terminal = new TerminalModel('sh', [], nvim)
   await terminal.start(import.meta.dirname, { COC_TERMINAL: `option '-term'` })
 })

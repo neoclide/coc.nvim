@@ -1,5 +1,5 @@
-import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
+import { nvim } from '../sharedUtil'
 import events from '../../events'
 import manager, { createConfigurationNode, ListManager } from '../../list/manager'
 import { IList } from '../../list/types'
@@ -7,7 +7,7 @@ import { QuickfixItem } from '../../types'
 import { toArray } from '../../util/array'
 import { CancellationError } from '../../util/errors'
 import window from '../../window'
-import { Neovim, Window } from '@chemzqm/neovim'
+import { Window } from '@chemzqm/neovim'
 import EventEmitter from 'events'
 import path from 'path'
 import { Range } from 'vscode-languageserver-types'
@@ -15,7 +15,6 @@ import { after, afterEach, before, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
 
-let nvim: Neovim
 const locations: ReadonlyArray<QuickfixItem> = [{
   filename: import.meta.filename,
   col: 2,
@@ -44,7 +43,6 @@ async function waitCmdline(text: string): Promise<void> {
 }
 
 before(async () => {
-  nvim = workspace.nvim
   await nvim.setVar('coc_jump_locations', locations)
 })
 
