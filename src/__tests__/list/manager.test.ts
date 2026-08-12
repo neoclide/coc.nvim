@@ -39,8 +39,16 @@ async function getFloats(): Promise<Window[]> {
   return ids.map(id => nvim.createWindow(id))
 }
 
-async function waitCmdline(text: string): Promise<void> {
-  await shared.waitValue(async () => (await shared.getCmdline()).includes(text), true)
+/**
+ * Waits for an echoed message (window.showMessage / showErrorMessage /
+ * showWarningMessage) instead of scraping the cmdline screen characters.
+ */
+async function waitMessage(text: string): Promise<void> {
+  while (true) {
+    const changed = await events.race(['Message'], 5000)
+    if (!changed) throw new Error(`wait message "${text}" timeout`)
+    if (String(changed.args[0]).includes(text)) return
+  }
 }
 
 before(async () => {
@@ -489,10 +497,12 @@ describe('list', () => {
 
   describe('parseArgs()', () => {
     it('should show error for bad option', async t => {
+      let p = waitMessage('Invalid list option')
       manager.parseArgs(['$x', 'location'])
-      await waitCmdline('Invalid list option')
+      await p
+      p = waitMessage('Invalid option')
       manager.parseArgs(['-xyz', 'location'])
-      await waitCmdline('Invalid option')
+      await p
     })
 
     it('should parse valid arguments', async t => {
@@ -503,8 +513,9 @@ describe('list', () => {
     })
 
     it('should show error for interactive with list not support interactive', async t => {
+      let p = waitMessage('not supported')
       manager.parseArgs(['--interactive', 'location'])
-      await waitCmdline('not supported')
+      await p
     })
   })
 
@@ -517,8 +528,9 @@ describe('list', () => {
       await manager.resume('location')
       await shared.doAction('listResume')
       assert.strictEqual(manager.isActivated, true)
+      let p = waitMessage("Can't find")
       await manager.resume('not_exists')
-      await waitCmdline('Can\'t find')
+      await p
     })
   })
 
@@ -630,7 +642,7 @@ describe('list', () => {
     it('should respect input option', async t => {
       await manager.start(['--input=foo', 'location'])
       await manager.session.ui.ready
-      await waitCmdline('foo')
+      assert.strictEqual(manager.session.listOptions.input, 'foo')
       assert.strictEqual(manager.isActivated, true)
     })
 

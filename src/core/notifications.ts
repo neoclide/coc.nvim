@@ -12,6 +12,7 @@ import { toText } from '../util/string'
 import { callAsync } from './funcs'
 import { echoMessages, MsgTypes } from './ui'
 import { Dialogs } from './dialogs'
+import events from '../events'
 
 export type MessageKind = 'Error' | 'Warning' | 'Info'
 
@@ -181,6 +182,7 @@ export class Notifications {
   public echoMessages(msg: string, messageType: MsgTypes): void {
     let level = this.configuration.get<string>('coc.preferences.messageLevel', 'more')
     echoMessages(this.nvim, msg, messageType, level)
+    void events.fire('Message', [msg])
   }
 
   public async withProgress<R>(options: ProgressOptions, task: (progress: Progress, token: CancellationToken) => Thenable<R>): Promise<R> {

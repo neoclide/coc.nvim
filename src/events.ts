@@ -73,7 +73,8 @@ export enum EventName {
   WinScrolled = 'WinScrolled',
   WinClosed = 'WinClosed',
   BufWinLeave = 'BufWinLeave',
-  ModeChanged = 'ModeChanged'
+  ModeChanged = 'ModeChanged',
+  Message = 'Message'
 }
 
 export type BufEvents = 'BufHidden' | 'BufEnter' | 'BufRename'
@@ -95,6 +96,7 @@ export type AllEvents = BufEvents | EmptyEvents | CursorEvents | TaskEvents | Wi
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit' | 'WinScrolled' | 'CompleteStart'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'PlaceholderJump' | 'InputListSelect'
   | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'PromptExit' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert' | 'PromptKeyPress' | 'WindowVisible'
+  | 'Message'
 
 export type CursorEvents = CursorHoldEvents | CursorMoveEvents
 export type CursorHoldEvents = 'CursorHold' | 'CursorHoldI'
@@ -426,6 +428,7 @@ class Events {
   public on(event: 'PlaceholderJump', handler: (bufnr: number, info: JumpInfo) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'InputListSelect', handler: (index: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'ModeChanged', handler: (event: ModeChangedEvent) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'Message', handler: (message: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: EmptyEvents, handler: () => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: AllEvents | AllEvents[], handler: (...args: unknown[]) => Result, thisArg?: any, disposables?: Disposable[] | true): Disposable
   public on(event: AllEvents[] | AllEvents, handler: (...args: any[]) => Result, thisArg?: any, disposables?: Disposable[] | true): Disposable {
