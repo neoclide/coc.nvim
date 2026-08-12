@@ -42,10 +42,10 @@ async function createSnippet(snippet: string | TextmateSnippet, opts?: UltiSnipp
 
 describe('SnippetString', () => {
   it('should check SnippetString', () => {
-    expect(SnippetString.isSnippetString(null)).toBe(false)
+    assert.strictEqual(SnippetString.isSnippetString(null), false)
     let snippetString = new SnippetString()
-    expect(SnippetString.isSnippetString(snippetString)).toBe(true)
-    expect(SnippetString.isSnippetString({})).toBe(false)
+    assert.strictEqual(SnippetString.isSnippetString(snippetString), true)
+    assert.strictEqual(SnippetString.isSnippetString({}), false)
   })
 
   it('should build snippet string', () => {
@@ -156,39 +156,39 @@ describe('SnippetString', () => {
 
 describe('toSnippetString()', () => {
   it('should convert snippet to string', async () => {
-    expect(() => {
+    assert.throws(() => {
       toSnippetString(1 as any)
-    }).toThrow(TypeError)
-    expect(toSnippetString(new SnippetString())).toBe('')
+    }, TypeError)
+    assert.strictEqual(toSnippetString(new SnippetString()), '')
   })
 })
 
 describe('CocSnippet', () => {
   async function assertResult(snip: string, resolved: string, opts?: UltiSnippetOption) {
     let c = await createSnippet(snip, opts)
-    expect(c.text).toBe(resolved)
+    assert.strictEqual(c.text, resolved)
   }
 
   async function assertPyxValue(code: string, res: any) {
     let val = await nvim.call(`pyxeval`, code) as string
     if (typeof res === 'number' || typeof res === 'string' || typeof res === 'boolean') {
-      expect(val).toBe(res)
+      assert.strictEqual(val, res)
     } else if (res instanceof RegExp) {
-      expect(val).toMatch(res)
+      assert.match(val, res)
     } else {
-      expect(val).toEqual(res)
+      assert.deepStrictEqual(val, res)
     }
   }
 
   describe('resolveVariables()', () => {
     it('should padZero', () => {
-      expect(padZero(1)).toBe('01')
-      expect(padZero(10)).toBe('10')
+      assert.strictEqual(padZero(1), '01')
+      assert.strictEqual(padZero(10), '10')
     })
 
     it('should getVariablesCode', () => {
-      expect(getVariablesCode({})).toBe('t = ()')
-      expect(getVariablesCode({ 1: 'foo', 3: 'bar' })).toBe('t = ("","foo","","bar",)')
+      assert.strictEqual(getVariablesCode({}), 't = ()')
+      assert.strictEqual(getVariablesCode({ 1: 'foo', 3: 'bar' }), 't = ("","foo","","bar",)')
     })
 
     it('should resolve uppercase variables', async () => {
@@ -218,17 +218,17 @@ describe('CocSnippet', () => {
       await doc.buffer.setOption('commentstring', '')
       let fsPath = URI.parse(doc.uri).fsPath
       let c = await createSnippet('$RANDOM')
-      expect(c.text.length).toBe(6)
+      assert.strictEqual(c.text.length, 6)
       c = await createSnippet('$RANDOM_HEX')
-      expect(c.text.length).toBe(6)
+      assert.strictEqual(c.text.length, 6)
       c = await createSnippet('$UUID')
-      expect(c.text).toMatch('-')
+      assert.ok((c.text).includes('-'))
       c = await createSnippet('$RELATIVE_FILEPATH')
-      expect(c.text).toMatch(path.basename(fsPath))
+      assert.ok((c.text).includes(path.basename(fsPath)))
       c = await createSnippet('$WORKSPACE_NAME')
-      expect(c.text.length).toBeGreaterThan(0)
+      assert.ok((c.text.length) > (0))
       c = await createSnippet('$WORKSPACE_FOLDER')
-      expect(c.text.length).toBeGreaterThan(0)
+      assert.ok((c.text.length) > (0))
       await assertResult('$LINE_COMMENT', '//')
       await assertResult('$BLOCK_COMMENT_START', '/*')
       await assertResult('$BLOCK_COMMENT_END', '*/')
@@ -261,9 +261,9 @@ describe('CocSnippet', () => {
     it('should get snippets option', async () => {
       let c = await createSnippet('${1:foo}', { noExpand: true })
       let m = c.tmSnippet.children[0]
-      expect(c.getUltiSnipOption(m, 'noExpand')).toBe(true)
-      expect(c.getUltiSnipOption(c.tmSnippet, 'noExpand')).toBe(true)
-      expect(c.getUltiSnipOption(new Text(''), 'trimTrailingWhitespace')).toBeUndefined()
+      assert.strictEqual(c.getUltiSnipOption(m, 'noExpand'), true)
+      assert.strictEqual(c.getUltiSnipOption(c.tmSnippet, 'noExpand'), true)
+      assert.strictEqual(c.getUltiSnipOption(new Text(''), 'trimTrailingWhitespace'), undefined)
     })
   })
 
@@ -272,15 +272,15 @@ describe('CocSnippet', () => {
       let snip = new TextmateSnippet()
       snip.appendChild(new Text('f'))
       let c = await createSnippet(snip)
-      expect(() => {
+      assert.throws(() => {
         c.findParent(Range.create(1, 0, 1, 0))
-      }).toThrow(Error)
+      }, Error)
     })
 
     it('should not use adjacent choice placeholder', async () => {
       let c = await createSnippet('a\n${1|one,two,three|}\nb')
       let res = c.findParent(Range.create(1, 0, 1, 0))
-      expect(res.marker instanceof TextmateSnippet).toBe(true)
+      assert.strictEqual(res.marker instanceof TextmateSnippet, true)
     })
   })
 
@@ -289,15 +289,15 @@ describe('CocSnippet', () => {
       let c = await createSnippet('${1:foo}')
       let token = (new CancellationTokenSource()).token
       let res = await c.replaceWithText(Range.create(0, 0, 0, 0), '', token)
-      expect(res).toBeDefined()
-      expect(res.snippetText).toBe('foo')
+      assert.notStrictEqual(res, undefined)
+      assert.strictEqual(res.snippetText, 'foo')
     })
 
     it('should replace with Text for choice placeholder', async () => {
       let c = await createSnippet(' ${1|one,two,three|} ')
       let res = c.replaceWithMarker(Range.create(0, 2, 0, 4), new Text('bar'))
-      expect(res.children.length).toBe(1)
-      expect(res.children[0].toString()).toBe('obar')
+      assert.strictEqual(res.children.length, 1)
+      assert.strictEqual(res.children[0].toString(), 'obar')
     })
 
     it('should not insert line break at the start of placeholder', async () => {
@@ -305,8 +305,8 @@ describe('CocSnippet', () => {
       let p = c.getPlaceholderByIndex(1).marker
       let res = c.replaceWithMarker(Range.create(0, 1, 0, 1), new Text('\n'), p)
       let text = c.tmSnippet.children[0] as Text
-      expect(text.value).toBe(' \n')
-      expect(res.toString()).toBe('bar')
+      assert.strictEqual(text.value, ' \n')
+      assert.strictEqual(res.toString(), 'bar')
     })
 
     it('should return undefined when cursor not changed', async () => {
@@ -314,7 +314,7 @@ describe('CocSnippet', () => {
       let c = await createSnippet('${1:foo}')
       let token = (new CancellationTokenSource()).token
       let res = await c.replaceWithText(Range.create(0, 0, 0, 3), '', token, undefined, doc.cursor)
-      expect(res.delta).toBeUndefined()
+      assert.strictEqual(res.delta, undefined)
     })
 
     it('should synchronize without related change', async () => {
@@ -322,10 +322,10 @@ describe('CocSnippet', () => {
         let token = (new CancellationTokenSource()).token
         let c = await createSnippet('begin ${1:foo} end')
         await c.replaceWithText(range, newText, token)
-        expect(c.text).toBe(resultText)
+        assert.strictEqual(c.text, resultText)
         let start = Position.create(0, 0)
         let end = getEnd(start, resultText)
-        expect(c.range).toEqual(Range.create(start, end))
+        assert.deepStrictEqual(c.range, Range.create(start, end))
         return c
       }
       // insert text
@@ -333,21 +333,21 @@ describe('CocSnippet', () => {
       // insert placeholder
       let snippet = await assertChange(Range.create(0, 6, 0, 6), 'xx', 'begin xxfoo end')
       let p = snippet.getPlaceholderByIndex(1)
-      expect(p.value).toBe('xxfoo')
+      assert.strictEqual(p.value, 'xxfoo')
       // delete text of placeholder
       snippet = await assertChange(Range.create(0, 6, 0, 9), '', 'begin  end')
       p = snippet.getPlaceholderByIndex(1)
-      expect(p.value).toBe('')
+      assert.strictEqual(p.value, '')
       // delete text
       await assertChange(Range.create(0, 0, 0, 6), '', 'foo end')
       //  delete Text and Placeholder
       snippet = await assertChange(Range.create(0, 0, 0, 8), '', 'o end')
       p = snippet.getPlaceholderByIndex(1)
-      expect(p).toBeUndefined()
+      assert.strictEqual(p, undefined)
       let marker = snippet.getPlaceholderById(0.5, 0)
-      expect(marker).toBeDefined()
+      assert.notStrictEqual(marker, undefined)
       marker = snippet.getPlaceholderById(10, 9)
-      expect(marker).toBeUndefined()
+      assert.strictEqual(marker, undefined)
     })
 
     it('should prefer current placeholder', async () => {
@@ -356,57 +356,57 @@ describe('CocSnippet', () => {
       let marker = c.getPlaceholderByIndex(1).marker
       // use outer
       m = c.replaceWithMarker(Range.create(0, 2, 0, 3), new Text('insert'), marker) as Placeholder
-      expect(m).toBe(marker)
-      expect(m.children.length).toBe(1)
-      expect(m.children[0].toString()).toBe('insertar foo')
+      assert.strictEqual(m, marker)
+      assert.strictEqual(m.children.length, 1)
+      assert.strictEqual(m.children[0].toString(), 'insertar foo')
       // use inner
       c = await createSnippet('b ${1:${2:bar} foo} x')
       m = c.replaceWithMarker(Range.create(0, 2, 0, 3), new Text('insert')) as Placeholder
-      expect(m instanceof Placeholder).toBe(true)
-      expect(m.index).toBe(2)
-      expect(m.children.length).toBe(1)
-      expect(m.children[0].toString()).toBe('insertar')
+      assert.strictEqual(m instanceof Placeholder, true)
+      assert.strictEqual(m.index, 2)
+      assert.strictEqual(m.children.length, 1)
+      assert.strictEqual(m.children[0].toString(), 'insertar')
     })
 
     it('should insert with marker', async () => {
       let c; let m
       c = await createSnippet('${1:foo} ${2:bar}')
       m = c.replaceWithMarker(Range.create(0, 0, 0, 0), new Text('before'))
-      expect(m.toString()).toBe('beforefoo')
-      expect(m.children.length).toBe(1)
+      assert.strictEqual(m.toString(), 'beforefoo')
+      assert.strictEqual(m.children.length, 1)
       c = await createSnippet('${1:foo} ${2:bar}')
       m = c.replaceWithMarker(Range.create(0, 1, 0, 1), new Text('before'))
-      expect(m.toString()).toBe('fbeforeoo')
-      expect(m.children.length).toBe(1)
+      assert.strictEqual(m.toString(), 'fbeforeoo')
+      assert.strictEqual(m.children.length, 1)
       c = await createSnippet('${1:foo} ${2:bar}')
       m = c.replaceWithMarker(Range.create(0, 3, 0, 3), new Text('before'))
-      expect(m.toString()).toBe('foobefore')
-      expect(m.children.length).toBe(1)
+      assert.strictEqual(m.toString(), 'foobefore')
+      assert.strictEqual(m.children.length, 1)
     })
 
     it('should insert inside text', async () => {
       let c = await createSnippet('foo ${1:bar}')
       let marker = (new SnippetParser()).parse('${1:a}', true)
       let res = c.replaceWithMarker(Range.create(0, 1, 0, 2), marker)
-      expect(res).toBe(c.tmSnippet)
-      expect(c.tmSnippet.toString()).toBe('fao bar')
+      assert.strictEqual(res, c.tmSnippet)
+      assert.strictEqual(c.tmSnippet.toString(), 'fao bar')
     })
 
     it('should change final placeholder', async () => {
       let c = await createSnippet('${1:foo} ${0:bar}')
       let changed = c.replaceWithMarker(Range.create(0, 4, 0, 4), new Text(' '))
-      expect(changed.toString()).toBe('foo  bar')
+      assert.strictEqual(changed.toString(), 'foo  bar')
       c.synchronize()
       changed = c.replaceWithMarker(Range.create(0, 5, 0, 6), new Text(''))
-      expect(changed['index']).toBe(0)
-      expect(changed.toString()).toBe('ar')
+      assert.strictEqual(changed['index'], 0)
+      assert.strictEqual(changed.toString(), 'ar')
     })
 
     it('should replace with Text when placeholder is not primary', async () => {
       let c = await createSnippet('$1 ${1:foo}')
       let result = await c.replaceWithText(Range.create(0, 0, 0, 1), 'b', CancellationToken.None)
-      expect(result.marker instanceof Text).toBe(true)
-      expect(result.snippetText).toBe('boo foo')
+      assert.strictEqual(result.marker instanceof Text, true)
+      assert.strictEqual(result.snippetText, 'boo foo')
     })
   })
 
@@ -414,26 +414,26 @@ describe('CocSnippet', () => {
     it('should insert nested placeholder', async () => {
       let c = await createSnippet('${1:foo}\n$1', {})
       c.deactivateSnippet(undefined)
-      // expect(c.getUltiSnipActionCodes(undefined, 'postJump')).toBeUndefined()
+      // assert.strictEqual(c.getUltiSnipActionCodes(undefined, 'postJump'), undefined)
       let res = await c.replaceWithSnippet(Range.create(0, 0, 0, 3), '${1:bar}')
-      expect(res.toString()).toBe('bar')
-      expect(res.parent.snippet.toString()).toBe('bar\nbar')
-      expect(c.text).toBe('bar\nbar')
+      assert.strictEqual(res.toString(), 'bar')
+      assert.strictEqual(res.parent.snippet.toString(), 'bar\nbar')
+      assert.strictEqual(c.text, 'bar\nbar')
     })
 
     it('should insert python snippet to normal snippet', async () => {
       let c = await createSnippet('${1:foo}\n$1', {})
       let p = c.getPlaceholderByIndex(1)
-      expect(c.hasPython).toBe(false)
+      assert.strictEqual(c.hasPython, false)
       let res = await c.replaceWithSnippet(p.range, '${1:x} `!p snip.rv = t[1]`', p.marker, { line: '', range: p.range, id: `1-1` })
-      expect(res.toString()).toBe('x x')
-      expect(c.text).toBe('x x\nx x')
+      assert.strictEqual(res.toString(), 'x x')
+      assert.strictEqual(c.text, 'x x\nx x')
       let r = c.getPlaceholderByMarker(res.first)
       let source = new CancellationTokenSource()
       let result = await c.replaceWithText(r.range, 'bar', source.token)
-      expect(result.snippetText).toBe('bar x\nx x')
-      expect(c.text).toBe('bar bar\nbar bar')
-      expect(c.hasPython).toBe(true)
+      assert.strictEqual(result.snippetText, 'bar x\nx x')
+      assert.strictEqual(c.text, 'bar bar\nbar bar')
+      assert.strictEqual(c.hasPython, true)
     })
 
     it('should not change match for original placeholders', async () => {
@@ -441,8 +441,8 @@ describe('CocSnippet', () => {
         regex: '^(\\w+)'
       }, Range.create(0, 0, 0, 3), 'foo')
       let p = c.getPlaceholderByIndex(1)
-      expect(c.hasPython).toBe(true)
-      expect(c.text).toBe('foo ')
+      assert.strictEqual(c.hasPython, true)
+      assert.strictEqual(c.text, 'foo ')
       let context = {
         id: `1-1`,
         regex: '^(\\w+)',
@@ -451,7 +451,7 @@ describe('CocSnippet', () => {
       }
       await executePythonCode(nvim, getInitialPythonCode(context))
       await c.replaceWithSnippet(p.range, '`!p snip.rv = match.group(1)`', p.marker, context)
-      expect(c.text).toBe('foo bar')
+      assert.strictEqual(c.text, 'foo bar')
     })
 
     it('should update with independent python global', async () => {
@@ -459,11 +459,11 @@ describe('CocSnippet', () => {
       let range = Range.create(0, 0, 0, 3)
       let line = await nvim.line
       await c.replaceWithSnippet(range, '${1:bar} `!p snip.rv = t[1]`', undefined, { range, line, id: `1-1` })
-      expect(c.text).toBe('bar bar bar bar')
+      assert.strictEqual(c.text, 'bar bar bar bar')
       let token = (new CancellationTokenSource()).token
       let res = await c.replaceWithText(Range.create(0, 0, 0, 3), 'xy', token)
-      expect(c.text).toBe('xy xy xy xy')
-      expect(res.delta).toBeUndefined()
+      assert.strictEqual(c.text, 'xy xy xy xy')
+      assert.strictEqual(res.delta, undefined)
     })
 
     it('should not throw when parent not exist', async () => {
@@ -474,18 +474,18 @@ describe('CocSnippet', () => {
     it('should not synchronize with none primary placeholder change', async () => {
       let c = await createSnippet('${1:foo}\n$1', {})
       let res = await c.replaceWithSnippet(Range.create(1, 0, 1, 3), '${1:bar}')
-      expect(res.toString()).toBe('bar')
-      expect(c.tmSnippet.toString()).toBe('foo\nbar')
+      assert.strictEqual(res.toString(), 'bar')
+      assert.strictEqual(c.tmSnippet.toString(), 'foo\nbar')
     })
   })
 
   describe('getMarkerPosition', () => {
     it('should get position of marker', async () => {
       let c = await createSnippet('${1:foo}')
-      expect(c.getMarkerPosition(new Placeholder(1))).toBeUndefined()
+      assert.strictEqual(c.getMarkerPosition(new Placeholder(1)), undefined)
       let cloned = c.tmSnippet.clone()
-      expect(c.getMarkerPosition(cloned)).toBeUndefined()
-      expect(c.getMarkerPosition(c.tmSnippet)).toBeDefined()
+      assert.strictEqual(c.getMarkerPosition(cloned), undefined)
+      assert.notStrictEqual(c.getMarkerPosition(c.tmSnippet), undefined)
     })
   })
 
@@ -525,7 +525,7 @@ describe('CocSnippet', () => {
         context: 'True'
       }, Range.create(0, 0, 0, 3), '20/')
       await assertPyxValue('match.group(1)', '20')
-      expect(c.text).toBe('\\frac{20}{}')
+      assert.strictEqual(c.text, '\\frac{20}{}')
     })
 
     it('should work with methods of snip', async () => {
@@ -590,10 +590,10 @@ describe('CocSnippet', () => {
     async function assertUpdate(text: string, value: string, result: string, index = 1, ultisnip: UltiSnippetOption | null = {}): Promise<CocSnippet> {
       let c = await createSnippet(text, ultisnip)
       let p = c.getPlaceholderByIndex(index)
-      expect(p != null).toBe(true)
+      assert.strictEqual(p != null, true)
       p.marker.setOnlyChild(new Text(value))
       await c.tmSnippet.update(nvim, p.marker, CancellationToken.None)
-      expect(c.tmSnippet.toString()).toBe(result)
+      assert.strictEqual(c.tmSnippet.toString(), result)
       return c
     }
 
@@ -605,10 +605,10 @@ describe('CocSnippet', () => {
     it('should not update when cancelled', async () => {
       let c = await createSnippet('${1:foo} `!p snip.rv = t[1]`', {})
       let p = c.getPlaceholderByIndex(1)
-      expect(p != null).toBe(true)
+      assert.strictEqual(p != null, true)
       p.marker.setOnlyChild(new Text('bar'))
       await c.tmSnippet.update(nvim, p.marker, CancellationToken.Cancelled)
-      expect(c.tmSnippet.toString()).toBe('bar foo')
+      assert.strictEqual(c.tmSnippet.toString(), 'bar foo')
     })
 
     it('should work with snip.c', async () => {
@@ -627,12 +627,12 @@ describe('CocSnippet', () => {
       let c = await createSnippet(code, {})
       let first = c.text.split('\n')[0]
       let p = c.getPlaceholderByIndex(2)
-      expect(p).toBeDefined()
+      assert.notStrictEqual(p, undefined)
       p.marker.setOnlyChild(new Text('foo'))
       await c.tmSnippet.update(nvim, p.marker, CancellationToken.None)
       let t = c.tmSnippet.toString()
-      expect(t.startsWith(first)).toBe(true)
-      expect(t.split('\n').map(s => s.endsWith('foo'))).toEqual([true, true, true])
+      assert.strictEqual(t.startsWith(first), true)
+      assert.deepStrictEqual(t.split('\n').map(s => s.endsWith('foo')), [true, true, true])
     })
 
     it('should update placeholder with code blocks', async () => {
@@ -663,8 +663,8 @@ describe('CocSnippet', () => {
       let p = s.getPlaceholderByIndex(2).marker
       let marker = getNextPlaceholder(p, false)
       let prev = s.getPlaceholderByMarker(marker)
-      expect(prev).toBeDefined()
-      expect(prev.value).toBe('foo')
+      assert.notStrictEqual(prev, undefined)
+      assert.strictEqual(prev.value, 'foo')
       // python placeholder, reset to empty value
       await assertUpdate('${2:bar${1:foo}} $2 `!p snip.rv = t[1]`', 'bar', 'bar bar ', 2)
       // not reset since $1 still exists
@@ -681,42 +681,42 @@ describe('CocSnippet', () => {
         p.primary = false
       })
       let snip = c.snippets[1]
-      expect(c.snippets[1]).toBe(nested)
+      assert.strictEqual(c.snippets[1], nested)
       let marker = snip.first
       let next = getNextPlaceholder(marker, true)
-      expect(next.index).toBe(2)
-      expect(next.toString()).toBe('bar')
+      assert.strictEqual(next.index, 2)
+      assert.strictEqual(next.toString(), 'bar')
       {
         let m = nested.placeholders.find(o => o.index === 0)
         let next = getNextPlaceholder(m, false)
-        expect(next.toString()).toBe('foo bar')
+        assert.strictEqual(next.toString(), 'foo bar')
       }
     })
 
     it('should not throw when next not exists', async () => {
-      expect(getNextPlaceholder(new Placeholder(1), true)).toBeUndefined()
-      expect(getNextPlaceholder(undefined, true)).toBeUndefined()
+      assert.strictEqual(getNextPlaceholder(new Placeholder(1), true), undefined)
+      assert.strictEqual(getNextPlaceholder(undefined, true), undefined)
     })
     it('should not throw when next not exists', async () => {
-      expect(getNextPlaceholder(new Placeholder(1), true)).toBeUndefined()
-      expect(getNextPlaceholder(undefined, true)).toBeUndefined()
+      assert.strictEqual(getNextPlaceholder(new Placeholder(1), true), undefined)
+      assert.strictEqual(getNextPlaceholder(undefined, true), undefined)
     })
 
     it('should prefer primary placeholder', async () => {
       let c = await createSnippet('$1 $2 ${1:foo}')
       let p = c.getPlaceholderByIndex(2)
       let next = getNextPlaceholder(p.marker, false)
-      expect(next.index).toBe(1)
-      expect(next.primary).toBe(true)
+      assert.strictEqual(next.index, 1)
+      assert.strictEqual(next.primary, true)
     })
   })
 
   describe('getUltiSnipActionCodes()', () => {
     it('should not get codes when action not exists', () => {
-      expect(getUltiSnipActionCodes(undefined, 'postJump')).toBeUndefined()
-      expect(getUltiSnipActionCodes(new Text(''), 'postJump')).toBeUndefined()
+      assert.strictEqual(getUltiSnipActionCodes(undefined, 'postJump'), undefined)
+      assert.strictEqual(getUltiSnipActionCodes(new Text(''), 'postJump'), undefined)
       let snip = (new SnippetParser()).parse('${1:a}', true)
-      expect(getUltiSnipActionCodes(snip, 'postJump')).toBeUndefined()
+      assert.strictEqual(getUltiSnipActionCodes(snip, 'postJump'), undefined)
     })
 
     it('should get codes when exists action', async () => {
@@ -728,7 +728,7 @@ describe('CocSnippet', () => {
         actions: { postJump: 'jump' }
       }
       let res = getUltiSnipActionCodes(snip, 'postJump')
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
   })
 
@@ -737,28 +737,28 @@ describe('CocSnippet', () => {
       let c = await createSnippet('${2:${1:x} $1}\n$2', {})
       let p = c.getPlaceholderByIndex(1)
       let arr = c.getRanges(p.marker)
-      expect(arr.length).toBe(2)
-      expect(arr[0]).toEqual(Range.create(0, 0, 0, 1))
-      expect(arr[1]).toEqual(Range.create(0, 2, 0, 3))
-      expect(c.text).toBe('x x\nx x')
+      assert.strictEqual(arr.length, 2)
+      assert.deepStrictEqual(arr[0], Range.create(0, 0, 0, 1))
+      assert.deepStrictEqual(arr[1], Range.create(0, 2, 0, 3))
+      assert.strictEqual(c.text, 'x x\nx x')
     })
 
     it('should get range of marker snippet', async () => {
       let c = await createSnippet('${1:foo}', {})
       let p = new Placeholder(1)
-      expect(c.getSnippetRange(p)).toBeUndefined()
+      assert.strictEqual(c.getSnippetRange(p), undefined)
       let snip = (new SnippetParser()).parse('${1:a}', true)
-      expect(c.getSnippetRange(snip.children[0])).toBeUndefined()
+      assert.strictEqual(c.getSnippetRange(snip.children[0]), undefined)
       let range = c.getSnippetRange(c.tmSnippet.children[0])
-      expect(range).toEqual(Range.create(0, 0, 0, 3))
+      assert.deepStrictEqual(range, Range.create(0, 0, 0, 3))
     })
 
     it('should get snippet tabstops', async () => {
       let c = await createSnippet('${1:foo}', {})
       let p = new Placeholder(1)
-      expect(c.getSnippetTabstops(p)).toEqual([])
+      assert.deepStrictEqual(c.getSnippetTabstops(p), [])
       let tabstops = c.getSnippetTabstops(c.tmSnippet.children[0])
-      expect(tabstops.length).toBe(2)
+      assert.strictEqual(tabstops.length, 2)
     })
   })
 
@@ -770,13 +770,13 @@ describe('CocSnippet', () => {
       } catch (e) {
         err = e
       }
-      expect(err).toBeDefined()
+      assert.notStrictEqual(err, undefined)
     }
 
     it('should getTextBefore', () => {
       function assertText(r: number[], text: string, pos: [number, number], res: string): void {
         let t = getTextBefore(Range.create(r[0], r[1], r[2], r[3]), text, Position.create(pos[0], pos[1]))
-        expect(t).toBe(res)
+        assert.strictEqual(t, res)
       }
       assertText([1, 1, 2, 1], 'abc\nd', [1, 1], '')
       assertText([1, 1, 2, 1], 'abc\nd', [2, 1], 'abc\nd')
@@ -786,7 +786,7 @@ describe('CocSnippet', () => {
     it('should getTextAfter', () => {
       function assertText(r: number[], text: string, pos: [number, number], res: string): void {
         let t = getTextAfter(Range.create(r[0], r[1], r[2], r[3]), text, Position.create(pos[0], pos[1]))
-        expect(t).toBe(res)
+        assert.strictEqual(t, res)
       }
       assertText([1, 1, 2, 1], 'abc\nd', [1, 1], 'abc\nd')
       assertText([1, 1, 2, 1], 'abc\nd', [2, 1], '')
@@ -795,29 +795,29 @@ describe('CocSnippet', () => {
     })
 
     it('should check shouldFormat', () => {
-      expect(shouldFormat(' f')).toBe(true)
-      expect(shouldFormat('a\nb')).toBe(true)
-      expect(shouldFormat('foo')).toBe(false)
+      assert.strictEqual(shouldFormat(' f'), true)
+      assert.strictEqual(shouldFormat('a\nb'), true)
+      assert.strictEqual(shouldFormat('foo'), false)
     })
 
     it('should normalizeSnippetString', () => {
-      expect(normalizeSnippetString('a\n\n\tb', '  ', {
+      assert.strictEqual(normalizeSnippetString('a\n\n\tb', '  ', {
         insertSpaces: true,
         trimTrailingWhitespace: true,
         tabSize: 2
-      })).toBe('a\n\n    b')
-      expect(normalizeSnippetString('a\n\n  b', '\t', {
+      }), 'a\n\n    b')
+      assert.strictEqual(normalizeSnippetString('a\n\n  b', '\t', {
         insertSpaces: false,
         trimTrailingWhitespace: true,
         tabSize: 2
-      })).toBe('a\n\n\t\tb')
+      }), 'a\n\n\t\tb')
       let res = normalizeSnippetString('a\n\n\tb', '\t', {
         insertSpaces: false,
         trimTrailingWhitespace: false,
         noExpand: true,
         tabSize: 2
       })
-      expect(res).toBe('a\n\t\n\t\tb')
+      assert.strictEqual(res, 'a\n\t\n\t\tb')
     })
 
     it('should throw for invalid regex', async () => {
@@ -843,43 +843,43 @@ describe('CocSnippet', () => {
 
     it('should convert regex', async () => {
       // \\A
-      expect(convertRegex('\\A')).toBe('^')
-      expect(convertRegex('f(?#abc)b')).toBe('fb')
-      expect(convertRegex('f(?P<abc>def)b')).toBe('f(?<abc>def)b')
-      expect(convertRegex('f(?P=abc)b')).toBe('f\\k<abc>b')
+      assert.strictEqual(convertRegex('\\A'), '^')
+      assert.strictEqual(convertRegex('f(?#abc)b'), 'fb')
+      assert.strictEqual(convertRegex('f(?P<abc>def)b'), 'f(?<abc>def)b')
+      assert.strictEqual(convertRegex('f(?P=abc)b'), 'f\\k<abc>b')
     })
 
     it('should catch error with executePythonCode', async () => {
       let fn = async () => {
         await executePythonCode(nvim, ['INVALID_CODE'])
       }
-      await expect(fn()).rejects.toThrow(Error)
+      await assert.rejects(fn(), Error)
     })
 
     it('should set error with addPythonTryCatch', async () => {
       let code = addPythonTryCatch('INVALID_CODE', true)
       await nvim.command(`pyx ${code}`)
       let msg = await nvim.getVar('errmsg')
-      expect(msg).toBeDefined()
-      expect(msg).toMatch('INVALID_CODE')
+      assert.notStrictEqual(msg, undefined)
+      assert.ok(typeof msg === 'string' && msg.includes('INVALID_CODE'))
     })
 
     it('should cancel code block eval when necessary', async (): Promise<void> => {
       {
         let block = new CodeBlock('echo "foo"', 'shell')
         await block.resolve(nvim, CancellationToken.Cancelled)
-        expect(block.len()).toBe(0)
+        assert.strictEqual(block.len(), 0)
       }
       {
         let block = new CodeBlock('bufnr("%")', 'vim')
         await block.resolve(nvim, CancellationToken.None)
         let bufnr = await nvim.eval('bufnr("%")')
-        expect(block.value).toBe(`${bufnr}`)
+        assert.strictEqual(block.value, `${bufnr}`)
       }
       {
         let block = new CodeBlock('v:null', 'vim')
         await block.resolve(nvim)
-        expect(block.value).toBe('')
+        assert.strictEqual(block.value, '')
       }
       {
         await executePythonCode(nvim, [`snip = SnippetUtil("", (0, 0), (0, 0), None)`])
@@ -894,24 +894,24 @@ describe('CocSnippet', () => {
     })
 
     it('should parse comments', async () => {
-      expect(parseCommentstring('a%sb')).toBeUndefined()
-      expect(parseCommentstring('// %s')).toBe('//')
-      expect(parseComments('')).toEqual({
+      assert.strictEqual(parseCommentstring('a%sb'), undefined)
+      assert.strictEqual(parseCommentstring('// %s'), '//')
+      assert.deepStrictEqual(parseComments(''), {
         start: undefined,
         end: undefined,
         single: undefined
       })
-      expect(parseComments('s:/*')).toEqual({
+      assert.deepStrictEqual(parseComments('s:/*'), {
         start: '/*',
         end: undefined,
         single: undefined
       })
-      expect(parseComments('e:*/')).toEqual({
+      assert.deepStrictEqual(parseComments('e:*/'), {
         end: '*/',
         start: undefined,
         single: undefined
       })
-      expect(parseComments(':#,:b')).toEqual({
+      assert.deepStrictEqual(parseComments(':#,:b'), {
         end: undefined,
         start: undefined,
         single: '#'
@@ -922,16 +922,16 @@ describe('CocSnippet', () => {
       events.requesting = true
       await executePythonCode(nvim, ['stat = __requesting'])
       let res = await nvim.call('pyxeval', ['stat'])
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       events.requesting = false
       await executePythonCode(nvim, ['stat = __requesting'])
       res = await nvim.call('pyxeval', ['stat'])
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should check hasPython', () => {
-      expect(hasPython(undefined)).toBe(false)
-      expect(hasPython({ context: 'context' })).toBe(true)
+      assert.strictEqual(hasPython(undefined), false)
+      assert.strictEqual(hasPython({ context: 'context' }), true)
     })
   })
 })

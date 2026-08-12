@@ -4,7 +4,6 @@ import os from 'os'
 import path from 'path'
 import { Position, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import languages from '../../languages'
 import { createDocumentTools } from '../../mcp/tools/document'
 import helper from '../helper'
@@ -42,23 +41,23 @@ describe('mcp document tools', () => {
   it('document/read returns unsaved buffer changes', async () => {
     await helper.nvim.call('setline', [2, 'changed-line'])
     let result = await tool('document/read').handler({ uri: file }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.fromBuffer).toBe(true)
-    expect(result.structuredContent.text).toContain('changed-line')
-    expect(fs.readFileSync(file, 'utf8')).not.toContain('changed-line')
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.fromBuffer, true)
+    assert.ok((result.structuredContent.text).includes('changed-line'))
+    assert.ok(!(fs.readFileSync(file, 'utf8')).includes('changed-line'))
   })
 
   it('document/read supports line windows and ranges', async () => {
     let result = await tool('document/read').handler({ uri: file, startLine: 1, endLine: 3 }, { token })
-    expect(result.structuredContent.text).toBe('changed-line\ngamma')
+    assert.strictEqual(result.structuredContent.text, 'changed-line\ngamma')
     let doc = workspace.getDocument(uri)!
     let full = result.structuredContent.lineCount
-    expect(full).toBe(doc.lineCount)
+    assert.strictEqual(full, doc.lineCount)
     let range = await tool('document/read').handler({
       uri: file,
       range: { start: { line: 0, character: 1 }, end: { line: 0, character: 4 } }
     }, { token })
-    expect(range.structuredContent.text).toBe('lph')
+    assert.strictEqual(range.structuredContent.text, 'lph')
   })
 
   it('document/read and read_lines report missing disk files', async () => {
@@ -69,25 +68,25 @@ describe('mcp document tools', () => {
       { uri: missing, range: { start: { line: 0, character: 0 }, end: { line: 1, character: 0 } } }
     ]) {
       let result = await tool('document/read').handler(args, { token })
-      expect(result.isError).toBe(true)
+      assert.strictEqual(result.isError, true)
     }
     let lines = await tool('document/read_lines').handler({ uri: missing }, { token })
-    expect(lines.isError).toBe(true)
+    assert.strictEqual(lines.isError, true)
   })
 
   it('document/read falls back to disk for unopened files', async () => {
     let other = path.join(tmpdir, 'unopened.txt')
     fs.writeFileSync(other, 'disk content\n')
     let result = await tool('document/read').handler({ uri: other }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.fromBuffer).toBe(false)
-    expect(result.structuredContent.text).toBe('disk content\n')
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.fromBuffer, false)
+    assert.strictEqual(result.structuredContent.text, 'disk content\n')
     let lines = await tool('document/read_lines').handler({ uri: other, startLine: 0, endLine: 1 }, { token })
-    expect(lines.structuredContent.lines).toEqual([{ line: 0, text: 'disk content' }])
+    assert.deepStrictEqual(lines.structuredContent.lines, [{ line: 0, text: 'disk content' }])
     let startOnly = await tool('document/read').handler({ uri: other, startLine: -1 }, { token })
-    expect(startOnly.structuredContent.text).toBe('disk content')
+    assert.strictEqual(startOnly.structuredContent.text, 'disk content')
     let endOnly = await tool('document/read').handler({ uri: other, endLine: 1 }, { token })
-    expect(endOnly.structuredContent.text).toBe('disk content')
+    assert.strictEqual(endOnly.structuredContent.text, 'disk content')
   })
 
   it('document/read reads a line window from a large unopened file', async () => {
@@ -96,9 +95,9 @@ describe('mcp document tools', () => {
     for (let i = 0; i < 400000; i++) content.push(`line-${i}`)
     fs.writeFileSync(big, content.join('\n') + '\n')
     let result = await tool('document/read').handler({ uri: big, startLine: 100, endLine: 103 }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.fromBuffer).toBe(false)
-    expect(result.structuredContent.text).toBe('line-100\nline-101\nline-102')
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.fromBuffer, false)
+    assert.strictEqual(result.structuredContent.text, 'line-100\nline-101\nline-102')
   })
 
   it('document/read reads an exact LSP range from a large unopened file', async () => {
@@ -107,15 +106,15 @@ describe('mcp document tools', () => {
       uri: big,
       range: { start: { line: 5, character: 3 }, end: { line: 7, character: 2 } }
     }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.text).toBe('e-5\nline-6\nli')
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.text, 'e-5\nline-6\nli')
   })
 
   it('document/read rejects full reads of files over the size cap', async () => {
     let big = path.join(tmpdir, 'big.txt')
     let result = await tool('document/read').handler({ uri: big }, { token })
-    expect(result.isError).toBe(true)
-    expect(result.content[0].text).toContain('exceeds')
+    assert.strictEqual(result.isError, true)
+    assert.ok((result.content[0].text).includes('exceeds'))
   })
 
   it('document/read rejects symlink paths that escape the workspace', async () => {
@@ -137,8 +136,8 @@ describe('mcp document tools', () => {
     })
     try {
       let result = await tool('document/read').handler({ uri: path.join(link, 'secret.txt') }, { token })
-      expect(result.isError).toBe(true)
-      expect(result.content[0].text).toContain('not allowed')
+      assert.strictEqual(result.isError, true)
+      assert.ok((result.content[0].text).includes('not allowed'))
     } finally {
       workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [], 'mcp.deniedPaths': [] })
       fs.rmSync(outsideDir, { recursive: true, force: true })
@@ -148,8 +147,8 @@ describe('mcp document tools', () => {
   it('document/read_lines reads a window from a large unopened file', async () => {
     let big = path.join(tmpdir, 'big.txt')
     let result = await tool('document/read_lines').handler({ uri: big, startLine: 0, endLine: 2 }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.lines).toEqual([
+    assert.ok(!(result.isError))
+    assert.deepStrictEqual(result.structuredContent.lines, [
       { line: 0, text: 'line-0' },
       { line: 1, text: 'line-1' }
     ])
@@ -157,23 +156,23 @@ describe('mcp document tools', () => {
 
   it('document/read_lines returns numbered lines', async () => {
     let result = await tool('document/read_lines').handler({ uri: file, startLine: 0, endLine: 2 }, { token })
-    expect(result.structuredContent.lines).toEqual([
+    assert.deepStrictEqual(result.structuredContent.lines, [
       { line: 0, text: 'alpha' },
       { line: 1, text: 'changed-line' }
     ])
   })
 
   it('document/read_lines rejects paths outside the workspace', async () => {
-    expect((await tool('document/read_lines').handler({ uri: '/etc/passwd' }, { token })).isError).toBe(true)
+    assert.strictEqual((await tool('document/read_lines').handler({ uri: '/etc/passwd' }, { token })).isError, true)
   })
 
   it('document/read_lines caps the window with maxLines', async () => {
     let result = await tool('document/read_lines').handler({ uri: file, startLine: 0, endLine: 10, maxLines: 2 }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.lines.length).toBe(2)
-    expect(result.structuredContent.endLine).toBe(2)
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.lines.length, 2)
+    assert.strictEqual(result.structuredContent.endLine, 2)
     let defaulted = await tool('document/read_lines').handler({ uri: file, maxLines: 0 }, { token })
-    expect(defaulted.structuredContent.lines).toHaveLength(1)
+    assert.strictEqual((defaulted.structuredContent.lines).length, 1)
   })
 
   it('document/apply_edits updates the buffer and fires didChange', async () => {
@@ -190,13 +189,13 @@ describe('mcp document tools', () => {
       target: 'buffer',
       edits: [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 5 } }, newText: 'zeta' }]
     }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.applied).toBe(true)
-    expect(result.structuredContent.version).toBeGreaterThan(version)
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.applied, true)
+    assert.ok((result.structuredContent.version) > (version))
     let lines = await helper.nvim.call('getline', [1, '$']) as string[]
-    expect(lines.join('\n')).toContain('zeta')
-    expect(fs.readFileSync(file, 'utf8')).toContain('alpha')
-    expect(changed.length).toBeGreaterThan(0)
+    assert.ok((lines.join('\n')).includes('zeta'))
+    assert.ok((fs.readFileSync(file, 'utf8')).includes('alpha'))
+    assert.ok((changed.length) > (0))
   })
 
   it('document/apply_edits rejects stale versions with a conflict result', async () => {
@@ -207,8 +206,8 @@ describe('mcp document tools', () => {
       target: 'buffer',
       edits: [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, newText: 'x' }]
     }, { token })
-    expect(result.isError).toBe(true)
-    expect(result.content[0].text).toContain('version conflict')
+    assert.strictEqual(result.isError, true)
+    assert.ok((result.content[0].text).includes('version conflict'))
   })
 
   it('document/apply_edits rejects malformed edits', async () => {
@@ -216,21 +215,21 @@ describe('mcp document tools', () => {
       uri: file,
       edits: 'not-an-array'
     }, { token })
-    expect(result.isError).toBe(true)
+    assert.strictEqual(result.isError, true)
   })
 
-  it('document/apply_edits reports editor failures', async () => {
+  it('document/apply_edits reports editor failures', async (t) => {
     let doc = workspace.getDocument(uri)!
-    let spy = vi.spyOn(doc, 'applyEdits').mockRejectedValueOnce(new Error('apply failed'))
+    let spy = t.mock.method(doc, 'applyEdits', () => Promise.reject(new Error('apply failed')), { times: 1 })
     try {
       let result = await tool('document/apply_edits').handler({
         uri: file,
         target: 'buffer',
         edits: [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, newText: 'x' }]
       }, { token })
-      expect(result.content[0].text).toContain('apply failed')
+      assert.ok((result.content[0].text).includes('apply failed'))
     } finally {
-      spy.mockRestore()
+      spy.mock.restore()
     }
   })
 
@@ -242,8 +241,8 @@ describe('mcp document tools', () => {
       target: 'both',
       edits: [{ range: { start: { line: 2, character: 0 }, end: { line: 2, character: 5 } }, newText: 'delta' }]
     }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(fs.readFileSync(file, 'utf8')).toContain('delta')
+    assert.ok(!(result.isError))
+    assert.ok((fs.readFileSync(file, 'utf8')).includes('delta'))
   })
 
   it('edits can be reverted with undo', async () => {
@@ -254,45 +253,45 @@ describe('mcp document tools', () => {
       joinUndo: false,
       edits: [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 4 } }, newText: '----' }]
     }, { token })
-    expect(result.isError).toBeFalsy()
+    assert.ok(!(result.isError))
     let after = ((await helper.nvim.call('getline', [1, '$'])) as string[]).join('\n')
-    expect(after).not.toBe(before)
+    assert.notStrictEqual(after, before)
     await helper.nvim.command('undo')
     let reverted = ((await helper.nvim.call('getline', [1, '$'])) as string[]).join('\n')
-    expect(reverted).toBe(before)
+    assert.strictEqual(reverted, before)
   })
 
   it('document/write saves the buffer to disk', async () => {
     await helper.nvim.call('setline', [1, 'saved-line'])
     let result = await tool('document/write').handler({ uri: file }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(fs.readFileSync(file, 'utf8')).toContain('saved-line')
+    assert.ok(!(result.isError))
+    assert.ok((fs.readFileSync(file, 'utf8')).includes('saved-line'))
   })
 
   it('document/write saves an unopened file after loading it', async () => {
     let other = path.join(tmpdir, 'write-unopened.txt')
     fs.writeFileSync(other, 'before\n')
     let result = await tool('document/write').handler({ uri: other }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.saved).toBe(true)
-    expect(fs.readFileSync(other, 'utf8')).toBe('before\n')
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.saved, true)
+    assert.strictEqual(fs.readFileSync(other, 'utf8'), 'before\n')
   })
 
-  it('document/write reports save failures', async () => {
-    let spy = vi.spyOn(workspace.nvim, 'call').mockRejectedValueOnce(new Error('save failed'))
+  it('document/write reports save failures', async (t) => {
+    let spy = t.mock.method(workspace.nvim, 'call', () => Promise.reject(new Error('save failed')), { times: 1 })
     try {
       let result = await tool('document/write').handler({ uri: file }, { token })
-      expect(result.isError).toBe(true)
-      expect(result.content[0].text).toContain('save failed')
+      assert.strictEqual(result.isError, true)
+      assert.ok((result.content[0].text).includes('save failed'))
     } finally {
-      spy.mockRestore()
+      spy.mock.restore()
     }
   })
 
   it('document/format without a provider returns formatted false', async () => {
     let result = await tool('document/format').handler({ uri: file }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.formatted).toBe(false)
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.formatted, false)
   })
 
   it('document/format applies provider edits', async () => {
@@ -303,11 +302,11 @@ describe('mcp document tools', () => {
     })
     disposables.push(disposable)
     let result = await tool('document/format').handler({ uri: file }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.formatted).toBe(true)
-    expect(result.structuredContent.editCount).toBe(1)
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.formatted, true)
+    assert.strictEqual(result.structuredContent.editCount, 1)
     let lines = await helper.nvim.call('getline', [1, '$']) as string[]
-    expect(lines[0]).toContain('formatted')
+    assert.ok((lines[0]).includes('formatted'))
   })
 
   it('document/format applies range provider edits', async () => {
@@ -321,17 +320,17 @@ describe('mcp document tools', () => {
       uri: file,
       range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }
     }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.formatted).toBe(true)
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.formatted, true)
     let lines = await helper.nvim.call('getline', [1, '$']) as string[]
-    expect(lines[0]).toContain('R')
+    assert.ok((lines[0]).includes('R'))
   })
 
   it('document/open loads a file into a buffer', async () => {
     let other = path.join(tmpdir, 'other.txt')
     fs.writeFileSync(other, 'other content\n')
     let result = await tool('document/open').handler({ uri: other }, { token })
-    expect(result.isError).toBeFalsy()
+    assert.ok(!(result.isError))
     await helper.waitValue(() => helper.nvim.call('bufloaded', [other]), 1)
   })
 
@@ -343,15 +342,15 @@ describe('mcp document tools', () => {
     let result = await tool('document/open').handler({
       files: [{ uri: f1, line: 2 }, { uri: f2, line: 3 }]
     }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.count).toBe(2)
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.count, 2)
     await helper.waitValue(() => helper.nvim.call('bufloaded', [f1]), 1)
     await helper.waitValue(() => helper.nvim.call('bufloaded', [f2]), 1)
     // the last opened file is current, cursor at the requested 1-based line
     let lnum = await helper.nvim.eval('line(".")') as number
-    expect(lnum).toBe(3)
+    assert.strictEqual(lnum, 3)
     let lineText = await helper.nvim.call('getline', ['.']) as string
-    expect(lineText).toBe('b3')
+    assert.strictEqual(lineText, 'b3')
   })
 
   it('document/open accepts files as plain strings', async () => {
@@ -362,36 +361,36 @@ describe('mcp document tools', () => {
     let result = await tool('document/open').handler({
       files: [f1, f2]
     }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.count).toBe(2)
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.count, 2)
     await helper.waitValue(() => helper.nvim.call('bufloaded', [f1]), 1)
     await helper.waitValue(() => helper.nvim.call('bufloaded', [f2]), 1)
   })
 
   it('document/open validates targets and supports line and column fragments', async () => {
-    expect((await tool('document/open').handler({}, { token })).isError).toBe(true)
-    expect((await tool('document/open').handler({ files: [] }, { token })).content[0].text).toContain('no files')
-    expect((await tool('document/open').handler({ files: [null] }, { token })).isError).toBe(true)
+    assert.strictEqual((await tool('document/open').handler({}, { token })).isError, true)
+    assert.ok(((await tool('document/open').handler({ files: [] }, { token })).content[0].text).includes('no files'))
+    assert.strictEqual((await tool('document/open').handler({ files: [null] }, { token })).isError, true)
     let target = path.join(tmpdir, 'open-position.txt')
     fs.writeFileSync(target, 'one\ntwo\n')
     let result = await tool('document/open').handler({ uri: target, line: 2.8, col: 2.9 }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(await helper.nvim.eval('[line("."), col(".")]')).toEqual([2, 2])
+    assert.ok(!(result.isError))
+    assert.deepStrictEqual(await helper.nvim.eval('[line("."), col(".")]'), [2, 2])
   })
 
-  it('document/open reports openResource failures', async () => {
-    let spy = vi.spyOn(workspace, 'openResource').mockRejectedValueOnce(new Error('open failed'))
+  it('document/open reports openResource failures', async (t) => {
+    let spy = t.mock.method(workspace, 'openResource', () => Promise.reject(new Error('open failed')), { times: 1 })
     try {
       let result = await tool('document/open').handler({ uri: file }, { token })
-      expect(result.content[0].text).toContain('open failed')
+      assert.ok((result.content[0].text).includes('open failed'))
     } finally {
-      spy.mockRestore()
+      spy.mock.restore()
     }
   })
 
   it('rejects paths outside the workspace', async () => {
     let result = await tool('document/read').handler({ uri: '/etc/passwd' }, { token })
-    expect(result.isError).toBe(true)
+    assert.strictEqual(result.isError, true)
   })
 
   it('document/apply_edits and document/open reject out-of-workspace paths', async () => {
@@ -399,8 +398,8 @@ describe('mcp document tools', () => {
       uri: '/etc/passwd',
       edits: [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, newText: 'x' }]
     }, { token })
-    expect(apply.isError).toBe(true)
+    assert.strictEqual(apply.isError, true)
     let open = await tool('document/open').handler({ uri: '/etc/passwd' }, { token })
-    expect(open.isError).toBe(true)
+    assert.strictEqual(open.isError, true)
   })
 })

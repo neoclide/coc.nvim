@@ -57,9 +57,9 @@ afterAll(async () => {
 describe('list', () => {
   describe('createConfigurationNode', () => {
     it('should createConfigurationNode', async () => {
-      expect(createConfigurationNode('foo', true)).toBeDefined()
-      expect(createConfigurationNode('bar', false)).toBeDefined()
-      expect(createConfigurationNode('foo', false, 'id')).toBeDefined()
+      assert.notStrictEqual(createConfigurationNode('foo', true), undefined)
+      assert.notStrictEqual(createConfigurationNode('bar', false), undefined)
+      assert.notStrictEqual(createConfigurationNode('foo', false, 'id'), undefined)
     })
   })
 
@@ -103,11 +103,11 @@ describe('list', () => {
       disposable.dispose()
       let wins = await nvim.windows
       let ids = wins.map(o => o.id)
-      expect(ids).toContain(id)
+      assert.ok((ids).includes(id))
     })
 
     it('should do default action for first item', async () => {
-      expect(ListManager).toBeDefined()
+      assert.notStrictEqual(ListManager, undefined)
       await manager.start(['--normal', '--first', 'location'])
       let filename = path.basename(__filename)
       await helper.waitValue(async () => {
@@ -115,8 +115,8 @@ describe('list', () => {
         return name.includes(filename)
       }, true)
       let pos = await nvim.eval('getcurpos()')
-      expect(pos[1]).toBe(1)
-      expect(pos[2]).toBe(2)
+      assert.strictEqual(pos[1], 1)
+      assert.strictEqual(pos[2], 2)
     })
 
     it('should goto next & previous', async () => {
@@ -127,23 +127,24 @@ describe('list', () => {
       await manager.doAction()
       await helper.doAction('listCancel')
       let bufname = await nvim.eval('expand("%:p")')
-      expect(bufname).toMatch('manager.test.ts')
+      assert.ok(typeof bufname === 'string' && bufname.includes('manager.test.ts'))
       await helper.doAction('listNext')
       let line = await nvim.call('line', '.')
-      expect(line).toBe(2)
+      assert.strictEqual(line, 2)
       await helper.doAction('listPrev')
       line = await nvim.call('line', '.')
-      expect(line).toBe(1)
+      assert.strictEqual(line, 1)
     })
 
     it('should parse arguments', async () => {
       await manager.start(['--input=test', '--reverse', '--normal', '--no-sort', '--ignore-case', '--top', '--number-select', '--auto-preview', '--strict', 'location'])
       await manager.session?.ui.ready
       let opts = manager.session?.listOptions
-      expect(opts).toEqual({
+      assert.deepStrictEqual(opts, {
         reverse: true,
         numberSelect: true,
         autoPreview: true,
+        height: undefined,
         first: false,
         input: 'test',
         interactive: false,
@@ -187,7 +188,7 @@ describe('list', () => {
       await nvim.command('wincmd l')
       let curr = await nvim.window
       let isPreview = await curr.getVar('previewwindow')
-      expect(isPreview).toBe(1)
+      assert.strictEqual(isPreview, 1)
     })
 
     it('should use smartcase for strict match', async () => {
@@ -195,7 +196,7 @@ describe('list', () => {
       await manager.start(['--input=Man', '--strict', 'location'])
       await manager.session?.ui.ready
       let items = await manager.session?.ui.getItems()
-      expect(items.length).toBe(0)
+      assert.strictEqual(items.length, 0)
     })
 
     it('should use smartcase for fuzzy match', async () => {
@@ -203,7 +204,7 @@ describe('list', () => {
       await manager.start(['--input=Man', 'location'])
       await manager.session?.ui.ready
       let items = await manager.session?.ui.getItems()
-      expect(items.length).toBe(0)
+      assert.strictEqual(items.length, 0)
     })
 
     it('should toggle selection mode', async () => {
@@ -213,7 +214,7 @@ describe('list', () => {
       await window.selectRange(Range.create(0, 0, 3, 0))
       await manager.session?.ui.toggleSelection()
       let items = await manager.session?.ui.getItems()
-      expect(items.length).toBeGreaterThan(0)
+      assert.ok((items.length) > (0))
     })
 
     it('should change next and previous keymap', async () => {
@@ -281,7 +282,7 @@ describe('list', () => {
       await manager.session.ui.ready
       await manager.session?.showHelp()
       let bufname = await nvim.call('bufname', '%')
-      expect(bufname).toBe('[LIST HELP]')
+      assert.strictEqual(bufname, '[LIST HELP]')
     })
 
     it('should resolve list item', async () => {
@@ -312,8 +313,8 @@ describe('list', () => {
   describe('descriptions', () => {
     it('should get descriptions', async () => {
       let res = await helper.doAction('listDescriptions')
-      expect(res).toBeDefined()
-      expect(res.location).toBeDefined()
+      assert.notStrictEqual(res, undefined)
+      assert.notStrictEqual(res.location, undefined)
     })
   })
 
@@ -324,7 +325,7 @@ describe('list', () => {
       manager.session.onInputChange()
       await manager.session.ui.ready
       const assertMatcher = (value: string) => {
-        expect(manager.session.listOptions.matcher).toBe(value)
+        assert.strictEqual(manager.session.listOptions.matcher, value)
       }
       await manager.switchMatcher()
       assertMatcher('strict')
@@ -353,17 +354,17 @@ describe('list', () => {
       await manager.start(['cancel'])
       disposable.dispose()
       let line = await helper.getCmdline()
-      expect(line).toBe('')
+      assert.strictEqual(line, '')
     })
 
     it('should load items for list', async () => {
       let res = await manager.loadItems('location')
-      expect(res.length).toBeGreaterThan(0)
+      assert.ok((res.length) > (0))
       Object.assign(manager, { lastSession: undefined })
       manager.toggleMode()
       manager.stop()
       res = await helper.doAction('listLoadItems', '')
-      expect(res).toBeUndefined()
+      assert.strictEqual(res, undefined)
       let error = true
       manager.registerList({
         name: 'emitter',
@@ -396,10 +397,10 @@ describe('list', () => {
           return emitter
         }
       })
-      await expect(manager.loadItems('emitter')).rejects.toThrow(Error)
+      await assert.rejects(manager.loadItems('emitter'), Error)
       error = false
       res = await manager.loadItems('emitter')
-      expect(res.length).toBe(1)
+      assert.strictEqual(res.length, 1)
       await helper.wait(50)
     })
   })
@@ -425,7 +426,7 @@ describe('list', () => {
       await manager.onInsertInput('<X-y>')
       await manager.onInsertInput(String.fromCharCode(65533))
       await manager.onInsertInput(String.fromCharCode(30))
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
     })
 
     it('should ignore <plug> insert', async () => {
@@ -433,10 +434,10 @@ describe('list', () => {
       await manager.session.ui.ready
       await helper.listInput('<plug>')
       await helper.listInput('x')
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
     })
 
-    it('reports interactive reload errors and keeps the worker usable', async () => {
+    it('reports interactive reload errors and keeps the worker usable', async (t) => {
       let calls = 0
       let list: IList = {
         name: 'interactiveError',
@@ -455,30 +456,30 @@ describe('list', () => {
         unhandled.push(e)
       }
       process.on('unhandledRejection', onUnhandled)
-      let showError = vi.spyOn(window, 'showErrorMessage').mockImplementation(() => Promise.resolve(undefined as any))
+      let showError = t.mock.method(window, 'showErrorMessage', () => Promise.resolve(undefined as any))
       try {
         await manager.start(['--interactive', 'interactiveError'])
         await manager.session.ui.ready
-        expect(manager.session.worker.isLoading).toBe(false)
+        assert.strictEqual(manager.session.worker.isLoading, false)
         manager.prompt.input = 'x'
         manager.session.onInputChange()
         await helper.waitValue(() => calls, 2)
         await helper.waitValue(() => manager.session.worker.isLoading, false)
-        expect(showError).toHaveBeenCalled()
-        expect(String(showError.mock.calls[0][0])).toContain('reload boom')
+        assert.ok((showError).mock.callCount() > 0)
+        assert.ok((String(showError.mock.calls[0].arguments[0])).includes('reload boom'))
         // a later input change still triggers a fresh reload
         manager.prompt.input = 'y'
         manager.session.onInputChange()
         await helper.waitValue(() => calls, 3)
         await helper.waitValue(() => manager.session.worker.isLoading, false)
-        expect(manager.session.worker.isLoading).toBe(false)
+        assert.strictEqual(manager.session.worker.isLoading, false)
       } finally {
         process.off('unhandledRejection', onUnhandled)
-        showError.mockRestore()
+        showError.mock.restore()
         disposable.dispose()
         await manager.cancel(true)
       }
-      expect(unhandled).toEqual([])
+      assert.deepStrictEqual(unhandled, [])
     })
   })
 
@@ -492,9 +493,9 @@ describe('list', () => {
 
     it('should parse valid arguments', async () => {
       let res = manager.parseArgs([])
-      expect(res.list.name).toBe('lists')
+      assert.strictEqual(res.list.name, 'lists')
       res = manager.parseArgs(['lists', '-foo'])
-      expect(res.listArgs).toEqual(['-foo'])
+      assert.deepStrictEqual(res.listArgs, ['-foo'])
     })
 
     it('should show error for interactive with list not support interactive', async () => {
@@ -511,7 +512,7 @@ describe('list', () => {
       await manager.session.hide()
       await manager.resume('location')
       await helper.doAction('listResume')
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
       await manager.resume('not_exists')
       await waitCmdline('Can\'t find')
     })
@@ -555,15 +556,15 @@ describe('list', () => {
       await helper.doAction('listFirst', 'a')
       await helper.doAction('listLast', 'a')
       await manager.first('test')
-      expect(last).toBe('foo')
+      assert.strictEqual(last, 'foo')
       await manager.last('test')
-      expect(last).toBe('bar')
+      assert.strictEqual(last, 'bar')
     })
   })
 
   describe('registerList()', () => {
-    it('should recreate list', async () => {
-      let fn = vi.fn()
+    it('should recreate list', async (t) => {
+      let fn = t.mock.fn()
       let list: IList = {
         name: 'test',
         actions: [{
@@ -581,7 +582,7 @@ describe('list', () => {
       helper.updateConfiguration('list.source.test.defaultAction', 'open')
       let disposable = manager.registerList(list, true)
       disposable.dispose()
-      expect(fn).toHaveBeenCalled()
+      assert.ok((fn).mock.callCount() > 0)
     })
   })
 
@@ -611,41 +612,41 @@ describe('list', () => {
       await manager.session.ui.ready
       await helper.waitFor('winnr', ['$'], 3)
       let previewWinnr = await nvim.call('coc#list#has_preview')
-      expect(previewWinnr).toBe(2)
+      assert.strictEqual(previewWinnr, 2)
       let bufnr = await nvim.call('winbufnr', previewWinnr) as number
       let buf = nvim.createBuffer(bufnr)
       let name = await buf.name
-      expect(name).toMatch('manager.test.ts')
+      assert.ok((name).includes('manager.test.ts'))
       await nvim.eval('feedkeys("j", "in")')
       await helper.wait(30)
       let winnr = await nvim.call('coc#list#has_preview')
-      expect(winnr).toBe(previewWinnr)
+      assert.strictEqual(winnr, previewWinnr)
     })
 
     it('should respect input option', async () => {
       await manager.start(['--input=foo', 'location'])
       await manager.session.ui.ready
       await waitCmdline('foo')
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
     })
 
     it('should respect regex filter', async () => {
       await manager.start(['--input=f.o', '--regex', 'location'])
       await manager.session.ui.ready
       let item = await manager.session?.ui.item
-      expect(item.label).toMatch('foo')
+      assert.ok((item.label).includes('foo'))
       await manager.session.hide()
       await manager.start(['--input=f.o', '--ignore-case', '--regex', 'location'])
       await manager.session.ui.ready
       item = await manager.session?.ui.item
-      expect(item.label).toMatch('foo')
+      assert.ok((item.label).includes('foo'))
     })
 
     it('should respect normal option', async () => {
       await manager.start(['--normal', 'location'])
       await manager.session.ui.ready
       let line = await helper.getCmdline()
-      expect(line).toBe('')
+      assert.strictEqual(line, '')
     })
 
     it('should respect nosort option', async () => {
@@ -661,23 +662,23 @@ describe('list', () => {
     it('should respect ignorecase option', async () => {
       await manager.start(['--ignore-case', '--strict', 'location'])
       await manager.session.ui.ready
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
       await nvim.input('bar')
       await helper.waitValue(() => {
         return manager.session?.ui.length
       }, 1)
       let line = await nvim.line
-      expect(line).toMatch('Bar')
+      assert.ok((line).includes('Bar'))
     })
 
     it('should respect top & height option', async () => {
       await manager.start(['--top', '--height=2', 'location'])
       await manager.session.ui.ready
       let nr = await nvim.call('winnr')
-      expect(nr).toBe(1)
+      assert.strictEqual(nr, 1)
       let win = await nvim.window
       let height = await win.height
-      expect(height).toBe(2)
+      assert.strictEqual(height, 2)
     })
 
     it('should respect number select option', async () => {

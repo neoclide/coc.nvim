@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { isDeepStrictEqual } from 'node:util'
 import { Encoder, ExtensionCodec } from '@msgpack/msgpack'
 import { PassThrough } from 'stream'
 import { Buffer as NvimBuffer, Tabpage, Window as NvimWindow } from '@chemzqm/neovim'
@@ -66,19 +66,19 @@ describe('NvimTransport message reception', () => {
     transport.detach()
   })
 
-  it('emits notification with method name and args', async () => {
-    const handler = vi.fn()
+  it('emits notification with method name and args', async (t) => {
+    const handler = t.mock.fn()
     transport.on('notification', handler)
 
     // [type=2, method, args] — a notification frame.
     reader.write(encodeFrame([2, 'GreetEvent', ['hello', 42]]))
 
     await helper.waitValue(() => handler.mock.calls.length, 1)
-    expect(handler).toHaveBeenCalledWith('GreetEvent', ['hello', 42])
+    assert.ok((handler).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['GreetEvent', ['hello', 42]])))
   })
 
-  it('emits multiple notifications coalesced into one chunk', async () => {
-    const handler = vi.fn()
+  it('emits multiple notifications coalesced into one chunk', async (t) => {
+    const handler = t.mock.fn()
     transport.on('notification', handler)
 
     const a = encodeFrame([2, 'A', [1]])
@@ -87,18 +87,18 @@ describe('NvimTransport message reception', () => {
     reader.write(Buffer.concat([a, b, c]))
 
     await helper.waitValue(() => handler.mock.calls.length, 3)
-    expect(handler.mock.calls.map(([m]) => m)).toEqual(['A', 'B', 'C'])
-    expect(handler.mock.calls.map(([, args]) => args)).toEqual([[1], [2], [3]])
+    assert.deepStrictEqual(handler.mock.calls.map(call => call.arguments[0]), ['A', 'B', 'C'])
+    assert.deepStrictEqual(handler.mock.calls.map(call => call.arguments[1]), [[1], [2], [3]])
   })
 
-  it('reassembles a frame that arrives split into many tiny chunks', async () => {
+  it('reassembles a frame that arrives split into many tiny chunks', async (t) => {
     // Regression: nvim 0.12 chunks pipe writes around 8KB. With the old
     // Buffered + msgpack-lite path, this caused 500+ DecodeStream calls for
     // a single buf_lines event. With @msgpack/msgpack's decodeMultiStream,
     // chunk boundaries do not affect message-level parsing.
     const big = 'x'.repeat(20000)
     const frame = encodeFrame([2, 'BufLines', [0, 1, [big, big, big]]])
-    const handler = vi.fn()
+    const handler = t.mock.fn()
     transport.on('notification', handler)
 
     // Write the frame in 64-byte slices so the underlying stream sees many
@@ -108,26 +108,26 @@ describe('NvimTransport message reception', () => {
     }
 
     await helper.waitValue(() => handler.mock.calls.length, 1)
-    expect(handler).toHaveBeenCalledTimes(1)
-    const [method, args] = handler.mock.calls[0]
-    expect(method).toBe('BufLines')
-    expect(args[0]).toBe(0)
-    expect(args[1]).toBe(1)
-    expect(args[2]).toEqual([big, big, big])
+    assert.strictEqual((handler).mock.callCount(), 1)
+    const [method, args] = handler.mock.calls[0].arguments
+    assert.strictEqual(method, 'BufLines')
+    assert.strictEqual(args[0], 0)
+    assert.strictEqual(args[1], 1)
+    assert.deepStrictEqual(args[2], [big, big, big])
   })
 
-  it('emits request event with a working Response handle', async () => {
-    const handler = vi.fn()
+  it('emits request event with a working Response handle', async (t) => {
+    const handler = t.mock.fn()
     transport.on('request', handler)
 
     // [type=0, id, method, args]
     reader.write(encodeFrame([0, 7, 'doSomething', ['arg1']]))
 
     await helper.waitValue(() => handler.mock.calls.length, 1)
-    const [method, args, response] = handler.mock.calls[0]
-    expect(method).toBe('doSomething')
-    expect(args).toEqual(['arg1'])
-    expect(typeof response.send).toBe('function')
+    const [method, args, response] = handler.mock.calls[0].arguments
+    assert.strictEqual(method, 'doSomething')
+    assert.deepStrictEqual(args, ['arg1'])
+    assert.strictEqual(typeof response.send, 'function')
 
     const written: Buffer[] = []
     writer.on('data', chunk => written.push(chunk))
@@ -136,11 +136,11 @@ describe('NvimTransport message reception', () => {
     // First and only response frame is [1, requestId, errOrNull, result].
     // We're not fully decoding here — just sanity-checking that something
     // went out on the writer.
-    expect(Buffer.concat(written).length).toBeGreaterThan(0)
+    assert.ok((Buffer.concat(written).length) > (0))
   })
 
-  it('resolves a pending request when its response arrives', async () => {
-    const cb = vi.fn()
+  it('resolves a pending request when its response arrives', async (t) => {
+    const cb = t.mock.fn()
     const written: Buffer[] = []
     writer.on('data', c => written.push(c))
 
@@ -151,21 +151,21 @@ describe('NvimTransport message reception', () => {
     // chose, then craft a matching response.
     const { decode } = await import('@msgpack/msgpack')
     const out = decode(Buffer.concat(written)) as any[]
-    expect(out[0]).toBe(0)         // type=request
-    expect(out[2]).toBe('nvim_eval')
+    assert.strictEqual(out[0], 0)         // type=request
+    assert.strictEqual(out[2], 'nvim_eval')
     const id = out[1] as number
 
     // [type=1, id, errOrNull, result]
     reader.write(encodeFrame([1, id, null, 2]))
 
     await helper.waitValue(() => cb.mock.calls.length, 1)
-    expect(cb).toHaveBeenCalledWith(null, 2)
+    assert.ok((cb).mock.calls.some(call => isDeepStrictEqual(call.arguments, [null, 2])))
   })
 
-  it('skips a non-array frame without halting the stream', async () => {
-    const handler = vi.fn()
+  it('skips a non-array frame without halting the stream', async (t) => {
+    const handler = t.mock.fn()
     transport.on('notification', handler)
-    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const errSpy = t.mock.method(console, 'error', () => {})
 
     // Encode a bare integer (invalid msgpack-RPC frame) followed by a valid
     // notification. The transport should log the error and keep going.
@@ -177,13 +177,13 @@ describe('NvimTransport message reception', () => {
     ]))
 
     await helper.waitValue(() => handler.mock.calls.length, 1)
-    expect(handler).toHaveBeenCalledWith('After', [])
-    expect(errSpy).toHaveBeenCalled()
-    errSpy.mockRestore()
+    assert.ok((handler).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['After', []])))
+    assert.ok((errSpy).mock.callCount() > 0)
+    errSpy.mock.restore()
   })
 
-  it('decodes msgpack extension handles with the attached client', async () => {
-    const handler = vi.fn()
+  it('decodes msgpack extension handles with the attached client', async (t) => {
+    const handler = t.mock.fn()
     transport.on('notification', handler)
 
     reader.write(encodeFrame([
@@ -197,19 +197,19 @@ describe('NvimTransport message reception', () => {
     ]))
 
     await helper.waitValue(() => handler.mock.calls.length, 1)
-    const [buf, win, tab] = handler.mock.calls[0][1]
-    expect(buf).toBeInstanceOf(NvimBuffer)
-    expect(win).toBeInstanceOf(NvimWindow)
-    expect(tab).toBeInstanceOf(Tabpage)
-    expect(buf.id).toBe(3)
-    expect(win.id).toBe(4)
-    expect(tab.id).toBe(5)
-    expect((buf as any).client).toBe(client)
-    expect((win as any).client).toBe(client)
-    expect((tab as any).client).toBe(client)
+    const [buf, win, tab] = handler.mock.calls[0].arguments[1]
+    assert.ok((buf) instanceof (NvimBuffer))
+    assert.ok((win) instanceof (NvimWindow))
+    assert.ok((tab) instanceof (Tabpage))
+    assert.strictEqual(buf.id, 3)
+    assert.strictEqual(win.id, 4)
+    assert.strictEqual(tab.id, 5)
+    assert.strictEqual((buf as any).client, client)
+    assert.strictEqual((win as any).client, client)
+    assert.strictEqual((tab as any).client, client)
   })
 
-  it('encodes API handles as msgpack extension values', async () => {
+  it('encodes API handles as msgpack extension values', async (t) => {
     const written: Buffer[] = []
     writer.on('data', c => written.push(c))
 
@@ -217,41 +217,47 @@ describe('NvimTransport message reception', () => {
       new NvimWindow({ data: 4 }),
       new NvimBuffer({ data: 3 }),
       new Tabpage({ data: 5 }),
-    ], vi.fn())
+    ], t.mock.fn())
 
     await helper.waitValue(() => written.length > 0, true)
     const { decode, ExtData } = await import('@msgpack/msgpack')
     const out = decode(Buffer.concat(written)) as any[]
     const [win, buf, tab] = out[3]
-    expect(win).toBeInstanceOf(ExtData)
-    expect(buf).toBeInstanceOf(ExtData)
-    expect(tab).toBeInstanceOf(ExtData)
-    expect(win.type).toBe(1)
-    expect(buf.type).toBe(0)
-    expect(tab.type).toBe(2)
-    expect(decode(win.data)).toBe(4)
-    expect(decode(buf.data)).toBe(3)
-    expect(decode(tab.data)).toBe(5)
+    assert.ok((win) instanceof (ExtData))
+    assert.ok((buf) instanceof (ExtData))
+    assert.ok((tab) instanceof (ExtData))
+    assert.strictEqual(win.type, 1)
+    assert.strictEqual(buf.type, 0)
+    assert.strictEqual(tab.type, 2)
+    let winData = win.data
+    let bufData = buf.data
+    let tabData = tab.data
+    assert.ok(winData instanceof Uint8Array)
+    assert.ok(bufData instanceof Uint8Array)
+    assert.ok(tabData instanceof Uint8Array)
+    assert.strictEqual(decode(winData), 4)
+    assert.strictEqual(decode(bufData), 3)
+    assert.strictEqual(decode(tabData), 5)
   })
 
-  it('does not emit messages after detach', async () => {
-    const handler = vi.fn()
+  it('does not emit messages after detach', async (t) => {
+    const handler = t.mock.fn()
     transport.on('notification', handler)
 
     transport.detach()
     reader.write(encodeFrame([2, 'AfterDetach', []]))
 
     await helper.wait(25)
-    expect(handler).not.toHaveBeenCalled()
+    assert.strictEqual((handler).mock.callCount(), 0)
   })
 })
 
 describe('Request callback', () => {
-  it('should handle empty result for list requests', () => {
-    let cb = vi.fn()
+  it('should handle empty result for list requests', (t) => {
+    let cb = t.mock.fn()
     let r = new Request({ call: () => {} } as any, cb, 1)
     r.request('nvim_list_wins')
     r.callback({ createWindow: (o: any) => o } as any, null, undefined)
-    expect(cb).toHaveBeenCalledWith(null, [])
+    assert.ok((cb).mock.calls.some(call => isDeepStrictEqual(call.arguments, [null, []])))
   })
 })

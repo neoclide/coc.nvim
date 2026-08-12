@@ -1,6 +1,5 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import Prompt from '../../list/prompt'
 import { IList, ListOptions } from '../../list/types'
 import Worker from '../../list/worker'
@@ -45,9 +44,9 @@ function createWorker(loadItems: IList['loadItems']): Worker {
 describe('list worker', () => {
   it('resets loading and token when loadItems rejects', async () => {
     let worker = createWorker(() => Promise.reject(new Error('boom')))
-    await expect(worker.loadItems({} as any)).rejects.toThrow('boom')
-    expect(worker.isLoading).toBe(false)
-    expect((worker as any).tokenSource).toBeNull()
+    await assert.rejects(worker.loadItems({} as any), error => String(error instanceof Error ? error.message : error).includes('boom'))
+    assert.strictEqual(worker.isLoading, false)
+    assert.strictEqual((worker as any).tokenSource, null)
   })
 
   it('a stale cancelled request cannot clobber the state of a newer request', async () => {
@@ -64,11 +63,11 @@ describe('list worker', () => {
     })
     let first = worker.loadItems({} as any)
     worker.stop()
-    await expect(worker.loadItems({} as any)).rejects.toThrow('second boom')
-    expect(worker.isLoading).toBe(false)
+    await assert.rejects(worker.loadItems({} as any), error => String(error instanceof Error ? error.message : error).includes('second boom'))
+    assert.strictEqual(worker.isLoading, false)
     resolveFirst([{ label: 'x' }])
     await first
-    expect(worker.isLoading).toBe(false)
-    expect(calls).toBe(2)
+    assert.strictEqual(worker.isLoading, false)
+    assert.strictEqual(calls, 2)
   })
 })

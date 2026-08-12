@@ -37,23 +37,23 @@ describe('filter functions', () => {
   }
 
   test('isWhitespaceAtPos()', () => {
-    expect(isWhitespaceAtPos('abc', -1)).toBe(false)
-    expect(isWhitespaceAtPos('abc', 0)).toBe(false)
-    expect(isWhitespaceAtPos(' bc', 0)).toBe(true)
+    assert.strictEqual(isWhitespaceAtPos('abc', -1), false)
+    assert.strictEqual(isWhitespaceAtPos('abc', 0), false)
+    assert.strictEqual(isWhitespaceAtPos(' bc', 0), true)
   })
 
   test('isSeparatorAtPos()', () => {
-    expect(isSeparatorAtPos('abc', -1)).toBe(false)
-    expect(isSeparatorAtPos('abc', 6)).toBe(false)
-    expect(isSeparatorAtPos('abc', 0)).toBe(false)
-    expect(isSeparatorAtPos(' abc', 0)).toBe(true)
-    expect(isSeparatorAtPos('😕abc', 0)).toBe(true)
+    assert.strictEqual(isSeparatorAtPos('abc', -1), false)
+    assert.strictEqual(isSeparatorAtPos('abc', 6), false)
+    assert.strictEqual(isSeparatorAtPos('abc', 0), false)
+    assert.strictEqual(isSeparatorAtPos(' abc', 0), true)
+    assert.strictEqual(isSeparatorAtPos('😕abc', 0), true)
   })
 
   test('isPatternInWord()', () => {
     const check = (pattern: string, word: string, patternPos = 0, wordPos = 0, result: boolean) => {
       let res = isPatternInWord(pattern.toLowerCase(), patternPos, pattern.length, word.toLowerCase(), wordPos, word.length)
-      expect(res).toBe(result)
+      assert.strictEqual(res, result)
     }
     check('abc', 'defabc', 0, 0, true)
     check('abc', 'defabc', 0, 4, false)
@@ -165,7 +165,7 @@ describe('filter functions', () => {
       fuzzyScore
     )
     let res = fuzzyScore('a'.repeat(1024), 'a'.repeat(1024), 0, 'word', 'word', 0)
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
   })
 
   test('Freeze when fjfj -> jfjf, https://github.com/microsoft/vscode/issues/91807', function() {
@@ -389,11 +389,11 @@ describe('filter functions', () => {
   })
 
   test('nextTypoPermutation', () => {
-    expect(nextTypoPermutation('abc', 2)).toBeUndefined()
+    assert.strictEqual(nextTypoPermutation('abc', 2), undefined)
   })
 
   test('createMatches()', () => {
-    expect(createMatches(undefined)).toEqual([])
+    assert.deepStrictEqual(createMatches(undefined), [])
   })
 })
 

@@ -86,14 +86,14 @@ afterEach(async () => {
 
 describe('Plugin', () => {
   it('should check hasAction', () => {
-    expect(plugin.hasAction('NOT_EXISTS')).toBe(false)
-    expect(plugin.hasAction('rename')).toBe(true)
+    assert.strictEqual(plugin.hasAction('NOT_EXISTS'), false)
+    assert.strictEqual(plugin.hasAction('rename'), true)
   })
 
   it('should throw when action exists', () => {
-    expect(() => {
+    assert.throws(() => {
       plugin.addAction('rename', () => {})
-    }).toThrow(Error)
+    }, Error)
   })
 })
 
@@ -113,9 +113,9 @@ describe('exports', () => {
         list.push(key)
       }
     }
-    expect(list.length).toBe(0)
+    assert.strictEqual(list.length, 0)
     for (let key of ['InlineCompletionItem', 'InlineCompletionContext', 'EOL', 'ExtensionType']) {
-      expect(exportObj[key]).toBeDefined()
+      assert.notStrictEqual(exportObj[key], undefined)
     }
   })
 })
@@ -126,7 +126,7 @@ describe('typings declarations', () => {
   let block = getTypingsModuleBlock(sf)
 
   it('should match runtime exports and enum values', () => {
-    expect(block).toBeDefined()
+    assert.notStrictEqual(block, undefined)
     let valueNames = new Set<string>()
     let enums = new Map<string, TypingEnumMember[]>()
     let nsMembers = new Map<string, Set<string>>()
@@ -150,23 +150,23 @@ describe('typings declarations', () => {
       return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(k) && !k.startsWith('__') && k !== 'default'
     })
     let missingInTypings = runtimeNames.filter(k => !valueNames.has(k))
-    expect(missingInTypings).toEqual([])
+    assert.deepStrictEqual(missingInTypings, [])
     let missingAtRuntime = [...valueNames].filter(n => !Object.prototype.hasOwnProperty.call(exportObj, n))
-    expect(missingAtRuntime).toEqual([])
+    assert.deepStrictEqual(missingAtRuntime, [])
     for (let [name, members] of enums) {
       let runtimeEnum = exportObj[name]
       if (typeof runtimeEnum !== 'object' || runtimeEnum === null) continue
       let declaredMembers = new Set([...members.map(m => m.name), ...(nsMembers.get(name) || [])])
       for (let m of members) {
-        expect(m.name in runtimeEnum, `${name}.${m.name} missing at runtime`).toBe(true)
+        assert.strictEqual(m.name in runtimeEnum, true, `${name}.${m.name} missing at runtime`)
         if (m.value !== undefined) {
-          expect(runtimeEnum[m.name]).toBe(m.value)
+          assert.strictEqual(runtimeEnum[m.name], m.value)
         }
       }
       for (let key of Object.keys(runtimeEnum)) {
         if (/^\d+$/.test(key)) continue
         if (typeof runtimeEnum[key] === 'function') continue
-        expect(declaredMembers.has(key)).toBe(true)
+        assert.strictEqual(declaredMembers.has(key), true)
       }
     }
     // namespace value members should exist on the runtime object
@@ -175,7 +175,7 @@ describe('typings declarations', () => {
       let runtimeNs = exportObj[name]
       if (typeof runtimeNs !== 'object' || runtimeNs === null) continue
       for (let member of members) {
-        expect(member in runtimeNs, `${name}.${member} missing at runtime`).toBe(true)
+        assert.strictEqual(member in runtimeNs, true, `${name}.${member} missing at runtime`)
       }
     }
   })
@@ -184,26 +184,26 @@ describe('typings declarations', () => {
 describe('help tags', () => {
   it('should return jumpable', async () => {
     let jumpable = await helper.plugin.cocAction('snippetCheck', false, true)
-    expect(jumpable).toBe(false)
+    assert.strictEqual(jumpable, false)
   })
 
   it('should show CocInfo', async () => {
     await helper.doAction('showInfo')
     let line = await nvim.line
-    expect(line).toMatch('version')
+    assert.ok((line).includes('version'))
   })
 
   it('should ensure current document created', async () => {
     await nvim.command('tabe tmp.js')
     let res = await helper.plugin.cocAction('ensureDocument')
-    expect(res).toBe(true)
+    assert.strictEqual(res, true)
     let bufnr = await nvim.call('bufnr', ['%']) as number
     let doc = workspace.getDocument(bufnr)
-    expect(doc).toBeDefined()
+    assert.notStrictEqual(doc, undefined)
   })
 
   it('should get related information', async () => {
     let res = await helper.plugin.cocAction('diagnosticRelatedInformation')
-    expect(res).toEqual([])
+    assert.deepStrictEqual(res, [])
   })
 })

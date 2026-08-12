@@ -1,5 +1,6 @@
-import type { Mock, MockInstance } from 'vitest'
+import { isDeepStrictEqual } from 'node:util'
 import { FormattingOptions, InlineCompletionItem, Position, Range, TextEdit } from 'vscode-languageserver-types'
+import type { Mock as NodeMock, MockTracker } from 'node:test'
 import commands from '../../commands'
 import sources from '../../completion/sources'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem } from '../../completion/types'
@@ -12,9 +13,13 @@ import window from '../../window'
 import workspace from '../../workspace'
 import helper from '../helper'
 
+type Mock = NodeMock<any>
+type MockInstance = NodeMock<any>
+
 let nvim: Neovim
 let inlineCompletion: InlineCompletion
 let disposables: Disposable[] = []
+let nvimCallSpy: MockInstance | undefined
 
 beforeAll(async () => {
   await helper.setup()
@@ -28,7 +33,8 @@ afterAll(async () => {
 
 describe('InlineCompletion', () => {
   afterEach(async () => {
-    vi.clearAllMocks()
+    nvimCallSpy?.mock.restore()
+    nvimCallSpy = undefined
     inlineCompletion['_inserted'] = undefined
     await helper.reset()
     disposables.forEach(d => d.dispose())
@@ -38,10 +44,10 @@ describe('InlineCompletion', () => {
     }
   })
 
-  function mockInlineInsert(returnValue: boolean): void {
+  function mockInlineInsert(mock: MockTracker, returnValue: boolean): void {
     // Mock nvim calls
     let fn = nvim.call
-    nvim.call = vi.fn().mockImplementation((method, ...args) => {
+    nvimCallSpy = mock.method(nvim, 'call', (method, ...args) => {
       if (method === 'coc#inline#_insert') return Promise.resolve(returnValue)
       if (method === 'coc#inline#clear') return Promise.resolve()
       return fn.apply(nvim, [method, ...args] as any)
@@ -49,22 +55,22 @@ describe('InlineCompletion', () => {
   }
 
   describe('events', () => {
-    it('should trigger on document change', async () => {
+    it('should trigger on document change', async (t) => {
       helper.updateConfiguration('inline.autoTrigger', true, disposables)
       await nvim.command('startinsert')
       let doc = await helper.createDocument()
-      let mockProvider = vi.fn()
+      let mockProvider = t.mock.fn()
       let providerDisposable = languages.registerInlineCompletionItemProvider(
         [{ language: '*' }],
         { provideInlineCompletionItems: mockProvider }
       )
       disposables.push(providerDisposable)
-      const spy = vi.spyOn(inlineCompletion, 'trigger')
+      const spy = t.mock.method(inlineCompletion, 'trigger')
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'test')])
-      expect(spy).toHaveBeenCalledTimes(1)
+      assert.strictEqual((spy).mock.callCount(), 1)
     })
 
-    it('should cancel on buffer unload', async () => {
+    it('should cancel on buffer unload', async (t) => {
       let doc = await workspace.document
       const item: InlineCompletionItem = {
         insertText: 'completion text',
@@ -72,22 +78,22 @@ describe('InlineCompletion', () => {
       }
       inlineCompletion['bufnr'] = doc.bufnr
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 5), [item])
-      const spy = vi.spyOn(inlineCompletion, 'cancel')
+      const spy = t.mock.method(inlineCompletion, 'cancel')
       await nvim.command('bwipeout!')
       workspace.documentsManager.detachBuffer(doc.bufnr)
-      expect(spy).toHaveBeenCalledTimes(1)
+      assert.strictEqual((spy).mock.callCount(), 1)
     })
 
-    it('should not cancel when mode changed from i to ic', async () => {
+    it('should not cancel when mode changed from i to ic', async (t) => {
       let doc = await workspace.document
       const item: InlineCompletionItem = {
         insertText: 'completion text',
         range: Range.create(0, 5, 0, 5)
       }
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 5), [item])
-      const spy = vi.spyOn(inlineCompletion, 'cancel')
+      const spy = t.mock.method(inlineCompletion, 'cancel')
       await events.fire('ModeChanged', [{ old_mode: 'i', new_mode: 'ic' }])
-      expect(spy).not.toHaveBeenCalled()
+      assert.strictEqual((spy).mock.callCount(), 0)
     })
 
     it('should trigger on pum navigate', async () => {
@@ -117,10 +123,10 @@ describe('InlineCompletion', () => {
       await helper.waitFor('coc#inline#visible', [], 1)
       await inlineCompletion.accept(doc.bufnr)
       let line = await nvim.line
-      expect(line).toBe('bar()')
+      assert.strictEqual(line, 'bar()')
     })
 
-    it('should accept snippet inlineCompletion on pum navigate', async () => {
+    it('should accept snippet inlineCompletion on pum navigate', async (t) => {
       let doc = await workspace.document
       // Set up a line to work with
       await nvim.setLine('prefix ')
@@ -161,31 +167,28 @@ describe('InlineCompletion', () => {
       await nvim.call('coc#pum#_navigate', [1, 1])
       await helper.waitFor('coc#inline#visible', [], 1)
       // Spy on executeCommand to check if snippet command is executed
-      const executeCommandSpy = vi.spyOn(commands, 'executeCommand')
+      const executeCommandSpy = t.mock.method(commands, 'executeCommand')
       // Accept the completion
       let res = await inlineCompletion.accept(doc.bufnr)
       // Check result
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       // Inserting the snippet changes the document, which re-triggers inline
       // completion asynchronously. Cancel again so the assertion is not
       // racing with a newly created session.
       inlineCompletion.cancel()
-      expect(inlineCompletion.session).toBeUndefined() // Session should be cleared
-      expect(executeCommandSpy).toHaveBeenCalledWith(
-        'editor.action.insertSnippet',
-        expect.objectContaining({
-          range: expect.any(Object),
-          newText: ' ${1:param1} ${2:param2}'
-        })
-      )
+      assert.strictEqual(inlineCompletion.session, undefined) // Session should be cleared
+      let args = executeCommandSpy.mock.calls.find(call => call.arguments[0] === 'editor.action.insertSnippet')?.arguments
+      assert.ok(args)
+      assert.strictEqual(typeof args[1].range, 'object')
+      assert.strictEqual(args[1].newText, ' ${1:param1} ${2:param2}')
       // Cleanup
-      executeCommandSpy.mockRestore()
+      executeCommandSpy.mock.restore()
       await inlineCompletion.accept(doc.bufnr)
       let line = await nvim.line
-      expect(line).toBe('prefix snippet param1 param2')
+      assert.strictEqual(line, 'prefix snippet param1 param2')
     })
 
-    it('should adjust range based on _inserted in insertVtext', async () => {
+    it('should adjust range based on _inserted in insertVtext', async (t) => {
       let doc = await workspace.document
       // Set up document with "prefix in" where "in" is what would be inserted by pum
       await nvim.setLine('prefix in')
@@ -200,25 +203,22 @@ describe('InlineCompletion', () => {
       // Set _inserted to simulate pum insertion
       inlineCompletion['_inserted'] = 'in'
       // Mock inline insert
-      mockInlineInsert(true)
+      mockInlineInsert(t.mock, true)
       // Call insertVtext
       await inlineCompletion.insertVtext(item)
       // // Verify that vtext starts after "in"
-      expect(inlineCompletion.session.vtext).toBe('serted text')
+      assert.strictEqual(inlineCompletion.session.vtext, 'serted text')
       // Check that the range was adjusted in the call to coc#inline#_insert
       // The col should be 10 (byte index of position after "in" + 1)
-      expect(nvim.call).toHaveBeenCalledWith(
-        'coc#inline#_insert',
-        [doc.bufnr, 0, 10, ['serted text'], '']
-      )
+      assert.ok(nvimCallSpy!.mock.calls.some(call => isDeepStrictEqual(call.arguments, ['coc#inline#_insert', [doc.bufnr, 0, 10, ['serted text'], '']])))
       await inlineCompletion.accept(doc.bufnr)
       let line = await nvim.line
-      expect(line).toBe('prefix inserted text')
+      assert.strictEqual(line, 'prefix inserted text')
     })
   })
 
   describe('insertVtext()', () => {
-    it('should insert virtual text successfully', async () => {
+    it('should insert virtual text successfully', async (t) => {
       let doc = await workspace.document
       await nvim.setLine('fooba')
       await doc.patchChange()
@@ -228,29 +228,23 @@ describe('InlineCompletion', () => {
       }
       await inlineCompletion.insertVtext(undefined)
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 5), [item])
-      mockInlineInsert(true)
+      mockInlineInsert(t.mock, true)
       await inlineCompletion.insertVtext(item)
-      expect(nvim.call).toHaveBeenCalledWith(
-        'coc#inline#_insert',
-        [doc.bufnr, 0, 6, ['completion text'], '']
-      )
-      expect(inlineCompletion.session.vtext).toBe('completion text')
+      assert.ok(nvimCallSpy!.mock.calls.some(call => isDeepStrictEqual(call.arguments, ['coc#inline#_insert', [doc.bufnr, 0, 6, ['completion text'], '']])))
+      assert.strictEqual(inlineCompletion.session.vtext, 'completion text')
     })
 
-    it('should show index when multiple items exist', async () => {
+    it('should show index when multiple items exist', async (t) => {
       let doc = await workspace.document
       const item1: InlineCompletionItem = { insertText: 'first' }
       const item2: InlineCompletionItem = { insertText: 'second' }
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 0), [item1, item2])
-      mockInlineInsert(true)
+      mockInlineInsert(t.mock, true)
       await inlineCompletion.insertVtext(item1)
-      expect(nvim.call).toHaveBeenCalledWith(
-        'coc#inline#_insert',
-        [doc.bufnr, 0, 1, ['first'], '(1/2)']
-      )
+      assert.ok(nvimCallSpy!.mock.calls.some(call => isDeepStrictEqual(call.arguments, ['coc#inline#_insert', [doc.bufnr, 0, 1, ['first'], '(1/2)']])))
     })
 
-    it('should handle item with non-empty range', async () => {
+    it('should handle item with non-empty range', async (t) => {
       let doc = await workspace.document
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'complete')])
       const item: InlineCompletionItem = {
@@ -258,12 +252,12 @@ describe('InlineCompletion', () => {
         range: Range.create(0, 0, 0, 8) // Assume "complete" is already typed
       }
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 8), [item])
-      mockInlineInsert(true)
+      mockInlineInsert(t.mock, true)
       await inlineCompletion.insertVtext(item)
-      expect(inlineCompletion.session.vtext).toBe(' method()')
+      assert.strictEqual(inlineCompletion.session.vtext, ' method()')
     })
 
-    it('should handle cursor in middle of completion range', async () => {
+    it('should handle cursor in middle of completion range', async (t) => {
       let doc = await workspace.document
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'compl()')])
       const item: InlineCompletionItem = {
@@ -272,12 +266,12 @@ describe('InlineCompletion', () => {
       }
       // Cursor is at "compl|()"
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 5), [item])
-      mockInlineInsert(true)
+      mockInlineInsert(t.mock, true)
       await inlineCompletion.insertVtext(item)
-      expect(inlineCompletion.session.vtext).toBe('eteMethod')
+      assert.strictEqual(inlineCompletion.session.vtext, 'eteMethod')
     })
 
-    it('should handle cursor at the end of completion range but text does not match', async () => {
+    it('should handle cursor at the end of completion range but text does not match', async (t) => {
       let doc = await workspace.document
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'initialText')])
       const item: InlineCompletionItem = {
@@ -285,12 +279,12 @@ describe('InlineCompletion', () => {
         range: Range.create(0, 0, 0, 11) // "initialText"
       }
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 11), [item])
-      mockInlineInsert(true)
+      mockInlineInsert(t.mock, true)
       await inlineCompletion.insertVtext(item)
-      expect(inlineCompletion.session.vtext).toBe('Replacement')
+      assert.strictEqual(inlineCompletion.session.vtext, 'Replacement')
     })
 
-    it('should handle item range where text after cursor does not match end of insertText', async () => {
+    it('should handle item range where text after cursor does not match end of insertText', async (t) => {
       let doc = await workspace.document
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'prefixMismatchSuffix')])
       const item: InlineCompletionItem = {
@@ -298,35 +292,32 @@ describe('InlineCompletion', () => {
         range: Range.create(0, 0, 0, 20) // "prefixMismatchSuffix"
       }
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 6), [item])
-      mockInlineInsert(true)
+      mockInlineInsert(t.mock, true)
       await inlineCompletion.insertVtext(item)
-      expect(inlineCompletion.session.vtext).toBe('ReplacementSuffix')
+      assert.strictEqual(inlineCompletion.session.vtext, 'ReplacementSuffix')
     })
 
-    it('should clean up when insertion fails', async () => {
+    it('should clean up when insertion fails', async (t) => {
       let doc = await workspace.document
       const item: InlineCompletionItem = { insertText: 'text' }
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 5), [item])
-      mockInlineInsert(false)
+      mockInlineInsert(t.mock, false)
       await inlineCompletion.insertVtext(item)
-      expect(inlineCompletion.session).toBeUndefined()
+      assert.strictEqual(inlineCompletion.session, undefined)
       let visible = await inlineCompletion.visible()
-      expect(visible).toBe(false)
+      assert.strictEqual(visible, false)
     })
 
-    it('should handle multiline completions', async () => {
+    it('should handle multiline completions', async (t) => {
       let doc = await workspace.document
       const item: InlineCompletionItem = {
         insertText: 'line1\nline2\nline3',
       }
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 0), [item])
-      mockInlineInsert(true)
+      mockInlineInsert(t.mock, true)
       await inlineCompletion.insertVtext(item)
-      expect(nvim.call).toHaveBeenCalledWith(
-        'coc#inline#_insert',
-        [doc.bufnr, 0, 1, 'line1\nline2\nline3'.split('\n'), ""]
-      )
-      expect(inlineCompletion.session.vtext).toBe('line1\nline2\nline3')
+      assert.ok(nvimCallSpy!.mock.calls.some(call => isDeepStrictEqual(call.arguments, ['coc#inline#_insert', [doc.bufnr, 0, 1, 'line1\nline2\nline3'.split('\n'), ""]])))
+      assert.strictEqual(inlineCompletion.session.vtext, 'line1\nline2\nline3')
     })
   })
 
@@ -338,10 +329,10 @@ describe('InlineCompletion', () => {
       }
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 3), [item], -1, 'bar')
       let res = await helper.doAction('inlineAccept', doc.bufnr, 'all')
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
-    it('should accept completion and apply TextEdit', async () => {
+    it('should accept completion and apply TextEdit', async (t) => {
       let doc = await workspace.document
       await nvim.setLine('foo')
       await doc.patchChange()
@@ -349,22 +340,18 @@ describe('InlineCompletion', () => {
         insertText: 'bar',
       }
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 3), [item], 0, 'bar')
-      const applyEditsSpy = vi.spyOn(doc, 'applyEdits')
-      const moveToSpy = vi.spyOn(window, 'moveTo')
+      const applyEditsSpy = t.mock.method(doc, 'applyEdits')
+      const moveToSpy = t.mock.method(window, 'moveTo')
       await inlineCompletion.accept(doc.bufnr)
 
-      expect(applyEditsSpy).toHaveBeenCalledWith(
-        [TextEdit.replace(Range.create(0, 3, 0, 3), 'bar')],
-        false,
-        false
-      )
-      expect(moveToSpy).toHaveBeenCalledWith(Position.create(0, 6)) // 'foo' + 'bar'
-      expect(inlineCompletion.session).toBeUndefined() // Session should be cleared
+      assert.ok((applyEditsSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, [[TextEdit.replace(Range.create(0, 3, 0, 3), 'bar')], false, false])))
+      assert.ok((moveToSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, [Position.create(0, 6)]))) // 'foo' + 'bar'
+      assert.strictEqual(inlineCompletion.session, undefined) // Session should be cleared
       const content = await doc.buffer.lines
-      expect(content[0]).toBe('foobar')
+      assert.strictEqual(content[0], 'foobar')
     })
 
-    it('should accept completion with a specific range', async () => {
+    it('should accept completion with a specific range', async (t) => {
       let doc = await workspace.document
       await nvim.setLine('prefixsuffix') // prefix|suffix
       await doc.patchChange()
@@ -373,18 +360,14 @@ describe('InlineCompletion', () => {
         range: Range.create(0, 6, 0, 6) // Replacing nothing, just inserting at cursor
       }
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 6), [item], 0, 'replacement')
-      const applyEditsSpy = vi.spyOn(doc, 'applyEdits')
-      const moveToSpy = vi.spyOn(window, 'moveTo')
+      const applyEditsSpy = t.mock.method(doc, 'applyEdits')
+      const moveToSpy = t.mock.method(window, 'moveTo')
       await inlineCompletion.accept(doc.bufnr)
       // The range in item is used for TextEdit.replace
-      expect(applyEditsSpy).toHaveBeenCalledWith(
-        [TextEdit.replace(Range.create(0, 6, 0, 6), 'replacement')],
-        false,
-        false
-      )
-      expect(moveToSpy).toHaveBeenCalledWith(Position.create(0, 17)) // prefixreplacement|suffix
+      assert.ok((applyEditsSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, [[TextEdit.replace(Range.create(0, 6, 0, 6), 'replacement')], false, false])))
+      assert.ok((moveToSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, [Position.create(0, 17)]))) // prefixreplacement|suffix
       const content = await doc.buffer.lines
-      expect(content[0]).toBe('prefixreplacementsuffix')
+      assert.strictEqual(content[0], 'prefixreplacementsuffix')
     })
 
     it('should accept snippet completion item', async () => {
@@ -401,11 +384,11 @@ describe('InlineCompletion', () => {
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 6), [item])
       inlineCompletion.session.vtext = 'snippet one then two' // What vtext might show
       let res = await inlineCompletion.accept(doc.bufnr)
-      expect(inlineCompletion.session).toBeUndefined()
-      expect(res).toBe(true)
+      assert.strictEqual(inlineCompletion.session, undefined)
+      assert.strictEqual(res, true)
     })
 
-    it('should accept word as kind', async () => {
+    it('should accept word as kind', async (t) => {
       let doc = await workspace.document
       await nvim.setLine('prefix ')
       await doc.patchChange()
@@ -417,15 +400,15 @@ describe('InlineCompletion', () => {
 
       // Mock isWord
       const originalIsWord = doc.isWord
-      doc.isWord = vi.fn(char => /[a-zA-Z]/.test(char))
+      doc.isWord = t.mock.fn(char => /[a-zA-Z]/.test(char))
       await inlineCompletion.accept(doc.bufnr, 'word')
-      expect(inlineCompletion.session).toBeUndefined()
+      assert.strictEqual(inlineCompletion.session, undefined)
       const content = await doc.buffer.lines
-      expect(content[0]).toBe('prefix firstWord')
+      assert.strictEqual(content[0], 'prefix firstWord')
       doc.isWord = originalIsWord // Restore original
     })
 
-    it('should accept word as kind with no clear word boundary', async () => {
+    it('should accept word as kind with no clear word boundary', async (t) => {
       let doc = await workspace.document
       await nvim.setLine('prefix')
       await doc.patchChange()
@@ -436,18 +419,14 @@ describe('InlineCompletion', () => {
       inlineCompletion.session.vtext = 'onlyword'
 
       const originalIsWord = doc.isWord
-      doc.isWord = vi.fn(char => /[a-zA-Z]/.test(char))
+      doc.isWord = t.mock.fn(char => /[a-zA-Z]/.test(char))
 
-      const applyEditsSpy = vi.spyOn(doc, 'applyEdits')
+      const applyEditsSpy = t.mock.method(doc, 'applyEdits')
       await inlineCompletion.accept(doc.bufnr, 'word')
 
-      expect(applyEditsSpy).toHaveBeenCalledWith(
-        [TextEdit.replace(Range.create(0, 6, 0, 6), 'onlyword')],
-        false,
-        false
-      )
+      assert.ok((applyEditsSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, [[TextEdit.replace(Range.create(0, 6, 0, 6), 'onlyword')], false, false])))
       const content = await doc.buffer.lines
-      expect(content[0]).toBe('prefixonlyword')
+      assert.strictEqual(content[0], 'prefixonlyword')
       doc.isWord = originalIsWord
     })
 
@@ -461,12 +440,12 @@ describe('InlineCompletion', () => {
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 7), [item])
       inlineCompletion.session.vtext = 'firstLine\nsecondLine'
       await inlineCompletion.accept(doc.bufnr, 'line')
-      expect(inlineCompletion.session).toBeUndefined()
+      assert.strictEqual(inlineCompletion.session, undefined)
       const content = await doc.buffer.lines
-      expect(content[0]).toBe('prefix firstLine')
+      assert.strictEqual(content[0], 'prefix firstLine')
     })
 
-    it('should accept line as kind with single line insertText', async () => {
+    it('should accept line as kind with single line insertText', async (t) => {
       let doc = await workspace.document
       await nvim.setLine('prefix ')
       await doc.patchChange()
@@ -476,16 +455,12 @@ describe('InlineCompletion', () => {
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 7), [item])
       inlineCompletion.session.vtext = 'singleLineText'
 
-      const applyEditsSpy = vi.spyOn(doc, 'applyEdits')
+      const applyEditsSpy = t.mock.method(doc, 'applyEdits')
       await inlineCompletion.accept(doc.bufnr, 'line')
 
-      expect(applyEditsSpy).toHaveBeenCalledWith(
-        [TextEdit.replace(Range.create(0, 7, 0, 7), 'singleLineText')],
-        false,
-        false
-      )
+      assert.ok((applyEditsSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, [[TextEdit.replace(Range.create(0, 7, 0, 7), 'singleLineText')], false, false])))
       const content = await doc.buffer.lines
-      expect(content[0]).toBe('prefix singleLineText')
+      assert.strictEqual(content[0], 'prefix singleLineText')
     })
 
     it('should not throw when completion command throws error', async () => {
@@ -499,8 +474,8 @@ describe('InlineCompletion', () => {
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 4), [item])
       inlineCompletion.session.vtext = 'text'
       let res = await inlineCompletion.accept(doc.bufnr)
-      expect(inlineCompletion.session).toBeUndefined() // Session should still be cleared
-      expect(res).toBe(true)
+      assert.strictEqual(inlineCompletion.session, undefined) // Session should still be cleared
+      assert.strictEqual(res, true)
     })
 
     it('should do nothing if bufnr does not match session bufnr', async () => {
@@ -509,8 +484,8 @@ describe('InlineCompletion', () => {
       inlineCompletion.session = new InlineSession(doc.bufnr, Position.create(0, 0), [item])
       inlineCompletion.session.vtext = 'text' // Simulate vtext is shown
       let res = await inlineCompletion.accept(doc.bufnr + 1) // Different bufnr
-      expect(res).toBe(false)
-      expect(inlineCompletion.session).toBeDefined() // Session should not be cleared
+      assert.strictEqual(res, false)
+      assert.notStrictEqual(inlineCompletion.session, undefined) // Session should not be cleared
     })
   })
 
@@ -518,21 +493,22 @@ describe('InlineCompletion', () => {
     let mockProvider: Mock
     let providerDisposable: Disposable
 
-    beforeEach(async () => {
-      mockProvider = vi.fn()
+    beforeEach(async (t) => {
+      if (!('mock' in t)) throw new Error('Expected test context')
+      mockProvider = t.mock.fn()
       providerDisposable = languages.registerInlineCompletionItemProvider(
         [{ language: '*' }],
         { provideInlineCompletionItems: mockProvider }
       )
       disposables.push(providerDisposable)
       // Mock getCurrentState to simulate insert mode
-      vi.spyOn(helper.plugin.handler, 'getCurrentState').mockResolvedValue({
+      t.mock.method(helper.plugin.handler, 'getCurrentState', () => Promise.resolve({
         doc: workspace.getDocument(workspace.bufnr),
         position: Position.create(0, 0),
         mode: 'i',
         winid: 1,
-      } as any)
-      mockInlineInsert(true) // Assume inline insert will succeed for trigger tests
+      } as any))
+      mockInlineInsert(t.mock, true) // Assume inline insert will succeed for trigger tests
       await nvim.command('startinsert')
     })
 
@@ -544,84 +520,84 @@ describe('InlineCompletion', () => {
       providerDisposable.dispose() // Unregister the provider
       let doc = await workspace.document
       await helper.doAction('inlineTrigger', doc.bufnr)
-      expect(mockProvider).not.toHaveBeenCalled()
-      expect(inlineCompletion.session).toBeUndefined()
+      assert.strictEqual((mockProvider).mock.callCount(), 0)
+      assert.strictEqual(inlineCompletion.session, undefined)
     })
 
-    it('should return false when not supported', async () => {
+    it('should return false when not supported', async (t) => {
       let doc = await workspace.document
-      let spy = vi.spyOn(workspace, 'has').mockReturnValue(false) // Simulate inline completion not supported
+      let spy = t.mock.method(workspace, 'has', () => (false)) // Simulate inline completion not supported
       let res = await inlineCompletion.trigger(doc.bufnr)
-      expect(res).toBe(false)
-      expect(inlineCompletion.session).toBeUndefined()
-      expect(inlineCompletion.selected).toBeUndefined()
-      spy.mockRestore()
+      assert.strictEqual(res, false)
+      assert.strictEqual(inlineCompletion.session, undefined)
+      assert.strictEqual(inlineCompletion.selected, undefined)
+      spy.mock.restore()
     })
 
     it('should not trigger if provider returns no items (autoTrigger: true)', async () => {
       await commands.executeCommand('editor.action.triggerInlineCompletion', { autoTrigger: true })
-      expect(inlineCompletion.session).toBeUndefined()
+      assert.strictEqual(inlineCompletion.session, undefined)
     })
 
     it('should show warning if provider returns no items (autoTrigger: false)', async () => {
       let doc = await workspace.document
       await inlineCompletion.trigger(doc.bufnr, { autoTrigger: false })
-      expect(inlineCompletion.session).toBeUndefined()
+      assert.strictEqual(inlineCompletion.session, undefined)
     })
 
     it('should trigger and create session if provider returns items', async () => {
       const item: InlineCompletionItem = { insertText: 'suggested' }
-      mockProvider.mockResolvedValue([item])
+      mockProvider.mock.mockImplementation(() => Promise.resolve([item]))
       let doc = await workspace.document
       await inlineCompletion.trigger(doc.bufnr)
-      expect(mockProvider).toHaveBeenCalled()
-      expect(inlineCompletion.session).toBeDefined()
-      expect(inlineCompletion.session.items).toEqual([item])
-      expect(inlineCompletion.session.selected).toEqual(item)
+      assert.ok((mockProvider).mock.callCount() > 0)
+      assert.notStrictEqual(inlineCompletion.session, undefined)
+      assert.deepStrictEqual(inlineCompletion.session.items, [item])
+      assert.deepStrictEqual(inlineCompletion.session.selected, item)
     })
 
     it('should filter items based on range', async () => {
       const item1: InlineCompletionItem = { insertText: 'item1', range: Range.create(0, 0, 0, 1) } // Matches cursor at 0,0
       const item2: InlineCompletionItem = { insertText: 'item2', range: Range.create(0, 1, 0, 2) } // Does not match cursor at 0,0
-      mockProvider.mockResolvedValue([item1, item2])
+      mockProvider.mock.mockImplementation(() => Promise.resolve([item1, item2]))
       let doc = await workspace.document
       await inlineCompletion.trigger(doc.bufnr)
-      expect(inlineCompletion.session).toBeDefined()
-      expect(inlineCompletion.session.items).toEqual([item1])
+      assert.notStrictEqual(inlineCompletion.session, undefined)
+      assert.deepStrictEqual(inlineCompletion.session.items, [item1])
     })
 
-    it('should not trigger if document changed and autoTrigger is false without sync', async () => {
+    it('should not trigger if document changed and autoTrigger is false without sync', async (t) => {
       const item: InlineCompletionItem = { insertText: 'suggested' }
-      mockProvider.mockResolvedValue([item])
+      mockProvider.mock.mockImplementation(() => Promise.resolve([item]))
       let doc = await workspace.document
       await nvim.call('setline', ['.', 'foobar'])
-      expect(doc.hasChanged).toBe(true)
-      const syncSpy = vi.spyOn(doc, 'synchronize')
+      assert.strictEqual(doc.hasChanged, true)
+      const syncSpy = t.mock.method(doc, 'synchronize')
       await inlineCompletion.trigger(doc.bufnr, { autoTrigger: false })
-      expect(syncSpy).toHaveBeenCalled()
-      expect(inlineCompletion.session).toBeDefined() // Should still trigger after sync
+      assert.ok((syncSpy).mock.callCount() > 0)
+      assert.notStrictEqual(inlineCompletion.session, undefined) // Should still trigger after sync
     })
 
     it('should not trigger if token is cancelled before provider call', async () => {
-      mockProvider.mockResolvedValue([{ insertText: 'test' }])
+      mockProvider.mock.mockImplementation(() => Promise.resolve([{ insertText: 'test' }]))
       let doc = await workspace.document
       const triggerPromise = inlineCompletion.trigger(doc.bufnr, {}, 10) // With delay
       await helper.doAction('inlineCancel')
       await triggerPromise
-      expect(mockProvider).not.toHaveBeenCalled()
-      expect(inlineCompletion.session).toBeUndefined()
+      assert.strictEqual((mockProvider).mock.callCount(), 0)
+      assert.strictEqual(inlineCompletion.session, undefined)
     })
 
     it('should not trigger if token is cancelled after provider call but before session creation', async () => {
       const item: InlineCompletionItem = { insertText: 'suggested' }
-      mockProvider.mockImplementation(async () => {
+      mockProvider.mock.mockImplementation(async () => {
         inlineCompletion.cancel() // Cancel while provider is "working"
         return [item]
       })
       let doc = await workspace.document
       await inlineCompletion.trigger(doc.bufnr)
-      expect(mockProvider).toHaveBeenCalled()
-      expect(inlineCompletion.session).toBeUndefined()
+      assert.ok((mockProvider).mock.callCount() > 0)
+      assert.strictEqual(inlineCompletion.session, undefined)
     })
 
     it('should not trigger if current state bufnr does not match', async () => {
@@ -629,21 +605,21 @@ describe('InlineCompletion', () => {
       let promise = nvim.command('edit bar')
       await inlineCompletion.trigger(doc.bufnr)
       await promise
-      expect(mockProvider).not.toHaveBeenCalled()
-      expect(inlineCompletion.session).toBeUndefined()
+      assert.strictEqual((mockProvider).mock.callCount(), 0)
+      assert.strictEqual(inlineCompletion.session, undefined)
     })
 
     it('should not trigger if current mode is not insert', async () => {
       await nvim.command('stopinsert')
-      mockProvider.mockResolvedValue([{ insertText: 'test' }])
+      mockProvider.mock.mockImplementation(() => Promise.resolve([{ insertText: 'test' }]))
       let doc = await workspace.document
       await inlineCompletion.trigger(doc.bufnr)
-      expect(mockProvider).not.toHaveBeenCalled()
-      expect(inlineCompletion.session).toBeUndefined()
+      assert.strictEqual((mockProvider).mock.callCount(), 0)
+      assert.strictEqual(inlineCompletion.session, undefined)
     })
 
-    it('should use specified provider if option.provider is given', async () => {
-      const specificProviderMock = vi.fn().mockResolvedValue([{ insertText: 'specific' }])
+    it('should use specified provider if option.provider is given', async (t) => {
+      const specificProviderMock = t.mock.fn(() => Promise.resolve([{ insertText: 'specific' }]))
       const specificProviderDisposable = languages.registerInlineCompletionItemProvider(
         [{ language: '*' }],
         {
@@ -655,10 +631,10 @@ describe('InlineCompletion', () => {
 
       let doc = await workspace.document
       await inlineCompletion.trigger(doc.bufnr, { provider: 'mySpecificProvider' })
-      expect(specificProviderMock).toHaveBeenCalled()
-      expect(mockProvider).not.toHaveBeenCalled() // Default provider should not be called
-      expect(inlineCompletion.session).toBeDefined()
-      expect(inlineCompletion.session.selected.insertText).toBe('specific')
+      assert.ok((specificProviderMock).mock.callCount() > 0)
+      assert.strictEqual((mockProvider).mock.callCount(), 0) // Default provider should not be called
+      assert.notStrictEqual(inlineCompletion.session, undefined)
+      assert.strictEqual(inlineCompletion.session.selected.insertText, 'specific')
       specificProviderDisposable.dispose()
     })
   })
@@ -682,15 +658,16 @@ describe('InlineCompletion', () => {
       return session
     }
 
-    beforeEach(() => {
+    beforeEach((t) => {
+      if (!('mock' in t)) throw new Error('Expected test context')
       // Spy on insertVtext to check if it's called correctly without running its full logic
-      mockInsertVtext = vi.spyOn(inlineCompletion, 'insertVtext').mockResolvedValue(undefined)
+      mockInsertVtext = t.mock.method(inlineCompletion, 'insertVtext', () => Promise.resolve(undefined))
       // Ensure vtextBufnr is reset or managed correctly per test
       if (inlineCompletion.session) inlineCompletion.session.vtext = undefined
     })
 
     afterEach(() => {
-      mockInsertVtext.mockRestore()
+      mockInsertVtext.mock.restore()
       inlineCompletion.session = undefined
     })
 
@@ -698,46 +675,46 @@ describe('InlineCompletion', () => {
       it('should do nothing if no session exists', async () => {
         inlineCompletion.session = undefined
         await inlineCompletion.next(bufnr)
-        expect(mockInsertVtext).not.toHaveBeenCalled()
+        assert.strictEqual((mockInsertVtext).mock.callCount(), 0)
       })
 
       it('should do nothing if bufnr does not match session vtextBufnr', async () => {
         setupSession([item1, item2])
         inlineCompletion.session.vtext = undefined // Ensure vtextBufnr is -1
         await inlineCompletion.next(bufnr)
-        expect(mockInsertVtext).not.toHaveBeenCalled()
+        assert.strictEqual((mockInsertVtext).mock.callCount(), 0)
 
         setupSession([item1, item2], 0, bufnr) // vtextBufnr will be bufnr
         await inlineCompletion.next(bufnr + 1) // Call with different bufnr
-        expect(mockInsertVtext).not.toHaveBeenCalled()
+        assert.strictEqual((mockInsertVtext).mock.callCount(), 0)
       })
 
       it('should do nothing if session has no items', async () => {
         const session = setupSession([])
         await inlineCompletion.next(bufnr)
-        expect(mockInsertVtext).not.toHaveBeenCalled()
-        expect(session.index).toBe(0)
+        assert.strictEqual((mockInsertVtext).mock.callCount(), 0)
+        assert.strictEqual(session.index, 0)
       })
 
       it('should do nothing if session has only one item', async () => {
         const session = setupSession([item1])
         await inlineCompletion.next(bufnr)
-        expect(mockInsertVtext).not.toHaveBeenCalled()
-        expect(session.index).toBe(0)
+        assert.strictEqual((mockInsertVtext).mock.callCount(), 0)
+        assert.strictEqual(session.index, 0)
       })
 
       it('should move to the next item and call insertVtext', async () => {
         const session = setupSession([item1, item2, item3], 0)
         await inlineCompletion.next(bufnr)
-        expect(session.index).toBe(1)
-        expect(mockInsertVtext).toHaveBeenCalledWith(item2)
+        assert.strictEqual(session.index, 1)
+        assert.ok((mockInsertVtext).mock.calls.some(call => isDeepStrictEqual(call.arguments, [item2])))
       })
 
       it('should loop to the first item when at the last item', async () => {
         const session = setupSession([item1, item2, item3], 2) // Start at last item
         await helper.doAction('inlineNext', bufnr)
-        expect(session.index).toBe(0)
-        expect(mockInsertVtext).toHaveBeenCalledWith(item1)
+        assert.strictEqual(session.index, 0)
+        assert.ok((mockInsertVtext).mock.calls.some(call => isDeepStrictEqual(call.arguments, [item1])))
       })
     })
 
@@ -745,46 +722,46 @@ describe('InlineCompletion', () => {
       it('should do nothing if no session exists', async () => {
         inlineCompletion.session = undefined
         await inlineCompletion.prev(bufnr)
-        expect(mockInsertVtext).not.toHaveBeenCalled()
+        assert.strictEqual((mockInsertVtext).mock.callCount(), 0)
       })
 
       it('should do nothing if bufnr does not match session vtextBufnr', async () => {
         setupSession([item1, item2])
         inlineCompletion.session.vtext = undefined // Ensure vtextBufnr is -1
         await inlineCompletion.prev(bufnr)
-        expect(mockInsertVtext).not.toHaveBeenCalled()
+        assert.strictEqual((mockInsertVtext).mock.callCount(), 0)
 
         setupSession([item1, item2], 0, bufnr) // vtextBufnr will be bufnr
         await inlineCompletion.prev(bufnr + 1) // Call with different bufnr
-        expect(mockInsertVtext).not.toHaveBeenCalled()
+        assert.strictEqual((mockInsertVtext).mock.callCount(), 0)
       })
 
       it('should do nothing if session has no items', async () => {
         const session = setupSession([])
         await inlineCompletion.prev(bufnr)
-        expect(mockInsertVtext).not.toHaveBeenCalled()
-        expect(session.index).toBe(0)
+        assert.strictEqual((mockInsertVtext).mock.callCount(), 0)
+        assert.strictEqual(session.index, 0)
       })
 
       it('should do nothing if session has only one item', async () => {
         const session = setupSession([item1])
         await inlineCompletion.prev(bufnr)
-        expect(mockInsertVtext).not.toHaveBeenCalled()
-        expect(session.index).toBe(0)
+        assert.strictEqual((mockInsertVtext).mock.callCount(), 0)
+        assert.strictEqual(session.index, 0)
       })
 
       it('should move to the previous item and call insertVtext', async () => {
         const session = setupSession([item1, item2, item3], 1)
         await helper.doAction('inlinePrev', bufnr)
-        expect(session.index).toBe(0)
-        expect(mockInsertVtext).toHaveBeenCalledWith(item1)
+        assert.strictEqual(session.index, 0)
+        assert.ok((mockInsertVtext).mock.calls.some(call => isDeepStrictEqual(call.arguments, [item1])))
       })
 
       it('should loop to the last item when at the first item', async () => {
         const session = setupSession([item1, item2, item3], 0) // Start at first item
         await inlineCompletion.prev(bufnr)
-        expect(session.index).toBe(2)
-        expect(mockInsertVtext).toHaveBeenCalledWith(item3)
+        assert.strictEqual(session.index, 2)
+        assert.ok((mockInsertVtext).mock.calls.some(call => isDeepStrictEqual(call.arguments, [item3])))
       })
     })
   })
@@ -796,80 +773,77 @@ describe('InlineCompletion', () => {
       let getDocumentSpy: MockInstance
       let getProvidersSpy: MockInstance
 
-      beforeEach(() => {
-        showWarningMessageSpy = vi.spyOn(window, 'showWarningMessage').mockResolvedValue(undefined)
-        showInformationMessageSpy = vi.spyOn(window, 'showInformationMessage').mockResolvedValue(undefined)
-        getDocumentSpy = vi.spyOn(workspace, 'getDocument')
-        getProvidersSpy = vi.spyOn(languages.inlineCompletionItemManager, 'getProviders')
+      beforeEach((t) => {
+        if (!('mock' in t)) throw new Error('Expected test context')
+        showWarningMessageSpy = t.mock.method(window, 'showWarningMessage', () => Promise.resolve(undefined))
+        showInformationMessageSpy = t.mock.method(window, 'showInformationMessage', () => Promise.resolve(undefined))
+        getDocumentSpy = t.mock.method(workspace, 'getDocument')
+        getProvidersSpy = t.mock.method(languages.inlineCompletionItemManager, 'getProviders')
       })
 
-      afterEach(() => {
-        vi.restoreAllMocks()
-      })
-
-      it('should show warning if inline completion is not supported', async () => {
-        vi.spyOn(workspace, 'has').mockReturnValue(false)
+      it('should show warning if inline completion is not supported', async (t) => {
+        t.mock.method(workspace, 'has', () => (false))
         await commands.executeCommand('document.checkInlineCompletion')
-        expect(showWarningMessageSpy).toHaveBeenCalledWith(expect.stringContaining('Inline completion is not supported'))
-        expect(showInformationMessageSpy).not.toHaveBeenCalled()
+        assert.ok(showWarningMessageSpy.mock.calls.some(call => call.arguments[0].includes('Inline completion is not supported')))
+        assert.strictEqual((showInformationMessageSpy).mock.callCount(), 0)
       })
 
       it('should show warning if document is not found', async () => {
-        getDocumentSpy.mockReturnValue(null)
+        getDocumentSpy.mock.mockImplementation(() => (null))
         await commands.executeCommand('document.checkInlineCompletion')
-        expect(showWarningMessageSpy).toHaveBeenCalledWith(expect.stringContaining(`not attached`))
-        expect(showInformationMessageSpy).not.toHaveBeenCalled()
+        assert.ok(showWarningMessageSpy.mock.calls.some(call => call.arguments[0].includes('not attached')))
+        assert.strictEqual((showInformationMessageSpy).mock.callCount(), 0)
       })
 
       it('should show warning if document is not attached', async () => {
         const mockDoc = { bufnr: 1, attached: false, textDocument: {} } as any
-        getDocumentSpy.mockReturnValue(mockDoc)
+        getDocumentSpy.mock.mockImplementation(() => (mockDoc))
         await commands.executeCommand('document.checkInlineCompletion')
-        expect(showWarningMessageSpy).toHaveBeenCalledWith(expect.stringContaining('not attached'))
-        expect(showInformationMessageSpy).not.toHaveBeenCalled()
+        assert.ok(showWarningMessageSpy.mock.calls.some(call => call.arguments[0].includes('not attached')))
+        assert.strictEqual((showInformationMessageSpy).mock.callCount(), 0)
       })
 
       it('should show warning when disabled by b:coc_inline_disable', async () => {
         let doc = await workspace.document
         await doc.buffer.setVar('coc_inline_disable', true)
         await commands.executeCommand('document.checkInlineCompletion')
-        expect(showWarningMessageSpy).toHaveBeenCalledWith(expect.stringContaining('disabled'))
-        expect(showInformationMessageSpy).not.toHaveBeenCalled()
+        assert.ok(showWarningMessageSpy.mock.calls.some(call => call.arguments[0].includes('disabled')))
+        assert.strictEqual((showInformationMessageSpy).mock.callCount(), 0)
         doc.buffer.deleteVar('coc_inline_disable')
       })
 
       it('should show warning if no providers are found', async () => {
         const mockDoc = { bufnr: 1, attached: true, textDocument: {} } as any
-        getDocumentSpy.mockReturnValue(mockDoc)
-        getProvidersSpy.mockReturnValue([])
+        getDocumentSpy.mock.mockImplementation(() => (mockDoc))
+        getProvidersSpy.mock.mockImplementation(() => ([]))
         await commands.executeCommand('document.checkInlineCompletion')
-        expect(showWarningMessageSpy).toHaveBeenCalledWith(expect.stringContaining('provider not found'))
-        expect(showInformationMessageSpy).not.toHaveBeenCalled()
+        assert.ok(showWarningMessageSpy.mock.calls.some(call => call.arguments[0].includes('provider not found')))
+        assert.strictEqual((showInformationMessageSpy).mock.callCount(), 0)
       })
 
       it('should show information message if providers are found', async () => {
         const mockDoc = { bufnr: 1, attached: true, textDocument: {} } as any
-        getDocumentSpy.mockReturnValue(mockDoc)
+        getDocumentSpy.mock.mockImplementation(() => (mockDoc))
         const mockProvider1 = { provider: { __extensionName: 'providerOne' } } as any
         const mockProvider2 = { provider: {} } as any // No __extensionName
-        getProvidersSpy.mockReturnValue([mockProvider1, mockProvider2])
+        getProvidersSpy.mock.mockImplementation(() => ([mockProvider1, mockProvider2]))
 
         await commands.executeCommand('document.checkInlineCompletion')
 
-        expect(showInformationMessageSpy).toHaveBeenCalledWith('Inline completion is supported by providerOne, unknown.')
-        expect(showWarningMessageSpy).not.toHaveBeenCalled()
+        assert.ok((showInformationMessageSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['Inline completion is supported by providerOne, unknown.'])))
+        assert.strictEqual((showWarningMessageSpy).mock.callCount(), 0)
       })
 
       it('should show information message with single provider', async () => {
         const mockDoc = { bufnr: 1, attached: true, textDocument: {} } as any
-        getDocumentSpy.mockReturnValue(mockDoc)
+        getDocumentSpy.mock.mockImplementation(() => (mockDoc))
         const mockProvider = { provider: { __extensionName: 'myProvider' } } as any
-        getProvidersSpy.mockReturnValue([mockProvider])
+        getProvidersSpy.mock.mockImplementation(() => ([mockProvider]))
 
         await commands.executeCommand('document.checkInlineCompletion')
 
-        expect(showInformationMessageSpy).toHaveBeenCalledWith('Inline completion is supported by myProvider.')
-        expect(showWarningMessageSpy).not.toHaveBeenCalled()
+        assert.ok((showInformationMessageSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['Inline completion is supported by myProvider.'])))
+        assert.strictEqual((showWarningMessageSpy).mock.callCount(), 0)
       })
     })
   })
@@ -882,21 +856,21 @@ describe('Utility functions', () => {
       const text = 'line1\n  line2'
       const options: FormattingOptions = { tabSize: 2, insertSpaces: true }
       const result = formatInsertText(text, options)
-      expect(result).toBe('line1\n  line2')
+      assert.strictEqual(result, 'line1\n  line2')
     })
 
     it('should convert tabs to spaces', () => {
       const text = 'line1\n\tline2'
       const options: FormattingOptions = { tabSize: 2, insertSpaces: true }
       const result = formatInsertText(text, options)
-      expect(result).toBe('line1\n  line2')
+      assert.strictEqual(result, 'line1\n  line2')
     })
 
     it('should convert spaces to tabs', () => {
       const text = 'line1\n  line2'
       const options: FormattingOptions = { tabSize: 2, insertSpaces: false }
       const result = formatInsertText(text, options)
-      expect(result).toBe('line1\n\tline2')
+      assert.strictEqual(result, 'line1\n\tline2')
     })
   })
 
@@ -907,7 +881,7 @@ describe('Utility functions', () => {
       await doc.patchChange() // Synchronize to ensure lines match
       const cursor = Position.create(0, 5)
       const result = getPumInserted(doc, cursor)
-      expect(result).toBe('')
+      assert.strictEqual(result, '')
     })
 
     it('should return inserted text when current line differs from synced line', async () => {
@@ -921,7 +895,7 @@ describe('Utility functions', () => {
       const result = getPumInserted(doc, cursor)
       // Restore original lines
       doc.textDocument.lines = originalLines
-      expect(result).toBe(' inserted')
+      assert.strictEqual(result, ' inserted')
     })
 
     it('should return undefined when no valid insertion is detected', async () => {
@@ -935,7 +909,7 @@ describe('Utility functions', () => {
       const result = getPumInserted(doc, cursor)
       // Restore original lines
       doc.textDocument.lines = originalLines
-      expect(result).toBeUndefined()
+      assert.strictEqual(result, undefined)
     })
 
     it('should handle cursor at beginning of line', async () => {
@@ -946,7 +920,7 @@ describe('Utility functions', () => {
       const cursor = Position.create(0, 7) // Position after "prefix "
       const result = getPumInserted(doc, cursor)
       doc.textDocument.lines = originalLines
-      expect(result).toBe('prefix ')
+      assert.strictEqual(result, 'prefix ')
     })
 
     it('should handle cursor at end of line', async () => {
@@ -957,7 +931,7 @@ describe('Utility functions', () => {
       const cursor = Position.create(0, 15) // End of "original suffix"
       const result = getPumInserted(doc, cursor)
       doc.textDocument.lines = originalLines
-      expect(result).toBe(' suffix')
+      assert.strictEqual(result, ' suffix')
     })
   })
 
@@ -968,7 +942,7 @@ describe('Utility functions', () => {
       }
       const options: FormattingOptions = { tabSize: 2, insertSpaces: true }
       const result = getInsertText(item, options)
-      expect(result).toBe('plain text')
+      assert.strictEqual(result, 'plain text')
     })
 
     it('should handle snippet text', () => {
@@ -980,7 +954,7 @@ describe('Utility functions', () => {
       }
       const options: FormattingOptions = { tabSize: 2, insertSpaces: true }
       const result = getInsertText(item, options)
-      expect(result).toBe('snippet text')
+      assert.strictEqual(result, 'snippet text')
     })
   })
 
@@ -990,7 +964,7 @@ describe('Utility functions', () => {
       const synced = 'foobar'
       const character = 3
       const result = getInserted(curr, synced, character)
-      expect(result).toBeUndefined()
+      assert.strictEqual(result, undefined)
     })
 
     it('should return undefined when text after cursor does not match end of synced string', () => {
@@ -998,7 +972,7 @@ describe('Utility functions', () => {
       const synced = 'foobar'
       const character = 3
       const result = getInserted(curr, synced, character)
-      expect(result).toBeUndefined()
+      assert.strictEqual(result, undefined)
     })
 
     it('should return undefined when beginning of current does not match beginning of synced', () => {
@@ -1006,7 +980,7 @@ describe('Utility functions', () => {
       const synced = 'foobar'
       const character = 3
       const result = getInserted(curr, synced, character)
-      expect(result).toBeUndefined()
+      assert.strictEqual(result, undefined)
     })
 
     it('should identify simple insertion in the middle', () => {
@@ -1014,7 +988,7 @@ describe('Utility functions', () => {
       const synced = 'foobartexthere'
       const character = 11 // Position after "fooinserted"
       const result = getInserted(curr, synced, character)
-      expect(result).toEqual({ start: 3, text: 'inserted' })
+      assert.deepStrictEqual(result, { start: 3, text: 'inserted' })
     })
 
     it('should identify insertion at the end', () => {
@@ -1022,7 +996,7 @@ describe('Utility functions', () => {
       const synced = 'foobar'
       const character = 14 // Position at the end of curr
       const result = getInserted(curr, synced, character)
-      expect(result).toEqual({ start: 6, text: 'appended' })
+      assert.deepStrictEqual(result, { start: 6, text: 'appended' })
     })
 
     it('should identify insertion at the beginning', () => {
@@ -1030,7 +1004,7 @@ describe('Utility functions', () => {
       const synced = 'foobar'
       const character = 6 // Position after "prefix"
       const result = getInserted(curr, synced, character)
-      expect(result).toEqual({ start: 0, text: 'prefix' })
+      assert.deepStrictEqual(result, { start: 0, text: 'prefix' })
     })
 
     it('should handle insertion with special characters', () => {
@@ -1038,7 +1012,7 @@ describe('Utility functions', () => {
       const synced = 'foobar'
       const character = 7 // After special chars (note emoji is a single character)
       const result = getInserted(curr, synced, character)
-      expect(result).toEqual({ start: 3, text: '\t\n🚀' })
+      assert.deepStrictEqual(result, { start: 3, text: '\t\n🚀' })
     })
 
     it('should handle empty insertion', () => {
@@ -1046,7 +1020,7 @@ describe('Utility functions', () => {
       const synced = 'foobar'
       const character = 3 // Position in the middle, but no change
       const result = getInserted(curr, synced, character)
-      expect(result).toEqual({ start: 3, text: '' })
+      assert.deepStrictEqual(result, { start: 3, text: '' })
     })
   })
 
@@ -1059,7 +1033,7 @@ describe('Utility functions', () => {
         insertText: 'completion'
       }
       const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
-      expect(result).toBe(true)
+      assert.strictEqual(result, true)
     })
 
     it('should return false when item has no range and insertText does not start with inserted string', () => {
@@ -1070,7 +1044,7 @@ describe('Utility functions', () => {
         insertText: 'completion'
       }
       const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
-      expect(result).toBe(false)
+      assert.strictEqual(result, false)
     })
 
     it('should return true when item has no range and snippet value starts with inserted string', () => {
@@ -1084,7 +1058,7 @@ describe('Utility functions', () => {
         }
       }
       const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
-      expect(result).toBe(true)
+      assert.strictEqual(result, true)
     })
 
     it('should return false when item has no range and snippet value does not start with inserted string', () => {
@@ -1098,7 +1072,7 @@ describe('Utility functions', () => {
         }
       }
       const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
-      expect(result).toBe(false)
+      assert.strictEqual(result, false)
     })
 
     it('should return true when item has range and current line portion matches start of insertText', () => {
@@ -1110,7 +1084,7 @@ describe('Utility functions', () => {
         range: Range.create(0, 7, 0, 16) // "completion"
       }
       const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
-      expect(result).toBe(true)
+      assert.strictEqual(result, true)
     })
 
     it('should return false when item has range and current line portion does not match start of insertText', () => {
@@ -1122,7 +1096,7 @@ describe('Utility functions', () => {
         range: Range.create(0, 7, 0, 16) // "different"
       }
       const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
-      expect(result).toBe(false)
+      assert.strictEqual(result, false)
     })
 
     it('should return true when item has range and current line portion matches start of snippet value', () => {
@@ -1137,7 +1111,7 @@ describe('Utility functions', () => {
         range: Range.create(0, 7, 0, 16) // "completion"
       }
       const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
-      expect(result).toBe(true)
+      assert.strictEqual(result, true)
     })
 
     it('should handle case with empty inserted string', () => {
@@ -1148,7 +1122,7 @@ describe('Utility functions', () => {
         insertText: 'completion'
       }
       const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
-      expect(result).toBe(true) // Empty string is always at beginning
+      assert.strictEqual(result, true) // Empty string is always at beginning
     })
 
     it('should handle special characters in inserted string', () => {
@@ -1160,7 +1134,7 @@ describe('Utility functions', () => {
         range: Range.create(0, 6, 0, 9)
       }
       const result = checkInsertedAtBeginning(currentLine, triggerCharacter, inserted, item)
-      expect(result).toBe(true)
+      assert.strictEqual(result, true)
     })
   })
 })

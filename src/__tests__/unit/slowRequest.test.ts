@@ -28,32 +28,34 @@ class TestLanguageClient extends BaseLanguageClient {
 }
 
 describe('slow request log', () => {
-  it('should log request still pending after 3s', async () => {
-    vi.useFakeTimers()
+  it('should log request still pending after 3s', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] })
     try {
       let channel = new RecordingChannel()
       let client = new TestLanguageClient(channel)
       let pending = new Promise<void>(() => {})
       void client['trackSlowRequest']('textDocument/hover', pending)
-      await vi.advanceTimersByTimeAsync(3000)
-      expect(channel.content).toContain('Request "textDocument/hover" still pending after 3s')
+      t.mock.timers.tick(3000)
+      await Promise.resolve()
+      assert.ok((channel.content).includes('Request "textDocument/hover" still pending after 3s'))
     } finally {
-      vi.useRealTimers()
+      t.mock.timers.reset()
     }
   })
 
-  it('should not log when request resolves before 3s', async () => {
-    vi.useFakeTimers()
+  it('should not log when request resolves before 3s', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] })
     try {
       let channel = new RecordingChannel()
       let client = new TestLanguageClient(channel)
       let p = client['trackSlowRequest']('textDocument/hover', Promise.resolve('ok'))
       await Promise.resolve()
-      await vi.advanceTimersByTimeAsync(3000)
-      expect(channel.content).toBe('')
-      expect(await p).toBe('ok')
+      t.mock.timers.tick(3000)
+      await Promise.resolve()
+      assert.strictEqual(channel.content, '')
+      assert.strictEqual(await p, 'ok')
     } finally {
-      vi.useRealTimers()
+      t.mock.timers.reset()
     }
   })
 })

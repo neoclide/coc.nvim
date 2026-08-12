@@ -10,7 +10,7 @@ describe('diagnostic collection', () => {
 
   it('should create collection', () => {
     let collection = new DiagnosticCollection('test')
-    expect(collection.name).toBe('test')
+    assert.strictEqual(collection.name, 'test')
     collection.dispose()
   })
 
@@ -19,9 +19,9 @@ describe('diagnostic collection', () => {
     let diagnostic = createDiagnostic('error')
     let uri = 'file:///1'
     collection.set(uri, [diagnostic])
-    expect(collection.get(uri).length).toBe(1)
+    assert.strictEqual(collection.get(uri).length, 1)
     collection.set(uri, [])
-    expect(collection.get(uri).length).toBe(0)
+    assert.strictEqual(collection.get(uri).length, 0)
   })
 
   it('should set severity for hint tags', async () => {
@@ -38,9 +38,9 @@ describe('diagnostic collection', () => {
     let uri = 'file:///1'
     collection.set(uri, diagnostics)
     let arr = collection.get(uri)
-    expect(arr.length).toBe(2)
-    expect(arr[0].severity).toBe(DiagnosticSeverity.Hint)
-    expect(arr[1].severity).toBe(DiagnosticSeverity.Hint)
+    assert.strictEqual(arr.length, 2)
+    assert.strictEqual(arr[0].severity, DiagnosticSeverity.Hint)
+    assert.strictEqual(arr[1].severity, DiagnosticSeverity.Hint)
   })
 
   it('should clear diagnostics with null as diagnostics', () => {
@@ -48,9 +48,9 @@ describe('diagnostic collection', () => {
     let diagnostic = createDiagnostic('error')
     let uri = 'file:///1'
     collection.set(uri, [diagnostic])
-    expect(collection.get(uri).length).toBe(1)
+    assert.strictEqual(collection.get(uri).length, 1)
     collection.set(uri, null)
-    expect(collection.get(uri).length).toBe(0)
+    assert.strictEqual(collection.get(uri).length, 0)
   })
 
   it('should clear diagnostics with undefined as diagnostics in entries', () => {
@@ -62,7 +62,7 @@ describe('diagnostic collection', () => {
     ]
     let uri = 'file:///1'
     collection.set(entries)
-    expect(collection.get(uri).length).toBe(0)
+    assert.strictEqual(collection.get(uri).length, 0)
   })
 
   it('should set diagnostics with entries', () => {
@@ -76,8 +76,8 @@ describe('diagnostic collection', () => {
       [uri, [createDiagnostic('other')]]
     ]
     collection.set(entries)
-    expect(collection.get(uri).length).toBe(2)
-    expect(collection.get(other).length).toBe(1)
+    assert.strictEqual(collection.get(uri).length, 2)
+    assert.strictEqual(collection.get(other).length, 1)
   })
 
   it('should delete diagnostics for uri', () => {
@@ -86,19 +86,19 @@ describe('diagnostic collection', () => {
     let uri = 'file:///1'
     collection.set(uri, [diagnostic])
     collection.delete(uri)
-    expect(collection.get(uri).length).toBe(0)
+    assert.strictEqual(collection.get(uri).length, 0)
   })
 
-  it('should clear all diagnostics', () => {
+  it('should clear all diagnostics', (t) => {
     let collection = new DiagnosticCollection('test')
     let diagnostic = createDiagnostic('error')
     let uri = 'file:///1'
-    let fn = vi.fn()
+    let fn = t.mock.fn()
     collection.set(uri, [diagnostic])
     collection.onDidDiagnosticsChange(fn)
     collection.clear()
-    expect(collection.get(uri).length).toBe(0)
-    expect(fn).toHaveBeenCalledTimes(1)
+    assert.strictEqual(collection.get(uri).length, 0)
+    assert.strictEqual((fn).mock.callCount(), 1)
   })
 
   it('should call for every uri with diagnostics', () => {
@@ -116,6 +116,6 @@ describe('diagnostic collection', () => {
     collection.forEach(uri => {
       arr.push(uri)
     })
-    expect(arr).toEqual([uri, other])
+    assert.deepStrictEqual(arr, [uri, other])
   })
 })

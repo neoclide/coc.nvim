@@ -103,7 +103,7 @@ describe('rename handler', () => {
     it('should not throw when provider not found', async () => {
       await helper.edit()
       let res = await helper.doAction('getWordEdit')
-      expect(res).toBe(null)
+      assert.strictEqual(res, null)
     })
 
     it('should use document symbols when prepare failed', async () => {
@@ -111,7 +111,7 @@ describe('rename handler', () => {
       await nvim.setLine('a')
       await doc.synchronize()
       let res = await rename.getWordEdit()
-      expect(res != null).toBe(true)
+      assert.strictEqual(res != null, true)
     })
 
     it('should return workspace edit', async () => {
@@ -119,8 +119,8 @@ describe('rename handler', () => {
       await nvim.setLine('foo foo')
       await doc.synchronize()
       let res = await rename.getWordEdit()
-      expect(res).toBeDefined()
-      expect(res.changes[doc.uri].length).toBe(2)
+      assert.notStrictEqual(res, undefined)
+      assert.strictEqual(res.changes[doc.uri].length, 2)
     })
 
     it('should extract words from buffer', async () => {
@@ -128,21 +128,21 @@ describe('rename handler', () => {
       await nvim.setLine('你 你 你')
       await doc.synchronize()
       let res = await rename.getWordEdit()
-      expect(res).toBeDefined()
-      expect(res.changes[doc.uri].length).toBe(3)
+      assert.notStrictEqual(res, undefined)
+      assert.strictEqual(res.changes[doc.uri].length, 3)
     })
   })
 
   describe('rename', () => {
     it('should throw when provider not found', async () => {
       await helper.edit()
-      await expect(helper.doAction('rename', 'foo')).rejects.toThrow(Error)
+      await assert.rejects(helper.doAction('rename', 'foo'), Error)
     })
 
     it('should return false for invalid position', async () => {
       let doc = await helper.createDocument('t.js')
       let res = await commands.executeCommand('editor.action.rename', [doc.uri, Position.create(0, 0)])
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should use newName from placeholder', async () => {
@@ -156,19 +156,19 @@ describe('rename handler', () => {
       await nvim.input('<cr>')
       await p
       let line = await nvim.line
-      expect(line).toBe('bar bar bar')
+      assert.strictEqual(line, 'bar bar bar')
     })
 
     it('should renameCurrentWord by cursors', async () => {
       await commands.executeCommand('document.renameCurrentWord')
       let line = await helper.getCmdline()
-      expect(line).toMatch('Invalid position')
+      assert.ok((line).includes('Invalid position'))
       let doc = await helper.createDocument('t.js')
       await nvim.setLine('foo foo foo')
       await commands.executeCommand('document.renameCurrentWord')
       let ns = await nvim.createNamespace('coc-cursors')
       let markers = await doc.buffer.getExtMarks(ns, 0, -1)
-      expect(markers.length).toBe(3)
+      assert.strictEqual(markers.length, 3)
     })
 
     it('should return false for empty name', async () => {
@@ -181,7 +181,7 @@ describe('rename handler', () => {
       await helper.wait(20)
       await nvim.input('<cr>')
       let res = await p
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should not throw when provideRenameEdits throws', async () => {
@@ -192,7 +192,7 @@ describe('rename handler', () => {
       }))
       let doc = await workspace.document
       let res = await languages.provideRenameEdits(doc.textDocument, Position.create(0, 0), 'newName', CancellationToken.None)
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
     })
 
     it('should use newName from range', async () => {
@@ -226,7 +226,7 @@ describe('rename handler', () => {
       await nvim.input('bar')
       await nvim.input('<cr>')
       let res = await p
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       await helper.waitFor('getline', ['.'], 'bar bar bar')
     })
 
@@ -257,9 +257,9 @@ describe('rename handler', () => {
       await nvim.input('bar')
       await nvim.input('<cr>')
       let res = await p
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let line = await nvim.getLine()
-      expect(line).toBe('bar bar bar')
+      assert.strictEqual(line, 'bar bar bar')
     })
 
     it('should return false when result is empty', async () => {
@@ -277,7 +277,7 @@ describe('rename handler', () => {
       await nvim.input('bar')
       await nvim.input('<cr>')
       let res = await p
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
   })
 })

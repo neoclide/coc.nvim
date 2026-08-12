@@ -1,4 +1,6 @@
+import { isDeepStrictEqual } from 'node:util'
 import { Neovim } from '@chemzqm/neovim'
+import type { MockTracker } from 'node:test'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import events from '../../events'
@@ -63,12 +65,12 @@ function updateData(defs: NodeDef[], reset = false) {
   provider.update(nodes, reset)
 }
 
-function makeUpdateUIThrowError() {
-  let spy = vi.spyOn(treeView as any, 'updateUI').mockImplementation(() => {
+function makeUpdateUIThrowError(mock: MockTracker) {
+  let spy = mock.method(treeView as any, 'updateUI', () => {
     throw new Error('Test error')
   })
   disposables.push(Disposable.create(() => {
-    spy.mockRestore()
+    spy.mock.restore()
   }))
 }
 
@@ -88,26 +90,26 @@ describe('TreeView', () => {
   describe('TreeItem()', () => {
     it('should create TreeItem from resourceUri', async () => {
       let item = new TreeItem(URI.file('/foo/bar.ts'))
-      expect(item.resourceUri).toBeDefined()
-      expect(item.label).toBe('bar.ts')
-      expect(item.label).toBeDefined()
+      assert.notStrictEqual(item.resourceUri, undefined)
+      assert.strictEqual(item.label, 'bar.ts')
+      assert.notStrictEqual(item.label, undefined)
     })
 
     it('should get item label', async () => {
       let item = new TreeItem({ label: 'foo' }, TreeItemCollapsibleState.None)
-      expect(getItemLabel(item)).toBe('foo')
+      assert.strictEqual(getItemLabel(item), 'foo')
     })
   })
 
   describe('show()', () => {
     it('should show with title', async () => {
       createTreeView(defaultDef)
-      expect(treeView).toBeDefined()
-      expect(treeView.visible).toBe(false)
-      expect(await treeView.checkLines()).toBe(false)
+      assert.notStrictEqual(treeView, undefined)
+      assert.strictEqual(treeView.visible, false)
+      assert.strictEqual(await treeView.checkLines(), false)
       await treeView.show()
       let visible = treeView.visible
-      expect(visible).toBe(true)
+      assert.strictEqual(visible, true)
       await checkLines(['test', '+ a', '+ b', '  g'])
       treeView.registerLocalKeymap('n', undefined, () => {})
       let called = false
@@ -124,7 +126,7 @@ describe('TreeView', () => {
       await treeView.show()
       let windowId = treeView.windowId
       await treeView.show()
-      expect(treeView.windowId).toBe(windowId)
+      assert.strictEqual(treeView.windowId, windowId)
     })
 
     it('should reuse window', async () => {
@@ -134,7 +136,7 @@ describe('TreeView', () => {
       provider.dispose()
       createTreeView(defaultDef)
       await treeView.show()
-      expect(treeView.windowId).toBe(windowId)
+      assert.strictEqual(treeView.windowId, windowId)
     })
 
     it('should render item icon', async () => {
@@ -169,7 +171,7 @@ describe('TreeView', () => {
         }, 2000)
         let disposable = treeView.onDidChangeVisibility(e => {
           clearTimeout(timer)
-          expect(e.visible).toBe(visible)
+          assert.strictEqual(e.visible, visible)
           disposable.dispose()
           resolve(undefined)
         })
@@ -268,7 +270,7 @@ describe('TreeView', () => {
       createTreeView(defaultDef, { winfixwidth: false })
       await treeView.show()
       let res = await nvim.eval('&winfixwidth')
-      expect(res).toBe(0)
+      assert.strictEqual(res, 0)
     })
 
     it('should disable leaf indent', async () => {
@@ -285,8 +287,8 @@ describe('TreeView', () => {
       createTreeView(def, { autoWidth: true })
       await treeView.show('belowright 10vs')
       let width = await nvim.call('winwidth', [0])
-      expect(width).toBeGreaterThan(10)
-      expect(treeView.targetWinId).toBeDefined()
+      assert.ok((width as number) > 10)
+      assert.notStrictEqual(treeView.targetWinId, undefined)
     })
 
     it('should support many selection', async () => {
@@ -316,9 +318,9 @@ describe('TreeView', () => {
       let buf = await nvim.buffer
       let res = await nvim.call('sign_getplaced', [buf.id, { group: 'CocTree' }])
       let signs = res[0].signs
-      expect(treeView.selection.length).toBe(1)
-      expect(signs.length).toBe(1)
-      expect(signs[0]).toEqual({
+      assert.strictEqual(treeView.selection.length, 1)
+      assert.strictEqual(signs.length, 1)
+      assert.deepStrictEqual(signs[0], {
         lnum: 2,
         id: 3001,
         name: 'CocTreeSelected',
@@ -404,7 +406,7 @@ describe('TreeView', () => {
       createTreeView(defaultDef)
       await treeView.show()
       await helper.wait(30)
-      expect(treeView.visible).toBe(true)
+      assert.strictEqual(treeView.visible, true)
       await nvim.input('c')
       await helper.waitValue(() => treeView.visible, false)
     })
@@ -425,7 +427,7 @@ describe('TreeView', () => {
       await helper.waitValue(() => node && node.label, 'a')
     })
 
-    it('should not throw when resolve command cancelled', async () => {
+    it('should not throw when resolve command cancelled', async (t) => {
       let node: TreeNode
       let cancelled = false
       createTreeView(defaultDef, {}, {
@@ -451,15 +453,15 @@ describe('TreeView', () => {
       })
       await treeView.show()
       await nvim.command('exe 2')
-      let spy = vi.spyOn(console, 'error').mockImplementation(() => {
+      let spy = t.mock.method(console, 'error', () => {
         // noop
       })
       await nvim.input('<cr>')
       await helper.wait(20)
       await nvim.command('exe 1')
       await helper.waitValue(() => cancelled, true)
-      spy.mockRestore()
-      expect(node).toBeUndefined()
+      spy.mock.restore()
+      assert.strictEqual(node, undefined)
     })
 
     it('should toggle expand by t', async () => {
@@ -541,7 +543,7 @@ describe('TreeView', () => {
         '  g',
       ])
       let res = await treeView.checkLines()
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
     it('should toggle expand on open/close icon click', async () => {
@@ -568,7 +570,7 @@ describe('TreeView', () => {
         '  g',
       ])
       let res = await treeView.checkLines()
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
     it('should invoke command on node click', async () => {
@@ -582,7 +584,7 @@ describe('TreeView', () => {
       await nvim.call('cursor', [2, 3])
       await nvim.input('<LeftRelease>')
       await helper.waitValue(() => node != null, true)
-      expect(node.label).toBe('a')
+      assert.strictEqual(node.label, 'a')
     })
   })
 
@@ -640,9 +642,9 @@ describe('TreeView', () => {
       await helper.waitValue(() => {
         return called
       }, true)
-      expect(called).toBe(true)
-      expect(args[0].label).toBe('a')
-      expect(args[1].label).toBe('a')
+      assert.strictEqual(called, true)
+      assert.strictEqual(args[0].label, 'a')
+      assert.strictEqual(args[1].label, 'a')
     })
   })
 
@@ -659,12 +661,12 @@ describe('TreeView', () => {
       await helper.waitValue(() => visible, false)
     })
 
-    it('should show tooltip on CursorHold', async () => {
-      let show = vi.fn()
-      let factory = { show, dispose: vi.fn() } as any
-      let spy = vi.spyOn(window, 'createFloatFactory').mockReturnValue(factory)
+    it('should show tooltip on CursorHold', async (t) => {
+      let show = t.mock.fn()
+      let factory = { show, dispose: t.mock.fn() } as any
+      let spy = t.mock.method(window, 'createFloatFactory', () => (factory))
       disposables.push(Disposable.create(() => {
-        spy.mockRestore()
+        spy.mock.restore()
       }))
       createTreeView(defaultDef, {}, {
         resolveItem: (item, node) => {
@@ -680,9 +682,9 @@ describe('TreeView', () => {
       await treeView.show()
       let bufnr = (treeView as any).bufnr as number
       await events.fire('CursorHold', [bufnr, [2, 1]])
-      expect(show).toHaveBeenCalledWith([{ filetype: 'txt', content: 'first' }])
+      assert.ok((show).mock.calls.some(call => isDeepStrictEqual(call.arguments, [[{ filetype: 'txt', content: 'first' }]])))
       await events.fire('CursorHold', [bufnr, [3, 1]])
-      expect(show).toHaveBeenLastCalledWith([{ filetype: 'markdown', content: '#title' }])
+      assert.deepStrictEqual((show).mock.calls.at(-1)?.arguments, [[{ filetype: 'markdown', content: '#title' }]])
     })
   })
 
@@ -698,7 +700,7 @@ describe('TreeView', () => {
       ])
       await helper.wait(20)
       let curr = await nvim.eval('b:changedtick')
-      expect(curr).toBe(tick)
+      assert.strictEqual(curr, tick)
     })
 
     it('should render all nodes on root change', async () => {
@@ -718,7 +720,7 @@ describe('TreeView', () => {
         '+ a',
       ])
       let res = await treeView.checkLines()
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
     it('should keep node open state', async () => {
@@ -752,7 +754,7 @@ describe('TreeView', () => {
         '    j',
       ])
       let res = await treeView.checkLines()
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
     it('should render changed nodes', async () => {
@@ -775,7 +777,7 @@ describe('TreeView', () => {
         '  g',
       ])
       let res = await treeView.checkLines()
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
     it('should error message on error', async () => {
@@ -791,10 +793,10 @@ describe('TreeView', () => {
       updateData([['a']])
       await events.race(['TextChanged'])
       let line = await nvim.call('getline', [1])
-      expect(line).toMatch(msg)
+      assert.ok(typeof line === 'string' && line.includes(msg))
       await helper.waitValue(() => treeView.checkLines(), true)
       let res = await treeView.checkLines()
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
     it('should reset message when data exists', async () => {
@@ -817,10 +819,10 @@ describe('TreeView', () => {
       ])
     })
 
-    it('should show error message on refresh error', async () => {
+    it('should show error message on refresh error', async (t) => {
       createTreeView(defaultDef)
       await treeView.show()
-      makeUpdateUIThrowError()
+      makeUpdateUIThrowError(t.mock)
       updateData([
         ['a', [['h'], ['d']]],
         ['b', [['e'], ['f']]],
@@ -850,8 +852,8 @@ describe('TreeView', () => {
       let ns = await nvim.call('coc#highlight#create_namespace', ['tree'])
       let bufnr = await nvim.call('bufnr', ['%'])
       let markers = await nvim.call('nvim_buf_get_extmarks', [bufnr, ns, [1, 0], [1, -1], { details: true }]) as any[]
-      expect(markers.length > 0).toBe(true)
-      expect(markers[0][3]['hl_group']).toBe('CocDeprecatedHighlight')
+      assert.strictEqual(markers.length > 0, true)
+      assert.strictEqual(markers[0][3]['hl_group'], 'CocDeprecatedHighlight')
     })
 
     it('should not throw when getTreeItem return undefined', async () => {
@@ -893,7 +895,7 @@ describe('TreeView', () => {
       await treeView.show()
       treeView.focusItem(nodes[1])
       let line = await nvim.call('getline', ['.'])
-      expect(line).toBe('+ b')
+      assert.strictEqual(line, '+ b')
     })
   })
 
@@ -908,7 +910,7 @@ describe('TreeView', () => {
       } catch (e) {
         err = e
       }
-      expect(err).toBeDefined()
+      assert.notStrictEqual(err, undefined)
     })
 
     it('should select item', async () => {
@@ -928,10 +930,10 @@ describe('TreeView', () => {
         '  g',
       ])
       let selection = treeView.selection
-      expect(selection.length).toBe(1)
-      expect(selection[0].label).toBe('h')
+      assert.strictEqual(selection.length, 1)
+      assert.strictEqual(selection[0].label, 'h')
       let line = await nvim.call('getline', ['.'])
-      expect(line).toMatch('h')
+      assert.ok(typeof line === 'string' && line.includes('h'))
     })
 
     it('should not select item', async () => {
@@ -939,7 +941,7 @@ describe('TreeView', () => {
       await treeView.show()
       await treeView.reveal(nodes[1], { select: false })
       let lnum = await nvim.call('line', ['.'])
-      expect(lnum).toBe(1)
+      assert.strictEqual(lnum, 1)
     })
 
     it('should focus item', async () => {
@@ -947,7 +949,7 @@ describe('TreeView', () => {
       await treeView.show()
       await treeView.reveal(nodes[1], { focus: true })
       let line = await nvim.call('getline', ['.'])
-      expect(line).toMatch('b')
+      assert.ok(typeof line === 'string' && line.includes('b'))
     })
 
     it('should expand item which single level', async () => {
@@ -1010,13 +1012,13 @@ describe('TreeView', () => {
       await helper.waitFor('getline', [2], 'a ')
     })
 
-    it('should not throw error on filter', async () => {
+    it('should not throw error on filter', async (t) => {
       await createFilterTreeView()
       let resolveUpdate: () => void
       let updated = new Promise<void>(resolve => {
         resolveUpdate = resolve
       })
-      let spy = vi.spyOn(treeView as any, 'getRenderedLine').mockImplementation(() => {
+      let spy = t.mock.method(treeView as any, 'getRenderedLine', () => {
         resolveUpdate()
         throw new Error('Error on updateUI')
       })
@@ -1024,7 +1026,7 @@ describe('TreeView', () => {
         await nvim.input('a')
         await updated
       } finally {
-        spy.mockRestore()
+        spy.mock.restore()
       }
     })
 
@@ -1034,13 +1036,13 @@ describe('TreeView', () => {
       await createFilterTreeView()
       let bufnr = await nvim.call('bufnr', ['%'])
       let markers = await nvim.call('nvim_buf_get_extmarks', [bufnr, ns, [1, 0], [1, -1], {}]) as [number, number, number][]
-      expect(markers[0]).toBeDefined()
+      assert.notStrictEqual(markers[0], undefined)
       await nvim.call('win_gotoid', [winid])
       markers = await nvim.call('nvim_buf_get_extmarks', [bufnr, ns, [1, 0], [1, -1], {}]) as [number, number, number][]
-      expect(markers.length).toBe(0)
+      assert.strictEqual(markers.length, 0)
       await nvim.command('wincmd p')
       markers = await nvim.call('nvim_buf_get_extmarks', [bufnr, ns, [1, 0], [1, -1], {}]) as [number, number, number][]
-      expect(markers.length).toBe(1)
+      assert.strictEqual(markers.length, 1)
     })
 
     it('should filter new nodes on data change', async () => {
@@ -1097,7 +1099,7 @@ describe('TreeView', () => {
       await nvim.input('<up><down><cr>')
       await checkLines(['test', 'ab '])
       let curr = treeView.selection[0]
-      expect(curr).toBeUndefined()
+      assert.strictEqual(curr, undefined)
     })
 
     it('should invoke command by <cr>', async () => {
@@ -1110,7 +1112,7 @@ describe('TreeView', () => {
       await nvim.input('<cr>')
       await helper.waitValue(() => node != null, true)
       let curr = treeView.selection[0]
-      expect(curr).toBeDefined()
+      assert.notStrictEqual(curr, undefined)
     })
 
     it('should keep state when press <cr> with empty selection', async () => {
@@ -1182,13 +1184,13 @@ describe('TreeView', () => {
       await checkLines(['test', 'a ', '  a',])
     })
 
-    it('should not throw on filter error', async () => {
+    it('should not throw on filter error', async (t) => {
       await createFilterTreeView()
       let resolveRedraw: () => void
       let redrawn = new Promise<void>(resolve => {
         resolveRedraw = resolve
       })
-      let spy = vi.spyOn(treeView as any, 'redraw').mockImplementation(() => {
+      let spy = t.mock.method(treeView as any, 'redraw', () => {
         resolveRedraw()
         throw new Error('test error')
       })
@@ -1196,7 +1198,7 @@ describe('TreeView', () => {
         await nvim.input('a')
         await redrawn
       } finally {
-        spy.mockRestore()
+        spy.mock.restore()
       }
     })
   })

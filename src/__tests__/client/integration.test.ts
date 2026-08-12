@@ -40,8 +40,8 @@ async function testLanguageServer(serverOptions: lsclient.ServerOptions, clientO
   if (clientOpts) Object.assign(clientOptions, clientOpts)
   let client = new lsclient.LanguageClient('css', 'Test Language Server', serverOptions, clientOptions)
   await client.start()
-  expect(client.initializeResult).toBeDefined()
-  expect(client.started).toBe(true)
+  assert.notStrictEqual(client.initializeResult, undefined)
+  assert.strictEqual(client.started, true)
   return client
 }
 
@@ -100,15 +100,15 @@ describe('SettingMonitor', () => {
     disposables.push(monitor.start())
     // enabled setting starts the client
     await helper.waitValue(() => fake.startCalls, 1)
-    expect(fake.state).toBe(lsclient.State.Running)
+    assert.strictEqual(fake.state, lsclient.State.Running)
     // disabling the setting stops the client
     helper.updateConfiguration('html.enabled', false)
     await helper.waitValue(() => fake.stopCalls, 1)
-    expect(fake.state).toBe(lsclient.State.Stopped)
+    assert.strictEqual(fake.state, lsclient.State.Stopped)
     // enabling it again starts the client
     helper.updateConfiguration('html.enabled', true)
     await helper.waitValue(() => fake.startCalls, 2)
-    expect(fake.state).toBe(lsclient.State.Running)
+    assert.strictEqual(fake.state, lsclient.State.Running)
   })
 
   it('should report start and stop errors', async () => {
@@ -119,51 +119,51 @@ describe('SettingMonitor', () => {
     helper.updateConfiguration('TestServerEnabled', true, disposables)
     disposables.push(monitor.start())
     await helper.waitValue(() => fake.startCalls, 1)
-    expect(fake.errors[0]).toContain('Start failed after configuration change')
+    assert.ok((fake.errors[0]).includes('Start failed after configuration change'))
     // start again without error to reach running state
     fake.startError = undefined
     await client.start()
     fake.stopError = new Error('myerror')
     helper.updateConfiguration('TestServerEnabled', false)
     await helper.waitValue(() => fake.stopCalls, 1)
-    expect(fake.errors[1]).toContain('Stop failed after configuration change')
+    assert.ok((fake.errors[1]).includes('Stop failed after configuration change'))
   })
 })
 
 describe('global functions', () => {
   it('should get working directory', async () => {
     let cwd = await lsclient.getServerWorkingDir()
-    expect(cwd).toBeDefined()
+    assert.notStrictEqual(cwd, undefined)
     cwd = await lsclient.getServerWorkingDir({ cwd: 'not_exists' })
-    expect(cwd).toBeUndefined()
+    assert.strictEqual(cwd, undefined)
   })
 
   it('should get main root', async () => {
-    expect(lsclient.mainGetRootPath()).toBeUndefined()
+    assert.strictEqual(lsclient.mainGetRootPath(), undefined)
     let uri = URI.file(__filename)
     await workspace.openResource(uri.toString())
-    expect(lsclient.mainGetRootPath()).toBeDefined()
+    assert.notStrictEqual(lsclient.mainGetRootPath(), undefined)
     await workspace.nvim.command('bd!')
   })
 
   it('should get runtime path', async () => {
-    expect(lsclient.getRuntimePath('node', undefined)).toBe('node')
-    expect(lsclient.getRuntimePath(__filename, undefined)).toBeDefined()
+    assert.strictEqual(lsclient.getRuntimePath('node', undefined), 'node')
+    assert.notStrictEqual(lsclient.getRuntimePath(__filename, undefined), undefined)
     let uri = URI.file(__filename)
     await workspace.openResource(uri.toString())
-    expect(lsclient.getRuntimePath('package.json', undefined)).toBeDefined()
+    assert.notStrictEqual(lsclient.getRuntimePath('package.json', undefined), undefined)
     let name = path.basename(__filename)
-    expect(lsclient.getRuntimePath(name, __dirname)).toBeDefined()
+    assert.notStrictEqual(lsclient.getRuntimePath(name, __dirname), undefined)
   })
 
   it('should check debug mode', async () => {
-    expect(lsclient.startedInDebugMode(['--debug'])).toBe(true)
-    expect(lsclient.startedInDebugMode(undefined)).toBe(false)
+    assert.strictEqual(lsclient.startedInDebugMode(['--debug']), true)
+    assert.strictEqual(lsclient.startedInDebugMode(undefined), false)
   })
 })
 
 describe('Client events', () => {
-  it('should start server', async () => {
+  it('should start server', async (t) => {
     let clientOptions: lsclient.LanguageClientOptions = {}
     let serverModule = path.join(__dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
@@ -174,20 +174,20 @@ describe('Client events', () => {
     disposables.push(client)
     await client.start()
     let called = false
-    let spy = vi.spyOn(client, 'error').mockImplementation(() => {
+    let spy = t.mock.method(client, 'error', () => {
       called = true
     })
     await client.sendNotification('registerBad')
     await helper.waitValue(() => called, true)
-    spy.mockRestore()
+    spy.mock.restore()
     {
-      let spy = vi.spyOn(client['_connection'], 'trace').mockReturnValue(Promise.reject(new Error('myerror')))
+      let spy = t.mock.method(client['_connection'], 'trace', () => (Promise.reject(new Error('myerror'))))
       client.trace = Trace.Compact
-      spy.mockRestore()
+      spy.mock.restore()
     }
   })
 
-  it('should restart on error', async () => {
+  it('should restart on error', async (t) => {
     let serverModule = path.join(__dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
       command: 'node',
@@ -197,14 +197,14 @@ describe('Client events', () => {
       errorHandler: new DefaultErrorHandler('test', 2)
     })
     let called = false
-    let spy = vi.spyOn(client, 'start').mockImplementation((async () => {
+    let spy = t.mock.method(client, 'start', (async () => {
       called = true
       throw new Error('myerror')
     }) as any)
     let sp: ChildProcess = client['_serverProcess']
     sp.kill('SIGKILL')
     await helper.waitValue(() => called, true)
-    spy.mockRestore()
+    spy.mock.restore()
   })
 
   it('should not start on process exit', async () => {
@@ -239,7 +239,7 @@ describe('Client events', () => {
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     let name = client.getExtensionName()
-    expect(name).toBe('html')
+    assert.strictEqual(name, 'html')
     let n = 0
     let disposable = client.onRequest('customRequest', () => {
       n++
@@ -251,7 +251,7 @@ describe('Client events', () => {
       dispose.dispose()
     })
     let dis = client.onProgress(WorkDoneProgress.type, '4fb247f8-0ede-415d-a80a-6629b6a9eaf8', p => {
-      expect(p).toEqual({ kind: 'end', message: 'end message' })
+      assert.deepStrictEqual(p, { kind: 'end', message: 'end message' })
       n++
       dis.dispose()
     })
@@ -288,7 +288,7 @@ describe('Client events', () => {
       dispose.dispose()
     })
     let dis = client.onProgress(WorkDoneProgress.type, '4fb247f8-0ede-415d-a80a-6629b6a9eaf8', p => {
-      expect(p).toEqual({ kind: 'end', message: 'end message' })
+      assert.deepStrictEqual(p, { kind: 'end', message: 'end message' })
       n++
       dis.dispose()
     })
@@ -298,7 +298,7 @@ describe('Client events', () => {
     }, 3)
   })
 
-  it('should send progress', async () => {
+  it('should send progress', async (t) => {
     let clientOptions: lsclient.LanguageClientOptions = {
       synchronize: {},
       initializationOptions: { initEvent: true }
@@ -312,20 +312,20 @@ describe('Client events', () => {
     let called = false
     client.onNotification('progressResult', res => {
       called = true
-      expect(res).toEqual({ kind: 'begin', title: 'begin progress' })
+      assert.deepStrictEqual(res, { kind: 'begin', title: 'begin progress' })
     })
     await client.sendProgress(WorkDoneProgress.type, '4b3a71d0-2b3f-46af-be2c-2827f548579f', { kind: 'begin', title: 'begin progress' })
     await client.start()
     await helper.waitValue(() => called, true)
-    let spy = vi.spyOn(client['_connection'] as any, 'sendProgress').mockImplementation(() => {
+    let spy = t.mock.method(client['_connection'] as any, 'sendProgress', () => {
       throw new Error('error')
     })
-    await expect(client.sendProgress(WorkDoneProgress.type, '', { kind: 'begin', title: '' })).rejects.toThrow(Error)
-    spy.mockRestore()
+    await assert.rejects(client.sendProgress(WorkDoneProgress.type, '', { kind: 'begin', title: '' }), Error)
+    spy.mock.restore()
     let p = client.stop()
-    await expect(client._start()).rejects.toThrow(Error)
+    await assert.rejects(client._start(), Error)
     await p
-    await expect(client.sendProgress(WorkDoneProgress.type, '', { kind: 'begin', title: '' })).rejects.toThrow(/not running/)
+    await assert.rejects(client.sendProgress(WorkDoneProgress.type, '', { kind: 'begin', title: '' }), /not running/)
   })
 
   it('should use custom errorHandler', async () => {
@@ -367,7 +367,7 @@ describe('Client events', () => {
     await client.handleConnectionError(new Error('error'), { jsonrpc: '' }, 1)
   })
 
-  it('should handle message events', async () => {
+  it('should handle message events', async (ctx) => {
     let clientOptions: lsclient.LanguageClientOptions = {
       synchronize: {},
     }
@@ -377,7 +377,7 @@ describe('Client events', () => {
       transport: lsclient.TransportKind.stdio
     }
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
-    expect(client.hasPendingResponse).toBeUndefined()
+    assert.strictEqual(client.hasPendingResponse, undefined)
     disposables.push(client)
     await client.start()
     await client.sendNotification('logMessage')
@@ -389,12 +389,12 @@ describe('Client events', () => {
       let names = ['showErrorMessage', 'showWarningMessage', 'showInformationMessage']
       let fns: Function[] = []
       for (let name of names) {
-        let spy = vi.spyOn(window as any, name).mockImplementation(() => {
+        let spy = ctx.mock.method(window as any, name, () => {
           times++
           return Promise.resolve(result)
         })
         fns.push(() => {
-          spy.mockRestore()
+          spy.mock.restore()
         })
       }
       return Disposable.create(() => {
@@ -413,11 +413,11 @@ describe('Client events', () => {
     let filename = path.join(os.tmpdir(), crypto.randomUUID())
     let uri = URI.file(filename)
     fs.writeFileSync(filename, 'foo', 'utf8')
-    let spy = vi.spyOn(workspace, 'openResource').mockImplementation(() => {
+    let spy = ctx.mock.method(workspace, 'openResource', () => {
       return Promise.resolve()
     })
     let called = false
-    let s = vi.spyOn(window, 'selectRange').mockImplementation(() => {
+    let s = ctx.mock.method(window, 'selectRange', () => {
       called = true
       return Promise.reject(new Error('failed'))
     })
@@ -426,8 +426,8 @@ describe('Client events', () => {
     await client.sendNotification('showDocument', { uri: uri.toString() })
     await client.sendNotification('showDocument', { uri: uri.toString(), selection: Range.create(0, 0, 1, 0) })
     await helper.waitValue(() => called, true)
-    spy.mockRestore()
-    s.mockRestore()
+    spy.mock.restore()
+    s.mock.restore()
     fs.unlinkSync(filename)
     await helper.waitValue(() => {
       return client.hasPendingResponse
@@ -593,36 +593,36 @@ describe('Client integration', () => {
     assert.deepStrictEqual(client.supportedMarkupKind, [MarkupKind.PlainText])
     assert.strictEqual(client.name, 'Test Language Server')
     assert.strictEqual(client.diagnostics, undefined)
-    expect(client.traceOutputChannel).toBeDefined()
+    assert.notStrictEqual(client.traceOutputChannel, undefined)
     client.traceMessage('message')
     client.traceMessage('message', {})
     client.trace = Trace.Verbose
     let d = client.start()
     let token = CancellationToken.Cancelled
     let sp: ChildProcess = client['_serverProcess']
-    expect(sp instanceof ChildProcess).toBe(true)
+    assert.strictEqual(sp instanceof ChildProcess, true)
     sp.stdout.emit('error', new Error('my error'))
     client.handleFailedRequest(DidCreateFilesNotification.type, token, undefined, '')
-    await expect(async () => {
+    await assert.rejects(async () => {
       let error = new ResponseError(LSPErrorCodes.RequestCancelled, 'request cancelled')
       client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
-    }).rejects.toThrow(CancellationError)
-    await expect(async () => {
+    }, CancellationError)
+    await assert.rejects(async () => {
       let error = new ResponseError(LSPErrorCodes.RequestCancelled, 'request cancelled', 'cancelled')
       client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
-    }).rejects.toThrow(LSPCancellationError)
-    await expect(async () => {
+    }, LSPCancellationError)
+    await assert.rejects(async () => {
       let error = new Error('failed')
       client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
-    }).rejects.toThrow(Error)
+    }, Error)
     let error = new ResponseError(LSPErrorCodes.ContentModified, 'content changed')
     client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
     error = new ResponseError(ErrorCodes.PendingResponseRejected, '')
     client.handleFailedRequest(DidCreateFilesNotification.type, undefined, error, '')
-    await expect(async () => {
+    await assert.rejects(async () => {
       let error = new ResponseError(LSPErrorCodes.ContentModified, 'content changed')
       client.handleFailedRequest(InlayHintRequest.type, undefined, error, '')
-    }).rejects.toThrow(CancellationError)
+    }, CancellationError)
     await client.stop()
     client.info('message', new Error('my error'), true)
     client.warn('message', 'error', true)
@@ -644,7 +644,7 @@ describe('Client integration', () => {
     let client = await testLanguageServer(serverOptions, {
       ignoredRootPaths: [workspace.root]
     })
-    expect(client.serviceState).toBeDefined()
+    assert.notStrictEqual(client.serviceState, undefined)
     await client.stop()
     await assert.rejects(async () => {
       let option: lsclient.ServerOptions = {
@@ -739,7 +739,7 @@ describe('Client integration', () => {
     features.push(new SimpleStaticFeature())
     client.registerFeatures(features)
     await client.start()
-    expect(called).toBe(true)
+    assert.strictEqual(called, true)
     await client.stop()
   })
 
@@ -757,7 +757,7 @@ describe('Client integration', () => {
     await assert.rejects(async () => {
       await client.start()
     }, /failed/)
-    await expect(client['$start']()).rejects.toThrow(/failed/)
+    await assert.rejects(client['$start'](), /failed/)
   })
 
   it('should logMessage', async () => {
@@ -785,22 +785,22 @@ describe('Client integration', () => {
       outputChannel,
       initializationOptions: { trace: true }
     })
-    expect(called).toBe(true)
+    assert.strictEqual(called, true)
     await client.stop()
   })
 
-  it('should use console for messages', async () => {
+  it('should use console for messages', async (t) => {
     let serverModule = path.join(__dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
       command: 'node',
       args: [serverModule, '--stdio']
     }
     let client = await testLanguageServer(serverOptions)
-    let fn = vi.fn()
-    let spy = vi.spyOn(console, 'log').mockImplementation(() => {
+    let fn = t.mock.fn()
+    let spy = t.mock.method(console, 'log', () => {
       fn()
     })
-    let s = vi.spyOn(console, 'error').mockImplementation(() => {
+    let s = t.mock.method(console, 'error', () => {
       fn()
     })
     client.switchConsole()
@@ -809,10 +809,10 @@ describe('Client integration', () => {
     client.error('message', { info: 'info' })
     client.info('message', { info: 'info' })
     client.switchConsole()
-    s.mockRestore()
-    spy.mockRestore()
+    s.mock.restore()
+    spy.mock.restore()
     await client.stop()
-    expect(fn).toHaveBeenCalled()
+    assert.ok((fn).mock.callCount() > 0)
   })
 
   it('should check version on apply workspaceEdit', async () => {
@@ -861,11 +861,11 @@ describe('Client integration', () => {
     await helper.waitValue(() => {
       return res != null
     }, true)
-    expect(res).toEqual({ applied: true })
+    assert.deepStrictEqual(res, { applied: true })
     await client.stop()
   })
 
-  it('should handle error on initialize', async () => {
+  it('should handle error on initialize', async (t) => {
     let client: lsclient.LanguageClient
     let progressOnInitialization = false
     async function startServer(handler: InitializationFailedHandler | undefined, key = 'throwError'): Promise<lsclient.LanguageClient> {
@@ -889,27 +889,27 @@ describe('Client integration', () => {
       return client
     }
     let messageReturn = {}
-    let spy = vi.spyOn(window, 'showErrorMessage').mockImplementation(() => {
+    let spy = t.mock.method(window, 'showErrorMessage', () => {
       return Promise.resolve(messageReturn as any)
     })
     let n = 0
-    await expect(startServer(() => {
+    await assert.rejects(startServer(() => {
       n++
       return n == 1
-    })).rejects.toThrow(Error)
+    }), Error)
     await helper.waitValue(() => {
       return n
     }, 2)
-    await expect(startServer(undefined)).rejects.toThrow(Error)
+    await assert.rejects(startServer(undefined), Error)
 
-    await expect(startServer(undefined, 'normalThrow')).rejects.toThrow(Error)
+    await assert.rejects(startServer(undefined, 'normalThrow'), Error)
     progressOnInitialization = true
-    await expect(async () => {
+    await assert.rejects(async () => {
       client = await startServer(undefined, 'utf8')
-    }).rejects.toThrow(/Unsupported position encoding/)
+    }, /Unsupported position encoding/)
     await helper.waitValue(() => client.state, lsclient.State.Stopped)
     await client.stop()
-    spy.mockRestore()
+    spy.mock.restore()
   })
 
   it('should attach extension name', async () => {
@@ -926,8 +926,8 @@ describe('Client integration', () => {
     client['stack'] = `\n\n${filepath}:1:1`
     let obj = {}
     client.attachExtensionName(obj)
-    expect(typeof client.getExtensionName()).toBe('string')
-    expect(obj['__extensionName']).toBe('single')
+    assert.strictEqual(typeof client.getExtensionName(), 'string')
+    assert.strictEqual(obj['__extensionName'], 'single')
     registry.unregistExtension('single')
     await client.dispose()
   })
@@ -942,7 +942,7 @@ describe('Client integration', () => {
         documentSelector: ['css'],
         initializationOptions: {}
       })
-      await expect(client.start()).rejects.toThrow(/exited/)
+      await assert.rejects(client.start(), /exited/)
       await client.dispose()
     })
 
@@ -959,13 +959,13 @@ describe('Client integration', () => {
         documentSelector: ['css'],
         initializationOptions: {}
       })
-      await expect(client.start()).rejects.toThrow(/exited/)
+      await assert.rejects(client.start(), /exited/)
       await client.dispose()
     })
 
-    it('should reject start when a pipe server never connects', async () => {
+    it('should reject start when a pipe server never connects', async (t) => {
       let nativeSetTimeout = global.setTimeout
-      let timerSpy = vi.spyOn(global, 'setTimeout').mockImplementation(((callback, timeout, ...args) => {
+      let timerSpy = t.mock.method(global, 'setTimeout', ((callback, timeout, ...args) => {
         // Shorten only the test-mode CONNECT_TIMEOUT watchdog. The spawned
         // process intentionally never connects, so wall-clock time adds no
         // coverage here.
@@ -981,12 +981,12 @@ describe('Client integration', () => {
         initializationOptions: {}
       })
       try {
-        await expect(client.start()).rejects.toThrow(/Timed out/)
+        await assert.rejects(client.start(), /Timed out/)
       } finally {
         try {
           await client.dispose()
         } finally {
-          timerSpy.mockRestore()
+          timerSpy.mock.restore()
         }
       }
     })
@@ -1001,7 +1001,7 @@ describe('Client integration', () => {
         documentSelector: ['css'],
         initializationOptions: {}
       })
-      await expect(client.start()).rejects.toThrow(/ENOENT|spawn/)
+      await assert.rejects(client.start(), /ENOENT|spawn/)
       await client.dispose()
     })
 
@@ -1015,7 +1015,7 @@ describe('Client integration', () => {
         documentSelector: ['css'],
         initializationOptions: {}
       })
-      await expect(client.start()).rejects.toThrow(/ENOENT|spawn/)
+      await assert.rejects(client.start(), /ENOENT|spawn/)
       await client.dispose()
     })
 
@@ -1028,7 +1028,7 @@ describe('Client integration', () => {
         documentSelector: ['css'],
         initializationOptions: {}
       })
-      await expect(bad.start()).rejects.toThrow(/ENOENT|spawn/)
+      await assert.rejects(bad.start(), /ENOENT|spawn/)
       let good = new lsclient.LanguageClient('css', 'Test Language Server', {
         module: path.join(__dirname, './server/testServer.js'),
         transport: lsclient.TransportKind.stdio
@@ -1037,7 +1037,7 @@ describe('Client integration', () => {
         initializationOptions: {}
       })
       await good.start()
-      expect(good.initializeResult).toBeDefined()
+      assert.notStrictEqual(good.initializeResult, undefined)
       await good.dispose()
       await bad.dispose()
     })

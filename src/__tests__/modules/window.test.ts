@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util'
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { HighlightItem } from '@chemzqm/neovim/lib/api/Buffer'
 import { CancellationToken, Disposable, Emitter } from 'vscode-languageserver-protocol'
@@ -38,10 +39,10 @@ afterEach(async () => {
 describe('window', () => {
   describe('functions', () => {
     it('should formatMessage', () => {
-      expect(Window).toBeDefined()
-      expect(formatMessage('a', 'b', 1)).toBe('a b 1%')
-      expect(formatMessage(undefined, undefined, 1)).toBe('1%')
-      expect(formatMessage('a', undefined, 0)).toBe('a')
+      assert.notStrictEqual(Window, undefined)
+      assert.strictEqual(formatMessage('a', 'b', 1), 'a b 1%')
+      assert.strictEqual(formatMessage(undefined, undefined, 1), '1%')
+      assert.strictEqual(formatMessage('a', undefined, 0), 'a')
     })
 
     it('should convert highlight item', () => {
@@ -52,7 +53,7 @@ describe('window', () => {
         lnum: 0,
         combine: true
       })
-      expect(res).toEqual(['Search', 0, 0, 1, 1, 0, 0])
+      assert.deepStrictEqual(res, ['Search', 0, 0, 1, 1, 0, 0])
     })
 
     it('should get offset', async () => {
@@ -60,18 +61,18 @@ describe('window', () => {
       await nvim.call('setline', [buf.id, ['bar', 'foo']])
       await nvim.call('cursor', [2, 2])
       let n = await window.getOffset()
-      expect(n).toBe(5)
+      assert.strictEqual(n, 5)
     })
 
     it('should get cursor screen position', async () => {
       let pos = await window.getCursorScreenPosition()
-      expect(pos).toEqual({ row: 0, col: 0 })
+      assert.deepStrictEqual(pos, { row: 0, col: 0 })
     })
 
     it('should export terminals', async () => {
-      expect(Array.isArray(window.terminals)).toBe(true)
-      expect(window.onDidOpenTerminal).toBeDefined()
-      expect(window.onDidCloseTerminal).toBeDefined()
+      assert.strictEqual(Array.isArray(window.terminals), true)
+      assert.notStrictEqual(window.onDidOpenTerminal, undefined)
+      assert.notStrictEqual(window.onDidCloseTerminal, undefined)
     })
 
     it('should selected range', async () => {
@@ -79,22 +80,22 @@ describe('window', () => {
       await nvim.command('normal! viw')
       await nvim.eval(`feedkeys("\\<Esc>", 'in')`)
       let range = await window.getSelectedRange('v')
-      expect(range).toEqual({ start: { line: 0, character: 0 }, end: { line: 0, character: 6 } })
+      assert.deepStrictEqual(range, { start: { line: 0, character: 0 }, end: { line: 0, character: 6 } })
     })
 
     it('should run terminal command', async () => {
       let res = await window.runTerminalCommand('ls', __dirname)
-      expect(res.success).toBe(true)
+      assert.strictEqual(res.success, true)
       res = await window.runTerminalCommand('echo 1', process.cwd(), true)
-      expect(res.success).toBe(true)
+      assert.strictEqual(res.success, true)
     })
 
     it('should open temimal buffer', async () => {
       let bufnr = await window.openTerminal('ls', { autoclose: false, keepfocus: false })
       let curr = await nvim.eval('bufnr("%")')
-      expect(curr).toBe(bufnr)
+      assert.strictEqual(curr, bufnr)
       let buftype = await nvim.eval('&buftype')
-      expect(buftype).toBe('terminal')
+      assert.strictEqual(buftype, 'terminal')
     })
 
     it('should create float factory', async () => {
@@ -108,17 +109,17 @@ describe('window', () => {
       let f = window.createFloatFactory({ modes: ['n', 'i'] })
       await f.show([{ content: 'content', filetype: 'txt' }])
       let win = await helper.getFloat()
-      expect(win).toBeDefined()
+      assert.notStrictEqual(win, undefined)
       let id = await nvim.call('coc#float#get_related', [win.id, 'border', 0]) as number
-      expect(id).toBeGreaterThan(0)
+      assert.ok((id) > (0))
     })
 
     it('should createStatusBarItem', async () => {
       let item = window.createStatusBarItem(1, { progress: true })
       item.text = 'test'
       item.show()
-      expect(item.text).toBe('test')
-      expect(item.isProgress).toBe(true)
+      assert.strictEqual(item.text, 'test')
+      assert.strictEqual(item.isProgress, true)
       let other = window.createStatusBarItem()
       other.text = 'bar'
       other.show()
@@ -133,7 +134,7 @@ describe('window', () => {
 
     it('should create outputChannel', () => {
       let channel = window.createOutputChannel('channel')
-      expect(channel.name).toBe('channel')
+      assert.strictEqual(channel.name, 'channel')
     })
 
     it('should create TreeView instance', async () => {
@@ -157,7 +158,7 @@ describe('window', () => {
       disposables.push(treeView)
       await treeView.show()
       let filetype = await nvim.eval('&filetype')
-      expect(filetype).toBe('coctree')
+      assert.strictEqual(filetype, 'coctree')
     })
 
     it('should show outputChannel', async () => {
@@ -165,7 +166,7 @@ describe('window', () => {
       window.showOutputChannel('channel')
       let buf = await nvim.buffer
       let name = await buf.name
-      expect(name).toMatch('channel')
+      assert.ok((name).includes('channel'))
     })
 
     it('should not show channel not exists', async () => {
@@ -174,14 +175,14 @@ describe('window', () => {
       window.showOutputChannel('NONE', 'edit')
       await helper.wait(20)
       buf = await nvim.buffer
-      expect(buf.id).toBe(bufnr)
+      assert.strictEqual(buf.id, bufnr)
     })
 
     it('should get cursor position', async () => {
       await nvim.setLine('       ')
       await nvim.call('cursor', [1, 3])
       let pos = await window.getCursorPosition()
-      expect(pos).toEqual({
+      assert.deepStrictEqual(pos, {
         line: 0,
         character: 2
       })
@@ -192,9 +193,9 @@ describe('window', () => {
       await nvim.input('i')
       await window.moveTo({ line: 0, character: 3 })
       let col = await nvim.call('col', '.')
-      expect(col).toBe(4)
+      assert.strictEqual(col, 4)
       let virtualedit = await nvim.getOption('virtualedit')
-      expect(virtualedit).toBe('')
+      assert.strictEqual(virtualedit, '')
     })
 
     it('should choose quickpick', async () => {
@@ -203,7 +204,7 @@ describe('window', () => {
       await nvim.input('1')
       await nvim.input('<CR>')
       let res = await p
-      expect(res).toBe(0)
+      assert.strictEqual(res, 0)
     })
 
     it('should cancel quickpick', async () => {
@@ -211,7 +212,7 @@ describe('window', () => {
       await helper.waitPrompt()
       await nvim.input('<esc>')
       let res = await p
-      expect(res).toBe(-1)
+      assert.strictEqual(res, -1)
     })
 
     it('should show prompt', async () => {
@@ -219,14 +220,14 @@ describe('window', () => {
       await helper.wait(50)
       await nvim.input('y')
       let res = await p
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
     it('should show dialog', async () => {
       let dialog = await window.showDialog({ content: 'foo' })
       let winid = await dialog.winid
-      expect(winid).toBeDefined()
-      expect(winid).toBeGreaterThan(1000)
+      assert.notStrictEqual(winid, undefined)
+      assert.ok((winid) > (1000))
     })
 
     it('should show menu', async () => {
@@ -235,12 +236,12 @@ describe('window', () => {
       let bufnr = await nvim.call('winbufnr', [winid]) as number
       await nvim.input('2')
       let res = await p
-      expect(res).toBe(1)
+      assert.strictEqual(res, 1)
       await helper.waitValue(async () => {
         return await nvim.call('bufexists', [bufnr])
       }, 0)
       res = await window.showMenuPicker(['foo'], { title: 'title', position: 'center' }, CancellationToken.Cancelled)
-      expect(res).toBe(-1)
+      assert.strictEqual(res, -1)
     })
 
     it('should return select items for picker', async () => {
@@ -252,8 +253,8 @@ describe('window', () => {
       await nvim.input('<cr>')
       let res = await p
       let winid = await nvim.call('win_getid')
-      expect(winid).toBe(curr)
-      expect(res).toEqual(['foo'])
+      assert.strictEqual(winid, curr)
+      assert.deepStrictEqual(res, ['foo'])
     })
 
     it('should return undefined for picker', async () => {
@@ -262,27 +263,27 @@ describe('window', () => {
       await helper.waitPrompt()
       await nvim.input('<esc>')
       let res = await p
-      expect(res).toBeUndefined()
+      assert.strictEqual(res, undefined)
     })
 
     it('should return undefined when cancelled', async () => {
       let token = CancellationToken.Cancelled
       let res = await window.showPickerDialog(['foo', 'bar'], 'select', token)
-      expect(res).toBeUndefined()
+      assert.strictEqual(res, undefined)
     })
 
     it('should get visible ranges of bufnr', async () => {
       let buf = await helper.edit('not_exists')
       let range = await window.getVisibleRanges(buf.id)
-      expect(range.length).toBe(1)
+      assert.strictEqual(range.length, 1)
       let winid = await nvim.call('win_getid') as number
       range = await window.getVisibleRanges(buf.id, winid)
-      expect(range.length).toBe(1)
+      assert.strictEqual(range.length, 1)
       range = await window.getVisibleRanges(buf.id, 9999)
-      expect(range.length).toBe(0)
+      assert.strictEqual(range.length, 0)
       await nvim.command('enew')
       range = await window.getVisibleRanges(buf.id)
-      expect(range.length).toBe(0)
+      assert.strictEqual(range.length, 0)
     })
 
     it('should requestInputList', async () => {
@@ -295,7 +296,7 @@ describe('window', () => {
         }, 'c')
         await nvim.input('1<cr>')
         let res = await p
-        expect(res).toBe(0)
+        assert.strictEqual(res, 0)
       }
       {
         let p = window.requestInputList('prompt', ['foo', 'bar', 'abc', 'def'])
@@ -305,7 +306,7 @@ describe('window', () => {
         }, 'c')
         await nvim.input('8<cr>')
         let res = await p
-        expect(res).toBe(-1)
+        assert.strictEqual(res, -1)
       }
     })
   })
@@ -320,14 +321,14 @@ describe('window', () => {
       await window.echoLines(['a', 'b'])
       let ch = await nvim.call('screenchar', [79, 1]) as number
       let s = String.fromCharCode(ch)
-      expect(s).toBe('a')
+      assert.strictEqual(s, 'a')
     })
 
     it('should echo multiple lines with truncate', async () => {
       await window.echoLines(['a', 'b'.repeat(99), 'd', 'e'], true)
       let ch = await nvim.call('screenchar', [79, 1]) as number
       let s = String.fromCharCode(ch)
-      expect(s).toBe('a')
+      assert.strictEqual(s, 'a')
       await window.echoLines(['a', 'b'.repeat(200)], true)
     })
 
@@ -344,9 +345,9 @@ describe('window', () => {
       for (let i = 0; i < 120; i++) {
         await notifications._showMessage('Info', `message ${i}`, [])
       }
-      expect(notifications._history.length).toBe(100)
-      expect(notifications._history[0].message).toBe('message 20')
-      expect(notifications._history[99].message).toBe('message 119')
+      assert.strictEqual(notifications._history.length, 100)
+      assert.strictEqual(notifications._history[0].message, 'message 20')
+      assert.strictEqual(notifications._history[99].message, 'message 119')
     })
 
     it('should show message item', async () => {
@@ -354,9 +355,9 @@ describe('window', () => {
       let p = window.showInformationMessage('information message', { title: 'first' }, { title: 'second' })
       await ensureNotification(0)
       let res = await p
-      expect(res).toEqual({ title: 'first' })
+      assert.deepStrictEqual(res, { title: 'first' })
       res = await window.showInformationMessage('information message')
-      expect(res).toBeUndefined()
+      assert.strictEqual(res, undefined)
     })
 
     it('should show warning message', async () => {
@@ -364,7 +365,7 @@ describe('window', () => {
       let p = window.showWarningMessage('warning message', 'first', 'second')
       await ensureNotification(1)
       let res = await p
-      expect(res).toBe('second')
+      assert.strictEqual(res, 'second')
     })
 
     it('should show error message', async () => {
@@ -372,49 +373,49 @@ describe('window', () => {
       let p = window.showErrorMessage('error message', 'first', 'second')
       await ensureNotification(0)
       let res = await p
-      expect(res).toBe('first')
+      assert.strictEqual(res, 'first')
     })
 
-    it('should show confirm for message', async () => {
+    it('should show confirm for message', async (t) => {
       helper.updateConfiguration('coc.preferences.enableMessageDialog', false)
-      let spy = vi.spyOn(nvim, 'call').mockImplementationOnce((method, _args) => {
-        expect(method).toBe('confirm')
+      let spy = t.mock.method(nvim, 'call', (method, _args) => {
+        assert.strictEqual(method, 'confirm')
         return Promise.resolve('2') as any
-      })
+      }, { times: 1 })
       let p = window.showInformationMessage('error message', 'first', 'second')
       let res = await p
-      spy.mockRestore()
-      expect(res).toBe('second')
+      spy.mock.restore()
+      assert.strictEqual(res, 'second')
     })
 
-    it('should use messageDialogKind for confirm mode', async () => {
+    it('should use messageDialogKind for confirm mode', async (t) => {
       helper.updateConfiguration('coc.preferences.messageDialogKind', 'confirm')
-      let spy = vi.spyOn(nvim, 'call').mockImplementationOnce((method, args) => {
-        expect(method).toBe('confirm')
-        expect(args[0]).toBe('test message')
-        expect(args[1]).toBe('1first\n2second')
+      let spy = t.mock.method(nvim, 'call', (method, args) => {
+        assert.strictEqual(method, 'confirm')
+        assert.strictEqual(args[0], 'test message')
+        assert.strictEqual(args[1], '1first\n2second')
         return Promise.resolve('1') as any
-      })
+      }, { times: 1 })
       let p = window.showInformationMessage('test message', 'first', 'second')
       let res = await p
-      spy.mockRestore()
-      expect(res).toBe('first')
+      spy.mock.restore()
+      assert.strictEqual(res, 'first')
     })
 
-    it('should use messageDialogKind for menu mode', async () => {
+    it('should use messageDialogKind for menu mode', async (t) => {
       helper.updateConfiguration('coc.preferences.messageDialogKind', 'menu')
-      let spy = vi.spyOn(window.dialogs, 'showMenuPicker').mockImplementation(() => {
+      let spy = t.mock.method(window.dialogs, 'showMenuPicker', () => {
         return Promise.resolve(1) as any
       })
       let res = await window.notifications._showMessage('Warning', 'test message', ['first', 'second'])
-      expect(spy).toHaveBeenCalledWith(['first', 'second'], {
+      assert.ok((spy).mock.calls.some(call => isDeepStrictEqual(call.arguments, [['first', 'second'], {
         position: 'center',
         content: 'test message',
         title: 'Choose an action',
         borderhighlight: 'CocWarningFloat'
-      })
-      expect(res).toBe('second')
-      spy.mockRestore()
+      }])))
+      assert.strictEqual(res, 'second')
+      spy.mock.restore()
     })
 
     it('should use messageDialogKind for notification mode', async () => {
@@ -422,51 +423,51 @@ describe('window', () => {
       let p = window.showInformationMessage('notification message', 'first', 'second')
       await ensureNotification(0)
       let res = await p
-      expect(res).toBe('first')
+      assert.strictEqual(res, 'first')
     })
 
-    it('should echo error messages regardless of messageDialogKind', async () => {
+    it('should echo error messages regardless of messageDialogKind', async (t) => {
       helper.updateConfiguration('coc.preferences.messageDialogKind', 'menu')
-      let spy = vi.spyOn(window.notifications, 'echoMessages')
+      let spy = t.mock.method(window.notifications, 'echoMessages')
       await window.showErrorMessage('error message')
-      expect(spy).toHaveBeenCalledWith('error message', 'error')
-      spy.mockRestore()
+      assert.ok((spy).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['error message', 'error'])))
+      spy.mock.restore()
     })
 
-    it('should echo messages without items regardless of messageDialogKind', async () => {
+    it('should echo messages without items regardless of messageDialogKind', async (t) => {
       helper.updateConfiguration('coc.preferences.messageDialogKind', 'confirm')
-      let spy = vi.spyOn(window.notifications, 'echoMessages')
+      let spy = t.mock.method(window.notifications, 'echoMessages')
       await window.showInformationMessage('info message')
-      expect(spy).toHaveBeenCalledWith('info message', 'more')
-      spy.mockRestore()
+      assert.ok((spy).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['info message', 'more'])))
+      spy.mock.restore()
     })
 
-    it('should echo messages without items when configured messageReportKind', async () => {
+    it('should echo messages without items when configured messageReportKind', async (t) => {
       helper.updateConfiguration('coc.preferences.messageReportKind', 'echo')
-      let spy = vi.spyOn(window.notifications, 'echoMessages')
+      let spy = t.mock.method(window.notifications, 'echoMessages')
       await window.showInformationMessage('info message')
-      expect(spy).toHaveBeenCalledWith('info message', 'more')
-      spy.mockRestore()
+      assert.ok((spy).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['info message', 'more'])))
+      spy.mock.restore()
     })
 
-    it('should use notification messages without items when configured messageReportKind', async () => {
+    it('should use notification messages without items when configured messageReportKind', async (t) => {
       helper.updateConfiguration('coc.preferences.messageReportKind', 'notification')
-      let spy = vi.spyOn(window.notifications, 'createNotification')
+      let spy = t.mock.method(window.notifications, 'createNotification')
       await window.showInformationMessage('info message')
-      expect(spy).toHaveBeenCalledWith('info', 'info message', [])
-      spy.mockRestore()
+      assert.ok((spy).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['info', 'info message', []])))
+      spy.mock.restore()
     })
 
     it('should handle unexpected messageReportKind', async () => {
       helper.updateConfiguration('coc.preferences.messageReportKind', 'invalid')
       let p = window.showInformationMessage('invalid info message')
-      await expect(p).rejects.toThrow('Unexpected messageReportKind: invalid')
+      await assert.rejects(p, error => String(error instanceof Error ? error.message : error).includes('Unexpected messageReportKind: invalid'))
     })
 
     it('should handle unexpected messageDialogKind', async () => {
       helper.updateConfiguration('coc.preferences.messageDialogKind', 'invalid')
       let p = window.showInformationMessage('test message', 'first', 'second')
-      await expect(p).rejects.toThrow('Unexpected messageDialogKind: invalid')
+      await assert.rejects(p, error => String(error instanceof Error ? error.message : error).includes('Unexpected messageDialogKind: invalid'))
     })
 
     it('should respect enableMessageDialog for backward compatibility', async () => {
@@ -475,18 +476,18 @@ describe('window', () => {
       let p = window.showInformationMessage('notification message', 'first', 'second')
       await ensureNotification(0)
       let res = await p
-      expect(res).toBe('first')
+      assert.strictEqual(res, 'first')
     })
   })
 
   describe('window notifications', () => {
     it('should toButtons', () => {
-      expect(toButtons(['foo', 'bar']).length).toBe(2)
+      assert.strictEqual(toButtons(['foo', 'bar']).length, 2)
     })
 
     it('should toTitles', () => {
-      expect(toTitles(['foo', 'bar']).length).toBe(2)
-      expect(toTitles([{ title: 'foo' }]).length).toBe(1)
+      assert.strictEqual(toTitles(['foo', 'bar']).length, 2)
+      assert.strictEqual(toTitles([{ title: 'foo' }]).length, 1)
     })
 
     it('should show notification with options', async () => {
@@ -495,15 +496,15 @@ describe('window', () => {
         title: 'title',
       })
       let ids = await nvim.call('coc#float#get_float_win_list') as number[]
-      expect(ids.length).toBe(1)
+      assert.strictEqual(ids.length, 1)
       let win = nvim.createWindow(ids[0])
       let kind = await win.getVar('kind')
-      expect(kind).toBe('notification')
+      assert.strictEqual(kind, 'notification')
       let winid = await nvim.call('coc#float#get_related', [win.id, 'border'])
       let bufnr = await nvim.call('winbufnr', [winid]) as number
       let buf = nvim.createBuffer(bufnr)
       let lines = await buf.lines
-      expect(lines[0].includes('title')).toBe(true)
+      assert.strictEqual(lines[0].includes('title'), true)
     })
 
     it('should ignore events of other buffers', async () => {
@@ -522,7 +523,7 @@ describe('window', () => {
       })
       let win = await helper.getFloat()
       let height = await nvim.call('coc#float#get_height', [win.id])
-      expect(height).toBe(2)
+      assert.strictEqual(height, 2)
     })
 
     it('should show status line progress by default', async () => {
@@ -545,9 +546,9 @@ describe('window', () => {
           }, 10)
         })
       })
-      expect(text).toMatch('Processing')
-      expect(called).toBeGreaterThan(1)
-      expect(res).toBe('done')
+      assert.ok((text).includes('Processing'))
+      assert.ok((called) > (1))
+      assert.strictEqual(res, 'done')
     })
 
     it('should show progress notification', async () => {
@@ -571,8 +572,8 @@ describe('window', () => {
           })
         })
       })
-      expect(called).toBeGreaterThan(8)
-      expect(res).toBe('done')
+      assert.ok((called) > (8))
+      assert.strictEqual(res, 'done')
     })
 
     it('should cancel progress notification on window close', async () => {
@@ -599,8 +600,8 @@ describe('window', () => {
       await helper.wait(30)
       await nvim.call('coc#float#close_all', [])
       let res = await p
-      expect(called).toBeLessThan(10)
-      expect(res).toBe(undefined)
+      assert.ok((called) < (10))
+      assert.strictEqual(res, undefined)
     })
 
     it('should cancel progress when resolved', async () => {
@@ -614,9 +615,9 @@ describe('window', () => {
       let win = await helper.getFloat()
       if (win) {
         let res = await nvim.call('coc#window#get_var', [win.id, 'closing'])
-        expect(res).toBe(1)
+        assert.strictEqual(res, 1)
       }
-      expect(called).toBe(1)
+      assert.strictEqual(called, 1)
     })
 
     it('should be disabled by configuration', async () => {
@@ -637,9 +638,9 @@ describe('window', () => {
       })
       await helper.wait(30)
       let win = await helper.getFloat()
-      expect(win).toBeUndefined()
+      assert.strictEqual(win, undefined)
       let res = await p
-      expect(res).toBe('done')
+      assert.strictEqual(res, 'done')
     })
 
     it('should show error message when rejected', async () => {
@@ -648,9 +649,9 @@ describe('window', () => {
         return Promise.reject(new Error('Unable to fetch'))
       })
       let res = await p
-      expect(res).toBe(undefined)
+      assert.strictEqual(res, undefined)
       let cmdline = await helper.getCmdline()
-      expect(cmdline).toMatch(/Unable to fetch/)
+      assert.match(cmdline, /Unable to fetch/)
     })
   })
 
@@ -678,7 +679,7 @@ describe('window', () => {
       let items: HighlightItem[] = []
       let token = CancellationToken.Cancelled
       let res = await window.diffHighlights(buf.id, ns, items, undefined, token)
-      expect(res).toBe(null)
+      assert.strictEqual(res, null)
     })
 
     it('should add new highlights', async () => {
@@ -690,12 +691,12 @@ describe('window', () => {
         colEnd: 3
       }]
       let res = await window.diffHighlights(buf.id, ns, items)
-      expect(res).toBeDefined()
-      expect(res.add.length).toBe(1)
+      assert.notStrictEqual(res, undefined)
+      assert.strictEqual(res.add.length, 1)
       await window.applyDiffHighlights(buf.id, ns, priority, res)
       let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
-      expect(markers.length).toBe(1)
-      expect(markers[0][3].end_col).toBe(3)
+      assert.strictEqual(markers.length, 1)
+      assert.strictEqual(markers[0][3].end_col, 3)
     })
 
     it('should update with new highlights', async () => {
@@ -726,7 +727,7 @@ describe('window', () => {
       let res = await window.diffHighlights(buf.id, ns, newItems)
       await window.applyDiffHighlights(buf.id, ns, priority, res)
       let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
-      expect(markers.length).toBe(2)
+      assert.strictEqual(markers.length, 2)
     })
 
     it('should ignore lines without highlights', async () => {
@@ -741,7 +742,7 @@ describe('window', () => {
       let res = await window.diffHighlights(buf.id, ns, [])
       await window.applyDiffHighlights(buf.id, ns, priority, res)
       let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
-      expect(markers.length).toBe(0)
+      assert.strictEqual(markers.length, 0)
     })
 
     it('should return empty diff', async () => {
@@ -754,10 +755,10 @@ describe('window', () => {
       }]
       await setHighlights(items)
       let res = await window.diffHighlights(buf.id, ns, items)
-      expect(res).toBeDefined()
-      expect(res.remove).toEqual([])
-      expect(res.add).toEqual([])
-      expect(res.removeMarkers).toEqual([])
+      assert.notStrictEqual(res, undefined)
+      assert.deepStrictEqual(res.remove, [])
+      assert.deepStrictEqual(res.add, [])
+      assert.deepStrictEqual(res.removeMarkers, [])
     })
 
     it('should remove and add highlights', async () => {
@@ -776,14 +777,14 @@ describe('window', () => {
         colEnd: 3
       }]
       let res = await window.diffHighlights(buf.id, ns, items)
-      expect(res).toBeDefined()
-      expect(res.add.length).toBe(1)
-      expect(res.removeMarkers.length).toBe(1)
+      assert.notStrictEqual(res, undefined)
+      assert.strictEqual(res.add.length, 1)
+      assert.strictEqual(res.removeMarkers.length, 1)
       await window.applyDiffHighlights(buf.id, ns, priority, res)
       let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
-      expect(markers.length).toBe(1)
-      expect(markers[0][1]).toBe(1)
-      expect(markers[0][3].end_col).toBe(3)
+      assert.strictEqual(markers.length, 1)
+      assert.strictEqual(markers[0][1], 1)
+      assert.strictEqual(markers[0][3].end_col, 3)
     })
 
     it('should update highlights of single line', async () => {
@@ -807,14 +808,14 @@ describe('window', () => {
         colEnd: 3
       }]
       let res = await window.diffHighlights(buf.id, ns, items)
-      expect(res).toBeDefined()
-      expect(res.add.length).toBe(1)
-      expect(res.removeMarkers.length).toBe(2)
+      assert.notStrictEqual(res, undefined)
+      assert.strictEqual(res.add.length, 1)
+      assert.strictEqual(res.removeMarkers.length, 2)
       await window.applyDiffHighlights(buf.id, ns, priority, res)
       let markers = await buf.getExtMarks(ns_id, 0, -1, { details: true })
-      expect(markers.length).toBe(1)
-      expect(markers[0][1]).toBe(0)
-      expect(markers[0][3].end_col).toBe(3)
+      assert.strictEqual(markers.length, 1)
+      assert.strictEqual(markers[0][1], 0)
+      assert.strictEqual(markers[0][3].end_col, 3)
     })
   })
 })

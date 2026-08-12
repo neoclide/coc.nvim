@@ -16,7 +16,7 @@
     "module": "es2022",
     "moduleResolution": "bundler",
     "lib": ["es2020", "es2021", "es2022", "esnext.disposable"],
-    "types": ["node", "vitest/globals"],
+    "types": ["node"],
     "declaration": false,
     "resolveJsonModule": true,
     "esModuleInterop": true,

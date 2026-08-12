@@ -41,7 +41,7 @@ describe('utils', () => {
   describe('getJsFiles', () => {
     it('should get js files', async () => {
       let res = await getJsFiles(__dirname)
-      expect(Array.isArray(res)).toBe(true)
+      assert.strictEqual(Array.isArray(res), true)
     })
   })
 
@@ -50,23 +50,23 @@ describe('utils', () => {
       let folder = createFolder()
       let file = path.join(folder, 'package.json')
       fs.writeFileSync(file, '{}', 'utf8')
-      await expect(loadGlobalJsonAsync(folder, '0.0.80')).rejects.toThrow(/Invalid engines/)
+      await assert.rejects(loadGlobalJsonAsync(folder, '0.0.80'), /Invalid engines/)
       fs.writeFileSync(file, '{"engines": {}}', 'utf8')
-      await expect(loadGlobalJsonAsync(folder, '0.0.80')).rejects.toThrow(/Invalid engines/)
+      await assert.rejects(loadGlobalJsonAsync(folder, '0.0.80'), /Invalid engines/)
     })
 
     it('should throw when version not match', async () => {
       let folder = createFolder()
       let file = path.join(folder, 'package.json')
       fs.writeFileSync(file, '{"engines": {"coc": ">=0.0.80"}}', 'utf8')
-      await expect(loadGlobalJsonAsync(folder, '0.0.79')).rejects.toThrow(/not match/)
+      await assert.rejects(loadGlobalJsonAsync(folder, '0.0.79'), /not match/)
     })
 
     it('should throw when main file not found', async () => {
       let folder = createFolder()
       let file = path.join(folder, 'package.json')
       fs.writeFileSync(file, '{"engines": {"coc": ">=0.0.80"}}', 'utf8')
-      await expect(loadGlobalJsonAsync(folder, '0.0.80')).rejects.toThrow(/not found/)
+      await assert.rejects(loadGlobalJsonAsync(folder, '0.0.80'), /not found/)
     })
 
     it('should load json', async () => {
@@ -75,13 +75,13 @@ describe('utils', () => {
       fs.writeFileSync(file, '{"name": "foo","engines": {"coc": ">=0.0.80"}}', 'utf8')
       fs.writeFileSync(path.join(folder, 'index.js'), '', 'utf8')
       let res = await loadGlobalJsonAsync(folder, '0.0.80')
-      expect(res.name).toBe('foo')
+      assert.strictEqual(res.name, 'foo')
     })
   })
 
   describe('validExtensionFolder()', () => {
     it('should check validExtensionFolder', async () => {
-      expect(validExtensionFolder(__dirname, '')).toBe(false)
+      assert.strictEqual(validExtensionFolder(__dirname, ''), false)
       let folder = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(folder)
       disposables.push(Disposable.create(() => {
@@ -90,32 +90,32 @@ describe('utils', () => {
       writeJson(path.join(folder, 'index.js'), '')
       let filepath = path.join(folder, 'package.json')
       writeJson(filepath, { name: 'name', engines: { coc: '>=0.0.81' } })
-      expect(validExtensionFolder(folder, '0.0.82')).toBe(true)
+      assert.strictEqual(validExtensionFolder(folder, '0.0.82'), true)
     })
   })
 
   describe('checkExtensionRoot', () => {
 
-    it('should not throw on error', async () => {
-      let spy = vi.spyOn(fs, 'existsSync').mockImplementation(() => {
+    it('should not throw on error', async (t) => {
+      let spy = t.mock.method(fs, 'existsSync', () => {
         throw new Error('my error')
       })
       let called = false
-      let s = vi.spyOn(console, 'error').mockImplementation(() => {
+      let s = t.mock.method(console, 'error', () => {
         called = true
       })
       let root = path.join(os.tmpdir(), 'foo-bar')
       let res = checkExtensionRoot(root)
-      s.mockRestore()
-      spy.mockRestore()
-      expect(res).toBe(false)
+      s.mock.restore()
+      spy.mock.restore()
+      assert.strictEqual(res, false)
     })
 
     it('should create root when it does not exist', async () => {
       let root = path.join(os.tmpdir(), 'foo-bar')
       let res = checkExtensionRoot(root)
-      expect(res).toBe(true)
-      expect(fs.existsSync(path.join(root, 'package.json'))).toBe(true)
+      assert.strictEqual(res, true)
+      assert.strictEqual(fs.existsSync(path.join(root, 'package.json')), true)
       let method = typeof fs['rmSync'] === 'function' ? 'rmSync' : 'rmdirSync'
       fs[method](root, { recursive: true })
     })
@@ -124,8 +124,8 @@ describe('utils', () => {
       let root = path.join(os.tmpdir(), crypto.randomUUID())
       fs.writeFileSync(root, '')
       let res = checkExtensionRoot(root)
-      expect(res).toBe(true)
-      expect(fs.existsSync(path.join(root, 'package.json'))).toBe(true)
+      assert.strictEqual(res, true)
+      assert.strictEqual(fs.existsSync(path.join(root, 'package.json')), true)
       let method = typeof fs['rmSync'] === 'function' ? 'rmSync' : 'rmdirSync'
       fs[method](root, { recursive: true })
     })
@@ -143,7 +143,7 @@ describe('utils', () => {
       if (data) writeJson(filepath, data)
       let errors: string[] = []
       let json = loadExtensionJson(folder, version, errors)
-      expect(errors.length).toBe(count)
+      assert.strictEqual(errors.length, count)
       return json
     }
 
@@ -163,10 +163,10 @@ describe('utils', () => {
 
   describe('getExtensionName', () => {
     it('should get extension name', async () => {
-      expect(getExtensionName('foo')).toBe('foo')
-      expect(getExtensionName('http://1')).toBe('http://1')
-      expect(getExtensionName('@a/b')).toBe('@a/b')
-      expect(getExtensionName('semver@1.2.3')).toBe('semver')
+      assert.strictEqual(getExtensionName('foo'), 'foo')
+      assert.strictEqual(getExtensionName('http://1'), 'http://1')
+      assert.strictEqual(getExtensionName('@a/b'), '@a/b')
+      assert.strictEqual(getExtensionName('semver@1.2.3'), 'semver')
     })
   })
 })
@@ -188,32 +188,32 @@ describe('ExtensionStat', () => {
     return [new ExtensionStat(folder), path.join(folder, 'package.json')]
   }
 
-  it('should not throw on create', async () => {
-    let spy = vi.spyOn(ExtensionStat.prototype, 'migrate' as any).mockImplementation(() => {
+  it('should not throw on create', async (t) => {
+    let spy = t.mock.method(ExtensionStat.prototype, 'migrate' as any, () => {
       throw new Error('my error')
     })
     let folder = path.join(os.tmpdir(), crypto.randomUUID())
     fs.mkdirSync(folder)
     let stat = new ExtensionStat(folder)
-    spy.mockRestore()
-    expect(stat).toBeDefined()
+    spy.mock.restore()
+    assert.notStrictEqual(stat, undefined)
   })
 
   it('should add local extension', async () => {
     let folder = path.join(os.tmpdir(), crypto.randomUUID())
     let stat = new ExtensionStat(folder)
     stat.addLocalExtension('name', folder)
-    expect(stat.getFolder('name')).toBe(folder)
-    expect(stat.getFolder('unknown')).toBeUndefined()
+    assert.strictEqual(stat.getFolder('name'), folder)
+    assert.strictEqual(stat.getFolder('unknown'), undefined)
   })
 
   it('should addNoPromptFolder', async () => {
     let [state, filepath] = create()
     let uri = URI.file(path.dirname(filepath)).toString()
-    expect(state.shouldPrompt(uri)).toBe(true)
+    assert.strictEqual(state.shouldPrompt(uri), true)
     state.addNoPromptFolder(uri)
     state.addNoPromptFolder(uri)
-    expect(state.shouldPrompt(uri)).toBe(false)
+    assert.strictEqual(state.shouldPrompt(uri), false)
   })
 
   it('should iterate activated extensions', () => {
@@ -227,13 +227,13 @@ describe('ExtensionStat', () => {
     for (let name of stat.activated()) {
       names.push(name)
     }
-    expect(names).toEqual(['z', 'a'])
+    assert.deepStrictEqual(names, ['z', 'a'])
   })
 
   it('should migrate #1', async () => {
     let folder = createFolder()
     let stat = new ExtensionStat(folder)
-    expect(stat.getExtensionsStat()).toEqual({})
+    assert.deepStrictEqual(stat.getExtensionsStat(), {})
     let data = {
       extension: {
         x: { disabled: true },
@@ -247,26 +247,26 @@ describe('ExtensionStat', () => {
     })
     stat = new ExtensionStat(folder)
     let res = stat.getExtensionsStat()
-    expect(res).toEqual({ x: 1, y: 2, z: 0, a: 0 })
+    assert.deepStrictEqual(res, { x: 1, y: 2, z: 0, a: 0 })
     let obj = loadJson(path.join(folder, 'package.json')) as any
-    expect(obj.disabled).toEqual(['x'])
-    expect(obj.locked).toEqual(['y'])
-    expect(fs.existsSync(filepath)).toBe(false)
+    assert.deepStrictEqual(obj.disabled, ['x'])
+    assert.deepStrictEqual(obj.locked, ['y'])
+    assert.strictEqual(fs.existsSync(filepath), false)
   })
 
   it('should migrate #2', async () => {
     let folder = createFolder()
     let stat = new ExtensionStat(folder)
-    expect(stat.getExtensionsStat()).toEqual({})
+    assert.deepStrictEqual(stat.getExtensionsStat(), {})
     let data = {}
     createDB(folder, data)
     writeJson(path.join(folder, 'package.json'), {})
     stat = new ExtensionStat(folder)
     let res = stat.getExtensionsStat()
-    expect(res).toEqual({})
+    assert.deepStrictEqual(res, {})
     let obj = loadJson(path.join(folder, 'package.json')) as any
-    expect(obj.disabled).toEqual([])
-    expect(obj.locked).toEqual([])
+    assert.deepStrictEqual(obj.disabled, [])
+    assert.deepStrictEqual(obj.locked, [])
   })
 
   it('should load disabled & locked from package.json', async () => {
@@ -282,22 +282,22 @@ describe('ExtensionStat', () => {
     }
     writeJson(path.join(folder, 'package.json'), obj)
     let stat = new ExtensionStat(folder)
-    expect(stat.disabledExtensions).toEqual(['foo'])
-    expect(stat.lockedExtensions).toEqual(['bar'])
-    expect(stat.getExtensionsStat()['z']).toBe(0)
+    assert.deepStrictEqual(stat.disabledExtensions, ['foo'])
+    assert.deepStrictEqual(stat.lockedExtensions, ['bar'])
+    assert.strictEqual(stat.getExtensionsStat()['z'], 0)
   })
 
   it('should add & remove extension', async () => {
     let [stat, jsonFile] = create()
     stat.addExtension('foo', '')
-    expect(stat.getExtensionsStat()).toEqual({ foo: 0 })
+    assert.deepStrictEqual(stat.getExtensionsStat(), { foo: 0 })
     let res = loadJson(jsonFile) as any
-    expect(res).toEqual({ dependencies: { foo: '' } })
+    assert.deepStrictEqual(res, { dependencies: { foo: '' } })
     stat.removeExtension('foo',)
-    expect(stat.isDisabled('foo')).toBe(false)
-    expect(stat.getExtensionsStat()).toEqual({})
+    assert.strictEqual(stat.isDisabled('foo'), false)
+    assert.deepStrictEqual(stat.getExtensionsStat(), {})
     res = loadJson(jsonFile) as any
-    expect(res).toEqual({ dependencies: {} })
+    assert.deepStrictEqual(res, { dependencies: {} })
   })
 
   it('should remove extension not exists', async () => {
@@ -311,63 +311,63 @@ describe('ExtensionStat', () => {
     stat.setDisable('foo', true)
     stat.setLocked('foo', true)
     let res = loadJson(jsonFile) as any
-    expect(res.disabled).toEqual(['foo'])
-    expect(res.locked).toEqual(['foo'])
+    assert.deepStrictEqual(res.disabled, ['foo'])
+    assert.deepStrictEqual(res.locked, ['foo'])
     stat.removeExtension('foo')
     res = loadJson(jsonFile) as any
-    expect(res.disabled).toEqual([])
-    expect(res.locked).toEqual([])
+    assert.deepStrictEqual(res.disabled, [])
+    assert.deepStrictEqual(res.locked, [])
   })
 
   it('should setDisable', async () => {
     let [stat] = create()
     stat.addExtension('foo', '')
     stat.setDisable('foo', true)
-    expect(stat.hasExtension('foo')).toBe(true)
-    expect(stat.isDisabled('foo')).toBe(true)
+    assert.strictEqual(stat.hasExtension('foo'), true)
+    assert.strictEqual(stat.isDisabled('foo'), true)
     stat.setDisable('foo', false)
-    expect(stat.isDisabled('foo')).toBe(false)
-    expect(stat.disabledExtensions).toEqual([])
+    assert.strictEqual(stat.isDisabled('foo'), false)
+    assert.deepStrictEqual(stat.disabledExtensions, [])
   })
 
   it('should setLocked', async () => {
     let [stat] = create()
     stat.addExtension('foo', '')
     stat.setLocked('foo', true)
-    expect(stat.lockedExtensions).toEqual(['foo'])
+    assert.deepStrictEqual(stat.lockedExtensions, ['foo'])
     stat.setLocked('foo', false)
-    expect(stat.lockedExtensions).toEqual([])
+    assert.deepStrictEqual(stat.lockedExtensions, [])
   })
 
   it('should check update', async () => {
     let [stat] = create()
-    expect(stat.shouldUpdate('never')).toBe(false)
-    expect(stat.shouldUpdate('daily')).toBe(true)
+    assert.strictEqual(stat.shouldUpdate('never'), false)
+    assert.strictEqual(stat.shouldUpdate('daily'), true)
     stat.setLastUpdate()
-    expect(stat.shouldUpdate('weekly')).toBe(false)
+    assert.strictEqual(stat.shouldUpdate('weekly'), false)
   })
 
   it('should toInterval', async () => {
-    expect(typeof toInterval('daily')).toBe('number')
-    expect(typeof toInterval('weekly')).toBe('number')
+    assert.strictEqual(typeof toInterval('daily'), 'number')
+    assert.strictEqual(typeof toInterval('weekly'), 'number')
   })
 
   it('should get dependencies', async () => {
     let [stat] = create()
-    expect(stat.dependencies).toEqual({})
-    expect(stat.globalIds).toEqual([])
+    assert.deepStrictEqual(stat.dependencies, {})
+    assert.deepStrictEqual(stat.globalIds, [])
     stat.addExtension('foo', '')
-    expect(stat.dependencies).toEqual({ foo: '' })
-    expect(stat.globalIds).toEqual(['foo'])
+    assert.deepStrictEqual(stat.dependencies, { foo: '' })
+    assert.deepStrictEqual(stat.globalIds, ['foo'])
   })
 
   it('should filterGlobalExtensions', async () => {
     let [stat, jsonFile] = create()
-    expect(stat.filterGlobalExtensions(['foo', 'bar', undefined, 3] as any)).toEqual(['foo', 'bar'])
+    assert.deepStrictEqual(stat.filterGlobalExtensions(['foo', 'bar', undefined, 3] as any), ['foo', 'bar'])
     stat.addExtension('foo', '')
-    expect(stat.filterGlobalExtensions(['foo', 'bar'])).toEqual(['bar'])
+    assert.deepStrictEqual(stat.filterGlobalExtensions(['foo', 'bar']), ['bar'])
     stat.setDisable('bar', true)
-    expect(stat.filterGlobalExtensions(['foo', 'bar'])).toEqual([])
+    assert.deepStrictEqual(stat.filterGlobalExtensions(['foo', 'bar']), [])
     let folder = path.resolve(jsonFile, '../node_modules')
     fs.mkdirSync(folder)
     fs.mkdirSync(path.join(folder, 'uri'))
@@ -377,7 +377,7 @@ describe('ExtensionStat', () => {
     fs.mkdirSync(path.join(folder, 'simple'))
     writeJson(path.join(folder, 'simple', 'package.json'), {})
     let res = stat.filterGlobalExtensions(['http://git'])
-    expect(res).toEqual([])
+    assert.deepStrictEqual(res, [])
   })
 })
 
@@ -394,9 +394,9 @@ describe('InstallBuffer', () => {
     await buf.start(['a', 'b', 'c'])
     // scratch buffer should carry a meaningful name (#5061)
     const bufname = await nvim.call('bufname', ['%']) as string
-    expect(bufname).toBe('[Coc Extensions]')
+    assert.strictEqual(bufname, '[Coc Extensions]')
     let wins = await nvim.windows
-    expect(wins.length).toBe(1)
+    assert.strictEqual(wins.length, 1)
     global.__TEST__ = true
   })
 
@@ -417,7 +417,7 @@ describe('InstallBuffer', () => {
     buf.finishProgress('d', true)
     let buffer = await nvim.buffer
     let lines = await buffer.lines
-    expect(lines.length).toBe(6)
+    assert.strictEqual(lines.length, 6)
     buf.draw()
   })
 
@@ -427,12 +427,12 @@ describe('InstallBuffer', () => {
     await buf.start(['a', 'b'])
     buf.startProgress('a')
     buf.startProgress('b')
-    expect(buf.remains).toBe(2)
+    assert.strictEqual(buf.remains, 2)
     buf.finishProgress('a', true)
     buf.finishProgress('b', true)
     buf.draw()
-    expect(buf.getMessages(0)).toEqual([])
-    expect(buf.stopped).toBe(true)
+    assert.deepStrictEqual(buf.getMessages(0), [])
+    assert.strictEqual(buf.stopped, true)
   })
 
   it('should show messages and dispose', async () => {
@@ -451,9 +451,9 @@ describe('InstallBuffer', () => {
     let win = nvim.createWindow(id)
     let buffer = await win.buffer
     let lines = await buffer.lines
-    expect(lines.join(' ')).toBe('start finish')
+    assert.strictEqual(lines.join(' '), 'start finish')
     await nvim.command(`bd! ${bufnr}`)
-    expect(buf.stopped).toBe(true)
+    assert.strictEqual(buf.stopped, true)
   })
 })
 

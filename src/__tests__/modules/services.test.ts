@@ -42,97 +42,97 @@ function toConfig(c: Partial<LanguageServerConfig>): LanguageServerConfig {
 describe('services', () => {
   describe('functions', () => {
     it('should convertState', async () => {
-      expect(convertState(null as any)).toBeUndefined()
+      assert.strictEqual(convertState(null as any), undefined)
     })
 
     it('should check valid server config', async () => {
-      expect(isValidServerConfig('name', {} as any)).toBe(false)
-      expect(isValidServerConfig('name', { module: [] } as any)).toBe(false)
-      expect(isValidServerConfig('name', { command: [] } as any)).toBe(false)
-      expect(isValidServerConfig('name', { transport: '' } as any)).toBe(false)
-      expect(isValidServerConfig('name', { transportPort: 'ab' } as any)).toBe(false)
-      expect(isValidServerConfig('name', { filetypes: '' } as any)).toBe(false)
-      expect(isValidServerConfig('name', { additionalSchemes: '' } as any)).toBe(false)
-      expect(isValidServerConfig('name', { additionalSchemes: [1] } as any)).toBe(false)
-      expect(isValidServerConfig('name', { module: 'module', filetypes: ['vim'] } as any)).toBe(true)
+      assert.strictEqual(isValidServerConfig('name', {} as any), false)
+      assert.strictEqual(isValidServerConfig('name', { module: [] } as any), false)
+      assert.strictEqual(isValidServerConfig('name', { command: [] } as any), false)
+      assert.strictEqual(isValidServerConfig('name', { transport: '' } as any), false)
+      assert.strictEqual(isValidServerConfig('name', { transportPort: 'ab' } as any), false)
+      assert.strictEqual(isValidServerConfig('name', { filetypes: '' } as any), false)
+      assert.strictEqual(isValidServerConfig('name', { additionalSchemes: '' } as any), false)
+      assert.strictEqual(isValidServerConfig('name', { additionalSchemes: [1] } as any), false)
+      assert.strictEqual(isValidServerConfig('name', { module: 'module', filetypes: ['vim'] } as any), true)
     })
 
     it('should get state name', async () => {
-      expect(getStateName(ServiceStat.Initial)).toBe('init')
-      expect(getStateName(ServiceStat.Running)).toBe('running')
-      expect(getStateName(ServiceStat.Starting)).toBe('starting')
-      expect(getStateName(ServiceStat.StartFailed)).toBe('startFailed')
-      expect(getStateName(ServiceStat.Stopping)).toBe('stopping')
-      expect(getStateName(ServiceStat.Stopped)).toBe('stopped')
-      expect(getStateName(null as any)).toBe('unknown')
+      assert.strictEqual(getStateName(ServiceStat.Initial), 'init')
+      assert.strictEqual(getStateName(ServiceStat.Running), 'running')
+      assert.strictEqual(getStateName(ServiceStat.Starting), 'starting')
+      assert.strictEqual(getStateName(ServiceStat.StartFailed), 'startFailed')
+      assert.strictEqual(getStateName(ServiceStat.Stopping), 'stopping')
+      assert.strictEqual(getStateName(ServiceStat.Stopped), 'stopped')
+      assert.strictEqual(getStateName(null as any), 'unknown')
     })
 
-    it('should use languageserver config from workspace folder', async () => {
+    it('should use languageserver config from workspace folder', async (t) => {
       let folder = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(path.join(folder, '.vim'), { recursive: true })
       let configFile = path.join(folder, '.vim/coc-settings.json')
       fs.writeFileSync(configFile, '{"languageserver": {"foo": {"command":"bar", "filetypes": ["vim"]}, "bar": {}}}')
       let uri = URI.file(path.join(folder, 't')).toString()
       let added = workspace.configurations.locateFolderConfigution(uri)
-      expect(added).toBe(true)
+      assert.strictEqual(added, true)
       let w = workspace.workspaceFolderControl
       w.addWorkspaceFolder(folder, true)
       let s = services.getService('foo')
-      let spy = vi.spyOn(window as any, 'showErrorMessage').mockImplementation(() => {
+      let spy = t.mock.method(window as any, 'showErrorMessage', () => {
         return Promise.resolve()
       })
-      expect(s).toBeDefined()
+      assert.notStrictEqual(s, undefined)
       await s.restart()
-      spy.mockRestore()
+      spy.mock.restore()
       w.removeWorkspaceFolder(folder)
     })
 
     it('should get stateString', async () => {
-      expect(stateString(State.Stopped)).toBe('stopped')
-      expect(stateString(State.Running)).toBe('running')
-      expect(stateString(State.Starting)).toBe('starting')
-      expect(stateString(null as any)).toBe('unknown')
+      assert.strictEqual(stateString(State.Stopped), 'stopped')
+      assert.strictEqual(stateString(State.Running), 'running')
+      assert.strictEqual(stateString(State.Starting), 'starting')
+      assert.strictEqual(stateString(null as any), 'unknown')
     })
 
     it('should getSpawnOptions', async () => {
-      expect(getSpawnOptions(toConfig({ cwd: process.cwd() }))).toBeDefined()
-      expect(getSpawnOptions(toConfig({ cwd: process.cwd(), detached: true, shell: true, env: {} }))).toBeDefined()
+      assert.notStrictEqual(getSpawnOptions(toConfig({ cwd: process.cwd() })), undefined)
+      assert.notStrictEqual(getSpawnOptions(toConfig({ cwd: process.cwd(), detached: true, shell: true, env: {} })), undefined)
     })
 
     it('should getForkOptions', async () => {
-      expect(getForkOptions(toConfig({ cwd: process.cwd() }))).toBeDefined()
-      expect(getForkOptions(toConfig({ cwd: process.cwd(), execArgv: [], env: {} }))).toBeDefined()
+      assert.notStrictEqual(getForkOptions(toConfig({ cwd: process.cwd() })), undefined)
+      assert.notStrictEqual(getForkOptions(toConfig({ cwd: process.cwd(), execArgv: [], env: {} })), undefined)
     })
 
     it('should getTransportKind', async () => {
-      expect(getTransportKind(toConfig({}))).toBe(TransportKind.ipc)
-      expect(getTransportKind(toConfig({ transport: 'ipc' }))).toBe(TransportKind.ipc)
-      expect(getTransportKind(toConfig({ transport: 'stdio' }))).toBe(TransportKind.stdio)
-      expect(getTransportKind(toConfig({ transport: 'pipe' }))).toBe(TransportKind.pipe)
-      expect(getTransportKind(toConfig({ transport: 'socket', transportPort: 3300 }))).toEqual({ kind: TransportKind.socket, port: 3300 })
+      assert.strictEqual(getTransportKind(toConfig({})), TransportKind.ipc)
+      assert.strictEqual(getTransportKind(toConfig({ transport: 'ipc' })), TransportKind.ipc)
+      assert.strictEqual(getTransportKind(toConfig({ transport: 'stdio' })), TransportKind.stdio)
+      assert.strictEqual(getTransportKind(toConfig({ transport: 'pipe' })), TransportKind.pipe)
+      assert.deepStrictEqual(getTransportKind(toConfig({ transport: 'socket', transportPort: 3300 })), { kind: TransportKind.socket, port: 3300 })
     })
 
     it('should getDocumentSelector', async () => {
-      expect(getDocumentSelector(undefined, [])).toEqual([{ scheme: 'file' }, { scheme: 'untitled' }])
-      expect(getDocumentSelector(['vim'], []).length).toBe(2)
+      assert.deepStrictEqual(getDocumentSelector(undefined, []), [{ scheme: 'file' }, { scheme: 'untitled' }])
+      assert.strictEqual(getDocumentSelector(['vim'], []).length, 2)
     })
 
     it('should getRevealOutputChannelOn', async () => {
-      expect(getRevealOutputChannelOn('error')).toBe(RevealOutputChannelOn.Error)
-      expect(getRevealOutputChannelOn('info')).toBe(RevealOutputChannelOn.Info)
-      expect(getRevealOutputChannelOn('warn')).toBe(RevealOutputChannelOn.Warn)
-      expect(getRevealOutputChannelOn('never')).toBe(RevealOutputChannelOn.Never)
-      expect(getRevealOutputChannelOn('')).toBe(RevealOutputChannelOn.Never)
+      assert.strictEqual(getRevealOutputChannelOn('error'), RevealOutputChannelOn.Error)
+      assert.strictEqual(getRevealOutputChannelOn('info'), RevealOutputChannelOn.Info)
+      assert.strictEqual(getRevealOutputChannelOn('warn'), RevealOutputChannelOn.Warn)
+      assert.strictEqual(getRevealOutputChannelOn('never'), RevealOutputChannelOn.Never)
+      assert.strictEqual(getRevealOutputChannelOn(''), RevealOutputChannelOn.Never)
     })
 
     it('should getLanguageServerOptions', async () => {
-      expect(getLanguageServerOptions('x', 'y', {} as any)).toBe(null)
-      expect(getLanguageServerOptions('x', 'y', { filetypes: ['vim'] })).toBe(null)
-      expect(getLanguageServerOptions('x', 'y', toConfig({ module: 'not_exists' }))).toBe(null)
-      expect(getLanguageServerOptions('x', 'y', toConfig({ module: __filename, maxRestartCount: 1 }))).toBeDefined()
-      expect(getLanguageServerOptions('x', 'y', toConfig({ module: __filename, runtime: process.execPath }))).toBeDefined()
-      expect(getLanguageServerOptions('x', 'y', toConfig({ command: 'cmd', args: [], disableWorkspaceFolders: true, disableSnippetCompletion: true } as any))).toBeDefined()
-      expect(getLanguageServerOptions('x', 'y', toConfig({ command: 'cmd', ignoredRootPaths: ['/foo'], initializationOptions: {} }))).toBeDefined()
+      assert.strictEqual(getLanguageServerOptions('x', 'y', {} as any), null)
+      assert.strictEqual(getLanguageServerOptions('x', 'y', { filetypes: ['vim'] }), null)
+      assert.strictEqual(getLanguageServerOptions('x', 'y', toConfig({ module: 'not_exists' })), null)
+      assert.notStrictEqual(getLanguageServerOptions('x', 'y', toConfig({ module: __filename, maxRestartCount: 1 })), undefined)
+      assert.notStrictEqual(getLanguageServerOptions('x', 'y', toConfig({ module: __filename, runtime: process.execPath })), undefined)
+      assert.notStrictEqual(getLanguageServerOptions('x', 'y', toConfig({ command: 'cmd', args: [], disableWorkspaceFolders: true, disableSnippetCompletion: true } as any)), undefined)
+      assert.notStrictEqual(getLanguageServerOptions('x', 'y', toConfig({ command: 'cmd', ignoredRootPaths: ['/foo'], initializationOptions: {} })), undefined)
     })
 
     it('should expand variables in args', async () => {
@@ -141,15 +141,15 @@ describe('services', () => {
         command: 'cmd',
         args: ['-data', '${workspaceFolderBasename}/.cache', '${env:NODE_ENV}']
       }))
-      expect(opts).toBeDefined()
+      assert.notStrictEqual(opts, undefined)
       let serverOptions = opts[1] as { args: string[] }
-      expect(serverOptions.args).toEqual(['-data', `${basename}/.cache`, 'test'])
+      assert.deepStrictEqual(serverOptions.args, ['-data', `${basename}/.cache`, 'test'])
     })
 
     it('should use socket port for language server #1', async () => {
       let opts = getLanguageServerOptions('x', 'y', toConfig({ port: 3300, host: '127.0.0.1' }))
       let fn = opts[1] as Function
-      await expect(fn()).rejects.toThrow(Error)
+      await assert.rejects(fn(), Error)
     })
 
     it('should use socket port for language server #2', async () => {
@@ -164,21 +164,21 @@ describe('services', () => {
       let fn = opts[1] as Function
       let res = await fn()
       await helper.waitValue(() => connected, true)
-      expect(res).toBeDefined()
-      expect(connected).toBe(true)
+      assert.notStrictEqual(res, undefined)
+      assert.strictEqual(connected, true)
       s.destroy()
       server.close()
     })
 
     it('should documentSelectorToLanguageIds', async () => {
-      expect(documentSelectorToLanguageIds(['vim'])).toEqual(['vim'])
+      assert.deepStrictEqual(documentSelectorToLanguageIds(['vim']), ['vim'])
     })
   })
 
   describe('getServiceStats()', () => {
     it('should get services', async () => {
       let res = await helper.doAction('services')
-      expect(res).toBeDefined()
+      assert.notStrictEqual(res, undefined)
     })
   })
 
@@ -187,7 +187,7 @@ describe('services', () => {
       let fn = async () => {
         await helper.doAction('toggleService', 'id')
       }
-      await expect(fn()).rejects.toThrow(Error)
+      await assert.rejects(fn(), Error)
     })
 
     it('should toggle language client state', async () => {
@@ -204,7 +204,7 @@ describe('services', () => {
       void services.toggle('test')
       await p
       let s = services.getService('test')
-      expect(s.state).toBe(ServiceStat.Running)
+      assert.strictEqual(s.state, ServiceStat.Running)
       d.dispose()
     })
   })
@@ -230,8 +230,8 @@ describe('services', () => {
       } as any)
 
       await events.fire('ready', [])
-      expect(called).toBe(false)
-      expect(started).toBe(true)
+      assert.strictEqual(called, false)
+      assert.strictEqual(started, true)
     })
 
     it('does not start a service disposed before plugin ready', async () => {
@@ -251,9 +251,9 @@ describe('services', () => {
       let before = ((events as any).handlers.get('ready') ?? []).length
       d.dispose()
       let after = ((events as any).handlers.get('ready') ?? []).length
-      expect(after).toBe(before - 1)
+      assert.strictEqual(after, before - 1)
       await events.fire('ready', [])
-      expect(starts).toBe(0)
+      assert.strictEqual(starts, 0)
       await nvim.command('bd!')
     })
 
@@ -270,7 +270,7 @@ describe('services', () => {
       await services.start(document)
       await services.start(TextDocument.create('file:///2', 'java', 1, ''))
       let s = services.getService('test')
-      expect(s.state).toBe(ServiceStat.Running)
+      assert.strictEqual(s.state, ServiceStat.Running)
       let code = `call coc#on_notify('test', 'notification', { -> execute('let g:called = 1')})`
       await nvim.exec(code)
       await helper.doAction('registerNotification', 'test', 'notification')
@@ -333,9 +333,9 @@ describe('services', () => {
       })
       disposables.push(services.registerLanguageClient('test', { filetypes: ['vim'], enable: true }))
       let client = services.getService('test')
-      expect(client).toBeDefined()
+      assert.notStrictEqual(client, undefined)
       await client.start()
-      expect(client.state).toBe(ServiceStat.Initial)
+      assert.strictEqual(client.state, ServiceStat.Initial)
     })
 
     it('should not start for bad config', async () => {
@@ -348,9 +348,9 @@ describe('services', () => {
       })
       disposables.push(services.registerLanguageClient('test', { filetypes: ['vim'], enable: true }))
       let client = services.getService('test')
-      expect(client).toBeDefined()
+      assert.notStrictEqual(client, undefined)
       await client.start()
-      expect(client.state).toBe(ServiceStat.Initial)
+      assert.strictEqual(client.state, ServiceStat.Initial)
     })
 
     it('should start and stop language client', async () => {
@@ -369,7 +369,7 @@ describe('services', () => {
       let pro = client.stop()
       void client.stop()
       await pro
-      expect(client.state).toBe(ServiceStat.Stopped)
+      assert.strictEqual(client.state, ServiceStat.Stopped)
     })
 
     it('should start language client by restart', async () => {
@@ -380,40 +380,40 @@ describe('services', () => {
       disposables.push(services.registerLanguageClient('test', config))
       let client = services.getService('test')
       await client.restart()
-      expect(client.state).toBe(ServiceStat.Running)
+      assert.strictEqual(client.state, ServiceStat.Running)
     })
 
-    it('should not throw on start error', async () => {
+    it('should not throw on start error', async (t) => {
       const serverOptions: ServerOptions = {
         module: serverModule,
         transport: TransportKind.ipc,
       }
       const client = new LanguageClient('test', 'Test Language Server', serverOptions, {})
-      let spy = vi.spyOn(client, 'start').mockImplementation(() => {
+      let spy = t.mock.method(client, 'start', () => {
         throw new Error('custom error')
       })
       disposables.push(services.registerLanguageClient(client))
       let service = services.getService('test')
       await service.start()
-      spy.mockRestore()
+      spy.mock.restore()
       let line = await helper.getCmdline()
-      expect(line).toMatch('failed to start')
+      assert.ok((line).includes('failed to start'))
     })
 
-    it('should not leave service Starting on restart error', async () => {
+    it('should not leave service Starting on restart error', async (t) => {
       const serverOptions: ServerOptions = {
         module: serverModule,
         transport: TransportKind.ipc,
       }
       const client = new LanguageClient('test', 'Test Language Server', serverOptions, {})
-      let spy = vi.spyOn(client, 'restart').mockImplementation(() => {
+      let spy = t.mock.method(client, 'restart', () => {
         throw new Error('custom error')
       })
       disposables.push(services.registerLanguageClient(client))
       let service = services.getService('test')
       await service.restart()
-      spy.mockRestore()
-      expect(service.state).toBe(ServiceStat.StartFailed)
+      spy.mock.restore()
+      assert.strictEqual(service.state, ServiceStat.StartFailed)
     })
 
     it('should sendRequest & sendNotification', async () => {
@@ -426,17 +426,17 @@ describe('services', () => {
       let service = services.getService('test')
       await service.start()
       let res = await helper.plugin.cocAction('sendRequest', 'test', 'request', { value: 2 })
-      expect(res).toBe(3)
+      assert.strictEqual(res, 3)
       await helper.plugin.cocAction('sendNotification', 'test', 'notification', {})
       let result = await service.client.sendRequest('notified')
-      expect(result).toEqual({ notified: true })
+      assert.deepStrictEqual(result, { notified: true })
     })
 
     it('should throw when service not found', async () => {
       let fn = async () => {
         await services.sendNotification('id', 'method')
       }
-      await expect(fn()).rejects.toThrow(Error)
+      await assert.rejects(fn(), Error)
     })
 
     it('should register notification when client created', async () => {
@@ -454,7 +454,7 @@ describe('services', () => {
       await services.stop('test')
     })
 
-    it('should register notification when client not created', async () => {
+    it('should register notification when client not created', async (t) => {
       await helper.plugin.cocAction('registerNotification', 'def', 'notification')
       workspace.configurations.updateMemoryConfig({
         languageserver: {
@@ -466,7 +466,7 @@ describe('services', () => {
       })
       services.registerLanguageClient('def', { filetypes: ['.vim'], module: serverModule }, URI.file(__dirname))
       let res
-      let spy = vi.spyOn(services, 'sendNotificationVim' as any).mockImplementation((id, method, result) => {
+      let spy = t.mock.method(services, 'sendNotificationVim' as any, (id, method, result) => {
         res = { id, method, result }
       })
       let service = services.getService('def')
@@ -476,60 +476,60 @@ describe('services', () => {
         return res != undefined
       }, true)
       await services.stop('def')
-      spy.mockRestore()
-      expect(res).toEqual({ id: 'def', method: 'notification', result: { x: 1 } })
+      spy.mock.restore()
+      assert.deepStrictEqual(res, { id: 'def', method: 'notification', result: { x: 1 } })
     })
   })
 
   describe('stopAll()', () => {
-    it('should stop all registered services', async () => {
+    it('should stop all registered services', async (t) => {
       let stopped: string[] = []
       let d1 = services.register({
         id: 'test-stop-all-1',
         name: 'test-stop-all-1',
         state: ServiceStat.Running,
         selector: [],
-        onServiceReady: vi.fn(),
-        start: vi.fn(),
-        dispose: vi.fn(),
+        onServiceReady: t.mock.fn(),
+        start: t.mock.fn(),
+        dispose: t.mock.fn(),
         stop: async () => {
           stopped.push('1')
         },
-        restart: vi.fn()
+        restart: t.mock.fn()
       } as any)
       let d2 = services.register({
         id: 'test-stop-all-2',
         name: 'test-stop-all-2',
         state: ServiceStat.Running,
         selector: [],
-        onServiceReady: vi.fn(),
-        start: vi.fn(),
-        dispose: vi.fn(),
+        onServiceReady: t.mock.fn(),
+        start: t.mock.fn(),
+        dispose: t.mock.fn(),
         stop: async () => {
           stopped.push('2')
         },
-        restart: vi.fn()
+        restart: t.mock.fn()
       } as any)
       try {
         await services.stopAll(500)
-        expect(stopped).toEqual(['1', '2'])
+        assert.deepStrictEqual(stopped, ['1', '2'])
       } finally {
         d1.dispose()
         d2.dispose()
       }
     })
 
-    it('should resolve on timeout when service stop hangs', async () => {
+    it('should resolve on timeout when service stop hangs', async (t) => {
       let d = services.register({
         id: 'test-stop-all-hang',
         name: 'test-stop-all-hang',
         state: ServiceStat.Running,
         selector: [],
-        onServiceReady: vi.fn(),
-        start: vi.fn(),
-        dispose: vi.fn(),
+        onServiceReady: t.mock.fn(),
+        start: t.mock.fn(),
+        dispose: t.mock.fn(),
         stop: () => new Promise(() => {}),
-        restart: vi.fn()
+        restart: t.mock.fn()
       } as any)
       try {
         await services.stopAll(100)
@@ -550,9 +550,9 @@ describe('services', () => {
       try {
         let s = services.getService('test-stop-all')
         await s.start()
-        expect(s.state).toBe(ServiceStat.Running)
+        assert.strictEqual(s.state, ServiceStat.Running)
         await services.stopAll(1000)
-        expect(convertState(client.state)).toBe(ServiceStat.Stopped)
+        assert.strictEqual(convertState(client.state), ServiceStat.Stopped)
       } finally {
         d.dispose()
       }

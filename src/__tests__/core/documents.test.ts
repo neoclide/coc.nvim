@@ -45,14 +45,14 @@ describe('BufferSync', () => {
       }
     }, documents)
     sync.create(doc)
-    expect(called).toBe(true)
+    assert.strictEqual(called, true)
   })
 })
 
 describe('documents', () => {
   it('should convert filetype', () => {
     const shouldConvert = (from: string, to: string): void => {
-      expect(documents.convertFiletype(from)).toBe(to)
+      assert.strictEqual(documents.convertFiletype(from), to)
     }
     shouldConvert('javascript.jsx', 'javascriptreact')
     shouldConvert('typescript.jsx', 'typescriptreact')
@@ -66,69 +66,69 @@ describe('documents', () => {
     await helper.createDocument('bar')
     let doc = await helper.createDocument('foo')
     let res = documents.getDocument(doc.uri)
-    expect(res.uri).toBe(doc.uri)
+    assert.strictEqual(res.uri, doc.uri)
     let uri = 'file:///' + doc.uri.slice(8).toUpperCase()
     res = documents.getDocument(uri, true)
-    expect(res.uri).toBe(doc.uri)
+    assert.strictEqual(res.uri, doc.uri)
     res = documents.getDocument(uri, false)
-    expect(res).toBeNull()
+    assert.strictEqual(res, null)
   })
 
   it('should resolveRoot', async () => {
     let res = documents.resolveRoot(['package.json'])
-    expect(res).toBeDefined()
-    expect(() => {
+    assert.notStrictEqual(res, undefined)
+    assert.throws(() => {
       documents.resolveRoot(['unexpected file'], true)
-    }).toThrow(Error)
+    }, Error)
     await helper.edit(__filename)
     res = documents.resolveRoot(['package.json'])
-    expect(res).toBeDefined()
+    assert.notStrictEqual(res, undefined)
   })
 
   it('should consider lisp option for iskeyword', async () => {
     await nvim.command(`e +setl\\ lisp t`)
     let doc = await workspace.document
-    expect(doc.isWord('-')).toBe(true)
+    assert.strictEqual(doc.isWord('-'), true)
   })
 
   it('should get languageId', async () => {
     await helper.createDocument('t.vim')
-    expect(documents.getLanguageId('/a/b')).toBe('')
-    expect(documents.getLanguageId('/a/b.vim')).toBe('vim')
-    expect(documents.getLanguageId('/a/b.c')).toBe('')
+    assert.strictEqual(documents.getLanguageId('/a/b'), '')
+    assert.strictEqual(documents.getLanguageId('/a/b.vim'), 'vim')
+    assert.strictEqual(documents.getLanguageId('/a/b.c'), '')
   })
 
   it('should get lines', async () => {
     let doc = await helper.createDocument('tmp')
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\nbar')])
     let lines = await documents.getLines(doc.uri)
-    expect(lines).toEqual(['foo', 'bar'])
+    assert.deepStrictEqual(lines, ['foo', 'bar'])
     lines = await documents.getLines('lsptest:///1')
-    expect(lines).toEqual([])
+    assert.deepStrictEqual(lines, [])
     lines = await documents.getLines('file:///not_exists_file')
-    expect(lines).toEqual([])
+    assert.deepStrictEqual(lines, [])
     let uri = URI.file(__filename).toString()
     lines = await documents.getLines(uri)
-    expect(lines.length).toBeGreaterThan(0)
+    assert.ok((lines.length) > (0))
   })
 
   it('should read empty string from none file', async () => {
     let res = await documents.readFile('test:///1')
-    expect(res).toBe('')
+    assert.strictEqual(res, '')
   })
 
   it('should get empty line from none file', async () => {
     let res = await documents.getLine('test:///1', 1)
-    expect(res).toBe('')
+    assert.strictEqual(res, '')
     let uri = URI.file(path.join(__dirname, 'not_exists_file')).toString()
     res = await documents.getLine(uri, 1)
-    expect(res).toBe('')
+    assert.strictEqual(res, '')
   })
 
   it('should convert filepath', () => {
     Object.assign((documents as any)._env, { isCygwin: true, unixPrefix: '/cygdrive/' })
     let filepath = documents.fixUnixPrefix('C:\\Users\\Local')
-    expect(filepath).toBe('/cygdrive/c/Users/Local')
+    assert.strictEqual(filepath, '/cygdrive/c/Users/Local')
     Object.assign((documents as any)._env, { isCygwin: false })
   })
 
@@ -136,10 +136,10 @@ describe('documents', () => {
     let doc = await helper.createDocument('quickfix')
     let loc = LocationLink.create(doc.uri, Range.create(0, 0, 3, 0), Range.create(0, 0, 0, 3))
     let res = await documents.getQuickfixItem(loc, 'text', 'E', 'module')
-    expect(res.targetRange).toBeDefined()
-    expect(res.type).toBe('E')
-    expect(res.module).toBe('module')
-    expect(res.bufnr).toBe(doc.bufnr)
+    assert.notStrictEqual(res.targetRange, undefined)
+    assert.strictEqual(res.type, 'E')
+    assert.strictEqual(res.module, 'module')
+    assert.strictEqual(res.bufnr, doc.bufnr)
   })
 
   it('should create document', async () => {
@@ -147,9 +147,9 @@ describe('documents', () => {
     let bufnrs = await nvim.call('coc#ui#open_files', [[__filename]]) as number[]
     let bufnr = bufnrs[0]
     let doc = workspace.getDocument(bufnr)
-    expect(doc).toBeUndefined()
+    assert.strictEqual(doc, undefined)
     doc = await documents.createDocument(bufnr)
-    expect(doc).toBeDefined()
+    assert.notStrictEqual(doc, undefined)
   })
 
   it('should check buffer rename on save', async () => {
@@ -159,9 +159,9 @@ describe('documents', () => {
     let tmpfile = path.join(os.tmpdir(), name)
     await nvim.command(`write ${tmpfile}`)
     doc = workspace.getDocument(bufnr)
-    expect(doc).toBeDefined()
-    expect(doc.filetype).toBe('vim')
-    expect(doc.bufname).toMatch(name)
+    assert.notStrictEqual(doc, undefined)
+    assert.strictEqual(doc.filetype, 'vim')
+    assert.ok((doc.bufname).includes(name))
     fs.unlinkSync(tmpfile)
   })
 
@@ -169,25 +169,25 @@ describe('documents', () => {
     let p1 = workspace.document
     let p2 = workspace.document
     let arr = await Promise.all([p1, p2])
-    expect(arr[0]).toBe(arr[1])
+    assert.strictEqual(arr[0], arr[1])
   })
 
   it('should get bufnrs', async () => {
     await workspace.document
     let bufnrs = Array.from(documents.bufnrs)
-    expect(bufnrs.length).toBe(1)
+    assert.strictEqual(bufnrs.length, 1)
   })
 
   it('should get uri', async () => {
     let doc = await workspace.document
-    expect(documents.uri).toBe(doc.uri)
+    assert.strictEqual(documents.uri, doc.uri)
   })
 
   it('should get current uri', async () => {
     let doc = await workspace.document
     documents.detachBuffer(doc.bufnr)
     let uri = await documents.getCurrentUri()
-    expect(uri).toBeUndefined()
+    assert.strictEqual(uri, undefined)
   })
 
   it('should attach events on vim', async () => {
@@ -200,26 +200,26 @@ describe('documents', () => {
   })
 
   it('should compute word ranges', async () => {
-    expect(await workspace.computeWordRanges('file:///1', Range.create(0, 0, 1, 0))).toBeNull()
+    assert.strictEqual(await workspace.computeWordRanges('file:///1', Range.create(0, 0, 1, 0)), null)
     let doc = await workspace.document
-    expect(await workspace.computeWordRanges(doc.uri, Range.create(0, 0, 1, 0))).toBeDefined()
+    assert.notStrictEqual(await workspace.computeWordRanges(doc.uri, Range.create(0, 0, 1, 0)), undefined)
   })
 
   it('should try code actions', async () => {
     helper.updateConfiguration('editor.codeActionsOnSave', { 'source.fixAll': false }, disposables)
     let doc = await workspace.document
     let res = await documents.tryCodeActionsOnSave(doc)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
     helper.updateConfiguration('editor.codeActionsOnSave', {
       'source.fixAll.eslint': true,
       'source.organizeImports': 'always'
     }, disposables)
     res = await documents.tryCodeActionsOnSave(doc)
-    expect(res).toBe(true)
+    assert.strictEqual(res, true)
   })
 
-  it('should not fire document event when filetype not changed', async () => {
-    let fn = vi.fn()
+  it('should not fire document event when filetype not changed', async (t) => {
+    let fn = t.mock.fn()
     disposables.push(documents.onDidOpenTextDocument(e => {
       fn()
     }))
@@ -227,11 +227,11 @@ describe('documents', () => {
     doc.setFiletype('javascript')
     documents.onFileTypeChange('javascript', doc.bufnr)
     await helper.wait(20)
-    expect(fn).toHaveBeenCalledTimes(0)
+    assert.strictEqual((fn).mock.callCount(), 0)
     doc.detach()
     documents.onFileTypeChange('javascript', doc.bufnr)
     await helper.wait(20)
-    expect(fn).toHaveBeenCalledTimes(0)
+    assert.strictEqual((fn).mock.callCount(), 0)
   })
 
   it('should fire document create once on reload', async () => {
@@ -276,7 +276,7 @@ describe('formatOnSave', () => {
     doc.setFiletype('text')
     await documents.tryFormatOnSave(doc)
     let lines = await buf.lines
-    expect(lines).toEqual(['  a', '  b', '  c'])
+    assert.deepStrictEqual(lines, ['  a', '  b', '  c'])
   })
 
   it('should cancel when timeout', async () => {
@@ -296,7 +296,7 @@ describe('formatOnSave', () => {
     await helper.edit(filepath)
     let n = Date.now()
     await nvim.command('w')
-    expect(Date.now() - n).toBeLessThan(1000)
+    assert.ok((Date.now() - n) < (1000))
     clearTimeout(timer)
   })
 
@@ -306,11 +306,11 @@ describe('formatOnSave', () => {
 
     helper.updateConfiguration('coc.preferences.formatOnSave', false)
     let res = documents.shouldFormatOnSave(doc)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
 
     helper.updateConfiguration('coc.preferences.formatOnSave', true)
     res = documents.shouldFormatOnSave(doc)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
 
     helper.updateConfiguration('coc.preferences.formatOnSave', false)
     disposables.push(languages.registerDocumentFormatProvider(['*'], {
@@ -319,11 +319,11 @@ describe('formatOnSave', () => {
       }
     }))
     res = documents.shouldFormatOnSave(doc)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
 
     helper.updateConfiguration('coc.preferences.formatOnSave', true)
     res = documents.shouldFormatOnSave(doc)
-    expect(res).toBe(true)
+    assert.strictEqual(res, true)
   })
 
   it('should prefer formatOnSaveFiletypes over formatOnSave', async () => {
@@ -335,24 +335,24 @@ describe('formatOnSave', () => {
 
     helper.updateConfiguration('coc.preferences.formatOnSave', true, disposables)
     helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['javascript'], disposables)
-    expect(documents.shouldFormatOnSave(doc)).toBe(false)
+    assert.strictEqual(documents.shouldFormatOnSave(doc), false)
 
     helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', [], disposables)
-    expect(documents.shouldFormatOnSave(doc)).toBe(false)
+    assert.strictEqual(documents.shouldFormatOnSave(doc), false)
 
     helper.updateConfiguration('coc.preferences.formatOnSave', false, disposables)
     helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', ['text'], disposables)
-    expect(documents.shouldFormatOnSave(doc)).toBe(true)
+    assert.strictEqual(documents.shouldFormatOnSave(doc), true)
   })
 
   it('should ignore non-array formatOnSaveFiletypes', async () => {
     helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', 'text', disposables)
     let doc = await workspace.document
     doc.setFiletype('text')
-    expect(documents.shouldFormatOnSave(doc)).toBe(false)
+    assert.strictEqual(documents.shouldFormatOnSave(doc), false)
 
     helper.updateConfiguration('coc.preferences.formatOnSaveFiletypes', 123, disposables)
-    expect(documents.shouldFormatOnSave(doc)).toBe(false)
+    assert.strictEqual(documents.shouldFormatOnSave(doc), false)
   })
 
   it('should not format on save when disabled', async () => {
@@ -376,6 +376,6 @@ describe('formatOnSave', () => {
     await nvim.command('w')
     let buf = await nvim.buffer
     let lines = await buf.lines
-    expect(lines).toEqual(['a', 'b', 'c'])
+    assert.deepStrictEqual(lines, ['a', 'b', 'c'])
   })
 })

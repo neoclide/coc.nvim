@@ -30,12 +30,12 @@ describe('OutputChannel', () => {
     let ch = new OutputChannel("a@b 'c", nvim)
     ch.show(false, 'edit')
     let bufname = await nvim.call('bufname', '%')
-    expect(bufname).toBe('output:///a@b%20\'c')
+    assert.strictEqual(bufname, 'output:///a@b%20\'c')
     let bufnr = await nvim.call('bufnr', ['%'])
     ch.hide()
     await helper.waitValue(() => nvim.call('bufloaded', [bufnr]), 0)
     let loaded = await nvim.call('bufloaded', [bufnr])
-    expect(loaded).toBe(0)
+    assert.strictEqual(loaded, 0)
     ch.dispose()
   })
 
@@ -65,13 +65,13 @@ describe('OutputChannel', () => {
     c.clear(2)
     await helper.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /bar/)
     let lines = await buf.lines
-    expect(lines.includes('bar')).toBe(true)
+    assert.strictEqual(lines.includes('bar'), true)
   })
 
   test('outputChannel caps retained lines', async () => {
     let c = new OutputChannel('cap', nvim, undefined, 3)
     for (let i = 1; i <= 5; i++) c.appendLine(`${i}`)
-    expect(c.content.split('\n').filter(Boolean)).toEqual(['4', '5'])
+    assert.deepStrictEqual(c.content.split('\n').filter(Boolean), ['4', '5'])
     c.dispose()
   })
 
@@ -82,7 +82,7 @@ describe('OutputChannel', () => {
     for (let i = 1; i <= 5; i++) c.appendLine(`${i}`)
     await helper.waitFor('eval', [`join(getbufline('output:///trim',1,'$'),'\n')`], /5/)
     let lines = await nvim.call('getbufline', ['output:///trim', 1, '$']) as string[]
-    expect(lines.filter(Boolean)).toEqual(['4', '5'])
+    assert.deepStrictEqual(lines.filter(Boolean), ['4', '5'])
     c.dispose()
   })
 
@@ -92,9 +92,9 @@ describe('OutputChannel', () => {
     await helper.waitFor('bufloaded', ['output:///burst'], 1)
     c.appendLine('a\nb\nc\nd')
     await helper.waitFor('eval', [`join(getbufline('output:///burst',1,'$'),'\n')`], /d/)
-    expect(c.content.split('\n').filter(Boolean)).toEqual(['d'])
+    assert.deepStrictEqual(c.content.split('\n').filter(Boolean), ['d'])
     let lines = await nvim.call('getbufline', ['output:///burst', 1, '$']) as string[]
-    expect(lines.filter(Boolean)).toEqual(['d'])
+    assert.deepStrictEqual(lines.filter(Boolean), ['d'])
     c.dispose()
   })
 
@@ -104,7 +104,7 @@ describe('OutputChannel', () => {
     c.show()
     await helper.waitFor('bufname', ['%'], 'output:///1')
     let nr = (await nvim.buffer).id
-    expect(bufnr).toBeLessThan(nr)
+    assert.ok((bufnr) < (nr))
   })
 
   test('outputChannel.appendLine()', async () => {

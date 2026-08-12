@@ -25,8 +25,8 @@ describe('extension sandbox compiler', () => {
     let filepath = path.join(folder, 'index.js')
     fs.writeFileSync(filepath, "throw new Error('load failed')")
     let originalCompile = Module.prototype._compile
-    expect(() => createExtension('broken', filepath, false)).toThrow('load failed')
-    expect(Module.prototype._compile).toBe(originalCompile)
+    assert.throws(() => createExtension('broken', filepath, false), error => String(error instanceof Error ? error.message : error).includes('load failed'))
+    assert.strictEqual(Module.prototype._compile, originalCompile)
   })
 
   it('should restore module compiler when dependency fails to load', () => {
@@ -36,8 +36,8 @@ describe('extension sandbox compiler', () => {
     fs.writeFileSync(dep, "throw new Error('dep failed')")
     fs.writeFileSync(filepath, "require('./dep')\nexports.activate = () => {}")
     let originalCompile = Module.prototype._compile
-    expect(() => createExtension('broken-dep', filepath, false)).toThrow('dep failed')
-    expect(Module.prototype._compile).toBe(originalCompile)
+    assert.throws(() => createExtension('broken-dep', filepath, false), error => String(error instanceof Error ? error.message : error).includes('dep failed'))
+    assert.strictEqual(Module.prototype._compile, originalCompile)
   })
 
   it('should load plain modules normally after a failed extension load', () => {
@@ -46,9 +46,9 @@ describe('extension sandbox compiler', () => {
     let good = path.join(folder, 'good.js')
     fs.writeFileSync(bad, "throw new Error('boom')")
     fs.writeFileSync(good, 'module.exports = { ok: true }')
-    expect(() => createExtension('bad', bad, false)).toThrow('boom')
+    assert.throws(() => createExtension('bad', bad, false), error => String(error instanceof Error ? error.message : error).includes('boom'))
     delete require.cache[good]
-    expect(require(good)).toEqual({ ok: true })
+    assert.deepStrictEqual(require(good), { ok: true })
   })
 
   it('should load a valid extension after a failed one', () => {
@@ -57,10 +57,10 @@ describe('extension sandbox compiler', () => {
     let good = path.join(folder, 'good.js')
     fs.writeFileSync(bad, "throw new Error('boom')")
     fs.writeFileSync(good, "exports.activate = () => ({ hello: 'world' })")
-    expect(() => createExtension('bad', bad, false)).toThrow('boom')
+    assert.throws(() => createExtension('bad', bad, false), error => String(error instanceof Error ? error.message : error).includes('boom'))
     let ext = createExtension('good', good, false)
-    expect(typeof ext.activate).toBe('function')
-    expect(ext.activate({} as any)).toEqual({ hello: 'world' })
+    assert.strictEqual(typeof ext.activate, 'function')
+    assert.strictEqual(ext.activate({} as any).hello, 'world')
   })
 
   it('should reload dependency state on extension reload', () => {
@@ -72,11 +72,11 @@ describe('extension sandbox compiler', () => {
     fs.writeFileSync(dep, "module.exports = { value: 'one' }")
     fs.writeFileSync(filepath, "let dep = require('dep')\nexports.activate = () => dep.value")
     let ext1 = createExtension('reload-dep', filepath, false)
-    expect(ext1.activate({} as any)).toBe('one')
+    assert.strictEqual(ext1.activate({} as any), 'one')
     // simulate dependency update followed by reloadExtension
     fs.writeFileSync(dep, "module.exports = { value: 'two' }")
     let ext2 = createExtension('reload-dep', filepath, false)
-    expect(ext2.activate({} as any)).toBe('two')
+    assert.strictEqual(ext2.activate({} as any), 'two')
   })
 
   it('should not share singleton dependency state between reloads', () => {
@@ -87,9 +87,9 @@ describe('extension sandbox compiler', () => {
     fs.writeFileSync(filepath, "let dep = require('./dep')\nexports.activate = () => ({ inc: dep.inc })")
     let ext1 = createExtension('reload-state', filepath, false)
     let api1 = ext1.activate({} as any)
-    expect(api1.inc()).toBe(1)
+    assert.strictEqual(api1.inc(), 1)
     let ext2 = createExtension('reload-state', filepath, false)
     let api2 = ext2.activate({} as any)
-    expect(api2.inc()).toBe(1)
+    assert.strictEqual(api2.inc(), 1)
   })
 })

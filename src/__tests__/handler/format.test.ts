@@ -36,16 +36,16 @@ describe('format handler', () => {
     it('should return null when format provider not exists', async () => {
       let doc = await workspace.document
       let res = await languages.provideDocumentFormattingEdits(doc.textDocument, { insertSpaces: false, tabSize: 2 }, CancellationToken.None)
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
     })
 
     it('should throw when provider not found', async () => {
-      await expect(commands.executeCommand('editor.action.formatDocument', 999)).rejects.toThrow(Error)
-      await expect(commands.executeCommand('editor.action.formatDocument')).rejects.toThrow(Error)
-      await expect(async () => {
+      await assert.rejects(commands.executeCommand('editor.action.formatDocument', 999), Error)
+      await assert.rejects(commands.executeCommand('editor.action.formatDocument'), Error)
+      await assert.rejects(async () => {
         let doc = await workspace.document
         await commands.executeCommand('editor.action.formatDocument', doc.uri)
-      }).rejects.toThrow(Error)
+      }, Error)
     })
 
     it('should return false when get empty edits', async () => {
@@ -56,7 +56,7 @@ describe('format handler', () => {
       }))
       let doc = await helper.createDocument()
       let res = await format.documentFormat(doc)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should use provider that have higher score', async () => {
@@ -72,7 +72,7 @@ describe('format handler', () => {
       }))
       let doc = await helper.createDocument('t.vim')
       let res = await languages.provideDocumentFormattingEdits(doc.textDocument, { tabSize: 2, insertSpaces: false }, CancellationToken.None)
-      expect(res.length).toBe(1)
+      assert.strictEqual(res.length, 1)
     })
 
     it('should not fallback to range formatter when document formatter returns null', async () => {
@@ -90,8 +90,8 @@ describe('format handler', () => {
       }))
       let doc = await helper.createDocument('t.txt')
       let edits = await languages.provideDocumentFormattingEdits(doc.textDocument, { tabSize: 2, insertSpaces: false }, CancellationToken.None)
-      expect(edits).toBeNull()
-      expect(called).toBe(false)
+      assert.strictEqual(edits, null)
+      assert.strictEqual(called, false)
     })
 
     it('should fallback to range formatter when document formatter not exists', async () => {
@@ -104,8 +104,8 @@ describe('format handler', () => {
       }))
       let doc = await helper.createDocument('t.txt')
       let edits = await languages.provideDocumentFormattingEdits(doc.textDocument, { tabSize: 2, insertSpaces: false }, CancellationToken.None)
-      expect(called).toBe(true)
-      expect(edits.length).toBe(1)
+      assert.strictEqual(called, true)
+      assert.strictEqual(edits.length, 1)
     })
 
     it('should format current buffer', async () => {
@@ -117,7 +117,7 @@ describe('format handler', () => {
       await helper.createDocument('t.vim')
       await commands.executeCommand('editor.action.format')
       let line = await nvim.line
-      expect(line).toBe('  ')
+      assert.strictEqual(line, '  ')
     })
 
     it('should use specified format provider', async () => {
@@ -129,7 +129,7 @@ describe('format handler', () => {
       }))
       let doc = await workspace.document
       let res = await format.documentFormat(doc)
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let provider = {
         provideDocumentFormattingEdits: doc => {
           let line = doc.lines[0] as string
@@ -140,7 +140,7 @@ describe('format handler', () => {
       disposables.push(languages.registerDocumentFormatProvider([{ language: '*' }], provider))
       await format.documentFormat(doc)
       let line = doc.getline(0)
-      expect(line).toBe('foo')
+      assert.strictEqual(line, 'foo')
     })
   })
 
@@ -150,27 +150,27 @@ describe('format handler', () => {
       let range = Range.create(0, 0, 1, 0)
       let options = await workspace.getFormatOptions()
       let token = (new CancellationTokenSource()).token
-      expect(await languages.provideDocumentRangeFormattingEdits(doc, range, options, token)).toBe(null)
-      expect(await languages.provideDocumentRangesFormattingEdits(doc, [range], options, token)).toBe(null)
-      expect(languages.hasProvider(ProviderName.FormatOnType, doc)).toBe(false)
-      expect(languages.hasProvider(ProviderName.OnTypeEdit, doc)).toBe(false)
+      assert.strictEqual(await languages.provideDocumentRangeFormattingEdits(doc, range, options, token), null)
+      assert.strictEqual(await languages.provideDocumentRangesFormattingEdits(doc, [range], options, token), null)
+      assert.strictEqual(languages.hasProvider(ProviderName.FormatOnType, doc), false)
+      assert.strictEqual(languages.hasProvider(ProviderName.OnTypeEdit, doc), false)
       let edits = await languages.provideDocumentFormattingEdits(doc, options, token)
-      expect(edits).toBe(null)
+      assert.strictEqual(edits, null)
     })
 
-    it('should return -1 when range not exists', async () => {
+    it('should return -1 when range not exists', async (t) => {
       disposables.push(languages.registerDocumentRangeFormatProvider(['*'], {
         provideDocumentRangeFormattingEdits: () => {
           return []
         }
       }, 1))
-      let spy = vi.spyOn(window, 'getSelectedRange').mockImplementation(() => {
+      let spy = t.mock.method(window, 'getSelectedRange', () => {
         return Promise.resolve(null)
       })
       let doc = await workspace.document
       let res = await format.documentRangeFormat(doc, 'v')
-      spy.mockRestore()
-      expect(res).toBe(-1)
+      spy.mock.restore()
+      assert.strictEqual(res, -1)
     })
 
     it('should invoke range format', async () => {
@@ -190,16 +190,16 @@ describe('format handler', () => {
       await nvim.call('setline', [1, ['a', 'b', 'c']])
       await nvim.command('normal! ggvG')
       await nvim.input('<esc>')
-      expect(languages.hasFormatProvider(doc.textDocument)).toBe(true)
-      expect(languages.hasProvider(ProviderName.Format, doc.textDocument)).toBe(true)
+      assert.strictEqual(languages.hasFormatProvider(doc.textDocument), true)
+      assert.strictEqual(languages.hasProvider(ProviderName.Format, doc.textDocument), true)
       await helper.doAction('formatSelected', 'v')
       let buf = nvim.createBuffer(doc.bufnr)
       let lines = await buf.lines
-      expect(lines).toEqual(['  a', '  b', '  c'])
+      assert.deepStrictEqual(lines, ['  a', '  b', '  c'])
       let options = await workspace.getFormatOptions(doc.bufnr)
       let token = (new CancellationTokenSource()).token
       let edits = await languages.provideDocumentFormattingEdits(doc.textDocument, options, token)
-      expect(edits.length).toBeGreaterThan(0)
+      assert.ok((edits.length) > (0))
     })
 
     it('should format range by formatexpr option', async () => {
@@ -215,7 +215,7 @@ describe('format handler', () => {
       await nvim.call('setline', [1, ['a', 'b', 'c']])
       await nvim.command(`setl formatexpr=CocAction('formatSelected')`)
       await nvim.command('normal! ggvGgq')
-      expect(range).toEqual({
+      assert.deepStrictEqual(range, {
         start: { line: 0, character: 0 }, end: { line: 3, character: 0 }
       })
     })
@@ -239,8 +239,8 @@ describe('format handler', () => {
         options,
         token
       )
-      expect(called).toBe(true)
-      expect(edits.length).toBe(2)
+      assert.strictEqual(called, true)
+      assert.strictEqual(edits.length, 2)
     })
 
     it('should fallback to per range formatting', async () => {
@@ -261,10 +261,10 @@ describe('format handler', () => {
         options,
         token
       )
-      expect(ranges.length).toBe(2)
-      expect(ranges[0].start.line).toBe(0)
-      expect(ranges[1].start.line).toBe(1)
-      expect(edits.length).toBe(0)
+      assert.strictEqual(ranges.length, 2)
+      assert.strictEqual(ranges[0].start.line, 0)
+      assert.strictEqual(ranges[1].start.line, 1)
+      assert.strictEqual(edits.length, 0)
     })
   })
 
@@ -280,16 +280,16 @@ describe('format handler', () => {
       await nvim.setLine('foo')
       await helper.doAction('format')
       let line = await nvim.line
-      expect(line).toEqual('  foo')
+      assert.deepStrictEqual(line, '  foo')
     })
 
     it('should respect formatOnTypeFiletypes', async () => {
       helper.updateConfiguration('coc.preferences.formatOnTypeFiletypes', ['*'])
-      expect(format.shouldFormatOnType('vim')).toBe(true)
+      assert.strictEqual(format.shouldFormatOnType('vim'), true)
       helper.updateConfiguration('coc.preferences.formatOnTypeFiletypes', ['txt'])
       let doc = await helper.createDocument('t.vim')
       let res = await format.tryFormatOnType('\n', doc)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should not format on type when disabled by variable', async () => {
@@ -304,7 +304,7 @@ describe('format handler', () => {
       await nvim.resumeNotification()
       let doc = await workspace.document
       let res = await format.tryFormatOnType('\n', doc)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should does format on type', async () => {
@@ -315,18 +315,18 @@ describe('format handler', () => {
         }
       }, ['|']))
       let res = await format.tryFormatOnType(';', doc)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
       await helper.edit()
       await nvim.input('i|')
       await helper.waitFor('getline', ['.'], '  |')
       let cursor = await window.getCursorPosition()
-      expect(cursor).toEqual({ line: 0, character: 3 })
+      assert.deepStrictEqual(cursor, { line: 0, character: 3 })
     })
 
     it('should return null when provider not found', async () => {
       let doc = await workspace.document
       let res = await languages.provideDocumentOnTypeEdits('|', doc.textDocument, Position.create(0, 0), CancellationToken.None)
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
     })
 
     it('should adjust cursor after format on type', async () => {
@@ -349,7 +349,7 @@ describe('format handler', () => {
       await nvim.input('i|')
       await helper.waitFor('getline', ['.'], '  |"end')
       let cursor = await window.getCursorPosition()
-      expect(cursor).toEqual({ line: 0, character: 3 })
+      assert.deepStrictEqual(cursor, { line: 0, character: 3 })
     })
   })
 
@@ -361,7 +361,7 @@ describe('format handler', () => {
     it('should not throw for buffer not attached', async () => {
       await nvim.command(`edit +setl\\ buftype=nofile foo`)
       let doc = await workspace.document
-      expect(doc.attached).toBe(false)
+      assert.strictEqual(doc.attached, false)
       await format.handleEnter(doc.bufnr)
     })
 
@@ -375,7 +375,7 @@ describe('format handler', () => {
       await nvim.eval(`feedkeys("\\<CR>", 'im')`)
       await helper.waitFor('getline', [2], '  \\ ')
       let lines = await buf.lines
-      expect(lines).toEqual(['let foo={', '  \\ ', '  \\ }'])
+      assert.deepStrictEqual(lines, ['let foo={', '  \\ ', '  \\ }'])
     })
 
     it('should use tab on format', async () => {
@@ -398,7 +398,7 @@ describe('format handler', () => {
       await nvim.eval(`feedkeys("\\<CR>", 'im')`)
       await helper.waitFor('getline', [2], '    ')
       let lines = await buf.lines
-      expect(lines).toEqual(['  {', '    ', '  }'])
+      assert.deepStrictEqual(lines, ['  {', '    ', '  }'])
     })
   })
 
@@ -416,7 +416,7 @@ describe('format handler', () => {
         }
       })
       format.logProvider(1, edits)
-      expect(called).toBe(true)
+      assert.strictEqual(called, true)
     })
   })
 })

@@ -18,8 +18,7 @@
     "**/build",
     "**/lib",
     "**/typings",
-    "vitest.config.ts",
-    "vitest.setup.ts"
+    "test-setup.cjs"
   ],
   "overrides": [
     {
@@ -265,46 +264,20 @@
         "src/__tests__/**/*.ts"
       ],
       "rules": {
-        "vitest/expect-expect": "off",
-        "vitest/no-commented-out-tests": "error",
-        "vitest/no-conditional-expect": "off",
-        "vitest/no-disabled-tests": "warn",
-        "vitest/no-focused-tests": "error",
-        "vitest/no-identical-title": "off",
-        "vitest/no-import-node-test": "error",
-        "vitest/no-interpolation-in-snapshots": "error",
-        "vitest/no-mocks-import": "error",
-        "vitest/no-standalone-expect": "error",
-        "vitest/no-unneeded-async-expect-function": "error",
-        "vitest/prefer-called-exactly-once-with": "error",
-        "vitest/require-local-test-context-for-concurrent-snapshots": "error",
-        "vitest/valid-describe-callback": "error",
-        "vitest/valid-expect": "error",
-        "vitest/valid-expect-in-promise": "error",
-        "vitest/valid-title": "error",
+        "typescript/no-floating-promises": "off",
         "typescript/no-unsafe-function-type": "off"
       },
       "globals": {
-        "suite": "writable",
         "test": "writable",
         "describe": "writable",
         "it": "writable",
-        "expectTypeOf": "writable",
-        "assertType": "writable",
-        "expect": "writable",
         "assert": "writable",
-        "chai": "writable",
-        "vitest": "writable",
-        "vi": "writable",
         "beforeAll": "writable",
         "afterAll": "writable",
         "beforeEach": "writable",
-        "afterEach": "writable",
-        "onTestFailed": "writable",
-        "onTestFinished": "writable"
+        "afterEach": "writable"
       },
       "plugins": [
-        "vitest",
         "typescript"
       ]
     }

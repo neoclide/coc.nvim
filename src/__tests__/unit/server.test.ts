@@ -3,7 +3,6 @@ import crypto from 'crypto'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { McpServer } from '../../mcp/server'
 import { McpTool, ToolRegistry } from '../../mcp/tools'
 import { TestClient } from '../mcp/testClient'
@@ -65,7 +64,7 @@ describe('mcp server lifecycle', () => {
   async function authClient(): Promise<TestClient> {
     let client = new TestClient(address.port)
     let auth = await client.request(0, 'coc/auth', { token: 'test-token', clientInfo: { name: 'test', version: '1' } })
-    expect(auth.ok).toBe(true)
+    assert.strictEqual(auth.ok, true)
     return client
   }
 
@@ -76,7 +75,7 @@ describe('mcp server lifecycle', () => {
       capabilities: {},
       clientInfo: { name: 'test', version: '1' }
     })
-    expect(init.protocolVersion).toBe('2025-06-18')
+    assert.strictEqual(init.protocolVersion, '2025-06-18')
     client.notify('notifications/initialized')
     return client
   }
@@ -91,7 +90,7 @@ describe('mcp server lifecycle', () => {
       maxClients: 1,
       timeout: 1000
     })
-    await expect(invalid.listen()).rejects.toThrow('socketPath is required')
+    await assert.rejects(invalid.listen(), error => String(error instanceof Error ? error.message : error).includes('socketPath is required'))
     invalid.dispose()
   })
 
@@ -103,8 +102,8 @@ describe('mcp server lifecycle', () => {
     } catch (e) {
       error = e
     }
-    expect(error).toBeTruthy()
-    expect(error.message).toContain('-32001')
+    assert.ok(error)
+    assert.ok((error.message).includes('-32001'))
     await client.onClosed()
     client.close()
   })
@@ -117,8 +116,8 @@ describe('mcp server lifecycle', () => {
     } catch (e) {
       error = e
     }
-    expect(error).toBeTruthy()
-    expect(error.message).toContain('-32001')
+    assert.ok(error)
+    assert.ok((error.message).includes('-32001'))
     await client.onClosed()
     client.close()
   })
@@ -131,8 +130,8 @@ describe('mcp server lifecycle', () => {
     } catch (e) {
       error = e
     }
-    expect(error).toBeTruthy()
-    expect(error.message).toContain('-32600')
+    assert.ok(error)
+    assert.ok((error.message).includes('-32600'))
     client.close()
   })
 
@@ -144,9 +143,9 @@ describe('mcp server lifecycle', () => {
     } catch (e) {
       error = e
     }
-    expect(error).toBeTruthy()
-    expect(error.message).toContain('-32600')
-    expect(error.message).toContain('2024-11-05')
+    assert.ok(error)
+    assert.ok((error.message).includes('-32600'))
+    assert.ok((error.message).includes('2024-11-05'))
     client.close()
   })
 
@@ -158,7 +157,7 @@ describe('mcp server lifecycle', () => {
       capabilities: {},
       clientInfo: { name: 'test', version: '1' }
     })
-    expect(init.protocolVersion).toBe('2024-11-05')
+    assert.strictEqual(init.protocolVersion, '2024-11-05')
     client.notify('notifications/initialized')
     // 2024-11-05 Tool is limited to name/description/inputSchema; title,
     // annotations and outputSchema were added in later revisions.
@@ -172,19 +171,19 @@ describe('mcp server lifecycle', () => {
       handler: () => ({ content: [{ type: 'text', text: 'ok' }], structuredContent: { ok: true } })
     })
     let list = await client.request(2, 'tools/list')
-    let annotated = list.tools.find((t: any) => t.name === 'annotated')
-    expect(annotated).toEqual({
+    let annotated: any = list.tools.find((t: any) => t.name === 'annotated')
+    assert.deepStrictEqual(annotated, {
       name: 'annotated',
       description: 'Tool with newer metadata',
       inputSchema: { type: 'object' }
     })
-    expect(annotated.title).toBeUndefined()
-    expect(annotated.annotations).toBeUndefined()
-    expect(annotated.outputSchema).toBeUndefined()
+    assert.strictEqual((annotated as any).title, undefined)
+    assert.strictEqual((annotated as any).annotations, undefined)
+    assert.strictEqual((annotated as any).outputSchema, undefined)
     // 2024-11-05 CallToolResult has no structuredContent (added 2025-06-18).
     let call = await client.request(3, 'tools/call', { name: 'annotated', arguments: {} })
-    expect(call.content[0].text).toBe('ok')
-    expect(call.structuredContent).toBeUndefined()
+    assert.strictEqual(call.content[0].text, 'ok')
+    assert.strictEqual(call.structuredContent, undefined)
     disposable.dispose()
     client.close()
   })
@@ -202,7 +201,7 @@ describe('mcp server lifecycle', () => {
       handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
     })
     let msg = await changed
-    expect(msg.method).toBe('notifications/tools/list_changed')
+    assert.strictEqual(msg.method, 'notifications/tools/list_changed')
     client.close()
   })
 
@@ -214,8 +213,8 @@ describe('mcp server lifecycle', () => {
       capabilities: {},
       clientInfo: { name: 'test', version: '1' }
     })
-    expect(init.protocolVersion).toBe('2025-11-25')
-    expect(init.serverInfo.description).toBeTruthy()
+    assert.strictEqual(init.protocolVersion, '2025-11-25')
+    assert.ok(init.serverInfo.description)
     client.close()
   })
 
@@ -225,8 +224,8 @@ describe('mcp server lifecycle', () => {
     await client.request(1, 'initialize', { protocolVersion: '2025-11-25', capabilities: {} })
     client.notify('notifications/initialized')
     let result = await client.request(2, 'tools/call', { name: 'echo', arguments: 'not-an-object' })
-    expect(result.isError).toBe(true)
-    expect(result.content[0].text).toContain('must be an object')
+    assert.strictEqual(result.isError, true)
+    assert.ok((result.content[0].text).includes('must be an object'))
     client.close()
   })
 
@@ -238,25 +237,26 @@ describe('mcp server lifecycle', () => {
     } catch (e) {
       error = e
     }
-    expect(error).toBeTruthy()
-    expect(error.message).toContain('-32602')
+    assert.ok(error)
+    assert.ok((error.message).includes('-32602'))
     client.close()
   })
 
   it('runs the full MCP lifecycle and tool calls', async () => {
     let client = await initClient()
     let list = await client.request(2, 'tools/list')
-    expect(list.tools.map((t: any) => t.name)).toEqual(expect.arrayContaining(['echo', 'boom', 'fail']))
+    let names = list.tools.map((t: any) => t.name)
+    assert.ok(['echo', 'boom', 'fail'].every(name => names.includes(name)))
     let call = await client.request(3, 'tools/call', { name: 'echo', arguments: { value: 'hi' } })
-    expect(call.structuredContent.value).toBe('hi')
-    expect(call.content[0].text).toBe('hi')
+    assert.strictEqual(call.structuredContent.value, 'hi')
+    assert.strictEqual(call.content[0].text, 'hi')
     let ping = await client.request(4, 'ping')
-    expect(ping).toEqual({})
+    assert.deepStrictEqual(ping, {})
     let status = await client.request(5, 'coc/status')
-    expect(status.running).toBe(true)
-    expect(status.tools).toContain('echo')
+    assert.strictEqual(status.running, true)
+    assert.ok((status.tools).includes('echo'))
     let shutdown = await client.request(6, 'shutdown')
-    expect(shutdown).toBeNull()
+    assert.strictEqual(shutdown, null)
     client.notify('notifications/exit')
     await client.onClosed()
     client.close()
@@ -270,15 +270,15 @@ describe('mcp server lifecycle', () => {
     } catch (e) {
       error = e
     }
-    expect(error).toBeTruthy()
-    expect(error.message).toContain('-32602')
+    assert.ok(error)
+    assert.ok((error.message).includes('-32602'))
     client.close()
   })
 
   it('returns tool execution errors as isError results', async () => {
     let client = await initClient()
     let result = await client.request(2, 'tools/call', { name: 'fail', arguments: {} })
-    expect(result.isError).toBe(true)
+    assert.strictEqual(result.isError, true)
     client.close()
   })
 
@@ -290,9 +290,9 @@ describe('mcp server lifecycle', () => {
     } catch (e) {
       error = e
     }
-    expect(error).toBeTruthy()
-    expect(error.message).toContain('-32603')
-    expect(error.message).toContain('boom error')
+    assert.ok(error)
+    assert.ok((error.message).includes('-32603'))
+    assert.ok((error.message).includes('boom error'))
     client.close()
   })
 
@@ -306,11 +306,11 @@ describe('mcp server lifecycle', () => {
       handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
     })
     let msg = await changed
-    expect(msg.method).toBe('notifications/tools/list_changed')
+    assert.strictEqual(msg.method, 'notifications/tools/list_changed')
     client.close()
   })
 
-  it('disposes the shared tool registry subscription on server dispose', async () => {
+  it('disposes the shared tool registry subscription on server dispose', async (t) => {
     let registry = new ToolRegistry()
     let first = new McpServer({
       transport: 'tcp',
@@ -321,7 +321,7 @@ describe('mcp server lifecycle', () => {
       maxClients: 4,
       timeout: 0
     }, registry)
-    let firstBroadcast = vi.spyOn(first, 'broadcastNotification')
+    let firstBroadcast = t.mock.method(first, 'broadcastNotification')
     first.dispose()
     let second = new McpServer({
       transport: 'tcp',
@@ -332,15 +332,15 @@ describe('mcp server lifecycle', () => {
       maxClients: 4,
       timeout: 0
     }, registry)
-    let secondBroadcast = vi.spyOn(second, 'broadcastNotification')
+    let secondBroadcast = t.mock.method(second, 'broadcastNotification')
     registry.register({
       name: 'shared-tool',
       description: 'Shared tool',
       inputSchema: { type: 'object' },
       handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
     })
-    expect(firstBroadcast).not.toHaveBeenCalled()
-    expect(secondBroadcast).toHaveBeenCalledTimes(1)
+    assert.strictEqual((firstBroadcast).mock.callCount(), 0)
+    assert.strictEqual((secondBroadcast).mock.callCount(), 1)
     second.dispose()
   })
 
@@ -374,8 +374,8 @@ describe('mcp server lifecycle', () => {
     } catch (e) {
       error = e
     }
-    expect(error).toBeTruthy()
-    expect(error.message).toContain('-32003')
+    assert.ok(error)
+    assert.ok((error.message).includes('-32003'))
     client.close()
     slowServer.dispose()
   })
@@ -412,8 +412,8 @@ describe('mcp server lifecycle', () => {
     client.notify('notifications/exit')
     await Promise.all([callP, shutP])
     await client.onClosed()
-    expect(results.map(r => r[0])).toEqual(['call', 'shutdown'])
-    expect(results[0][1].content[0].text).toBe('done')
+    assert.deepStrictEqual(results.map(r => r[0]), ['call', 'shutdown'])
+    assert.strictEqual(results[0][1].content[0].text, 'done')
     client.close()
     orderServer.dispose()
   })
@@ -422,9 +422,9 @@ describe('mcp server lifecycle', () => {
     let client = await initClient()
     client.notify('notifications/roots/list_changed', { roots: [{ uri: 'file:///workspace' }] })
     let roots = await client.request(2, 'roots/list')
-    expect(roots.roots).toEqual([{ uri: 'file:///workspace' }])
+    assert.deepStrictEqual(roots.roots, [{ uri: 'file:///workspace' }])
     let level = await client.request(3, 'logging/setLevel', { level: 'debug' })
-    expect(level).toBeNull()
+    assert.strictEqual(level, null)
     client.close()
   })
 })
@@ -469,8 +469,8 @@ describe('mcp server hardening', () => {
     } catch (e) {
       error = e
     }
-    expect(error).toBeTruthy()
-    expect(String(error)).toContain('Connection closed')
+    assert.ok(error)
+    assert.ok((String(error)).includes('Connection closed'))
     a.close()
     b.close()
     server.dispose()
@@ -504,16 +504,16 @@ describe('mcp server hardening', () => {
     let client = new TestClient(address.port)
     await authInit(client)
     let list = await client.request(2, 'tools/list')
-    expect(list.tools.map((t: any) => t.name)).toEqual(['echo'])
+    assert.deepStrictEqual(list.tools.map((t: any) => t.name), ['echo'])
     let blocked: any
     try {
       await client.request(3, 'tools/call', { name: 'blocked', arguments: {} })
     } catch (e) {
       blocked = e
     }
-    expect(String(blocked)).toContain('allowedTools')
+    assert.ok((String(blocked)).includes('allowedTools'))
     let ok = await client.request(4, 'tools/call', { name: 'echo', arguments: { value: 'hi' } })
-    expect(ok.content[0].text).toBe('hi')
+    assert.strictEqual(ok.content[0].text, 'hi')
     client.close()
     server.dispose()
   })
@@ -526,7 +526,7 @@ describe('mcp server hardening', () => {
     client.socket.write(Buffer.from('{bad json}\n'))
     await client.request(2, 'ping')
     let parseError = client.notifications.find(n => n.error && n.error.code === -32700)
-    expect(parseError).toBeTruthy()
+    assert.ok(parseError)
     client.close()
     server.dispose()
   })
@@ -566,8 +566,8 @@ describe('mcp server hardening', () => {
     await cancelledPromise
     // a cancelled request must not receive a response
     client.close()
-    await expect(call).rejects.toThrow('Connection closed')
-    expect(client.notifications.some(n => n.id === 2)).toBe(false)
+    await assert.rejects(call, error => String(error instanceof Error ? error.message : error).includes('Connection closed'))
+    assert.strictEqual(client.notifications.some(n => n.id === 2), false)
     client.close()
     server.dispose()
   })
@@ -597,7 +597,7 @@ describe('mcp server hardening', () => {
     } catch (e) {
       error = e
     }
-    expect(String(error)).toContain('-32003')
+    assert.ok((String(error)).includes('-32003'))
     // the timeout must cancel the token, so the handler observed cancellation
     await waitFor(() => observed === true)
     client.close()
@@ -641,10 +641,10 @@ describe('mcp server hardening', () => {
     // wait past the timeout window: cancellation must have cleared the timer,
     // so no spurious -32003 arrives
     await new Promise(resolve => setTimeout(resolve, 150))
-    expect(client.notifications.some(n => n.error && n.error.code === -32003)).toBe(false)
-    expect(client.notifications.some(n => n.id === 2)).toBe(false)
+    assert.strictEqual(client.notifications.some(n => n.error && n.error.code === -32003), false)
+    assert.strictEqual(client.notifications.some(n => n.id === 2), false)
     client.close()
-    await expect(call).rejects.toThrow('Connection closed')
+    await assert.rejects(call, error => String(error instanceof Error ? error.message : error).includes('Connection closed'))
     client.close()
     server.dispose()
   })
@@ -678,8 +678,8 @@ describe('mcp server hardening', () => {
     } catch (e) {
       error = e
     }
-    expect(String(error)).toContain('-32003')
-    expect(Date.now() - start).toBeLessThan(400)
+    assert.ok((String(error)).includes('-32003'))
+    assert.ok((Date.now() - start) < (400))
 
     // read-only tool uses readTimeout (300ms), not the 100ms default
     start = Date.now()
@@ -689,8 +689,8 @@ describe('mcp server hardening', () => {
     } catch (e) {
       readError = e
     }
-    expect(String(readError)).toContain('-32003')
-    expect(Date.now() - start).toBeGreaterThanOrEqual(200)
+    assert.ok((String(readError)).includes('-32003'))
+    assert.ok((Date.now() - start) >= (200))
     client.close()
     server.dispose()
   })
@@ -739,8 +739,8 @@ describe('mcp server hardening', () => {
     release1()
     release2()
     let [ra, rb] = await Promise.all([a, b])
-    expect(ra.content[0].text).toBe('one')
-    expect(rb.content[0].text).toBe('two')
+    assert.strictEqual(ra.content[0].text, 'one')
+    assert.strictEqual(rb.content[0].text, 'two')
     client.close()
     server.dispose()
   })
@@ -784,9 +784,9 @@ describe('mcp server hardening', () => {
     let b = client.request(3, 'tools/call', { name: 'pwrite2', arguments: {} })
     release()
     let [ra, rb] = await Promise.all([a, b])
-    expect(ra.content[0].text).toBe('one')
-    expect(rb.content[0].text).toBe('two')
-    expect(order).toEqual(['1-start', '1-end', '2-start', '2-end'])
+    assert.strictEqual(ra.content[0].text, 'one')
+    assert.strictEqual(rb.content[0].text, 'two')
+    assert.deepStrictEqual(order, ['1-start', '1-end', '2-start', '2-end'])
     client.close()
     server.dispose()
   })
@@ -803,7 +803,7 @@ describe('mcp server hardening', () => {
       try {
         await a.request(i, 'ping')
       } catch (e) {
-        expect(String(e)).toContain('Rate limit')
+        assert.ok((String(e)).includes('Rate limit'))
         aErr++
       }
     }
@@ -816,8 +816,8 @@ describe('mcp server hardening', () => {
         // b has its own limit
       }
     }
-    expect(aErr).toBeGreaterThanOrEqual(1)
-    expect(bOk).toBeGreaterThanOrEqual(1)
+    assert.ok((aErr) >= (1))
+    assert.ok((bOk) >= (1))
     a.close()
     b.close()
     server.dispose()
@@ -837,13 +837,13 @@ describe('mcp server hardening', () => {
       timeout: 1000
     }, new ToolRegistry())
     let address = await server.listen()
-    expect(address.socketPath).toBe(socketPath)
+    assert.strictEqual(address.socketPath, socketPath)
     let client = new TestClient(socketPath)
     await client.request(0, 'coc/auth', { token: 'unix-token' })
     await client.request(1, 'initialize', { protocolVersion: '2025-06-18', capabilities: {} })
     client.notify('notifications/initialized')
     let ping = await client.request(2, 'ping')
-    expect(ping).toEqual({})
+    assert.deepStrictEqual(ping, {})
     client.close()
     server.dispose()
     fs.rmSync(dir, { recursive: true, force: true })
@@ -860,16 +860,16 @@ describe('mcp server hardening', () => {
     await client.request(1, 'initialize', { protocolVersion: '2025-06-18', capabilities: {} })
     client.notify('notifications/initialized')
     let status = server.status()
-    expect(status.clients.length).toBe(1)
+    assert.strictEqual(status.clients.length, 1)
     let entry = status.clients[0]
-    expect(entry.pid).toBe(424242)
-    expect(entry.name).toBe('test-client')
-    expect(typeof entry.connectedAt).toBe('number')
+    assert.strictEqual(entry.pid, 424242)
+    assert.strictEqual(entry.name, 'test-client')
+    assert.strictEqual(typeof entry.connectedAt, 'number')
     let lastBefore = entry.lastActiveAt
-    expect(lastBefore).toBeGreaterThanOrEqual(entry.connectedAt)
+    assert.ok((lastBefore) >= (entry.connectedAt))
     await client.request(2, 'ping')
     let after = server.status().clients[0]
-    expect(after.lastActiveAt).toBeGreaterThanOrEqual(lastBefore)
+    assert.ok((after.lastActiveAt) >= (lastBefore))
     client.close()
     server.dispose()
   })
@@ -884,7 +884,7 @@ describe('mcp server hardening', () => {
     })
     await client.request(1, 'initialize', { protocolVersion: '2025-06-18', capabilities: {} })
     client.notify('notifications/initialized')
-    expect(server.status().clients.length).toBe(1)
+    assert.strictEqual(server.status().clients.length, 1)
     client.close()
     await waitFor(() => server.status().clients.length === 0)
     server.dispose()
@@ -903,7 +903,7 @@ describe('mcp server hardening', () => {
     } catch (e) {
       error = e
     }
-    expect(String(error)).toContain('-32001')
+    assert.ok((String(error)).includes('-32001'))
     await client.onClosed()
     client.close()
 
@@ -913,11 +913,11 @@ describe('mcp server hardening', () => {
     let nonce = challenge.nonce
     let signature = crypto.sign('sha256', Buffer.from(nonce), privateKey).toString('base64')
     let auth = await okClient.request(1, 'coc/auth', { token: 'test-token', nonce, signature })
-    expect(auth.ok).toBe(true)
+    assert.strictEqual(auth.ok, true)
     await okClient.request(2, 'initialize', { protocolVersion: '2025-06-18', capabilities: {} })
     okClient.notify('notifications/initialized')
     let ping = await okClient.request(3, 'ping')
-    expect(ping).toEqual({})
+    assert.deepStrictEqual(ping, {})
     okClient.close()
     server.dispose()
   })
@@ -938,7 +938,7 @@ describe('mcp server hardening', () => {
     } catch (e) {
       error = e
     }
-    expect(String(error)).toContain('-32001')
+    assert.ok((String(error)).includes('-32001'))
     await bad.onClosed()
     bad.close()
 
@@ -952,7 +952,7 @@ describe('mcp server hardening', () => {
     } catch (e) {
       mismatchError = e
     }
-    expect(String(mismatchError)).toContain('-32001')
+    assert.ok((String(mismatchError)).includes('-32001'))
     await mismatch.onClosed()
     mismatch.close()
     server.dispose()
@@ -970,11 +970,11 @@ describe('mcp server hardening', () => {
     let challenge = await client.request(0, 'coc/challenge')
     let signature = crypto.sign('sha256', Buffer.from(challenge.nonce), privateKey).toString('base64')
     let auth = await client.request(1, 'coc/auth', { nonce: challenge.nonce, signature })
-    expect(auth.ok).toBe(true)
+    assert.strictEqual(auth.ok, true)
     await client.request(2, 'initialize', { protocolVersion: '2025-06-18', capabilities: {} })
     client.notify('notifications/initialized')
     let ping = await client.request(3, 'ping')
-    expect(ping).toEqual({})
+    assert.deepStrictEqual(ping, {})
     client.close()
     server.dispose()
   })

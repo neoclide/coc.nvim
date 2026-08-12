@@ -72,7 +72,7 @@ describe('symbols outline', () => {
   }
 
   describe('actions', () => {
-    it('should invoke selected code action', async () => {
+    it('should invoke selected code action', { timeout: 15000 }, async (t) => {
       const codeAction = CodeAction.create('my action', CodeActionKind.Refactor)
       let uri: string
       disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
@@ -92,14 +92,14 @@ describe('symbols outline', () => {
       uri = doc.uri
       await symbols.showOutline(0)
       let winid = await nvim.call('coc#window#find', ['cocViewId', 'OUTLINE']) as number
-      expect(winid).not.toBe(-1)
+      assert.notStrictEqual(winid, -1)
       // Make sure the outline window is focused before sending keys, the
       // tree keymaps are buffer local and the float may not be current yet
       // under load.
       await nvim.call('win_gotoid', [winid])
       await helper.waitValue(async () => nvim.call('win_getid') as Promise<number>, winid)
       await nvim.call('cursor', [3, 1])
-      let spy = vi.spyOn(window, 'showMenuPicker').mockImplementation(() => {
+      let spy = t.mock.method(window, 'showMenuPicker', () => {
         return Promise.resolve(0)
       })
       let resolveApplied: () => void
@@ -107,7 +107,7 @@ describe('symbols outline', () => {
         resolveApplied = resolve
       })
       let originalApply = workspace.applyEdit.bind(workspace)
-      let applySpy = vi.spyOn(workspace, 'applyEdit').mockImplementation((edit => {
+      let applySpy = t.mock.method(workspace, 'applyEdit', (edit => {
         let p = originalApply(edit)
         void p.then(() => resolveApplied(), () => resolveApplied())
         return p
@@ -117,12 +117,12 @@ describe('symbols outline', () => {
         await applied
         await helper.waitValue(async () => nvim.eval('getline(1)') as Promise<string>, ' myClass {')
       } finally {
-        spy.mockRestore()
-        applySpy.mockRestore()
+        spy.mock.restore()
+        applySpy.mock.restore()
       }
-    }, 15000)
+    })
 
-    it('should invoke visual select', async () => {
+    it('should invoke visual select', { timeout: 15000 }, async (t) => {
       await createBuffer()
       let bufnr = await nvim.call('bufnr', ['%'])
       await symbols.showOutline(0)
@@ -130,18 +130,18 @@ describe('symbols outline', () => {
       await nvim.command('exe 3')
       // Pick the only action (visual select) directly, the real menu
       // prompt is timing sensitive under load.
-      let spy = vi.spyOn(window, 'showMenuPicker').mockImplementation(() => {
+      let spy = t.mock.method(window, 'showMenuPicker', () => {
         return Promise.resolve(0)
       })
       try {
         await nvim.input('<tab>')
         await helper.waitValue(async () => nvim.call('mode') as Promise<string>, 'v')
       } finally {
-        spy.mockRestore()
+        spy.mock.restore()
       }
       let buf = await nvim.buffer
-      expect(buf.id).toBe(bufnr)
-    }, 15000)
+      assert.strictEqual(buf.id, bufnr)
+    })
   })
 
   describe('configuration', () => {
@@ -161,12 +161,12 @@ describe('symbols outline', () => {
       let buf = nvim.createBuffer(bufnr)
       await helper.waitValue(async () => (await buf.getSigns({ group: 'CocTree' })).length, 1)
       let lines = await buf.getLines()
-      expect(lines.slice(1)).toEqual([
+      assert.deepStrictEqual(lines.slice(1), [
         '- c myClass 1', '    m fun1 2', '    m fun2 3'
       ])
       let signs = await buf.getSigns({ group: 'CocTree' })
-      expect(signs.length).toBe(1)
-      expect(signs[0]).toEqual({
+      assert.strictEqual(signs.length, 1)
+      assert.deepStrictEqual(signs[0], {
         lnum: 2,
         id: 3001,
         name: 'CocTreeSelected',
@@ -189,7 +189,7 @@ describe('symbols outline', () => {
       await helper.wait(50)
       let buf = nvim.createBuffer(bufnr)
       let signs = await buf.getSigns({ group: 'CocTree' })
-      expect(signs.length).toBe(0)
+      assert.strictEqual(signs.length, 0)
     })
 
     it('should keep current window', async () => {
@@ -198,7 +198,7 @@ describe('symbols outline', () => {
       let curr = await nvim.call('bufnr', ['%'])
       await symbols.showOutline()
       let bufnr = await nvim.call('bufnr', ['%'])
-      expect(curr).toBe(bufnr)
+      assert.strictEqual(curr, bufnr)
     })
 
     it('should check on buffer switch', async () => {
@@ -214,11 +214,11 @@ describe('symbols outline', () => {
       }, true)
       buf = await getOutlineBuffer()
       let lines = await buf.lines
-      expect(lines[0]).toMatch('Document symbol provider not found')
+      assert.ok((lines[0]).includes('Document symbol provider not found'))
       await nvim.command(`bd! ${b.id}`)
       await helper.wait(20)
       let loaded = await buf.loaded
-      expect(loaded).toBe(true)
+      assert.strictEqual(loaded, true)
     })
 
     it('should not check on buffer switch', async () => {
@@ -229,7 +229,7 @@ describe('symbols outline', () => {
       await helper.wait(100)
       let buf = await getOutlineBuffer()
       let lines = await buf.lines
-      expect(lines.slice(1)).toEqual([
+      assert.deepStrictEqual(lines.slice(1), [
         '- c myClass 1', '    m fun1 2', '    m fun2 3'
       ])
     })
@@ -240,7 +240,7 @@ describe('symbols outline', () => {
       await createBuffer()
       await helper.waitValue(async () => (await getOutlineBuffer()) != null, true)
       let buf = await getOutlineBuffer()
-      expect(buf).toBeDefined()
+      assert.notStrictEqual(buf, undefined)
     })
 
     it('should sort by category', async () => {
@@ -253,7 +253,7 @@ fun1() {}
       await symbols.showOutline(1)
       let buf = await getOutlineBuffer()
       let lines = await buf.lines
-      expect(lines).toEqual([
+      assert.deepStrictEqual(lines, [
         'OUTLINE Category', '  c myClass 2', '  m fun1 4'
       ])
     })
@@ -268,7 +268,7 @@ fun1() {}
       await symbols.showOutline(1)
       let buf = await getOutlineBuffer()
       let lines = await buf.lines
-      expect(lines).toEqual([
+      assert.deepStrictEqual(lines, [
         'OUTLINE Position', '- c myClass 1', '    m fun2 2', '    m fun1 3'
       ])
     })
@@ -283,12 +283,12 @@ fun1() {}
       await symbols.showOutline(1)
       let buf = await getOutlineBuffer()
       let lines = await buf.lines
-      expect(lines).toEqual([
+      assert.deepStrictEqual(lines, [
         'OUTLINE Name', '- c myClass 1', '    m fun1 3', '    m fun2 2'
       ])
     })
 
-    it('should change sort method', async () => {
+    it('should change sort method', { timeout: 15000 }, async (t) => {
       helper.updateConfiguration('outline.detailAsDescription', false, disposables)
       let code = `class detail {
   fun2() {}
@@ -299,16 +299,16 @@ fun1() {}
       await helper.wait(30)
       // Pick the 'position' sort method directly, the real menu prompt is
       // timing sensitive under load.
-      let spy = vi.spyOn(window, 'showMenuPicker').mockImplementation(() => {
+      let spy = t.mock.method(window, 'showMenuPicker', () => {
         return Promise.resolve(2)
       })
       try {
         await nvim.input('<C-s>')
         await helper.waitValue(async () => nvim.eval('getline(1)') as Promise<string>, 'OUTLINE Position')
       } finally {
-        spy.mockRestore()
+        spy.mock.restore()
       }
-    }, 15000)
+    })
 
     it('should show detail as description', async () => {
       helper.updateConfiguration('outline.detailAsDescription', true, disposables)
@@ -319,7 +319,7 @@ fun1() {}
       await symbols.showOutline(1)
       let buf = await getOutlineBuffer()
       let lines = await buf.lines
-      expect(lines.slice(1)).toEqual([
+      assert.deepStrictEqual(lines.slice(1), [
         '- c detail 1', '    m fun2 () 2'
       ])
     })
@@ -333,7 +333,7 @@ fun1() {}
       await symbols.showOutline(1)
       let buf = await getOutlineBuffer()
       let lines = await buf.lines
-      expect(lines.slice(1)).toEqual(['- c detail', '    m fun2 ()'])
+      assert.deepStrictEqual(lines.slice(1), ['- c detail', '    m fun2 ()'])
     })
   })
 
@@ -345,7 +345,7 @@ fun1() {}
       await nvim.command('edit')
       await helper.waitValue(() => nvim.call('coc#window#find', ['cocViewId', 'OUTLINE']).then(w => (w as number) > 0), true)
       let winid = await nvim.call('coc#window#find', ['cocViewId', 'OUTLINE'])
-      expect(winid).toBeGreaterThan(0)
+      assert.ok((winid as number) > 0)
     })
 
     it('should dispose on buffer unload', async () => {
@@ -385,9 +385,9 @@ fun1() {}
       await nvim.command(`vnew +setl\\ buftype=nofile`)
       await helper.waitValue(async () => (await getOutlineBuffer()) != null, true)
       let buf = await getOutlineBuffer()
-      expect(buf).toBeDefined()
+      assert.notStrictEqual(buf, undefined)
       let lines = await buf.lines
-      expect(lines.slice(1)).toEqual([
+      assert.deepStrictEqual(lines.slice(1), [
         '- c myClass 1', '    m fun1 2', '    m fun2 3'
       ])
     })
@@ -401,7 +401,7 @@ fun1() {}
       await helper.wait(50)
       buf = await getOutlineBuffer()
       let curr = await buf.name
-      expect(curr).toBe(name)
+      assert.strictEqual(curr, name)
     })
   })
 
@@ -411,20 +411,20 @@ fun1() {}
       await workspace.document
       await symbols.showOutline(1)
       let line = await helper.getCmdline()
-      expect(line).toMatch('Unable to show outline')
+      assert.ok((line).includes('Unable to show outline'))
     })
 
     it('should not throw when provider does not exist', async () => {
       await symbols.showOutline(1)
       let buf = await getOutlineBuffer()
-      expect(buf).toBeDefined()
+      assert.notStrictEqual(buf, undefined)
     })
 
     it('should not throw when symbols is empty', async () => {
       await createBuffer('')
       await symbols.showOutline(1)
       let buf = await getOutlineBuffer()
-      expect(buf).toBeDefined()
+      assert.notStrictEqual(buf, undefined)
     })
 
     it('should jump to selected symbol', async () => {
@@ -438,7 +438,7 @@ fun1() {}
         return await nvim.call('bufnr', ['%'])
       }, bufnr)
       let cursor = await nvim.call('coc#cursor#position')
-      expect(cursor).toEqual([1, 2])
+      assert.deepStrictEqual(cursor, [1, 2])
     })
 
     it('should update symbols', async () => {
@@ -458,7 +458,7 @@ fun1() {}
       buf = await getOutlineBuffer()
       await helper.waitFor('eval', [`getbufline(${buf.id},1)[0]`], /No\sresults/)
       let lines = await buf.lines
-      expect(lines).toEqual([
+      assert.deepStrictEqual(lines, [
         'No results',
         '',
         'OUTLINE Category'
@@ -499,7 +499,7 @@ fun1() {}
       await nvim.command('exe 2')
       await nvim.input('p')
       let winid = await helper.waitFloat()
-      expect(winid).toBeGreaterThan(1000)
+      assert.ok((winid) > (1000))
       await nvim.input('p')
       await helper.waitValue(async () => {
         let win = nvim.createWindow(winid)
@@ -526,13 +526,13 @@ fun1() {}
       }, true)
     })
 
-    it('should show preview when move cursor back', async () => {
+    it('should show preview when move cursor back', async (t) => {
       // Spy on the preview RPC calls instead of waiting for real float
       // windows, keeps the test deterministic under load.
       let previewCalls = 0
       let closeCalls = 0
       let original = nvim.call.bind(nvim)
-      let spy = vi.spyOn(nvim, 'call').mockImplementation(((fname: string, args: any, isNotify?: boolean): Promise<any> | null => {
+      let spy = t.mock.method(nvim, 'call', ((fname: string, args: any, isNotify?: boolean): Promise<any> | null => {
         if (fname === 'coc#ui#outline_preview') {
           previewCalls++
           return Promise.resolve(1)
@@ -558,7 +558,7 @@ fun1() {}
         // Moving the cursor back to the outline opens the preview again.
         await helper.waitValue<boolean>(() => previewCalls >= 2, true)
       } finally {
-        spy.mockRestore()
+        spy.mock.restore()
       }
     })
 
@@ -569,7 +569,7 @@ fun1() {}
       await helper.waitFor('getline', [3], /fun1/)
       await nvim.command('exe 2')
       let winid = await helper.waitFloat()
-      expect(winid).toBeGreaterThan(1000)
+      assert.ok((winid) > (1000))
     })
   })
 
@@ -579,7 +579,7 @@ fun1() {}
       await helper.doAction('showOutline', 1)
       await helper.doAction('hideOutline')
       let buf = await getOutlineBuffer()
-      expect(buf).toBeUndefined()
+      assert.strictEqual(buf, undefined)
     })
 
     it('should auto hide outline on clicking', async () => {
@@ -597,7 +597,7 @@ fun1() {}
     it('should not throw when outline does not exist', async () => {
       await symbols.hideOutline()
       let buf = await getOutlineBuffer()
-      expect(buf).toBeUndefined()
+      assert.strictEqual(buf, undefined)
     })
   })
 
@@ -611,7 +611,7 @@ fun1() {}
         return symbols.hasOutline(bufnr)
       }, false)
       let buf = await getOutlineBuffer()
-      expect(buf).toBeUndefined()
+      assert.strictEqual(buf, undefined)
     })
   })
 })

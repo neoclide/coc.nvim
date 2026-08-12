@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util'
 // Merged from highlighter.test.ts, dialog.test.ts, task.test.ts and
 // sources.test.ts to share a single nvim session and reduce per-file
 // startup overhead.
@@ -47,30 +48,30 @@ describe('Highlighter', () => {
 
   it('should add line', () => {
     highlighter.addLine('foo', 'Comment')
-    expect(highlighter.getline(0)).toBe('foo')
-    expect(highlighter.getline(2)).toBe('')
-    expect(highlighter.highlights).toEqual([{ lnum: 0, colStart: 0, colEnd: 3, hlGroup: 'Comment' }])
-    expect(highlighter.content).toBe('foo')
+    assert.strictEqual(highlighter.getline(0), 'foo')
+    assert.strictEqual(highlighter.getline(2), '')
+    assert.deepStrictEqual(highlighter.highlights, [{ lnum: 0, colStart: 0, colEnd: 3, hlGroup: 'Comment' }])
+    assert.strictEqual(highlighter.content, 'foo')
   })
 
   it('should add lines', () => {
     highlighter.addLines(['foo', 'bar'])
-    expect(highlighter.content).toBe('foo\nbar')
+    assert.strictEqual(highlighter.content, 'foo\nbar')
   })
 
   it('should parse ansi highlights', () => {
     const redOpen = '\x1B[31m'
     const redClose = '\x1B[39m'
     highlighter.addLine(redOpen + 'foo' + redClose + 'bar' + redOpen + redClose)
-    expect(highlighter.content).toBe('foobar')
+    assert.strictEqual(highlighter.content, 'foobar')
   })
 
   it('should add texts', () => {
     highlighter.addTexts([{ text: 'foo' }, { text: 'bar', hlGroup: 'Comment' }])
     highlighter.addText('')
     highlighter.addText(undefined)
-    expect(highlighter.highlights).toEqual([{ lnum: 0, colStart: 3, colEnd: 6, hlGroup: 'Comment' }])
-    expect(highlighter.content).toBe('foobar')
+    assert.deepStrictEqual(highlighter.highlights, [{ lnum: 0, colStart: 3, colEnd: 6, hlGroup: 'Comment' }])
+    assert.strictEqual(highlighter.content, 'foobar')
   })
 
   it('should render to buffer', async () => {
@@ -81,7 +82,7 @@ describe('Highlighter', () => {
     highlighter.render(buf)
     await nvim.resumeNotification()
     let lines = await buf.lines
-    expect(lines).toEqual(['foo', 'bar'])
+    assert.deepStrictEqual(lines, ['foo', 'bar'])
   })
 })
 
@@ -91,7 +92,7 @@ describe('task test', () => {
     let task = workspace.createTask('sleep')
     disposables.push(task)
     let started = await task.start({ cmd: 'sleep', args: ['50'] })
-    expect(started).toBe(true)
+    assert.strictEqual(started, true)
   })
 
   it('should stop task', async () => {
@@ -100,18 +101,18 @@ describe('task test', () => {
     await task.start({ cmd: 'sleep', args: ['50'] })
     await task.stop()
     let running = await task.running
-    expect(running).toBe(false)
+    assert.strictEqual(running, false)
   })
 
-  it('should emit exit event', async () => {
-    let fn = vi.fn()
+  it('should emit exit event', async (t) => {
+    let fn = t.mock.fn()
     let task = workspace.createTask('sleep')
     disposables.push(task)
     task.onExit(fn)
     await task.start({ cmd: 'sleep', args: ['50'] })
     await helper.wait(20)
     await task.stop()
-    expect(fn).toHaveBeenCalled()
+    assert.ok((fn).mock.callCount() > 0)
   })
 
   it('should emit stdout event', async () => {
@@ -129,7 +130,7 @@ describe('task test', () => {
     })
     await task.start({ cmd: '/bin/sh', args: [file] })
     let lines = await p
-    expect(lines).toEqual(['foo'])
+    assert.deepStrictEqual(lines, ['foo'])
   })
 
   it('should change environment variables', async () => {
@@ -154,9 +155,9 @@ describe('task test', () => {
       }
     })
     await p
-    expect(lines).toEqual(['production', 'yes'])
+    assert.deepStrictEqual(lines, ['production', 'yes'])
     let res = await nvim.call('getenv', 'COC_NVIM_TEST')
-    expect(res).toBeNull()
+    assert.strictEqual(res, null)
   })
 
   it('should receive stdout lines as expected', async () => {
@@ -173,7 +174,7 @@ describe('task test', () => {
     })
     await task.start({ cmd: '/bin/sh', args: [file] })
     let lines = await p
-    expect(lines).toEqual(['3', '', '4'])
+    assert.deepStrictEqual(lines, ['3', '', '4'])
     task.dispose()
   })
 
@@ -192,7 +193,7 @@ describe('task test', () => {
     })
     await task.start({ cmd: 'node', args: [file] })
     let lines = await p
-    expect(lines).toEqual(['start', '', 'end'])
+    assert.deepStrictEqual(lines, ['start', '', 'end'])
   })
 
   it('should not receive event from other task', async () => {
@@ -214,16 +215,16 @@ describe('task test', () => {
       })
     })
     await promise
-    expect(count).toBe(0)
+    assert.strictEqual(count, 0)
   })
 })
 
 describe('sources', () => {
   it('should check commit', () => {
-    expect(sources.shouldCommit(undefined, undefined, '')).toBe(false)
+    assert.strictEqual(sources.shouldCommit(undefined, undefined, ''), false)
     let source = sources.getSource('$words')
-    expect(sources.shouldCommit(source, { word: '' }, '.')).toBe(false)
-    expect(sources.shouldCommit(source, { word: '' }, '')).toBe(false)
+    assert.strictEqual(sources.shouldCommit(source, { word: '' }, '.'), false)
+    assert.strictEqual(sources.shouldCommit(source, { word: '' }, ''), false)
   })
 
   it('should get normal sources', () => {
@@ -234,7 +235,7 @@ describe('sources', () => {
     })
     let arr = sources.getNormalSources('', 'test:///1')
     let res = arr.find(o => o.name === 'name')
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
     sources.createSource({
       name: 'name',
       documentSelector: [{ language: '*' }],
@@ -242,16 +243,16 @@ describe('sources', () => {
     })
     arr = sources.getNormalSources('x', 'test:///1')
     res = arr.find(o => o.name === 'name')
-    expect(res).toBeDefined()
+    assert.notStrictEqual(res, undefined)
   })
 
   it('should get trigger sources', () => {
     let res = sources.getTriggerSources('', 'vim', 'test:///1')
-    expect(res).toEqual([])
+    assert.deepStrictEqual(res, [])
     let arr = ['around', 'buffer', 'file']
     res = sources.getTriggerSources('', 'vim', 'test:///1', arr)
     let find = res.find(o => arr.includes(o.name))
-    expect(find).toBeUndefined()
+    assert.strictEqual(find, undefined)
     sources.createSource({
       name: 'name',
       documentSelector: [{ language: 'vim' }],
@@ -260,14 +261,14 @@ describe('sources', () => {
     helper.updateConfiguration('coc.source.name.triggerCharacters', ['.'])
     res = sources.getTriggerSources('.', 'vim', 'test:///1', arr)
     find = res.find(o => o.name === 'name')
-    expect(find).toBeDefined()
+    assert.notStrictEqual(find, undefined)
     res = sources.getTriggerSources('.', 'txt', 'test:///1', arr)
     find = res.find(o => o.name === 'name')
-    expect(find).toBeUndefined()
+    assert.strictEqual(find, undefined)
   })
 
-  it('should do document enter', async () => {
-    let fn = vi.fn()
+  it('should do document enter', async (t) => {
+    let fn = t.mock.fn()
     let source: ISource = {
       name: 'enter',
       enable: true,
@@ -280,7 +281,7 @@ describe('sources', () => {
     disposables.push(sources.addSource(source))
     let buffer = await nvim.buffer
     await events.fire('BufEnter', [buffer.id])
-    expect(fn).toHaveBeenCalled()
+    assert.ok((fn).mock.callCount() > 0)
   })
 
   it('should get sources by split filetypes', async () => {
@@ -298,8 +299,8 @@ describe('sources', () => {
     }))
     let arr = sources.getNormalSources('foo.bar', 'file:///a')
     let names = arr.map(s => s.name)
-    expect(names.includes('foo')).toBe(true)
-    expect(names.includes('bar')).toBe(true)
+    assert.strictEqual(names.includes('foo'), true)
+    assert.strictEqual(names.includes('bar'), true)
   })
 
   it('should return source states', async () => {
@@ -310,13 +311,13 @@ describe('sources', () => {
       doComplete: () => Promise.resolve({ items: [] }),
     }))
     let stats = await helper.doAction('sourceStat')
-    expect(stats.length > 1).toBe(true)
+    assert.strictEqual(stats.length > 1, true)
   })
 
   it('should toggle source state', async () => {
     await helper.doAction('toggleSource', 'around')
     let s = sources.getSource('around')
-    expect(s.enable).toBe(false)
+    assert.strictEqual(s.enable, false)
     sources.toggleSource('around')
   })
 })
@@ -324,17 +325,17 @@ describe('sources', () => {
 describe('sources#has', () => {
 
   it('should has source', () => {
-    expect(sources.has('around')).toBe(true)
+    assert.strictEqual(sources.has('around'), true)
   })
 
   it('should not has source', () => {
-    expect(sources.has('NotExists')).toBe(false)
+    assert.strictEqual(sources.has('NotExists'), false)
   })
 })
 
 describe('sources#refresh', () => {
-  it('should refresh if possible', async () => {
-    let fn = vi.fn()
+  it('should refresh if possible', async (t) => {
+    let fn = t.mock.fn()
     let source: ISource = {
       name: 'refresh',
       enable: true,
@@ -346,7 +347,7 @@ describe('sources#refresh', () => {
     }
     disposables.push(sources.addSource(source))
     await helper.doAction('refreshSource', 'refresh')
-    expect(fn).toHaveBeenCalled()
+    assert.ok((fn).mock.callCount() > 0)
   })
 
   it('should work if refresh not defined', async () => {
@@ -365,7 +366,7 @@ describe('sources#refresh', () => {
 
 describe('sources#createSource', () => {
   it('should throw on create source', async () => {
-    expect(() => {
+    assert.throws(() => {
       sources.createSource({
         doComplete: () => Promise.resolve({
           items: [{
@@ -373,7 +374,7 @@ describe('sources#createSource', () => {
           }]
         })
       } as any)
-    }).toThrow()
+    })
   })
 
   it('should create vim source', async () => {
@@ -406,7 +407,7 @@ describe('sources#getTriggerSources()', () => {
     }
     disposables.push(sources.addSource(source))
     let res = sources.getTriggerSources('#', 'javascript', 'file:///tmp.js')
-    expect(res.find(o => o.name == 'test')).toBeDefined()
+    assert.notStrictEqual(res.find(o => o.name == 'test'), undefined)
   })
 
   it('should filter by documentSelector', async () => {
@@ -421,7 +422,7 @@ describe('sources#getTriggerSources()', () => {
     }
     disposables.push(sources.addSource(source))
     let res = sources.getTriggerSources('#', 'javascript', 'file:///tmp.js')
-    expect(res.find(o => o.name == 'test')).toBeDefined()
+    assert.notStrictEqual(res.find(o => o.name == 'test'), undefined)
   })
 
   it('should filter disabled sources', async () => {
@@ -433,34 +434,34 @@ describe('sources#getTriggerSources()', () => {
     await nvim.input('/')
     await helper.waitValue(() => nvim.call('pumvisible'), 0)
     let visible = await nvim.call('pumvisible')
-    expect(visible).toBe(0)
+    assert.strictEqual(visible, 0)
   })
 })
 
 describe('Dialog module', () => {
   it('should show dialog', async () => {
     let dialog = new Dialog(nvim, { content: '你好' })
-    expect(await dialog.winid).toBeNull()
+    assert.strictEqual(await dialog.winid, null)
     await dialog.show({})
     let winid = await dialog.winid
     let win = nvim.createWindow(winid)
     let width = await win.width
-    expect(width).toBe(4)
+    assert.strictEqual(width, 4)
     await nvim.call('coc#float#close', [winid])
   })
 
-  it('should invoke callback with index -1', async () => {
-    let callback = vi.fn()
+  it('should invoke callback with index -1', async (t) => {
+    let callback = t.mock.fn()
     let dialog = new Dialog(nvim, { content: '你好', callback, highlights: [] })
     await dialog.show({})
     let winid = await dialog.winid
     await nvim.call('coc#float#close', [winid])
     await helper.waitValue(() => callback.mock.calls.length, 1)
-    expect(callback).toHaveBeenCalledWith(-1)
+    assert.ok((callback).mock.calls.some(call => isDeepStrictEqual(call.arguments, [-1])))
   })
 
-  it('should invoke callback on click', async () => {
-    let callback = vi.fn()
+  it('should invoke callback on click', async (t) => {
+    let callback = t.mock.fn()
     let buttons: DialogButton[] = [{
       index: 0,
       text: 'yes'
@@ -476,7 +477,7 @@ describe('Dialog module', () => {
     await nvim.call('cursor', [2, 1])
     await nvim.call('coc#float#nvim_float_click', [])
     await helper.wait(20)
-    expect(callback).toHaveBeenCalledWith(0)
+    assert.ok((callback).mock.calls.some(call => isDeepStrictEqual(call.arguments, [0])))
   })
 })
 
@@ -496,7 +497,7 @@ describe('Notification', () => {
     })
     await n.show({ border: true })
     await events.fire('FloatBtnClick', [n.bufnr, 0])
-    expect(called).toBe(true)
+    assert.strictEqual(called, true)
   })
 })
 
@@ -520,7 +521,7 @@ describe('ProgressNotification', () => {
     })
     await nvim.call('coc#float#close_all', [])
     let res = await p
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
   })
 
   it('should not fire event when disposed', async () => {
@@ -546,7 +547,7 @@ describe('ProgressNotification', () => {
       await n.show({})
       n.dispose()
       await helper.wait(20)
-      expect(times).toBe(0)
+      assert.strictEqual(times, 0)
     }
     await fn(true)
     await fn(false)

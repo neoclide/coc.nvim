@@ -74,9 +74,9 @@ describe('TextDocumentSynchronization', () => {
       let feature = client.getFeature(DidOpenTextDocumentNotification.method)
       feature.register({ id: crypto.randomUUID(), registerOptions: { documentSelector: null } })
       let res = await client.sendRequest('getLastOpen')
-      expect(res).toBe(null)
+      assert.strictEqual(res, null)
       let docs = feature.openDocuments
-      expect(docs).toBeDefined()
+      assert.notStrictEqual(docs, undefined)
       await client.stop()
     })
 
@@ -85,20 +85,20 @@ describe('TextDocumentSynchronization', () => {
       await client.start()
       let uri = URI.file(path.join(os.tmpdir(), 't.vim'))
       let doc = await workspace.loadFile(uri.toString())
-      expect(doc.languageId).toBe('vim')
+      assert.strictEqual(doc.languageId, 'vim')
       let res = await client.sendRequest('getLastOpen') as any
-      expect(res.uri).toBe(doc.uri)
-      expect(res.version).toBe(doc.version)
+      assert.strictEqual(res.uri, doc.uri)
+      assert.strictEqual(res.version, doc.version)
       await client.stop()
     })
 
-    it('should use languageIdMap for languageId on open', async () => {
+    it('should use languageIdMap for languageId on open', async (t) => {
       let client = createClient({
         documentSelector: [{ language: 'vim' }],
         languageIdMap: { 't.vim': 'myvim', [path.join(os.tmpdir(), 'full.vim')]: 'fullvim' }
       })
       let sent: DidOpenTextDocumentParams | undefined
-      let spy = vi.spyOn(client, 'sendNotification').mockImplementation((_type, params) => {
+      let spy = t.mock.method(client, 'sendNotification', (_type, params) => {
         sent = params as DidOpenTextDocumentParams
         return Promise.resolve()
       })
@@ -108,27 +108,27 @@ describe('TextDocumentSynchronization', () => {
         sent = undefined
         let doc = TextDocument.create(URI.file(filepath).toString(), 'vim', 1, '')
         let provider = feature.getProvider(doc)
-        expect(provider).toBeDefined()
+        assert.notStrictEqual(provider, undefined)
         await provider.send(doc)
-        expect(sent).toBeDefined()
+        assert.notStrictEqual(sent, undefined)
         return [doc, sent]
       }
       try {
         let [doc, params] = await sendOpen(path.join(os.tmpdir(), 't.vim'))
-        expect(doc.languageId).toBe('vim')
-        expect(params.textDocument.uri).toBe(doc.uri)
-        expect(params.textDocument.languageId).toBe('myvim')
+        assert.strictEqual(doc.languageId, 'vim')
+        assert.strictEqual(params.textDocument.uri, doc.uri)
+        assert.strictEqual(params.textDocument.languageId, 'myvim')
         // full path key
         let [fullDoc, fullParams] = await sendOpen(path.join(os.tmpdir(), 'full.vim'))
-        expect(fullParams.textDocument.uri).toBe(fullDoc.uri)
-        expect(fullParams.textDocument.languageId).toBe('fullvim')
+        assert.strictEqual(fullParams.textDocument.uri, fullDoc.uri)
+        assert.strictEqual(fullParams.textDocument.languageId, 'fullvim')
         // unmatched file keeps original languageId
         let [otherDoc, otherParams] = await sendOpen(path.join(os.tmpdir(), 'other.vim'))
-        expect(otherParams.textDocument.uri).toBe(otherDoc.uri)
-        expect(otherParams.textDocument.languageId).toBe('vim')
+        assert.strictEqual(otherParams.textDocument.uri, otherDoc.uri)
+        assert.strictEqual(otherParams.textDocument.languageId, 'vim')
       } finally {
         feature.dispose()
-        spy.mockRestore()
+        spy.mock.restore()
       }
     })
 
@@ -148,12 +148,12 @@ describe('TextDocumentSynchronization', () => {
       await client.start()
       let uri = URI.file(path.join(os.tmpdir(), 't.js'))
       let doc = await workspace.loadFile(uri.toString())
-      expect(doc.languageId).toBe('javascript')
+      assert.strictEqual(doc.languageId, 'javascript')
       let feature = client.getFeature(DidOpenTextDocumentNotification.method)
       feature.register({ id: crypto.randomUUID(), registerOptions: { documentSelector: [{ language: 'javascript' }] } })
       let res = await client.sendRequest('getLastOpen') as any
-      expect(res.uri).toBe(doc.uri)
-      expect(called).toBe(true)
+      assert.strictEqual(res.uri, doc.uri)
+      assert.strictEqual(called, true)
       throwError = true
       uri = URI.file(path.join(os.tmpdir(), 'a.js'))
       await workspace.loadFile(uri.toString())
@@ -188,7 +188,7 @@ describe('TextDocumentSynchronization', () => {
       let feature = client.getFeature(DidOpenTextDocumentNotification.method) as any
       let filepath = path.join(os.tmpdir(), 't.vim')
       let doc = await loadBuffer(filepath)
-      expect(loaded.has(filepath)).toBe(false)
+      assert.strictEqual(loaded.has(filepath), false)
       let opened = waitForOpen(filepath)
       await nvim.command(`b ${doc.bufnr}`)
       await opened
@@ -196,11 +196,11 @@ describe('TextDocumentSynchronization', () => {
       filepath = path.join(os.tmpdir(), 'p.vim')
       doc = await loadBuffer(filepath)
       await feature.sendPendingOpenNotifications(doc.uri)
-      expect(loaded.has(filepath)).toBe(false)
+      assert.strictEqual(loaded.has(filepath), false)
       await feature.callback(doc.textDocument)
       await feature.callback(TextDocument.create('untitled:///1', 'tex', 1, ''))
       await feature.sendPendingOpenNotifications()
-      expect(loaded.has(filepath)).toBe(true)
+      assert.strictEqual(loaded.has(filepath), true)
       throwError = true
       feature._pendingOpenNotifications.set(doc.uri, doc.textDocument)
       opened = waitForOpen(filepath)
@@ -222,11 +222,11 @@ describe('TextDocumentSynchronization', () => {
         return res != null && res.uri === doc.uri
       }, true)
       let res = await client.sendRequest('getLastClose') as any
-      expect(res.uri).toBe(doc.uri)
+      assert.strictEqual(res.uri, doc.uri)
       await client.stop()
     })
 
-    it('should unregister document selector', async () => {
+    it('should unregister document selector', async (t) => {
       let called = false
       let client = createClient([{ language: 'javascript' }], {
         didClose: (e, next) => {
@@ -245,12 +245,12 @@ describe('TextDocumentSynchronization', () => {
       await workspace.loadFile(uri.toString())
       await helper.wait(20)
       feature.unregister('unknown')
-      let spy = vi.spyOn(client, 'sendNotification').mockReturnValue(Promise.reject(new Error('myerror')))
+      let spy = t.mock.method(client, 'sendNotification', () => (Promise.reject(new Error('myerror'))))
       feature.unregister(id)
-      spy.mockRestore()
+      spy.mock.restore()
       let res = await client.sendRequest('getLastClose') as any
-      expect(res).toBeNull()
-      expect(called).toBe(true)
+      assert.strictEqual(res, null)
+      assert.strictEqual(called, true)
       await client.stop()
     })
   })
@@ -271,8 +271,8 @@ describe('TextDocumentSynchronization', () => {
       let doc = await workspace.loadFile(uri.toString())
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'bar')])
       let res = await client.sendRequest('getLastChange') as any
-      expect(res.text).toBe('bar\n')
-      expect(called).toBe(true)
+      assert.strictEqual(res.text, 'bar\n')
+      assert.strictEqual(called, true)
       throwError = true
       await doc.applyEdits([TextEdit.replace(Range.create(0, 0, 0, 3), '')])
       await client.stop()
@@ -280,13 +280,13 @@ describe('TextDocumentSynchronization', () => {
 
     it('should send incremental change event', async () => {
       let client = createClient([{ scheme: 'lsptest' }])
-      expect(client.isSynced('untitled:///1')).toBe(false)
+      assert.strictEqual(client.isSynced('untitled:///1'), false)
       await client.start()
       await client.sendNotification('registerDocumentSync')
       let feature = client.getFeature(DidChangeTextDocumentNotification.method)
       feature.register({ registerOptions: {} } as any)
       let textDocument = TextDocument.create('untitled:///1', 'x', 1, '')
-      expect(feature.getProvider(textDocument)).toBeUndefined()
+      assert.strictEqual(feature.getProvider(textDocument), undefined)
       let called = false
       feature.onNotificationSent(() => {
         called = true
@@ -301,10 +301,10 @@ describe('TextDocumentSynchronization', () => {
         return called
       }, true)
       let res = await client.sendRequest('getLastChange') as any
-      expect(res.uri).toBe(doc.uri)
-      expect(res.text).toBe('bar\n')
+      assert.strictEqual(res.uri, doc.uri)
+      assert.strictEqual(res.text, 'bar\n')
       let provider = feature.getProvider(doc.textDocument)
-      expect(provider).toBeDefined()
+      assert.notStrictEqual(provider, undefined)
       await provider.send({
         contentChanges: [],
         textDocument: { uri: doc.uri, version: doc.version },
@@ -345,7 +345,7 @@ describe('TextDocumentSynchronization', () => {
       feature.dispose()
       // The built-in feature instances are reused across client restarts, so
       // dispose must re-create the emitters like the base feature does.
-      expect(feature._onNotificationSent).not.toBe(oldEmitter)
+      assert.notStrictEqual(feature._onNotificationSent, oldEmitter)
       feature.register({
         id: crypto.randomUUID(),
         registerOptions: { documentSelector: [{ language: 'vim' }], syncKind: TextDocumentSyncKind.Incremental }
@@ -388,7 +388,7 @@ describe('TextDocumentSynchronization', () => {
         bufnr: doc.bufnr
       } as any)
       let res = await client.sendRequest('getLastChange') as any
-      expect(res.text).toBe('\n')
+      assert.strictEqual(res.text, '\n')
       await client.stop()
     })
   })
@@ -410,12 +410,12 @@ describe('TextDocumentSynchronization', () => {
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'bar')])
       let feature = client.getFeature(WillSaveTextDocumentNotification.method)
       let provider = feature.getProvider(doc.textDocument)
-      expect(provider).toBeDefined()
+      assert.notStrictEqual(provider, undefined)
       await provider.send({ document: doc.textDocument, bufnr: doc.bufnr, reason: TextDocumentSaveReason.Manual, waitUntil: () => {} })
       let res = await client.sendRequest('getLastWillSave') as any
-      expect(res.uri).toBe(doc.uri)
+      assert.strictEqual(res.uri, doc.uri)
       await client.stop()
-      expect(called).toBe(true)
+      assert.strictEqual(called, true)
       if (fs.existsSync(fsPath)) {
         fs.unlinkSync(fsPath)
       }
@@ -517,7 +517,7 @@ describe('TextDocumentSynchronization', () => {
         return called
       }, true)
       let res = await client.sendRequest('getLastWillSave') as any
-      expect(res.uri).toBe(doc.uri)
+      assert.strictEqual(res.uri, doc.uri)
       await client.stop()
       fs.unlinkSync(fsPath)
     })

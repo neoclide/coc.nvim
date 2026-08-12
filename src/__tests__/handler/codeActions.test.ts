@@ -50,9 +50,9 @@ afterEach(async () => {
 describe('handler codeActions', () => {
   describe('autoApply', () => {
     it('should check auto apply', async () => {
-      expect(shouldAutoApply(undefined)).toBe(false)
-      expect(shouldAutoApply([])).toBe(false)
-      expect(shouldAutoApply([CodeActionKind.Refactor])).toBe(false)
+      assert.strictEqual(shouldAutoApply(undefined), false)
+      assert.strictEqual(shouldAutoApply([]), false)
+      assert.strictEqual(shouldAutoApply([CodeActionKind.Refactor]), false)
     })
   })
 
@@ -60,18 +60,18 @@ describe('handler codeActions', () => {
     it('should filter command', () => {
       let cmd = Command.create('title', 'command')
       let res = checkAction([CodeActionKind.Refactor], cmd)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
       res = checkAction(undefined, cmd)
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
     it('should return false when organize import action not found', async () => {
       currActions = []
       let doc = await helper.createDocument()
-      expect(languages.hasProvider(ProviderName.CodeAction, doc)).toBe(true)
+      assert.strictEqual(languages.hasProvider(ProviderName.CodeAction, doc), true)
       let res = await helper.doAction('organizeImport')
-      expect(res).toBe(false)
-      expect(languages.hasProvider('undefined' as any, doc)).toBe(false)
+      assert.strictEqual(res, false)
+      assert.strictEqual(languages.hasProvider('undefined' as any, doc), false)
     })
 
     it('should perform organize import action', async () => {
@@ -85,7 +85,7 @@ describe('handler codeActions', () => {
       currActions = [action, CodeAction.create('another action'), Command.create('title', 'command')]
       await codeActions.organizeImport()
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar', 'foo'])
+      assert.deepStrictEqual(lines, ['bar', 'foo'])
     })
 
     it('should register editor.action.organizeImport command', async () => {
@@ -101,7 +101,7 @@ describe('handler codeActions', () => {
       currActions = [action, CodeAction.create('another action')]
       await commands.executeCommand('editor.action.organizeImport')
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar', 'foo'])
+      assert.deepStrictEqual(lines, ['bar', 'foo'])
     })
   })
 
@@ -111,10 +111,10 @@ describe('handler codeActions', () => {
       currActions = []
       await helper.doAction('codeActionRange', 1, 2, CodeActionKind.QuickFix)
       let line = await helper.getCmdline()
-      expect(line).toMatch(/No quickfix code action/)
+      assert.match(line, /No quickfix code action/)
       await helper.doAction('codeActionRange', 1, 2)
       line = await helper.getCmdline()
-      expect(line).toMatch(/No code action available/)
+      assert.match(line, /No code action available/)
     })
 
     it('should apply chosen action', async () => {
@@ -130,7 +130,7 @@ describe('handler codeActions', () => {
       await p
       let buf = nvim.createBuffer(doc.bufnr)
       let lines = await buf.lines
-      expect(lines[0]).toBe('bar')
+      assert.strictEqual(lines[0], 'bar')
     })
 
     it('should show command tooltip in code action menu', async () => {
@@ -149,10 +149,10 @@ describe('handler codeActions', () => {
       let p = helper.doAction('codeAction', undefined)
       await helper.waitPrompt()
       let win = await helper.getFloat()
-      expect(win).toBeDefined()
+      assert.notStrictEqual(win, undefined)
       let lines = await helper.getWinLines(win.id)
-      expect(lines.join('\n')).toMatch(/fix - apply the fix/)
-      expect(lines.join('\n')).toMatch(/refactor - do the refactor/)
+      assert.match(lines.join('\n'), /fix - apply the fix/)
+      assert.match(lines.join('\n'), /refactor - do the refactor/)
       await nvim.input('<cr>')
       await p
     })
@@ -163,7 +163,7 @@ describe('handler codeActions', () => {
       currActions = []
       let doc = await helper.createDocument()
       let res = await codeActions.getCodeActions(doc)
-      expect(res.length).toBe(0)
+      assert.strictEqual(res.length, 0)
     })
 
     it('should not filter disabled actions', async () => {
@@ -177,7 +177,7 @@ describe('handler codeActions', () => {
       currActions.push(action)
       let doc = await helper.createDocument()
       let res = await codeActions.getCodeActions(doc, Range.create(0, 0, 1, 0))
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
 
     it('should get all actions', async () => {
@@ -202,8 +202,8 @@ describe('handler codeActions', () => {
         },
       }, undefined))
       let res = await codeActions.getCodeActions(doc)
-      expect(range).toEqual(Range.create(0, 0, 3, 0))
-      expect(res.length).toBe(5)
+      assert.deepStrictEqual(range, Range.create(0, 0, 3, 0))
+      assert.strictEqual(res.length, 5)
     })
 
     it('should filter actions by range', async () => {
@@ -223,8 +223,8 @@ describe('handler codeActions', () => {
         },
       }, undefined))
       let res = await codeActions.getCodeActions(doc, Range.create(0, 0, 0, 0))
-      expect(range).toEqual(Range.create(0, 0, 0, 0))
-      expect(res.length).toBe(1)
+      assert.deepStrictEqual(range, Range.create(0, 0, 0, 0))
+      assert.strictEqual(res.length, 1)
     })
 
     it('should filter actions by kind prefix', async () => {
@@ -232,8 +232,8 @@ describe('handler codeActions', () => {
       let action = CodeAction.create('my action', CodeActionKind.SourceFixAll)
       currActions = [action]
       let res = await codeActions.getCodeActions(doc, undefined, [CodeActionKind.Source])
-      expect(res.length).toBe(1)
-      expect(res[0].kind).toBe(CodeActionKind.SourceFixAll)
+      assert.strictEqual(res.length, 1)
+      assert.strictEqual(res[0].kind, CodeActionKind.SourceFixAll)
       await helper.doAction('fixAll')
     })
   })
@@ -257,16 +257,16 @@ describe('handler codeActions', () => {
       currActions = []
       await helper.createDocument()
       let res = await helper.doAction('codeActions', 'line')
-      expect(range).toEqual(Range.create(0, 0, 1, 0))
-      expect(res.length).toBe(3)
+      assert.deepStrictEqual(range, Range.create(0, 0, 1, 0))
+      assert.strictEqual(res.length, 3)
     })
 
     it('should get codeActions by cursor', async () => {
       currActions = []
       await helper.createDocument()
       let res = await codeActions.getCurrentCodeActions('cursor')
-      expect(range).toEqual(Range.create(0, 0, 0, 0))
-      expect(res.length).toBe(3)
+      assert.deepStrictEqual(range, Range.create(0, 0, 0, 0))
+      assert.strictEqual(res.length, 3)
     })
 
     it('should get codeActions by visual mode', async () => {
@@ -276,8 +276,8 @@ describe('handler codeActions', () => {
       await nvim.command('normal! 0v$')
       await nvim.input('<esc>')
       let res = await codeActions.getCurrentCodeActions('v')
-      expect(range).toEqual(Range.create(0, 0, 0, 3))
-      expect(res.length).toBe(3)
+      assert.deepStrictEqual(range, Range.create(0, 0, 0, 3))
+      assert.strictEqual(res.length, 3)
     })
   })
 
@@ -297,7 +297,7 @@ describe('handler codeActions', () => {
       currActions = [action]
       await codeActions.doCodeAction(undefined, 'code fix')
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar'])
+      assert.deepStrictEqual(lines, ['bar'])
     })
 
     it('should apply single code action when only is QuickFix', async () => {
@@ -309,7 +309,7 @@ describe('handler codeActions', () => {
       currActions = [action]
       await codeActions.doCodeAction(undefined, [CodeActionKind.QuickFix])
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar'])
+      assert.deepStrictEqual(lines, ['bar'])
     })
 
     it('should show disabled code action', async () => {
@@ -326,8 +326,8 @@ describe('handler codeActions', () => {
       let win = nvim.createWindow(winid)
       let buf = await win.buffer
       let lines = await buf.lines
-      expect(lines.length).toBe(2)
-      expect(lines[1]).toMatch(/code refactor/)
+      assert.strictEqual(lines.length, 2)
+      assert.match(lines[1], /code refactor/)
       await nvim.input('2')
       await helper.wait(20)
       await nvim.input('j')
@@ -350,11 +350,11 @@ describe('handler codeActions', () => {
       let promise = codeActions.doCodeAction(null, undefined)
       await helper.waitFloat()
       let ids = await nvim.call('coc#float#get_float_win_list') as number[]
-      expect(ids.length).toBeGreaterThan(0)
+      assert.ok((ids.length) > (0))
       await nvim.input('<CR>')
       await promise
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar'])
+      assert.deepStrictEqual(lines, ['bar'])
     })
 
     it('should choose code actions by range', async () => {
@@ -374,7 +374,7 @@ describe('handler codeActions', () => {
       await nvim.command('normal! 0v$')
       await nvim.input('<esc>')
       await codeActions.doCodeAction('v', 'my title')
-      expect(range).toEqual({ start: { line: 0, character: 0 }, end: { line: 0, character: 3 } })
+      assert.deepStrictEqual(range, { start: { line: 0, character: 0 }, end: { line: 0, character: 3 } })
     })
 
     it('should filter by provider kinds', async () => {
@@ -386,7 +386,7 @@ describe('handler codeActions', () => {
       }, undefined, [CodeActionKind.QuickFix]))
       let doc = await workspace.document
       let res = await languages.getCodeActions(doc.textDocument, Range.create(0, 0, 1, 1), { only: [CodeActionKind.Refactor], diagnostics: [] }, CancellationToken.None)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
     })
 
     it('should filter by codeAction kind', async () => {
@@ -405,33 +405,33 @@ describe('handler codeActions', () => {
       }, undefined))
       let doc = await workspace.document
       let res = await languages.getCodeActions(doc.textDocument, Range.create(0, 0, 1, 1), { only: [CodeActionKind.QuickFix], diagnostics: [] }, CancellationToken.None)
-      expect(res.length).toBe(1)
+      assert.strictEqual(res.length, 1)
       let resolved = await languages.resolveCodeAction(res[0], CancellationToken.None)
-      expect(resolved).toBeDefined()
-      await expect(codeActions.doCodeAction(null, 'command', true)).rejects.toThrow(Error)
+      assert.notStrictEqual(resolved, undefined)
+      await assert.rejects(codeActions.doCodeAction(null, 'command', true), Error)
       await codeActions.doCodeAction(null, 'cmd', true)
       let line = await helper.getCmdline()
-      expect(line).toMatch('No cmd code action')
+      assert.ok((line).includes('No cmd code action'))
     })
 
-    it('should use quickpick', async () => {
+    it('should use quickpick', async (t) => {
       helper.updateConfiguration('coc.preferences.floatActions', false)
       currActions = [CodeAction.create('foo', CodeActionKind.QuickFix), CodeAction.create('bar', CodeActionKind.QuickFix)]
-      let spy = vi.spyOn(window.dialogs, 'requestInputList').mockReturnValue(Promise.resolve(0))
+      let spy = t.mock.method(window.dialogs, 'requestInputList', () => (Promise.resolve(0)))
       let action
-      let s = vi.spyOn(codeActions, 'applyCodeAction').mockImplementation((a, _token) => {
+      let s = t.mock.method(codeActions, 'applyCodeAction', (a, _token) => {
         action = a
         return Promise.resolve()
       })
       await codeActions.doCodeAction(null, undefined)
-      s.mockRestore()
-      spy.mockRestore()
-      expect(action).toBeDefined()
-      expect(action.title).toBe('foo')
+      s.mock.restore()
+      spy.mock.restore()
+      assert.notStrictEqual(action, undefined)
+      assert.strictEqual(action.title, 'foo')
       helper.updateConfiguration('coc.preferences.floatActions', true)
     })
 
-    it('should show kind in code action menu (#5288)', async () => {
+    it('should show kind in code action menu (#5288)', async (t) => {
       helper.updateConfiguration('coc.preferences.floatActions', false)
       currActions = [
         CodeAction.create('Move to file', CodeActionKind.RefactorExtract + '.move.file'),
@@ -439,18 +439,18 @@ describe('handler codeActions', () => {
         CodeAction.create('plain')
       ]
       let items: string[] = []
-      let spy = vi.spyOn(window.dialogs, 'requestInputList').mockImplementation((_title, list) => {
+      let spy = t.mock.method(window.dialogs, 'requestInputList', (_title, list) => {
         items = list as string[]
         return Promise.resolve(0)
       })
       await codeActions.doCodeAction(null, undefined)
-      spy.mockRestore()
+      spy.mock.restore()
       // menu items show the top-level kind; order is provider-defined
-      expect(items).toContain('Move to file [refactor]')
-      expect(items).toContain('Quick fix [quickfix]')
+      assert.ok((items).includes('Move to file [refactor]'))
+      assert.ok((items).includes('Quick fix [quickfix]'))
       // no kind -> unchanged
-      expect(items).toContain('plain')
-      expect(items).toHaveLength(3)
+      assert.ok((items).includes('plain'))
+      assert.strictEqual((items).length, 3)
       helper.updateConfiguration('coc.preferences.floatActions', true)
     })
   })
@@ -461,7 +461,7 @@ describe('handler codeActions', () => {
       await helper.createDocument()
       await helper.doAction('doQuickfix')
       let msg = await helper.getCmdline()
-      expect(msg).toMatch('No quickfix')
+      assert.ok((msg).includes('No quickfix'))
     })
 
     it('should do preferred quickfix action', async () => {
@@ -474,7 +474,7 @@ describe('handler codeActions', () => {
       currActions = [CodeAction.create('foo', CodeActionKind.QuickFix), action, CodeAction.create('bar')]
       await codeActions.doQuickfix()
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar'])
+      assert.deepStrictEqual(lines, ['bar'])
     })
   })
 
@@ -491,7 +491,7 @@ describe('handler codeActions', () => {
       let arr = await helper.doAction('quickfixes', 'line')
       await commands.executeCommand('editor.action.doCodeAction', arr[0])
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar'])
+      assert.deepStrictEqual(lines, ['bar'])
     })
 
     it('should not throw when resolved action is null', async () => {
@@ -509,7 +509,7 @@ describe('handler codeActions', () => {
     it('should throw for disabled action', async () => {
       let action: any = CodeAction.create('my action', CodeActionKind.Empty)
       action.disabled = { reason: 'disabled', providerId: 'x' }
-      await expect(helper.doAction('doCodeAction', action)).rejects.toThrow(Error)
+      await assert.rejects(helper.doAction('doCodeAction', action), Error)
     })
 
     it('should invoke registered command after apply edit', async () => {
@@ -532,8 +532,8 @@ describe('handler codeActions', () => {
       let arr = await codeActions.getCurrentCodeActions('line', [CodeActionKind.QuickFix])
       await codeActions.applyCodeAction(arr[0])
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar'])
-      expect(called).toBe('normal! $')
+      assert.deepStrictEqual(lines, ['bar'])
+      assert.strictEqual(called, 'normal! $')
     })
   })
 
@@ -567,8 +567,8 @@ describe('handler codeActions', () => {
     let action = CodeAction.create('fix all', undefined, CodeActionKind.SourceFixAll)
     currActions = [action]
     let res = await codeActions.executeCodeActions(doc, undefined, [CodeActionKind.SourceFixAll], 50)
-    expect(res).toEqual([])
-    expect(called).toBe(true)
+    assert.deepStrictEqual(res, [])
+    assert.strictEqual(called, true)
   })
 
   it('should execute organizeImport code action', async () => {
@@ -582,8 +582,8 @@ describe('handler codeActions', () => {
     obj.edit = { changes: { [doc.uri]: edits } }
     resolvedAction = obj
     let res = await codeActions.executeCodeActions(doc, undefined, [CodeActionKind.SourceOrganizeImports], 50)
-    expect(res).toEqual([CodeActionKind.SourceOrganizeImports])
+    assert.deepStrictEqual(res, [CodeActionKind.SourceOrganizeImports])
     let line = doc.getline(0)
-    expect(line).toBe('bar')
+    assert.strictEqual(line, 'bar')
   })
 })

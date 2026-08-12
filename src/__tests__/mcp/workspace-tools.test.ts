@@ -1,9 +1,11 @@
 'use strict'
+import { isDeepStrictEqual } from 'node:util'
+import { mock } from 'node:test'
+import type { Mock as NodeMock } from 'node:test'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { URI } from 'vscode-uri'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
   createWorkspaceTools,
   escapeRegExp,
@@ -22,14 +24,14 @@ let tmpdir: string
 const token = CancellationToken.None
 let realCommand: (command: string, isNotify?: boolean) => Promise<void> | null
 let rejectWa = false
-let commandSpy: ReturnType<typeof vi.spyOn>
+let commandSpy: NodeMock<any>
 
 beforeAll(async () => {
   await helper.setup()
   // Intercept `:wa` so tests do not depend on the real (slow under load)
   // save-all command; everything else still reaches nvim.
   realCommand = workspace.nvim.command.bind(workspace.nvim)
-  commandSpy = vi.spyOn(workspace.nvim, 'command').mockImplementation(((command: string, isNotify?: boolean) => {
+  commandSpy = mock.method(workspace.nvim, 'command', ((command: string, isNotify?: boolean) => {
     if (command === 'wa') {
       if (rejectWa) return Promise.reject(new Error('E32: No file name'))
       return Promise.resolve()
@@ -44,7 +46,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  commandSpy.mockRestore()
+  commandSpy.mock.restore()
   await helper.shutdown()
   workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [], 'mcp.deniedPaths': [] })
   fs.rmSync(tmpdir, { recursive: true, force: true })
@@ -65,48 +67,48 @@ describe('mcp workspace tools', () => {
         submatches: [{ start: 3 }]
       }
     }))
-    expect(match).toEqual({ file: '/tmp/a.ts', line: 1, column: 1, text: '你hello' })
-    expect(parseRgLine(JSON.stringify({
+    assert.deepStrictEqual(match, { file: '/tmp/a.ts', line: 1, column: 1, text: '你hello' })
+    assert.deepStrictEqual(parseRgLine(JSON.stringify({
       type: 'match',
       data: { path: { text: '/tmp/a.ts' }, lines: { text: 1 } }
-    }))).toEqual({ file: '/tmp/a.ts', line: 0, column: 0, text: '' })
-    expect(parseRgLine('{invalid')).toBeNull()
-    expect(parseRgLine(JSON.stringify({ type: 'summary' }))).toBeNull()
-    expect(parseRgLine(JSON.stringify({ type: 'match' }))).toBeNull()
-    expect(parseRgLine(JSON.stringify({ type: 'match', data: {} }))).toBeNull()
-    expect(parseRgLine(JSON.stringify({ type: 'match', data: { path: {} } }))).toBeNull()
-    expect(parseRgLine(JSON.stringify({
+    })), { file: '/tmp/a.ts', line: 0, column: 0, text: '' })
+    assert.strictEqual(parseRgLine('{invalid'), null)
+    assert.strictEqual(parseRgLine(JSON.stringify({ type: 'summary' })), null)
+    assert.strictEqual(parseRgLine(JSON.stringify({ type: 'match' })), null)
+    assert.strictEqual(parseRgLine(JSON.stringify({ type: 'match', data: {} })), null)
+    assert.strictEqual(parseRgLine(JSON.stringify({ type: 'match', data: { path: {} } })), null)
+    assert.deepStrictEqual(parseRgLine(JSON.stringify({
       type: 'match', data: { path: { text: '/tmp/b.ts' }, lines: { text: 'text' }, submatches: [] }
-    }))).toEqual({ file: '/tmp/b.ts', line: 0, column: 0, text: 'text' })
+    })), { file: '/tmp/b.ts', line: 0, column: 0, text: 'text' })
   })
 
   it('escapes regex syntax and reads nested configuration', () => {
-    expect(escapeRegExp('a.*[b]')).toBe('a\\.\\*\\[b\\]')
-    expect(getConfigValue('mcp.autoStart')).toBe(false)
-    expect(getConfigValue('mcp.notFound')).toBeUndefined()
-    expect(getConfigValue('mcp.notFound.child')).toBeUndefined()
-    expect(getConfigValue('')).toBeTruthy()
+    assert.strictEqual(escapeRegExp('a.*[b]'), 'a\\.\\*\\[b\\]')
+    assert.strictEqual(getConfigValue('mcp.autoStart'), false)
+    assert.strictEqual(getConfigValue('mcp.notFound'), undefined)
+    assert.strictEqual(getConfigValue('mcp.notFound.child'), undefined)
+    assert.ok(getConfigValue(''))
   })
 
   it('runs ripgrep with case and glob options and stops at maxResults', async () => {
-    expect(findRg()).toBeTruthy()
+    assert.ok(findRg())
     let matches = await searchWithRg('HELLO', {
       caseSensitive: false,
       include: '**/*.ts',
       exclude: 'b.ts'
     }, tmpdir, 1)
-    expect(matches).toHaveLength(1)
-    expect(path.basename(matches[0].file)).toBe('a.ts')
+    assert.strictEqual((matches).length, 1)
+    assert.strictEqual(path.basename(matches[0].file), 'a.ts')
     let exact = await searchWithRg('hello', { regex: true, caseSensitive: true }, tmpdir, 10)
-    expect(exact.length).toBeGreaterThan(0)
+    assert.ok((exact.length) > (0))
   })
 
   it('workspace/files lists files by glob', async () => {
     let result = await tool('workspace/files').handler({ include: '**/*.ts' }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.count).toBe(2)
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.count, 2)
     let names = result.structuredContent.files.map((f: any) => path.basename(f.filepath)).sort()
-    expect(names).toEqual(['a.ts', 'b.ts'])
+    assert.deepStrictEqual(names, ['a.ts', 'b.ts'])
   })
 
   it('workspace/search finds matches with line and column', async () => {
@@ -115,12 +117,12 @@ describe('mcp workspace tools', () => {
       include: '**/*.ts',
       root: tmpdir
     }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.count).toBeGreaterThan(0)
+    assert.ok(!(result.isError))
+    assert.ok((result.structuredContent.count) > (0))
     let match = result.structuredContent.matches.find((m: any) => path.basename(m.file) === 'a.ts')
-    expect(match).toBeTruthy()
-    expect(match.text).toContain('hello')
-    expect(typeof match.line).toBe('number')
+    assert.ok(match)
+    assert.ok((match.text).includes('hello'))
+    assert.strictEqual(typeof match.line, 'number')
   })
 
   it('workspace/search supports regex mode and the JS fallback', async () => {
@@ -130,41 +132,41 @@ describe('mcp workspace tools', () => {
       include: '**/*.ts',
       root: tmpdir
     }, { token })
-    expect(regexResult.isError).toBeFalsy()
-    expect(regexResult.structuredContent.count).toBeGreaterThan(0)
+    assert.ok(!(regexResult.isError))
+    assert.ok((regexResult.structuredContent.count) > (0))
     let jsMatches = await searchWithJs('hello', { include: '**/*.ts' }, tmpdir, 100)
-    expect(jsMatches.length).toBeGreaterThan(0)
-    expect(jsMatches[0].text).toContain('hello')
+    assert.ok((jsMatches.length) > (0))
+    assert.ok((jsMatches[0].text).includes('hello'))
   })
 
-  it('workspace/search falls back when ripgrep is unavailable', async () => {
-    let spy = vi.spyOn(which, 'sync').mockImplementation(() => { throw new Error('missing') })
+  it('workspace/search falls back when ripgrep is unavailable', async (t) => {
+    let spy = t.mock.method(which, 'sync', () => { throw new Error('missing') })
     try {
-      expect(findRg()).toBeNull()
+      assert.strictEqual(findRg(), null)
       let result = await tool('workspace/search').handler({ pattern: 'hello', include: '**/*.ts', root: tmpdir }, { token })
-      expect(result.isError).toBeFalsy()
-      expect(result.structuredContent.engine).toBe('js')
+      assert.ok(!(result.isError))
+      assert.strictEqual(result.structuredContent.engine, 'js')
     } finally {
-      spy.mockRestore()
+      spy.mock.restore()
     }
   })
 
-  it('workspace/search reports non-Error fallback failures', async () => {
-    let whichSpy = vi.spyOn(which, 'sync').mockImplementation(() => { throw new Error('missing') })
-    let filesSpy = vi.spyOn(workspace, 'findFiles').mockRejectedValueOnce('find failed')
+  it('workspace/search reports non-Error fallback failures', async (t) => {
+    let whichSpy = t.mock.method(which, 'sync', () => { throw new Error('missing') })
+    let filesSpy = t.mock.method(workspace, 'findFiles', () => Promise.reject('find failed'), { times: 1 })
     try {
       let result = await tool('workspace/search').handler({ pattern: 'hello', root: tmpdir }, { token })
-      expect(result.content[0].text).toContain('find failed')
+      assert.ok((result.content[0].text).includes('find failed'))
     } finally {
-      whichSpy.mockRestore()
-      filesSpy.mockRestore()
+      whichSpy.mock.restore()
+      filesSpy.mock.restore()
     }
   })
 
   it('workspace/configuration accepts an omitted key', async () => {
     let result = await tool('workspace/configuration').handler({}, { token })
-    expect(result.structuredContent.key).toBe('')
-    expect(result.structuredContent.value).toBeTruthy()
+    assert.strictEqual(result.structuredContent.key, '')
+    assert.ok(result.structuredContent.value)
   })
 
   it('workspace/search filters files in deniedPaths and scopes to the root', async () => {
@@ -184,14 +186,14 @@ describe('mcp workspace tools', () => {
         include: '**/*.ts',
         root: tmpdir
       }, { token })
-      expect(rgResult.isError).toBeFalsy()
+      assert.ok(!(rgResult.isError))
       let rgFiles = rgResult.structuredContent.matches.map((m: any) => m.file)
-      expect(rgFiles).toContain(path.join(keepDir, 'keep.ts'))
-      expect(rgFiles.some(f => f.includes('denied-sub'))).toBe(false)
+      assert.ok((rgFiles).includes(path.join(keepDir, 'keep.ts')))
+      assert.strictEqual(rgFiles.some(f => f.includes('denied-sub')), false)
       let jsMatches = await searchWithJs('needle', { include: '**/*.ts' }, tmpdir, 100)
       let jsFiles = jsMatches.map(m => m.file)
-      expect(jsFiles).toContain(path.join(keepDir, 'keep.ts'))
-      expect(jsFiles.some(f => f.includes('denied-sub'))).toBe(false)
+      assert.ok((jsFiles).includes(path.join(keepDir, 'keep.ts')))
+      assert.strictEqual(jsFiles.some(f => f.includes('denied-sub')), false)
     } finally {
       workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [], 'mcp.deniedPaths': [] })
     }
@@ -203,7 +205,7 @@ describe('mcp workspace tools', () => {
     workspace.workspaceFolderControl.addWorkspaceFolder(otherDir, true)
     try {
       let jsMatches = await searchWithJs('needle', { include: '**/*.ts' }, tmpdir, 100)
-      expect(jsMatches.some(m => m.file.includes('other.ts'))).toBe(false)
+      assert.strictEqual(jsMatches.some(m => m.file.includes('other.ts')), false)
     } finally {
       workspace.workspaceFolderControl.removeWorkspaceFolder(otherDir)
       fs.rmSync(otherDir, { recursive: true, force: true })
@@ -215,9 +217,9 @@ describe('mcp workspace tools', () => {
     fs.writeFileSync(file, 'hello\nhello world\nworld\n')
     let matches = await searchWithJs('hello', { include: 'adjacent.txt' }, tmpdir, 100)
     let lines = matches.filter(m => m.file === file).map(m => m.line)
-    expect(lines).toEqual([0, 1])
+    assert.deepStrictEqual(lines, [0, 1])
     let columns = matches.filter(m => m.file === file).map(m => m.column)
-    expect(columns).toEqual([0, 0])
+    assert.deepStrictEqual(columns, [0, 0])
   })
 
   it('JS search handles empty-match regex without hanging', async () => {
@@ -226,7 +228,7 @@ describe('mcp workspace tools', () => {
     let matches = await searchWithJs('x*', { regex: true, include: 'empty-match.txt' }, tmpdir, 100)
     // 'x*' matches once at index 0 of every line (including the trailing
     // empty line) without looping forever
-    expect(matches.filter(m => m.file === file).map(m => m.line)).toEqual([0, 1, 2])
+    assert.deepStrictEqual(matches.filter(m => m.file === file).map(m => m.line), [0, 1, 2])
   })
 
   it('JS search handles defaults, case sensitivity, limits and skipped files', async () => {
@@ -234,10 +236,10 @@ describe('mcp workspace tools', () => {
     let large = path.join(tmpdir, 'large.dat')
     fs.writeFileSync(binary, 'hello\0world')
     fs.writeFileSync(large, 'hello' + 'x'.repeat(2 * 1024 * 1024))
-    expect(await searchWithJs('HELLO', { caseSensitive: true }, tmpdir, 10)).toEqual([])
+    assert.deepStrictEqual(await searchWithJs('HELLO', { caseSensitive: true }, tmpdir, 10), [])
     let limited = await searchWithJs('hello', {}, tmpdir, 1)
-    expect(limited).toHaveLength(1)
-    await expect(searchWithJs('[', { regex: true }, tmpdir, 10)).rejects.toThrow('Invalid regex')
+    assert.strictEqual((limited).length, 1)
+    await assert.rejects(searchWithJs('[', { regex: true }, tmpdir, 10), error => String(error instanceof Error ? error.message : error).includes('Invalid regex'))
   })
 
   it('validates required arguments for workspace tools', async () => {
@@ -250,75 +252,75 @@ describe('mcp workspace tools', () => {
       ['workspace/delete_file', {}, 'filepath is required']
     ] as Array<[string, Record<string, unknown>, string]>) {
       let result = await tool(name).handler(args, { token })
-      expect(result.isError).toBe(true)
-      expect(result.content[0].text).toContain(message)
+      assert.strictEqual(result.isError, true)
+      assert.ok((result.content[0].text).includes(message))
     }
   })
 
-  it('reports workspace operation failures', async () => {
-    let createSpy = vi.spyOn(workspace, 'createFile').mockRejectedValue(new Error('create failed'))
-    let renameSpy = vi.spyOn(workspace, 'renameFile').mockRejectedValue(new Error('rename failed'))
-    let deleteSpy = vi.spyOn(workspace, 'deleteFile').mockRejectedValue(new Error('delete failed'))
-    let applySpy = vi.spyOn(workspace, 'applyEdit').mockRejectedValue(new Error('apply failed'))
+  it('reports workspace operation failures', async (t) => {
+    let createSpy = t.mock.method(workspace, 'createFile', () => Promise.reject(new Error('create failed')))
+    let renameSpy = t.mock.method(workspace, 'renameFile', () => Promise.reject(new Error('rename failed')))
+    let deleteSpy = t.mock.method(workspace, 'deleteFile', () => Promise.reject(new Error('delete failed')))
+    let applySpy = t.mock.method(workspace, 'applyEdit', () => Promise.reject(new Error('apply failed')))
     try {
       let create = await tool('workspace/create_file').handler({ filepath: path.join(tmpdir, 'fail-create') }, { token })
-      expect(create.content[0].text).toContain('create failed')
+      assert.ok((create.content[0].text).includes('create failed'))
       let rename = await tool('workspace/rename_file').handler({
         oldPath: path.join(tmpdir, 'a.ts'),
         newPath: path.join(tmpdir, 'fail-rename')
       }, { token })
-      expect(rename.content[0].text).toContain('rename failed')
+      assert.ok((rename.content[0].text).includes('rename failed'))
       let remove = await tool('workspace/delete_file').handler({ filepath: path.join(tmpdir, 'a.ts') }, { token })
-      expect(remove.content[0].text).toContain('delete failed')
+      assert.ok((remove.content[0].text).includes('delete failed'))
       let apply = await tool('workspace/apply_edit').handler({ edit: { changes: {} } }, { token })
-      expect(apply.content[0].text).toContain('apply failed')
+      assert.ok((apply.content[0].text).includes('apply failed'))
     } finally {
-      createSpy.mockRestore()
-      renameSpy.mockRestore()
-      deleteSpy.mockRestore()
-      applySpy.mockRestore()
+      createSpy.mock.restore()
+      renameSpy.mock.restore()
+      deleteSpy.mock.restore()
+      applySpy.mock.restore()
     }
   })
 
-  it('reports non-Error workspace operation failures', async () => {
-    let createSpy = vi.spyOn(workspace, 'createFile').mockRejectedValue('create string')
-    let renameSpy = vi.spyOn(workspace, 'renameFile').mockRejectedValue('rename string')
-    let deleteSpy = vi.spyOn(workspace, 'deleteFile').mockRejectedValue('delete string')
-    let applySpy = vi.spyOn(workspace, 'applyEdit').mockRejectedValue('apply string')
+  it('reports non-Error workspace operation failures', async (t) => {
+    let createSpy = t.mock.method(workspace, 'createFile', () => Promise.reject('create string'))
+    let renameSpy = t.mock.method(workspace, 'renameFile', () => Promise.reject('rename string'))
+    let deleteSpy = t.mock.method(workspace, 'deleteFile', () => Promise.reject('delete string'))
+    let applySpy = t.mock.method(workspace, 'applyEdit', () => Promise.reject('apply string'))
     try {
-      expect((await tool('workspace/create_file').handler({ filepath: path.join(tmpdir, 'fail-create') }, { token })).content[0].text).toContain('create string')
-      expect((await tool('workspace/rename_file').handler({ oldPath: path.join(tmpdir, 'a.ts'), newPath: path.join(tmpdir, 'fail-rename') }, { token })).content[0].text).toContain('rename string')
-      expect((await tool('workspace/delete_file').handler({ filepath: path.join(tmpdir, 'a.ts') }, { token })).content[0].text).toContain('delete string')
-      expect((await tool('workspace/apply_edit').handler({ edit: { changes: {} } }, { token })).content[0].text).toContain('apply string')
+      assert.ok(((await tool('workspace/create_file').handler({ filepath: path.join(tmpdir, 'fail-create') }, { token })).content[0].text).includes('create string'))
+      assert.ok(((await tool('workspace/rename_file').handler({ oldPath: path.join(tmpdir, 'a.ts'), newPath: path.join(tmpdir, 'fail-rename') }, { token })).content[0].text).includes('rename string'))
+      assert.ok(((await tool('workspace/delete_file').handler({ filepath: path.join(tmpdir, 'a.ts') }, { token })).content[0].text).includes('delete string'))
+      assert.ok(((await tool('workspace/apply_edit').handler({ edit: { changes: {} } }, { token })).content[0].text).includes('apply string'))
     } finally {
-      createSpy.mockRestore()
-      renameSpy.mockRestore()
-      deleteSpy.mockRestore()
-      applySpy.mockRestore()
+      createSpy.mock.restore()
+      renameSpy.mock.restore()
+      deleteSpy.mock.restore()
+      applySpy.mock.restore()
     }
   })
 
   it('workspace/create_file creates a file on disk and buffer', async () => {
     let filepath = path.join(tmpdir, 'created.txt')
     let result = await tool('workspace/create_file').handler({ filepath }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(fs.existsSync(filepath)).toBe(true)
+    assert.ok(!(result.isError))
+    assert.strictEqual(fs.existsSync(filepath), true)
   })
 
   it('workspace/rename_file moves a file', async () => {
     let oldPath = path.join(tmpdir, 'created.txt')
     let newPath = path.join(tmpdir, 'renamed.txt')
     let result = await tool('workspace/rename_file').handler({ oldPath, newPath }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(fs.existsSync(oldPath)).toBe(false)
-    expect(fs.existsSync(newPath)).toBe(true)
+    assert.ok(!(result.isError))
+    assert.strictEqual(fs.existsSync(oldPath), false)
+    assert.strictEqual(fs.existsSync(newPath), true)
   })
 
   it('workspace/delete_file removes a file', async () => {
     let filepath = path.join(tmpdir, 'renamed.txt')
     let result = await tool('workspace/delete_file').handler({ filepath }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(fs.existsSync(filepath)).toBe(false)
+    assert.ok(!(result.isError))
+    assert.strictEqual(fs.existsSync(filepath), false)
   })
 
   it('workspace/apply_edit applies multi-file edits to buffers', async () => {
@@ -336,16 +338,16 @@ describe('mcp workspace tools', () => {
         }
       }
     }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.applied).toBe(true)
-    expect(result.structuredContent.pendingSave).toBe(true)
-    expect(result.structuredContent.saved).toBe(true)
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.applied, true)
+    assert.strictEqual(result.structuredContent.pendingSave, true)
+    assert.strictEqual(result.structuredContent.saved, true)
     let dx = workspace.getDocument(ux)!
-    expect(dx.textDocument.getText()).toContain('XX')
+    assert.ok((dx.textDocument.getText()).includes('XX'))
     let dy = workspace.getDocument(uy)!
-    expect(dy.textDocument.getText()).toContain('YY')
+    assert.ok((dy.textDocument.getText()).includes('YY'))
     // the tool saves all modified buffers with :wa
-    expect(commandSpy).toHaveBeenCalledWith('wa')
+    assert.ok((commandSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['wa'])))
   })
 
   it('workspace/apply_edit reports saveError when :wa fails', async () => {
@@ -361,12 +363,12 @@ describe('mcp workspace tools', () => {
           }
         }
       }, { token })
-      expect(result.isError).toBeFalsy()
-      expect(result.structuredContent.applied).toBe(true)
-      expect(result.structuredContent.saved).toBe(false)
-      expect(result.structuredContent.saveError).toBeTruthy()
+      assert.ok(!(result.isError))
+      assert.strictEqual(result.structuredContent.applied, true)
+      assert.strictEqual(result.structuredContent.saved, false)
+      assert.ok(result.structuredContent.saveError)
       // the edit itself was applied to the buffer
-      expect(workspace.getDocument(uz)!.textDocument.getText()).toContain('ZZ')
+      assert.ok((workspace.getDocument(uz)!.textDocument.getText()).includes('ZZ'))
     } finally {
       rejectWa = false
     }
@@ -384,9 +386,9 @@ describe('mcp workspace tools', () => {
       },
       metadata: { isRefactoring: true }
     }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.applied).toBe(true)
-    expect(result.structuredContent.metadata).toEqual({ isRefactoring: true })
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.applied, true)
+    assert.deepStrictEqual(result.structuredContent.metadata, { isRefactoring: true })
   })
 
   it('workspace/apply_edit rejects invalid metadata', async () => {
@@ -397,12 +399,12 @@ describe('mcp workspace tools', () => {
       edit: { changes: { [ux]: [] } },
       metadata: 'not-an-object'
     }, { token })
-    expect(badType.isError).toBe(true)
+    assert.strictEqual(badType.isError, true)
     let badField = await tool('workspace/apply_edit').handler({
       edit: { changes: { [ux]: [] } },
       metadata: { isRefactoring: 'yes' }
     }, { token })
-    expect(badField.isError).toBe(true)
+    assert.strictEqual(badField.isError, true)
   })
 
   it('workspace/apply_edit supports create operations on disk', async () => {
@@ -414,9 +416,9 @@ describe('mcp workspace tools', () => {
         ]
       }
     }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.applied).toBe(true)
-    expect(fs.existsSync(created)).toBe(true)
+    assert.ok(!(result.isError))
+    assert.strictEqual(result.structuredContent.applied, true)
+    assert.strictEqual(fs.existsSync(created), true)
   })
 
   it('workspace/apply_edit rejects rename when either side is outside allowed paths', async () => {
@@ -438,18 +440,18 @@ describe('mcp workspace tools', () => {
           documentChanges: [{ kind: 'rename', oldUri: insideUri, newUri: outsideUri }]
         }
       }, { token })
-      expect(badTarget.isError).toBe(true)
-      expect(fs.readFileSync(inside, 'utf8')).toBe('inside\n')
-      expect(fs.readFileSync(outside, 'utf8')).toBe('outside\n')
+      assert.strictEqual(badTarget.isError, true)
+      assert.strictEqual(fs.readFileSync(inside, 'utf8'), 'inside\n')
+      assert.strictEqual(fs.readFileSync(outside, 'utf8'), 'outside\n')
       // source outside the allowed workspace
       let badSource = await tool('workspace/apply_edit').handler({
         edit: {
           documentChanges: [{ kind: 'rename', oldUri: outsideUri, newUri: insideUri }]
         }
       }, { token })
-      expect(badSource.isError).toBe(true)
-      expect(fs.readFileSync(inside, 'utf8')).toBe('inside\n')
-      expect(fs.readFileSync(outside, 'utf8')).toBe('outside\n')
+      assert.strictEqual(badSource.isError, true)
+      assert.strictEqual(fs.readFileSync(inside, 'utf8'), 'inside\n')
+      assert.strictEqual(fs.readFileSync(outside, 'utf8'), 'outside\n')
       // both sides inside the workspace still works
       let moved = path.join(tmpdir, 'rename-moved.txt')
       let ok = await tool('workspace/apply_edit').handler({
@@ -457,10 +459,10 @@ describe('mcp workspace tools', () => {
           documentChanges: [{ kind: 'rename', oldUri: insideUri, newUri: URI.file(moved).toString() }]
         }
       }, { token })
-      expect(ok.isError).toBeFalsy()
-      expect(ok.structuredContent.applied).toBe(true)
-      expect(fs.existsSync(inside)).toBe(false)
-      expect(fs.existsSync(moved)).toBe(true)
+      assert.ok(!(ok.isError))
+      assert.strictEqual(ok.structuredContent.applied, true)
+      assert.strictEqual(fs.existsSync(inside), false)
+      assert.strictEqual(fs.existsSync(moved), true)
     } finally {
       workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [], 'mcp.deniedPaths': [] })
       fs.rmSync(outsideDir, { recursive: true, force: true })
@@ -471,8 +473,8 @@ describe('mcp workspace tools', () => {
     workspace.configurations.updateMemoryConfig({ 'mcp.deniedPaths': [path.join(tmpdir, 'secret*')] })
     let filepath = path.join(tmpdir, 'secret.txt')
     let result = await tool('workspace/create_file').handler({ filepath }, { token })
-    expect(result.isError).toBe(true)
-    expect(fs.existsSync(filepath)).toBe(false)
+    assert.strictEqual(result.isError, true)
+    assert.strictEqual(fs.existsSync(filepath), false)
   })
 
   it('rejects write tools that reach outside the workspace through symlinks', async () => {
@@ -494,18 +496,18 @@ describe('mcp workspace tools', () => {
     })
     try {
       let create = await tool('workspace/create_file').handler({ filepath: path.join(link, 'new.txt') }, { token })
-      expect(create.isError).toBe(true)
-      expect(fs.existsSync(path.join(outsideDir, 'new.txt'))).toBe(false)
+      assert.strictEqual(create.isError, true)
+      assert.strictEqual(fs.existsSync(path.join(outsideDir, 'new.txt')), false)
       let rename = await tool('workspace/rename_file').handler({
         oldPath: path.join(link, 'target.txt'),
         newPath: path.join(tmpdir, 'stolen.txt')
       }, { token })
-      expect(rename.isError).toBe(true)
-      expect(fs.existsSync(outsideFile)).toBe(true)
-      expect(fs.existsSync(path.join(tmpdir, 'stolen.txt'))).toBe(false)
+      assert.strictEqual(rename.isError, true)
+      assert.strictEqual(fs.existsSync(outsideFile), true)
+      assert.strictEqual(fs.existsSync(path.join(tmpdir, 'stolen.txt')), false)
       let del = await tool('workspace/delete_file').handler({ filepath: path.join(link, 'target.txt') }, { token })
-      expect(del.isError).toBe(true)
-      expect(fs.existsSync(outsideFile)).toBe(true)
+      assert.strictEqual(del.isError, true)
+      assert.strictEqual(fs.existsSync(outsideFile), true)
     } finally {
       workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [], 'mcp.deniedPaths': [] })
       fs.rmSync(outsideDir, { recursive: true, force: true })

@@ -1,10 +1,11 @@
 'use strict'
+import { mock } from 'node:test'
+import type { Mock as NodeMock } from 'node:test'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { Diagnostic, DiagnosticSeverity, Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import diagnosticManager from '../../diagnostic/manager'
 import languages from '../../languages'
 import { createDocumentTools } from '../../mcp/tools/document'
@@ -27,7 +28,7 @@ let server: McpServer
 let notifications: NotificationManager
 let address: { host: string, port: number, socketPath: string }
 let client: TestClient
-let cursorSpy: ReturnType<typeof vi.spyOn>
+let cursorSpy: NodeMock<any>
 const token = CancellationToken.None
 
 async function connect(): Promise<TestClient> {
@@ -46,7 +47,7 @@ beforeAll(async () => {
   // transport, which otherwise surfaces as an unhandled "transport
   // disconnected" rejection on slow CI. The mock must stay active through
   // afterAll because disposing the diagnostic collection fires the same chain.
-  cursorSpy = vi.spyOn(window, 'getCursorPosition').mockResolvedValue(Position.create(0, 0))
+  cursorSpy = mock.method(window, 'getCursorPosition', () => Promise.resolve(Position.create(0, 0)))
   tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-notify-'))
   workspace.workspaceFolderControl.addWorkspaceFolder(tmpdir, true)
   file = path.join(tmpdir, 'sample.txt')
@@ -76,30 +77,30 @@ afterAll(async () => {
   notifications.dispose()
   for (let d of disposables) d.dispose()
   await helper.shutdown()
-  cursorSpy.mockRestore()
+  cursorSpy.mock.restore()
   fs.rmSync(tmpdir, { recursive: true, force: true })
 })
 
 describe('mcp notifications and resources', () => {
   it('builds editor and service notification payloads', () => {
-    expect(editorStateParams(null)).toEqual({ uri: null, bufnr: null, languageId: null })
-    expect(editorStateParams({ uri: 'file:///a', bufnr: 1 })).toEqual({ uri: 'file:///a', bufnr: 1, languageId: null })
-    expect(editorStateParams({ uri: 'file:///a', bufnr: 1, document: { languageId: 'vim' } })).toEqual({
+    assert.deepStrictEqual(editorStateParams(null), { uri: null, bufnr: null, languageId: null })
+    assert.deepStrictEqual(editorStateParams({ uri: 'file:///a', bufnr: 1 }), { uri: 'file:///a', bufnr: 1, languageId: null })
+    assert.deepStrictEqual(editorStateParams({ uri: 'file:///a', bufnr: 1, document: { languageId: 'vim' } }), {
       uri: 'file:///a', bufnr: 1, languageId: 'vim'
     })
     let stat = { id: 'test', languageIds: ['vim'] }
-    expect(serviceStateParams(stat)).toEqual({ id: 'test', state: 'running', languageIds: ['vim'] })
-    expect(serviceStateParams(stat, { state: ServiceStat.Stopped })).toEqual({ id: 'test', state: 'stopped', languageIds: ['vim'] })
+    assert.deepStrictEqual(serviceStateParams(stat), { id: 'test', state: 'running', languageIds: ['vim'] })
+    assert.deepStrictEqual(serviceStateParams(stat, { state: ServiceStat.Stopped }), { id: 'test', state: 'stopped', languageIds: ['vim'] })
   })
 
   it('delivers coc/document_saved to subscribed sessions', async () => {
     let sub = await client.request(10, 'coc/subscribe', { events: ['coc/document_saved'] })
-    expect(sub.subscribed).toEqual(['coc/document_saved'])
+    assert.deepStrictEqual(sub.subscribed, ['coc/document_saved'])
     let notified = client.waitNotification('coc/document_saved')
     await helper.nvim.command('write')
     let msg = await notified
-    expect(msg.params.uri).toBe(uri)
-    expect(typeof msg.params.version).toBe('number')
+    assert.strictEqual(msg.params.uri, uri)
+    assert.strictEqual(typeof msg.params.version, 'number')
   })
 
   it('does not deliver events after unsubscribe', async () => {
@@ -107,7 +108,7 @@ describe('mcp notifications and resources', () => {
     // broadcast directly (synchronous on the server side), then flush via ping
     server.broadcastEvent('coc/document_saved', { uri, version: 99 })
     await client.request(12, 'ping')
-    expect(client.notifications.filter(n => n.method === 'coc/document_saved')).toHaveLength(0)
+    assert.strictEqual((client.notifications.filter(n => n.method === 'coc/document_saved')).length, 0)
   })
 
   it('delivers coc/document_saved after apply_edits target both', async () => {
@@ -121,16 +122,16 @@ describe('mcp notifications and resources', () => {
       target: 'both',
       edits: [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, newText: 'prefixed-' }]
     }, { token })
-    expect(result.isError).toBeFalsy()
+    assert.ok(!(result.isError))
     let msg = await notified
-    expect(msg.params.uri).toBe(uri)
+    assert.strictEqual(msg.params.uri, uri)
     // restore content so later tests are unaffected
     let restore = await createDocumentTools().find(t => t.name === 'document/apply_edits')!.handler({
       uri: file,
       target: 'both',
       edits: [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 9 } }, newText: '' }]
     }, { token })
-    expect(restore.isError).toBeFalsy()
+    assert.ok(!(restore.isError))
   })
 
   it('delivers coc/diagnostics_changed when diagnostics are set', async () => {
@@ -140,28 +141,28 @@ describe('mcp notifications and resources', () => {
     disposables.push(collection)
     collection.set(uri, [Diagnostic.create(Range.create(0, 0, 0, 5), 'notify diagnostic', DiagnosticSeverity.Error)])
     let msg = await notified
-    expect(msg.params.uri).toBe(uri)
-    expect(msg.params.diagnostics.length).toBeGreaterThan(0)
+    assert.strictEqual(msg.params.uri, uri)
+    assert.ok((msg.params.diagnostics.length) > (0))
   })
 
   it('lists resources and templates', async () => {
     let list = await client.request(30, 'resources/list')
     let uris = list.resources.map((r: any) => r.uri)
-    expect(uris).toContain('coc://diagnostics')
-    expect(uris).toContain('coc://services')
-    expect(uris).toContain('coc://workspace')
-    expect(uris).toContain('coc://documents/' + encodeURIComponent(uri))
+    assert.ok((uris).includes('coc://diagnostics'))
+    assert.ok((uris).includes('coc://services'))
+    assert.ok((uris).includes('coc://workspace'))
+    assert.ok((uris).includes('coc://documents/' + encodeURIComponent(uri)))
     let templates = await client.request(31, 'resources/templates/list')
-    expect(templates.resourceTemplates[0].uriTemplate).toBe('coc://documents/{uri}')
+    assert.strictEqual(templates.resourceTemplates[0].uriTemplate, 'coc://documents/{uri}')
   })
 
   it('coc://documents/{uri} matches document/read', async () => {
     let resourceUri = 'coc://documents/' + encodeURIComponent(uri)
     let read = await client.request(32, 'resources/read', { uri: resourceUri })
-    expect(read.contents[0].text).toBe('alpha\nbeta\n')
+    assert.strictEqual(read.contents[0].text, 'alpha\nbeta\n')
     let docTool = createDocumentTools().find(t => t.name === 'document/read')!
     let result = await docTool.handler({ uri: file }, { token })
-    expect(read.contents[0].text).toBe(result.structuredContent.text)
+    assert.strictEqual(read.contents[0].text, result.structuredContent.text)
   })
 
   it('coc://documents/{uri} falls back to disk for unopened files', async () => {
@@ -169,13 +170,13 @@ describe('mcp notifications and resources', () => {
     fs.writeFileSync(other, 'resource disk\n')
     let resourceUri = 'coc://documents/' + encodeURIComponent(URI.file(other).toString())
     let read = await client.request(37, 'resources/read', { uri: resourceUri })
-    expect(read.contents[0].text).toBe('resource disk\n')
+    assert.strictEqual(read.contents[0].text, 'resource disk\n')
   })
 
   it('returns -32002 when a document resource cannot be read from disk', async () => {
     let missing = path.join(tmpdir, 'missing-resource.txt')
     let resourceUri = 'coc://documents/' + encodeURIComponent(URI.file(missing).toString())
-    await expect(client.request(38, 'resources/read', { uri: resourceUri })).rejects.toThrow('-32002')
+    await assert.rejects(client.request(38, 'resources/read', { uri: resourceUri }), error => String(error instanceof Error ? error.message : error).includes('-32002'))
   })
 
   it('returns -32002 when a document resource is denied by path policy', async () => {
@@ -183,7 +184,7 @@ describe('mcp notifications and resources', () => {
     workspace.configurations.updateMemoryConfig({ 'mcp.deniedPaths': [denied] })
     try {
       let resourceUri = 'coc://documents/' + encodeURIComponent(URI.file(denied).toString())
-      await expect(client.request(39, 'resources/read', { uri: resourceUri })).rejects.toThrow('-32002')
+      await assert.rejects(client.request(39, 'resources/read', { uri: resourceUri }), error => String(error instanceof Error ? error.message : error).includes('-32002'))
     } finally {
       workspace.configurations.updateMemoryConfig({ 'mcp.deniedPaths': [] })
     }
@@ -191,11 +192,11 @@ describe('mcp notifications and resources', () => {
 
   it('reads coc://diagnostics, coc://services and coc://workspace', async () => {
     let diag = await client.request(33, 'resources/read', { uri: 'coc://diagnostics' })
-    expect(typeof diag.contents[0].text).toBe('string')
+    assert.strictEqual(typeof diag.contents[0].text, 'string')
     let servicesRead = await client.request(34, 'resources/read', { uri: 'coc://services' })
-    expect(typeof servicesRead.contents[0].text).toBe('string')
+    assert.strictEqual(typeof servicesRead.contents[0].text, 'string')
     let ws = await client.request(35, 'resources/read', { uri: 'coc://workspace' })
-    expect(ws.contents[0].text).toContain('"root"')
+    assert.ok((ws.contents[0].text).includes('"root"'))
   })
 
   it('returns -32002 for unknown resources', async () => {
@@ -205,15 +206,15 @@ describe('mcp notifications and resources', () => {
     } catch (e) {
       error = e
     }
-    expect(error).toBeTruthy()
-    expect(error.message).toContain('-32002')
+    assert.ok(error)
+    assert.ok((error.message).includes('-32002'))
   })
 
   it('filters non-coc events on subscribe', async () => {
     let sub = await client.request(40, 'coc/subscribe', {
       events: ['coc/document_saved', 'not-a-coc-event']
     })
-    expect(sub.subscribed).toEqual(['coc/document_saved'])
+    assert.deepStrictEqual(sub.subscribed, ['coc/document_saved'])
   })
 
   it('delivers coc/workspace_folders_changed', async () => {
@@ -223,7 +224,7 @@ describe('mcp notifications and resources', () => {
     fs.mkdirSync(otherDir, { recursive: true })
     workspace.workspaceFolderControl.addWorkspaceFolder(otherDir, true)
     let msg = await notified
-    expect(msg.params.added.map((f: any) => f.uri)).toContain(URI.file(otherDir).toString())
+    assert.ok((msg.params.added.map((f: any) => f.uri)).includes(URI.file(otherDir).toString()))
   })
 
   it('delivers coc/service_state_changed when a registered service becomes ready', async () => {
@@ -243,15 +244,14 @@ describe('mcp notifications and resources', () => {
     try {
       let resource = await client.request(43, 'resources/read', { uri: 'coc://services' })
       let stats = JSON.parse(resource.contents[0].text)
-      expect(stats.find((item: any) => item.id === 'mcp-notification-test-service')).toMatchObject({
-        state: 'running',
-        capabilities: null
-      })
+      let stat = stats.find((item: any) => item.id === 'mcp-notification-test-service')
+      assert.strictEqual(stat.state, 'running')
+      assert.strictEqual(stat.capabilities, null)
       await client.request(42, 'coc/subscribe', { events: ['coc/service_state_changed'] })
       let notified = client.waitNotification('coc/service_state_changed')
       ready.fire()
       let msg = await notified
-      expect(msg.params).toEqual({
+      assert.deepStrictEqual(msg.params, {
         id: 'mcp-notification-test-service',
         state: 'running',
         languageIds: ['text']

@@ -34,26 +34,26 @@ describe('FloatFactory', () => {
       floatFactory.close()
       await helper.wait(20)
       let win = floatFactory.window
-      expect(win).toBeNull()
+      assert.strictEqual(win, null)
     })
 
     it('should show window', async () => {
-      expect(floatFactory.window).toBe(null)
-      expect(floatFactory.buffer).toBe(null)
-      expect(floatFactory.bufnr).toBe(0)
+      assert.strictEqual(floatFactory.window, null)
+      assert.strictEqual(floatFactory.buffer, null)
+      assert.strictEqual(floatFactory.bufnr, 0)
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'f'.repeat(81)
       }]
       await floatFactory.show(docs, { rounded: true })
-      expect(floatFactory.window).toBeDefined()
-      expect(floatFactory.buffer).toBeDefined()
+      assert.notStrictEqual(floatFactory.window, undefined)
+      assert.notStrictEqual(floatFactory.buffer, undefined)
       let buffer = floatFactory.buffer!
-      expect(await buffer.name).toBe(`coc-float://${buffer.id}`)
+      assert.strictEqual(await buffer.name, `coc-float://${buffer.id}`)
       let hasFloat = await nvim.call('coc#float#has_float')
-      expect(hasFloat).toBe(1)
+      assert.strictEqual(hasFloat, 1)
       await floatFactory.show([{ filetype: 'txt', content: '' }])
-      expect(floatFactory.window).toBe(null)
+      assert.strictEqual(floatFactory.window, null)
     })
 
     it('should close when MenuPopupChanged', async () => {
@@ -78,7 +78,7 @@ describe('FloatFactory', () => {
       }
       await events.fire('MenuPopupChanged', [ev, 22])
       await events.fire('MenuPopupChanged', [ev, 20])
-      expect(floatFactory.window).toBeNull()
+      assert.strictEqual(floatFactory.window, null)
       floatFactory.close()
     })
 
@@ -89,9 +89,9 @@ describe('FloatFactory', () => {
       }]
       await floatFactory.show(docs, { position: 'fixed', focusable: true, bottom: 1, right: 1 })
       let res = await nvim.call('screenpos', [floatFactory.window.id, 1, 1]) as any
-      expect(res).toBeDefined()
-      expect(res.col > 150).toBe(true)
-      expect(res.row > 70).toBe(true)
+      assert.notStrictEqual(res, undefined)
+      assert.strictEqual(res.col > 150, true)
+      assert.strictEqual(res.row > 70, true)
       floatFactory.close()
     })
 
@@ -101,7 +101,7 @@ describe('FloatFactory', () => {
         content: 'f'.repeat(81)
       }]
       await floatFactory.create(docs)
-      expect(floatFactory.window).toBeDefined()
+      assert.notStrictEqual(floatFactory.window, undefined)
     })
 
     it('should catch error on create', async () => {
@@ -116,7 +116,7 @@ describe('FloatFactory', () => {
       await floatFactory.show(docs)
       floatFactory.unbind = fn
       let msg = await helper.getCmdline()
-      expect(msg).toMatch('bad')
+      assert.ok((msg).includes('bad'))
     })
 
     it('should show only one window', async () => {
@@ -136,7 +136,7 @@ describe('FloatFactory', () => {
         let isFloat = await win.getVar('float')
         if (isFloat) count++
       }
-      expect(count).toBe(1)
+      assert.strictEqual(count, 1)
     })
 
     it('should close window when close called after create', async () => {
@@ -149,7 +149,7 @@ describe('FloatFactory', () => {
       floatFactory.close()
       await p
       let activated = await floatFactory.activated()
-      expect(activated).toBe(false)
+      assert.strictEqual(activated, false)
     })
 
     it('should not create on visual mode', async () => {
@@ -162,7 +162,7 @@ describe('FloatFactory', () => {
         content: 'f'
       }]
       await floatFactory.show(docs)
-      expect(floatFactory.window).toBe(null)
+      assert.strictEqual(floatFactory.window, null)
     })
 
     it('should allow select mode', async () => {
@@ -174,22 +174,22 @@ describe('FloatFactory', () => {
       }]
       await floatFactory.show(docs)
       let { mode } = await nvim.mode
-      expect(mode).toBe('s')
+      assert.strictEqual(mode, 's')
       await nvim.input('<esc>')
     })
   })
 
   describe('checkRetrigger', () => {
     it('should check retrigger', async () => {
-      expect(floatFactory.checkRetrigger(99)).toBe(false)
+      assert.strictEqual(floatFactory.checkRetrigger(99), false)
       let bufnr = await nvim.call('bufnr', ['%']) as number
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'f'
       }]
       await floatFactory.show(docs)
-      expect(floatFactory.checkRetrigger(99)).toBe(false)
-      expect(floatFactory.checkRetrigger(bufnr)).toBe(true)
+      assert.strictEqual(floatFactory.checkRetrigger(99), false)
+      assert.strictEqual(floatFactory.checkRetrigger(bufnr), true)
     })
   })
 
@@ -204,11 +204,11 @@ describe('FloatFactory', () => {
         maxHeight: 1
       })
       let win = floatFactory.window
-      expect(win).toBeDefined()
+      assert.notStrictEqual(win, undefined)
       let width = await win.width
       let height = await win.height
-      expect(width).toBe(19)
-      expect(height).toBe(1)
+      assert.strictEqual(width, 19)
+      assert.strictEqual(height, 1)
     })
 
     it('should set border, title, highlight, borderhighlight, cursorline', async () => {
@@ -224,7 +224,7 @@ describe('FloatFactory', () => {
         cursorline: true
       })
       let activated = await floatFactory.activated()
-      expect(activated).toBe(true)
+      assert.strictEqual(activated, true)
     })
 
     it('should respect prefer top', async () => {
@@ -236,9 +236,9 @@ describe('FloatFactory', () => {
       await nvim.command('exe 4')
       await floatFactory.show(docs, { preferTop: true })
       let win = await helper.getFloat()
-      expect(win).toBeDefined()
+      assert.notStrictEqual(win, undefined)
       let pos = await nvim.call('nvim_win_get_position', [win.id])
-      expect(pos).toEqual([1, 0])
+      assert.deepStrictEqual(pos, [1, 0])
     })
   })
 
@@ -313,7 +313,7 @@ describe('FloatFactory', () => {
         autoHide: false
       })
       let activated = await floatFactory.activated()
-      expect(activated).toBe(true)
+      assert.strictEqual(activated, true)
     })
   })
 })

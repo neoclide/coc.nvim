@@ -218,14 +218,14 @@ describe('Client start/restart race (#8)', () => {
 
       // The automatic restart must bring the client to Running.
       await waitForState(client, State.Running)
-      expect(client.isRunning()).toBe(true)
+      assert.strictEqual(client.isRunning(), true)
 
       // Give the stale failure path (old `_start` catch plus the failure
       // handler scheduled by `doInitialize`) a chance to run.
       await waitForSettled(client)
-      expect(originalStartError).toBeUndefined()
-      expect(client.isRunning()).toBe(true)
-      expect(client.servers.length).toBe(2)
+      assert.strictEqual(originalStartError, undefined)
+      assert.strictEqual(client.isRunning(), true)
+      assert.strictEqual(client.servers.length, 2)
 
       // Both the original and the restarted attempt settle successfully.
       await ready
@@ -248,13 +248,13 @@ describe('Client start/restart race (#8)', () => {
         originalStartError = err
       })
       await waitForState(client, State.StartFailed)
-      expect(client.isRunning()).toBe(false)
-      expect(client.servers.length).toBe(1)
+      assert.strictEqual(client.isRunning(), false)
+      assert.strictEqual(client.servers.length, 1)
       // Wait until the original start promise settles before asserting.
       await ready.catch(() => {})
       // No restart happened, so the original start promise legitimately
       // rejects with the initialization failure.
-      expect(originalStartError).toBeTruthy()
+      assert.ok(originalStartError)
       await startPromise
     } finally {
       await stopAndDispose(client)
@@ -283,23 +283,23 @@ describe('Client start/restart race (#8)', () => {
         originalStartError = err
       })
       await waitForState(client, State.StartFailed)
-      expect(client.isRunning()).toBe(false)
-      expect(client.servers.length).toBe(2)
-      expect(closes).toBe(2)
+      assert.strictEqual(client.isRunning(), false)
+      assert.strictEqual(client.servers.length, 2)
+      assert.strictEqual(closes, 2)
       // Wait until both promises settle before asserting.
       await startPromise
       await ready.catch(() => {})
       // The restarted attempt failed too, so both the original and the
       // current attempt reject.
-      expect(startError).toBeTruthy()
-      expect(originalStartError).toBeTruthy()
+      assert.ok(startError)
+      assert.ok(originalStartError)
     } finally {
       await stopAndDispose(client)
     }
   })
 
-  it('still runs the initializationFailedHandler and stops on a real initialize error', async () => {
-    let handler = vi.fn(() => false)
+  it('still runs the initializationFailedHandler and stops on a real initialize error', async (t) => {
+    let handler = t.mock.fn(() => false)
     let client = new TestLanguageClient(['reject'], {
       error: () => ({ action: 1 }),
       closed: () => {
@@ -316,10 +316,10 @@ describe('Client start/restart race (#8)', () => {
       await waitForState(client, State.StartFailed)
       await waitForState(client, State.Stopped)
       await new Promise(resolve => setTimeout(resolve, 50))
-      expect(handler).toHaveBeenCalledTimes(1)
-      expect(startError).toBeTruthy()
-      expect(client.isRunning()).toBe(false)
-      expect(client.servers.length).toBe(1)
+      assert.strictEqual((handler).mock.callCount(), 1)
+      assert.ok(startError)
+      assert.strictEqual(client.isRunning(), false)
+      assert.strictEqual(client.servers.length, 1)
       await startPromise
     } finally {
       await stopAndDispose(client)
@@ -347,8 +347,8 @@ describe('Client start/restart race (#8)', () => {
         }),
         new Promise(resolve => setTimeout(resolve, 500))
       ])
-      expect(settled).toBe(true)
-      expect(err).toBeTruthy()
+      assert.strictEqual(settled, true)
+      assert.ok(err)
     } finally {
       await stopAndDispose(client)
     }
@@ -368,7 +368,7 @@ describe('Client stop/connection-close race (#9)', () => {
     client.registerFeature(feature, 'test')
     try {
       await client.start()
-      expect(client.isRunning()).toBe(true)
+      assert.strictEqual(client.isRunning(), true)
 
       // Bug: handleConnectionClosed re-runs cleanUp() while Stopping and
       // overwrites _onStop, while the pending shutdown rejects after the
@@ -379,10 +379,10 @@ describe('Client stop/connection-close race (#9)', () => {
       await client.stop(100).catch(err => {
         stopError = err
       })
-      expect(stopError).toBeUndefined()
-      expect(feature.disposeCount).toBe(1)
-      expect(channel.content).not.toContain('Stopping server failed')
-      expect(client.isRunning()).toBe(false)
+      assert.strictEqual(stopError, undefined)
+      assert.strictEqual(feature.disposeCount, 1)
+      assert.ok(!(channel.content).includes('Stopping server failed'))
+      assert.strictEqual(client.isRunning(), false)
       await waitForState(client, State.Stopped)
     } finally {
       await stopAndDispose(client)
@@ -402,8 +402,8 @@ describe('Client stop/connection-close race (#9)', () => {
     try {
       await client.start()
       await client.stop(100)
-      expect(feature.disposeCount).toBe(1)
-      expect(channel.content).not.toContain('Stopping server failed')
+      assert.strictEqual(feature.disposeCount, 1)
+      assert.ok(!(channel.content).includes('Stopping server failed'))
       await waitForState(client, State.Stopped)
     } finally {
       await stopAndDispose(client)

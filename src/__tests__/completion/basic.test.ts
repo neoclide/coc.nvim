@@ -66,9 +66,9 @@ describe('completion', () => {
   describe('suggest configurations', () => {
     it('should select item by preselect', async () => {
       helper.updateConfiguration('suggest.noselect', true)
-      expect(typeof Completion).toBe('function')
+      assert.strictEqual(typeof Completion, 'function')
       await create([{ word: 'foo' }, { word: 'foo' }, { word: 'bar', preselect: true }], true)
-      expect(events.completing).toBe(true)
+      assert.strictEqual(events.completing, true)
       await nvim.input('br')
       await helper.waitValue(() => completion.activeItems.length, 1)
       await helper.confirmCompletion(0)
@@ -79,7 +79,7 @@ describe('completion', () => {
       helper.updateConfiguration('suggest.enablePreselect', false)
       await create([{ word: 'foo' }, { word: 'bar' }, { word: 'foot', preselect: true }], true)
       let info = await nvim.call('coc#pum#info') as any
-      expect(info.index).toBe(0)
+      assert.strictEqual(info.index, 0)
     })
 
     it('should trigger with none ascii characters', async () => {
@@ -87,7 +87,7 @@ describe('completion', () => {
       await create(['你好'], false)
       await nvim.input('ni')
       await helper.waitPopup()
-    }, 10000)
+    })
 
     it('should use insert range instead of replace', async () => {
       helper.updateConfiguration('suggest.insertMode', 'insert')
@@ -95,12 +95,12 @@ describe('completion', () => {
       await nvim.setLine('ffoo')
       let name = await create(['foo'], false)
       await nvim.call('cursor', [1, 2])
-      expect(sources.has(name)).toBe(true)
+      assert.strictEqual(sources.has(name), true)
       await commands.executeCommand('editor.action.triggerSuggest', name)
       await helper.waitPopup()
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'foofoo')
-    }, 10000)
+    })
 
     it('should use ascii match', async () => {
       helper.updateConfiguration('suggest.asciiMatch', true)
@@ -108,8 +108,8 @@ describe('completion', () => {
       await nvim.input('a')
       await helper.waitPopup()
       let items = await helper.items()
-      expect(items[0].word).toBe('ÁÇÈ')
-    }, 10000)
+      assert.strictEqual(items[0].word, 'ÁÇÈ')
+    })
 
     it('should not use ascii match', async () => {
       helper.updateConfiguration('suggest.asciiMatch', false)
@@ -117,11 +117,11 @@ describe('completion', () => {
       await nvim.input('a')
       await helper.wait(50)
       let visible = await pumvisible()
-      expect(visible).toBe(false)
+      assert.strictEqual(visible, false)
       await nvim.input('<cr>')
       await nvim.input('f')
       await helper.waitPopup()
-    }, 10000)
+    })
 
     it('should not trigger with none ascii characters', async () => {
       helper.updateConfiguration('suggest.asciiCharactersOnly', true)
@@ -129,7 +129,7 @@ describe('completion', () => {
       await nvim.input('你')
       await helper.wait(20)
       let visible = await pumvisible()
-      expect(visible).toBe(false)
+      assert.strictEqual(visible, false)
     })
 
     it('should not trigger with number input', async () => {
@@ -138,7 +138,7 @@ describe('completion', () => {
       await nvim.input('1')
       await helper.waitFor('getline', ['.'], '1')
       let visible = await pumvisible()
-      expect(visible).toBe(false)
+      assert.strictEqual(visible, false)
     })
 
     it('should disable filter on backspace', async () => {
@@ -161,7 +161,7 @@ describe('completion', () => {
       await nvim.input('<CR>f')
       triggerCompletion(name)
       let info = await nvim.call('coc#pum#info') as any
-      expect(info.index).toBe(1)
+      assert.strictEqual(info.index, 1)
     })
 
     it('should not resolve timeout sources', async () => {
@@ -186,7 +186,7 @@ describe('completion', () => {
         await helper.waitPopup()
         let win = await helper.getFloat('pum')
         let words = await win.getVar('words')
-        expect(words).toEqual(arr)
+        assert.deepStrictEqual(words, arr)
       }
       helper.updateConfiguration('suggest.defaultSortMethod', 'none')
       await create([{ word: 'far' }, { word: 'foobar' }, { word: 'foo' }], false)
@@ -197,14 +197,14 @@ describe('completion', () => {
       await helper.wait(20)
       await nvim.input('of')
       await assertWords(['far', 'foo', 'foobar'])
-    }, 10000)
+    })
 
     it('should remove duplicated words', async () => {
       helper.updateConfiguration('suggest.removeDuplicateItems', true)
       await create([{ word: 'foo', dup: 1 }, { word: 'foo', dup: 1 }], true)
       let win = await helper.getFloat('pum')
       let words = await win.getVar('words')
-      expect(words).toEqual(['foo'])
+      assert.deepStrictEqual(words, ['foo'])
     })
 
     it('should remove current word', async () => {
@@ -218,7 +218,7 @@ describe('completion', () => {
       await helper.waitPopup()
       await nvim.input('oo')
       await helper.waitFor('coc#pum#visible', [], 0)
-    }, 10000)
+    })
 
     it('should use border with floatConfig', async () => {
       let dispose = helper.updateConfiguration('suggest.floatConfig', {
@@ -231,9 +231,9 @@ describe('completion', () => {
       await helper.waitPopup()
       let win = await helper.getFloat('pum')
       let id = await nvim.call('coc#float#get_related', [win.id, 'border'])
-      expect(id).toBeGreaterThan(1000)
+      assert.ok((id as number) > 1000)
       dispose()
-    }, 10000)
+    })
 
     it('should use pumFloatConfig', async () => {
       helper.updateConfiguration('suggest.floatConfig', {})
@@ -248,13 +248,13 @@ describe('completion', () => {
       await create([{ word: 'foo', kind: 'w', menu: 'x' }, { word: 'foobar', kind: 'w', menu: 'y' }], true)
       let win = await helper.getFloat('pum')
       let id = await nvim.call('coc#float#get_related', [win.id, 'border']) as number
-      expect(id).toBeGreaterThan(1000)
+      assert.ok((id) > (1000))
       let hl = await win.getOption('winhl')
-      expect(hl).toMatch('Normal')
+      assert.ok(typeof hl === 'string' && hl.includes('Normal'))
       let border = nvim.createWindow(id)
       let buf = await border.buffer
       let lines = await buf.lines
-      expect(lines[0]).toMatch('suggest')
+      assert.ok((lines[0]).includes('suggest'))
     })
 
     it('should keep pum position for invalid pumAlign', async () => {
@@ -274,24 +274,24 @@ describe('completion', () => {
       nvim.call('coc#start', { source: name }, true)
       await helper.waitPopup()
       let info2 = await nvim.call('coc#pum#info') as any
-      expect(info2.col).toBe(info.col)
-    }, 10000)
+      assert.strictEqual(info2.col, info.col)
+    })
 
     it('should do filter when autoTrigger is none', async () => {
       helper.updateConfiguration('suggest.autoTrigger', 'none')
       let doc = await workspace.document
-      expect(completion.shouldTrigger(doc, '')).toBe(false)
+      assert.strictEqual(completion.shouldTrigger(doc, ''), false)
       await create(['foo', 'bar'], false)
       await nvim.input('f')
       await helper.wait(20)
-      expect(completion.activeItems.length).toBe(0)
+      assert.strictEqual(completion.activeItems.length, 0)
       nvim.call('coc#start', [], true)
       await helper.waitPopup()
-      expect(completion.activeItems.length).toBe(1)
+      assert.strictEqual(completion.activeItems.length, 1)
       await nvim.input('o')
       await helper.wait(20)
-      expect(completion.activeItems.length).toBe(1)
-    }, 10000)
+      assert.strictEqual(completion.activeItems.length, 1)
+    })
 
     it('should trigger for trigger character when filter failed', async () => {
       await nvim.command('edit tmp')
@@ -313,17 +313,17 @@ describe('completion', () => {
       await nvim.input('i')
       triggerCompletion('dash')
       await helper.waitPopup()
-      expect(option.triggerCharacter).toBeUndefined()
+      assert.strictEqual(option.triggerCharacter, undefined)
       await nvim.input('-')
       await helper.waitValue(() => {
         let items = completion.activeItems
         return items && items.length == 1 && items[0].word == '-foo'
       }, true)
-    }, 10000)
+    })
 
-    it('should trigger on trigger character', async () => {
+    it('should trigger on trigger character', async (t) => {
       helper.updateConfiguration('suggest.autoTrigger', 'none')
-      let fn = vi.fn()
+      let fn = t.mock.fn()
       let source: ISource = {
         name: 'trigger',
         enable: true,
@@ -337,13 +337,13 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.input('if.')
       await helper.wait(20)
-      expect(fn).toHaveBeenCalledTimes(0)
+      assert.strictEqual((fn).mock.callCount(), 0)
       helper.updateConfiguration('suggest.autoTrigger', 'trigger')
       await nvim.input('f')
       await helper.wait(20)
       await nvim.input('.')
       await helper.waitPopup()
-    }, 10000)
+    })
 
     it('should disable localityBonus', async () => {
       helper.updateConfiguration('suggest.localityBonus', false)
@@ -367,12 +367,12 @@ describe('completion', () => {
       triggerCompletion('info')
       await helper.waitPopup()
       let floatWin = await helper.getFloat('pumdetail')
-      expect(floatWin).toBeUndefined()
+      assert.strictEqual(floatWin, undefined)
       await helper.confirmCompletion(0)
       await helper.waitValue(() => {
         return resolved
       }, true)
-    }, 10000)
+    })
 
     it('should disable graceful filter', async () => {
       helper.updateConfiguration('suggest.filterGraceful', false)
@@ -389,17 +389,17 @@ describe('completion', () => {
       await create([{ word: 'this', detail: 'detail of this' }], true)
       let floatWin = await helper.getFloat('pum')
       let buf = await floatWin.buffer
-      expect(buf).toBeDefined()
-    }, 10000)
+      assert.notStrictEqual(buf, undefined)
+    })
 
-    it('should change triggerCompletionWait', async () => {
+    it('should change triggerCompletionWait', async (t) => {
       let doc = await workspace.document
       helper.updateConfiguration('suggest.triggerCompletionWait', 200)
       let name = await create([{ word: 'foo' }, { word: 'bar' }], false)
       triggerCompletion(name)
       let spy
       let p = new Promise<void>(resolve => {
-        spy = vi.spyOn(doc, 'patchChange').mockImplementation(() => {
+        spy = t.mock.method(doc, 'patchChange', () => {
           resolve()
           return Promise.resolve()
         })
@@ -407,7 +407,7 @@ describe('completion', () => {
       await p
       await helper.wait(20)
       completion.cancelAndClose()
-      spy.mockRestore()
+      spy.mock.restore()
     })
   })
 
@@ -425,7 +425,7 @@ describe('completion', () => {
       await nvim.input('if')
       await helper.wait(20)
       let visible = await pumvisible()
-      expect(visible).toBe(false)
+      assert.strictEqual(visible, false)
     })
 
     it('should be disabled by b:coc_disabled_sources', async () => {
@@ -434,7 +434,7 @@ describe('completion', () => {
       await nvim.input('if')
       await helper.wait(20)
       let visible = await pumvisible()
-      expect(visible).toBe(false)
+      assert.strictEqual(visible, false)
     })
 
     it('should be disabled by b:coc_suggest_blacklist', async () => {
@@ -444,7 +444,7 @@ describe('completion', () => {
       await nvim.input('Ad')
       await helper.wait(20)
       let visible = await pumvisible()
-      expect(visible).toBe(false)
+      assert.strictEqual(visible, false)
     })
   })
 
@@ -466,17 +466,17 @@ describe('completion', () => {
       await nvim.input('i')
       triggerCompletion(name)
       await helper.wait(20)
-      expect(called).toBe(false)
+      assert.strictEqual(called, false)
       shouldRun = true
       triggerCompletion(name)
       await helper.waitPopup()
-    }, 10000)
+    })
 
     it('should not complete with empty sources', async () => {
       nvim.call('coc#start', { source: 'not_exists' }, true)
       await helper.wait(20)
       let visible = await pumvisible()
-      expect(visible).toBe(false)
+      assert.strictEqual(visible, false)
     })
   })
 
@@ -509,8 +509,8 @@ describe('completion', () => {
       await nvim.call('coc#start', {})
       await helper.waitPopup()
       let info = await nvim.call('coc#pum#info') as any
-      expect(info.index).toBe(0)
-    }, 10000)
+      assert.strictEqual(info.index, 0)
+    })
 
     it('should show slow source', async () => {
       let source: ISource = {
@@ -528,14 +528,14 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.input('i.')
       await helper.waitPopup()
-      expect(completion.isActivated).toBe(true)
+      assert.strictEqual(completion.isActivated, true)
       let items = await helper.items()
-      expect(items.length).toBe(2)
+      assert.strictEqual(items.length, 2)
       await nvim.input('foo')
       await helper.waitValue(async () => (await helper.items()).length, 1)
       items = await helper.items()
-      expect(items.length).toBe(1)
-    }, 10000)
+      assert.strictEqual(items.length, 1)
+    })
 
     it('should catch error', async () => {
       disposables.push(sources.createSource({
@@ -547,7 +547,7 @@ describe('completion', () => {
       await nvim.input('if')
       await helper.wait(50)
       let cmdline = await helper.getCmdline()
-      expect(cmdline).toMatch('')
+      assert.ok((cmdline).includes(''))
     })
 
     it('should show items before slow source finished', async () => {
@@ -577,12 +577,12 @@ describe('completion', () => {
       disposables.push(sources.addSource(slowSource))
       await nvim.input('if')
       await events.race(['MenuPopupChanged'], 200)
-      expect(finished).toBe(false)
+      assert.strictEqual(finished, false)
     })
 
-    it('should show items when wordDistance is slow', async () => {
+    it('should show items when wordDistance is slow', async (t) => {
       let _resolve
-      let spy = vi.spyOn(WordDistance, 'create').mockImplementation(() => {
+      let spy = t.mock.method(WordDistance, 'create', () => {
         return new Promise(resolve => {
           _resolve = resolve
         })
@@ -591,8 +591,8 @@ describe('completion', () => {
       await nvim.input('f')
       await helper.waitPopup()
       _resolve(undefined)
-      spy.mockRestore()
-    }, 10000)
+      spy.mock.restore()
+    })
   })
 
   describe('resumeCompletion()', () => {
@@ -621,14 +621,14 @@ describe('completion', () => {
       await nvim.input('if')
       await helper.waitPopup()
       let items = completion.activeItems
-      expect(items.length).toBe(1)
+      assert.strictEqual(items.length, 1)
       await nvim.input('o')
       await helper.wait(30)
       fireResolve()
       await helper.waitValue(() => {
         return completion.activeItems.length
       }, 4)
-    }, 10000)
+    })
 
     it('should refresh pum when complete inComplete sources', async () => {
       let name = Math.random().toString(16).slice(-6)
@@ -665,7 +665,7 @@ describe('completion', () => {
       await nvim.input('t')
       await helper.waitValue(() => called, true)
       clearTimeout(timer)
-    }, 10000)
+    })
 
     it('should close pum after pending retry is cancelled by results', async () => {
       helper.updateConfiguration('suggest.autoTrigger', 'trigger')
@@ -710,7 +710,7 @@ describe('completion', () => {
       await helper.waitValue(pumvisible, false)
     })
 
-    it('should clear pending retry before trigger returns early', async () => {
+    it('should clear pending retry before trigger returns early', async (t) => {
       helper.updateConfiguration('suggest.autoTrigger', 'trigger')
       let resolveComplete: (result: CompleteResult<ExtendedCompleteItem>) => void
       let startedResolve: () => void
@@ -725,8 +725,8 @@ describe('completion', () => {
           startedResolve()
         })
       }))
-      let shouldTrigger = vi.spyOn(completion, 'shouldTrigger')
-      disposables.push(Disposable.create(() => shouldTrigger.mockRestore()))
+      let shouldTrigger = t.mock.method(completion, 'shouldTrigger')
+      disposables.push(Disposable.create(() => shouldTrigger.mock.restore()))
       await nvim.input('i')
       nvim.call('coc#start', { source: name }, true)
       await started
@@ -740,7 +740,7 @@ describe('completion', () => {
 
     it('should stop if no filtered items', async () => {
       await create(['foo', 'bar'], true)
-      expect(completion.isActivated).toBe(true)
+      assert.strictEqual(completion.isActivated, true)
       await nvim.input('fp')
       await helper.waitValue(() => {
         return completion.isActivated
@@ -750,7 +750,7 @@ describe('completion', () => {
     it('should stop when selected and no filtered items', async () => {
       helper.updateConfiguration('suggest.noselect', true)
       await create(['foo'], true)
-      expect(completion.isActivated).toBe(true)
+      assert.strictEqual(completion.isActivated, true)
       await nvim.call('coc#pum#_navigate', [1, 1])
       await helper.waitFor('getline', ['.'], 'foo')
       await nvim.input('(')
@@ -768,7 +768,7 @@ describe('completion', () => {
       await helper.waitValue(() => {
         return completion.isActivated
       }, false)
-    }, 10000)
+    })
 
     it('should stop with bad insert on CursorMovedI', async () => {
       await create(['foo', 'fat'], false)
@@ -777,7 +777,7 @@ describe('completion', () => {
       await nvim.call('cursor', [2, 4])
       await helper.wait(30)
       let visible = await pumvisible()
-      expect(visible).toBe(false)
+      assert.strictEqual(visible, false)
     })
 
     it('should deactivate without filtered items', async () => {
@@ -785,7 +785,7 @@ describe('completion', () => {
       await nvim.input('f')
       await nvim.input(' a')
       await helper.waitFor('coc#pum#visible', [], 0)
-      expect(completion.isActivated).toBe(false)
+      assert.strictEqual(completion.isActivated, false)
       completion.cancel()
     })
 
@@ -803,14 +803,14 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.input('i.')
       await helper.waitPopup()
-      expect(completion.isActivated).toBe(true)
+      assert.strictEqual(completion.isActivated, true)
       let items = await helper.items()
-      expect(items[0].word).toBe('foo bar')
+      assert.strictEqual(items[0].word, 'foo bar')
       await nvim.input(' ')
       await helper.waitValue(async () => {
         return await pumvisible()
       }, false)
-    }, 10000)
+    })
 
     it('should use resume input to filter', async () => {
       let source: ISource = {
@@ -830,11 +830,11 @@ describe('completion', () => {
       await helper.wait(20)
       await nvim.input('f')
       await helper.waitPopup()
-      expect(completion.isActivated).toBe(true)
+      assert.strictEqual(completion.isActivated, true)
       let items = await helper.items()
-      expect(items.length).toBe(1)
-      expect(items[0].word).toBe('foo')
-    }, 10000)
+      assert.strictEqual(items.length, 1)
+      assert.strictEqual(items[0].word, 'foo')
+    })
 
     it('should keep trigger completion after backspace clears input', async () => {
       let source: ISource = {
@@ -852,8 +852,8 @@ describe('completion', () => {
       await helper.waitValue(() => completion.activeItems.length, 1)
       await nvim.input('<backspace>')
       await helper.waitValue(() => completion.activeItems.length, 2)
-      expect(await pumvisible()).toBe(true)
-    }, 10000)
+      assert.strictEqual(await pumvisible(), true)
+    })
 
     it('should stop completion when trigger source is not active', async () => {
       await nvim.setLine('x.f')
@@ -869,7 +869,7 @@ describe('completion', () => {
       await helper.waitPopup()
       await nvim.input('<backspace>')
       await helper.waitValue(() => completion.isActivated, false)
-    }, 10000)
+    })
 
     it('should filter slow source', async () => {
       disposables.push(sources.addSource({
@@ -903,7 +903,7 @@ describe('completion', () => {
       await helper.waitValue((() => {
         return completion.activeItems?.length
       }), 1)
-    }, 10000)
+    })
 
     it('should complete inComplete source', async () => {
       let source: ISource = {
@@ -923,11 +923,11 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.input('i.')
       await helper.waitPopup()
-      expect(completion.isActivated).toBe(true)
+      assert.strictEqual(completion.isActivated, true)
       await nvim.input('a')
       await helper.wait(20)
       await nvim.input('b')
-    }, 10000)
+    })
 
     it('should not complete inComplete source when isIncomplete is false', async () => {
       let source: ISource = {
@@ -947,17 +947,17 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.input('i.')
       await helper.waitPopup()
-      expect(completion.isActivated).toBe(true)
+      assert.strictEqual(completion.isActivated, true)
       await nvim.input('fo')
       await helper.waitValue(() => completion.isActivated, true)
       await nvim.input('b')
       await helper.waitValue(() => completion.isActivated, true)
-      expect(completion.isActivated).toBe(true)
-    }, 10000)
+      assert.strictEqual(completion.isActivated, true)
+    })
 
-    it('should filter when type character after item selected without handle complete done', async () => {
+    it('should filter when type character after item selected without handle complete done', async (t) => {
       let input: string
-      let fn = vi.fn()
+      let fn = t.mock.fn()
       let source: ISource = {
         priority: 0,
         enable: true,
@@ -980,8 +980,8 @@ describe('completion', () => {
       await helper.wait(20)
       await nvim.input('o')
       await helper.waitPopup()
-      expect(fn).toHaveBeenCalledTimes(0)
-    }, 10000)
+      assert.strictEqual((fn).mock.callCount(), 0)
+    })
   })
 
   describe('TextChangedI', () => {
@@ -1019,13 +1019,13 @@ describe('completion', () => {
         changedtick,
         line: 'foo bar -'
       }])
-      expect(completion.isActivated).toBe(false)
+      assert.strictEqual(completion.isActivated, false)
 
       await nvim.input('b')
       await helper.waitValue(() => calls.includes('b'), true)
       await helper.waitValue(() => completion.activeItems.some(item => item.word == 'bar'), true)
-      expect(await helper.visible('bar')).toBe(true)
-      expect(calls).toEqual(['f', 'b'])
+      assert.strictEqual(await helper.visible('bar'), true)
+      assert.deepStrictEqual(calls, ['f', 'b'])
     })
 
     it('should respect commit character', async () => {
@@ -1048,7 +1048,7 @@ describe('completion', () => {
       await helper.waitPopup()
       await nvim.input('o.')
       await helper.waitFor('getline', ['.'], 'foo.')
-    }, 10000)
+    })
 
     it('should cancel on CursorMoved', async () => {
       await nvim.setLine('first line')
@@ -1056,9 +1056,9 @@ describe('completion', () => {
       await create(['foo', 'foot'])
       let [_, line, col] = await nvim.call('getcurpos') as number[]
       completion.onCursorMovedI(events.bufnr, [line, col], false)
-      expect(completion.isActivated).toBe(true)
+      assert.strictEqual(completion.isActivated, true)
       completion.onCursorMovedI(events.bufnr, [line, col - 1], false)
-      expect(completion.isActivated).toBe(false)
+      assert.strictEqual(completion.isActivated, false)
       await events.fire('PumNavigate', [])
     })
 
@@ -1075,7 +1075,7 @@ describe('completion', () => {
       await create(['foo', 'bar'])
       const linenr = completion.option.linenr
       let changed = completion.hasIndentChange({ lnum: linenr + 1, col: 1, line: '', changedtick: 0, pre: '', })
-      expect(changed).toBe(false)
+      assert.strictEqual(changed, false)
     })
   })
 
@@ -1099,7 +1099,7 @@ describe('completion', () => {
       await helper.waitValue(() => {
         return completion.isActivated
       }, false)
-    }, 10000)
+    })
   })
 
   describe('onCompleteResolve', () => {
@@ -1121,8 +1121,8 @@ describe('completion', () => {
       await helper.waitPopup()
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], '.foo')
-      expect(resolved).toBe(true)
-    }, 10000)
+      assert.strictEqual(resolved, true)
+    })
 
     it('should cancel resolve request', async () => {
       let cancelled = false
@@ -1147,7 +1147,7 @@ describe('completion', () => {
       }, true)
       nvim.call('coc#pum#cancel', [], true)
       let floatWin = await helper.getFloat('pumdetail')
-      expect(floatWin).toBeUndefined()
+      assert.strictEqual(floatWin, undefined)
     })
 
     it('should not throw error', async () => {
@@ -1162,10 +1162,10 @@ describe('completion', () => {
       }))
       await nvim.input('i.')
       await helper.waitPopup()
-      expect(called).toBe(true)
+      assert.strictEqual(called, true)
       let cmdline = await helper.getCmdline()
-      expect(cmdline.includes('error')).toBe(false)
-    }, 10000)
+      assert.strictEqual(cmdline.includes('error'), false)
+    })
 
     it('should timeout on resolve', async () => {
       let called = false
@@ -1187,10 +1187,10 @@ describe('completion', () => {
         return called
       }, true)
       let floatWin = await helper.getFloat('pumdetail')
-      expect(floatWin).toBeUndefined()
+      assert.strictEqual(floatWin, undefined)
       finishResolve()
       await Promise.resolve()
-    }, 10000)
+    })
   })
 
   describe('trigger completion', () => {
@@ -1199,15 +1199,15 @@ describe('completion', () => {
       await nvim.command('edit t|setl buftype=nofile')
       await nvim.input('o')
       await helper.wait(20)
-      expect(completion.isActivated).toBe(false)
+      assert.strictEqual(completion.isActivated, false)
       await helper.createDocument()
       await create(['fball', 'football'], false)
       await nvim.input('f')
       await nvim.input('<esc>')
       await nvim.input('A')
       await helper.waitPopup()
-      expect(completion.isActivated).toBe(true)
-    }, 10000)
+      assert.strictEqual(completion.isActivated, true)
+    })
 
     it('should trigger complete when trigger patterns match', async () => {
       let source: ISource = {
@@ -1231,8 +1231,8 @@ describe('completion', () => {
       await nvim.input('EM')
       await helper.waitPopup()
       let items = await helper.items()
-      expect(items.length).toBe(2)
-    }, 10000)
+      assert.strictEqual(items.length, 2)
+    })
 
     it('should filter and sort on increment search', async () => {
       await create(['forceDocumentSync', 'format', 'fallback'], false)
@@ -1241,8 +1241,8 @@ describe('completion', () => {
       await nvim.input('oa')
       await helper.waitPopup()
       let items = await helper.items()
-      expect(items.findIndex(o => o.word == 'fallback')).toBe(-1)
-    }, 10000)
+      assert.strictEqual(items.findIndex(o => o.word == 'fallback'), -1)
+    })
 
     it('should not trigger on insert enter', async () => {
       await nvim.setLine('f')
@@ -1251,7 +1251,7 @@ describe('completion', () => {
       await nvim.input('A')
       await helper.wait(20)
       let visible = await pumvisible()
-      expect(visible).toBe(false)
+      assert.strictEqual(visible, false)
     })
 
     it('should filter on fast input', async () => {
@@ -1260,9 +1260,9 @@ describe('completion', () => {
       await helper.waitPopup()
       let items = await helper.items()
       let item = items.find(o => o.word == 'foo')
-      expect(item).toBeFalsy()
-      expect(items[0].word).toBe('bar')
-    }, 10000)
+      assert.ok(!(item))
+      assert.strictEqual(items[0].word, 'bar')
+    })
 
     it('should filter completion when type none trigger character', async () => {
       let source: ISource = {
@@ -1283,8 +1283,8 @@ describe('completion', () => {
       await nvim.input('(')
       await helper.waitValue(() => pumvisible(), true)
       let res = await pumvisible()
-      expect(res).toBe(true)
-    }, 10000)
+      assert.strictEqual(res, true)
+    })
 
     it('should trigger on triggerCharacters', async () => {
       let source: ISource = {
@@ -1308,8 +1308,8 @@ describe('completion', () => {
       await nvim.input('i.')
       await helper.waitPopup()
       let items = await helper.items()
-      expect(items.length).toBe(2)
-    }, 10000)
+      assert.strictEqual(items.length, 2)
+    })
 
     it('should fix start column', async () => {
       let source: ISource = {
@@ -1329,7 +1329,7 @@ describe('completion', () => {
       await helper.waitPopup()
       await helper.confirmCompletion(0)
       await helper.waitFor('getline', ['.'], 'foo.bar')
-    }, 10000)
+    })
 
     it('should should complete items without input', async () => {
       await workspace.document
@@ -1349,8 +1349,8 @@ describe('completion', () => {
       await nvim.input('<c-space>')
       await helper.waitPopup()
       let items = await helper.items()
-      expect(items.length).toBeGreaterThan(1)
-    }, 10000)
+      assert.ok((items.length) > (1))
+    })
 
     it('should show float window', async () => {
       helper.updateConfiguration('suggest.floatConfig', { border: true, title: 'title' })
@@ -1367,10 +1367,10 @@ describe('completion', () => {
       await nvim.input('if')
       await helper.waitPopup()
       let hasFloat = await nvim.call('coc#float#has_float')
-      expect(hasFloat).toBe(1)
+      assert.strictEqual(hasFloat, 1)
       let res = await helper.visible('foo', 'float')
-      expect(res).toBe(true)
-    }, 10000)
+      assert.strictEqual(res, true)
+    })
 
     it('should trigger on triggerPatterns', async () => {
       let source: ISource = {
@@ -1387,11 +1387,11 @@ describe('completion', () => {
       await nvim.input('ia.')
       await helper.waitPopup()
       let res = await helper.visible('foo', 'pattern')
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
-    it('should not trigger triggerOnly source', async () => {
-      let fn = vi.fn()
+    it('should not trigger triggerOnly source', async (t) => {
+      let fn = t.mock.fn()
       let source: ISource = {
         name: 'pattern',
         triggerOnly: true,
@@ -1407,7 +1407,7 @@ describe('completion', () => {
       disposables.push(sources.addSource(source))
       await nvim.input('if')
       await helper.wait(20)
-      expect(fn).toHaveBeenCalledTimes(0)
+      assert.strictEqual((fn).mock.callCount(), 0)
     })
 
     it('should not trigger when cursor moved', async () => {
@@ -1428,7 +1428,7 @@ describe('completion', () => {
       await nvim.input('<left>')
       await helper.wait(20)
       let visible = await pumvisible()
-      expect(visible).toBe(false)
+      assert.strictEqual(visible, false)
     })
 
     it('should trigger when completion is not completed', async () => {
@@ -1466,9 +1466,9 @@ describe('completion', () => {
       await nvim.input('.')
       await helper.waitPopup()
       await helper.visible('bar', 'completion')
-      expect(token).toBeDefined()
-      expect(token.isCancellationRequested).toBe(true)
-    }, 10000)
+      assert.notStrictEqual(token, undefined)
+      assert.strictEqual(token.isCancellationRequested, true)
+    })
   })
 
   describe('completion results', () => {
@@ -1476,13 +1476,13 @@ describe('completion', () => {
       helper.updateConfiguration('suggest.lowPrioritySourceLimit', 2)
       await create(['filename', 'filepath', 'find', 'filter', 'findIndex'], true)
       let items = await helper.items()
-      expect(items.length).toBe(2)
+      assert.strictEqual(items.length, 2)
     })
 
     it('should contains duplicated items when dup is 1', async () => {
       await create([{ word: 'foo', dup: 1 }, { word: 'foo', dup: 1 }], true)
       let items = await helper.items()
-      expect(items.length).toBe(2)
+      assert.strictEqual(items.length, 2)
     })
 
     it('should limit result for high priority source', async () => {
@@ -1501,8 +1501,8 @@ describe('completion', () => {
       await nvim.input('i.')
       await helper.waitPopup()
       let items = await helper.items()
-      expect(items.length).toBeGreaterThan(1)
-    }, 10000)
+      assert.ok((items.length) > (1))
+    })
 
     it('should truncate label of complete items', async () => {
       helper.updateConfiguration('suggest.formatItems', ['abbr'])
@@ -1524,8 +1524,8 @@ describe('completion', () => {
       let win = nvim.createWindow(winid)
       let buf = await win.buffer
       let lines = await buf.lines
-      expect(lines[0].trim().length).toBe(10)
-    }, 10000)
+      assert.strictEqual(lines[0].trim().length, 10)
+    })
 
     it('should render labelDetails', async () => {
       helper.updateConfiguration('suggest.formatItems', ['abbr'])
@@ -1557,9 +1557,9 @@ describe('completion', () => {
       let win = nvim.createWindow(winid)
       let buf = await win.buffer
       let lines = await buf.lines
-      expect(lines.length).toBe(2)
-      expect(lines[0]).toMatch(/xfoo bar/)
-    }, 10000)
+      assert.strictEqual(lines.length, 2)
+      assert.match(lines[0], /xfoo bar/)
+    })
 
     it('should delete previous items when complete items is null', async () => {
       let source1: ISource = {
@@ -1590,15 +1590,15 @@ describe('completion', () => {
       await nvim.input('.f')
       await helper.waitPopup()
       let items = await helper.items()
-      expect(items.length).toEqual(2)
+      assert.deepStrictEqual(items.length, 2)
       await nvim.input('oo')
       await helper.waitValue(() => {
         return completion.activeItems?.length
       }, 1)
       items = await helper.items()
-      expect(items.length).toEqual(1)
-      expect(items[0].word).toBe('foo')
-    }, 10000)
+      assert.deepStrictEqual(items.length, 1)
+      assert.strictEqual(items[0].word, 'foo')
+    })
 
     it('should cancel completion on navigate', async () => {
       let source1: ISource = {
@@ -1638,7 +1638,7 @@ describe('completion', () => {
       await helper.waitValue(() => {
         return cancelled
       }, true)
-    }, 10000)
+    })
   })
 
   describe('indent change', () => {
@@ -1666,7 +1666,7 @@ describe('completion', () => {
       await helper.waitValue(() => {
         return completion.option?.col
       }, 0)
-    }, 10000)
+    })
 
     it('should not trigger completion after indent change with reTriggerAfterIndent disabled', async () => {
       helper.updateConfiguration('suggest.reTriggerAfterIndent', false)
@@ -1689,8 +1689,8 @@ describe('completion', () => {
       await nvim.call('setline', ['.', 'endif'])
       await helper.wait(20)
       let visible = await pumvisible()
-      expect(visible).toBe(false)
-    }, 10000)
+      assert.strictEqual(visible, false)
+    })
   })
 
   describe('Navigate list', () => {
@@ -1708,7 +1708,7 @@ describe('completion', () => {
       }, undefined)
       completion.cancelAndClose()
       await events.fire('MenuPopupChanged', [{}])
-      expect(completion.isActivated).toBe(false)
+      assert.strictEqual(completion.isActivated, false)
     })
 
     it('should not cancel when cursor moved to end of inserted word', async () => {
@@ -1722,7 +1722,7 @@ describe('completion', () => {
         return completion.selectedItem?.word == word
       }, true)
       completion.onCursorMovedI(option.bufnr, [option.linenr, option.col + byteLength(word) + 1], false)
-      expect(completion.isActivated).toBe(true)
+      assert.strictEqual(completion.isActivated, true)
     })
   })
 
@@ -1757,7 +1757,7 @@ describe('completion', () => {
       triggerCompletion('insert')
       await helper.waitPopup()
       let line = await nvim.line
-      expect(line).toBe('f')
+      assert.strictEqual(line, 'f')
       await nvim.exec(`
          noa call setline('.', 'foobar')
          noa call cursor(1, 7)
@@ -1765,7 +1765,7 @@ describe('completion', () => {
       await helper.waitValue(async () => {
         return await pumvisible()
       }, false)
-    }, 10000)
+    })
   })
 
   describe('pum position', () => {
@@ -1791,11 +1791,11 @@ describe('completion', () => {
       let virtcol = await nvim.call('virtcol', ['.']) as number
       // "conceal" is hidden, so the cursor screen column is far smaller than the
       // virtual column; the pum must follow the conceal-aware column.
-      expect(wincol).toBeLessThan(virtcol)
+      assert.ok((wincol) < (virtcol))
       // Aligned just left of the conceal-aware cursor column, well away from the
       // virtual position that would place it after the hidden "conceal ".
-      expect(pos[1]).toBeLessThan(wincol)
-      expect(pos[1]).toBeLessThan(virtcol - byteLength('conc'))
+      assert.ok((pos[1]) < (wincol))
+      assert.ok((pos[1]) < (virtcol - byteLength('conc')))
     })
   })
 })

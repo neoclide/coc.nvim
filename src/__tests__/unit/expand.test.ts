@@ -4,38 +4,37 @@ import { expandVariables } from '../../util/expand'
 
 describe('expandVariables', () => {
   it('expands context-free variables', () => {
-    expect(expandVariables('${userHome}')).toBe(os.homedir())
-    expect(expandVariables('${tmpdir}')).toBe(os.tmpdir())
-    expect(expandVariables('${cwd}')).toBe(process.cwd())
-    expect(expandVariables('${env:NODE_ENV}')).toBe('test')
+    assert.strictEqual(expandVariables('${userHome}'), os.homedir())
+    assert.strictEqual(expandVariables('${tmpdir}'), os.tmpdir())
+    assert.strictEqual(expandVariables('${cwd}'), process.cwd())
+    assert.strictEqual(expandVariables('${env:NODE_ENV}'), 'test')
   })
 
   it('keeps unknown or unresolved placeholders untouched', () => {
-    expect(expandVariables('${unknown}')).toBe('${unknown}')
-    expect(expandVariables('${env:NOT_EXISTS}')).toBe('${env:NOT_EXISTS}')
-    expect(expandVariables('${env:}')).toBe('${env:}')
+    assert.strictEqual(expandVariables('${unknown}'), '${unknown}')
+    assert.strictEqual(expandVariables('${env:NOT_EXISTS}'), '${env:NOT_EXISTS}')
+    assert.strictEqual(expandVariables('${env:}'), '${env:}')
     // workspace/file vars require ctx
-    expect(expandVariables('${workspaceFolder}')).toBe('${workspaceFolder}')
-    expect(expandVariables('${file}')).toBe('${file}')
+    assert.strictEqual(expandVariables('${workspaceFolder}'), '${workspaceFolder}')
+    assert.strictEqual(expandVariables('${file}'), '${file}')
   })
 
   it('expands with a context', () => {
     const ctx = { root: '/tmp/proj', file: '/tmp/proj/src/index.ts', cwd: '/tmp' }
-    expect(expandVariables('${workspaceFolder}', ctx)).toBe('/tmp/proj')
-    expect(expandVariables('${workspace}', ctx)).toBe('/tmp/proj')
-    expect(expandVariables('${workspaceRoot}', ctx)).toBe('/tmp/proj')
-    expect(expandVariables('${workspaceFolderBasename}', ctx)).toBe('proj')
-    expect(expandVariables('${cwd}', ctx)).toBe('/tmp')
-    expect(expandVariables('${file}', ctx)).toBe('/tmp/proj/src/index.ts')
-    expect(expandVariables('${fileDirname}', ctx)).toBe(path.dirname(ctx.file))
-    expect(expandVariables('${fileExtname}', ctx)).toBe('.ts')
-    expect(expandVariables('${fileBasename}', ctx)).toBe('index.ts')
-    expect(expandVariables('${fileBasenameNoExtension}', ctx)).toBe('index')
+    assert.strictEqual(expandVariables('${workspaceFolder}', ctx), '/tmp/proj')
+    assert.strictEqual(expandVariables('${workspace}', ctx), '/tmp/proj')
+    assert.strictEqual(expandVariables('${workspaceRoot}', ctx), '/tmp/proj')
+    assert.strictEqual(expandVariables('${workspaceFolderBasename}', ctx), 'proj')
+    assert.strictEqual(expandVariables('${cwd}', ctx), '/tmp')
+    assert.strictEqual(expandVariables('${file}', ctx), '/tmp/proj/src/index.ts')
+    assert.strictEqual(expandVariables('${fileDirname}', ctx), path.dirname(ctx.file))
+    assert.strictEqual(expandVariables('${fileExtname}', ctx), '.ts')
+    assert.strictEqual(expandVariables('${fileBasename}', ctx), 'index.ts')
+    assert.strictEqual(expandVariables('${fileBasenameNoExtension}', ctx), 'index')
   })
 
   it('expands multiple placeholders in one string', () => {
     const ctx = { root: '/tmp/proj' }
-    expect(expandVariables('${workspaceFolderBasename}/.cache/${env:NODE_ENV}', ctx))
-      .toBe('proj/.cache/test')
+    assert.strictEqual(expandVariables('${workspaceFolderBasename}/.cache/${env:NODE_ENV}', ctx), 'proj/.cache/test')
   })
 })

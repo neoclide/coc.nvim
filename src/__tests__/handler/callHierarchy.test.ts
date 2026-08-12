@@ -38,7 +38,7 @@ function createCallItem(name: string, kind: SymbolKind, uri: string, range: Rang
 
 describe('CallHierarchy', () => {
   it('should throw when provider does not exist', async () => {
-    await expect(callHierarchy.getIncoming()).rejects.toThrow(Error)
+    await assert.rejects(callHierarchy.getIncoming(), Error)
   })
 
   it('should return null when provider not exist', async () => {
@@ -46,12 +46,12 @@ describe('CallHierarchy', () => {
     let doc = await workspace.document
     let res: any
     res = await languages.prepareCallHierarchy(doc.textDocument, Position.create(0, 0), token)
-    expect(res).toBeNull()
+    assert.strictEqual(res, null)
     let item = createCallItem('name', SymbolKind.Class, doc.uri, Range.create(0, 0, 1, 0))
     res = await languages.provideOutgoingCalls(doc.textDocument, item, token)
-    expect(res).toBeNull()
+    assert.strictEqual(res, null)
     res = await languages.provideIncomingCalls(doc.textDocument, item, token)
-    expect(res).toBeNull()
+    assert.strictEqual(res, null)
   })
 
   it('should throw when prepare failed', async () => {
@@ -69,7 +69,7 @@ describe('CallHierarchy', () => {
     let fn = async () => {
       await callHierarchy.getOutgoing()
     }
-    await expect(fn()).rejects.toThrow(Error)
+    await assert.rejects(fn(), Error)
   })
 
   it('should get incoming & outgoing callHierarchy items', async () => {
@@ -91,18 +91,18 @@ describe('CallHierarchy', () => {
       }
     }))
     let res = await helper.doAction('incomingCalls')
-    expect(res.length).toBe(1)
-    expect(res[0].from.name).toBe('bar')
+    assert.strictEqual(res.length, 1)
+    assert.strictEqual(res[0].from.name, 'bar')
     let outgoing = await helper.doAction('outgoingCalls')
-    expect(outgoing.length).toBe(1)
+    assert.strictEqual(outgoing.length, 1)
     res = await callHierarchy.getIncoming(outgoing[0].to)
-    expect(res.length).toBe(1)
+    assert.strictEqual(res.length, 1)
   })
 
   it('should show warning when provider does not exist', async () => {
     await helper.doAction('showIncomingCalls')
     let line = await helper.getCmdline()
-    expect(line).toMatch('not found')
+    assert.ok((line).includes('not found'))
   })
 
   it('should show message when no result returned.', async () => {
@@ -119,7 +119,7 @@ describe('CallHierarchy', () => {
     }))
     await callHierarchy.showCallHierarchyTree('incoming')
     let line = await helper.getCmdline()
-    expect(line).toMatch('Unable')
+    assert.ok((line).includes('Unable'))
   })
 
   it('should render description and support default action', async () => {
@@ -149,7 +149,7 @@ describe('CallHierarchy', () => {
     await commands.executeCommand('document.showIncomingCalls')
     let buf = await nvim.buffer
     let lines = await buf.lines
-    expect(lines).toEqual([
+    assert.deepStrictEqual(lines, [
       'INCOMING CALLS',
       '- c foo',
       '  + c bar Detail'
@@ -160,13 +160,13 @@ describe('CallHierarchy', () => {
     await nvim.input('<cr>')
     await helper.waitFor('expand', ['%:p'], fsPath)
     let res = await nvim.call('coc#cursor#position')
-    expect(res).toEqual([1, 0])
+    assert.deepStrictEqual(res, [1, 0])
     let matches = await nvim.call('getmatches') as any[]
-    expect(matches.length).toBe(2)
+    assert.strictEqual(matches.length, 2)
     await nvim.command(`b ${bufnr}`)
     await helper.waitValue(async () => (await nvim.call('getmatches') as any[]).length, 0)
     matches = await nvim.call('getmatches') as any[]
-    expect(matches.length).toBe(0)
+    assert.strictEqual(matches.length, 0)
     await nvim.command(`wincmd o`)
   })
 
@@ -211,7 +211,7 @@ describe('CallHierarchy', () => {
     await commands.executeCommand('document.showOutgoingCalls')
     let buf = await nvim.buffer
     let lines = await buf.lines
-    expect(lines).toEqual([
+    assert.deepStrictEqual(lines, [
       'OUTGOING CALLS',
       '- c foo',
       '  + c bar Detail'
@@ -222,7 +222,7 @@ describe('CallHierarchy', () => {
     await nvim.input('<cr>')
     await helper.waitFor('tabpagenr', [], 2)
     doc = await workspace.document
-    expect(doc.uri).toBe(uri)
+    assert.strictEqual(doc.uri, uri)
     await helper.waitValue(async () => {
       let res = await nvim.call('getmatches', [win.id]) as any[]
       return res.length
@@ -256,7 +256,7 @@ describe('CallHierarchy', () => {
     await callHierarchy.showCallHierarchyTree('outgoing')
     let buf = await nvim.buffer
     let lines = await buf.lines
-    expect(lines).toEqual([
+    assert.deepStrictEqual(lines, [
       'OUTGOING CALLS',
       '- c foo',
       '  + c bar Detail'
@@ -271,7 +271,7 @@ describe('CallHierarchy', () => {
       '  + c test'
     ])
     lines = await buf.lines
-    expect(lines).toEqual([
+    assert.deepStrictEqual(lines, [
       'INCOMING CALLS',
       '- c bar Detail',
       '  + c test'
@@ -305,7 +305,7 @@ describe('CallHierarchy', () => {
     await callHierarchy.showCallHierarchyTree('incoming')
     let buf = await nvim.buffer
     let lines = await buf.lines
-    expect(lines).toEqual([
+    assert.deepStrictEqual(lines, [
       'INCOMING CALLS',
       '- c foo',
       '  + c test'
@@ -320,7 +320,7 @@ describe('CallHierarchy', () => {
       '  + c bar Detail'
     ])
     lines = await buf.lines
-    expect(lines).toEqual([
+    assert.deepStrictEqual(lines, [
       'OUTGOING CALLS',
       '- c test',
       '  + c bar Detail'
@@ -351,7 +351,7 @@ describe('CallHierarchy', () => {
     await callHierarchy.showCallHierarchyTree('outgoing')
     let buf = await nvim.buffer
     let lines = await buf.lines
-    expect(lines).toEqual([
+    assert.deepStrictEqual(lines, [
       'OUTGOING CALLS',
       '- c foo',
       '  + c bar Detail'
@@ -365,7 +365,7 @@ describe('CallHierarchy', () => {
       '- c foo'
     ])
     lines = await buf.lines
-    expect(lines).toEqual([
+    assert.deepStrictEqual(lines, [
       'OUTGOING CALLS',
       '- c foo'
     ])
@@ -400,7 +400,7 @@ describe('CallHierarchy', () => {
     await helper.doAction('showOutgoingCalls')
     let buf = await nvim.buffer
     let lines = await buf.lines
-    expect(lines).toEqual([
+    assert.deepStrictEqual(lines, [
       'OUTGOING CALLS',
       '- c foo',
       '  + c bar Detail'
@@ -414,7 +414,7 @@ describe('CallHierarchy', () => {
     await nvim.input('2')
     await helper.waitFor('line', ['$'], 3)
     lines = await buf.lines
-    expect(lines).toEqual([
+    assert.deepStrictEqual(lines, [
       'OUTGOING CALLS',
       '- c foo',
       '  - c bar Detail'

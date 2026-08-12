@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import { mock } from 'node:test'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import { disposeAll } from '../../util'
@@ -13,11 +14,11 @@ beforeAll(async () => {
   nvim = plugin.nvim
   nvim.emit('notification', 'updateConfig', ['suggest.timeout', 300])
   nvim.emit('notification', 'action_not_exists', [])
-  let spy = vi.spyOn(console, 'error').mockImplementation(() => {
+  let spy = mock.method(console, 'error', () => {
     // noop
   })
   await plugin.init('')
-  spy.mockRestore()
+  spy.mock.restore()
 })
 
 afterEach(() => {
@@ -32,7 +33,7 @@ describe('notifications', () => {
   it('should notification before plugin ready', () => {
     nvim.emit('notification', 'VimEnter', [''])
     let timeout = workspace.getConfiguration('suggest').get('timeout')
-    expect(timeout).toBe(300)
+    assert.strictEqual(timeout, 300)
   })
 
   it('should do Log', () => {
@@ -40,10 +41,10 @@ describe('notifications', () => {
     nvim.emit('notification', 'redraw', [])
   })
 
-  it('should do notifications', async () => {
+  it('should do notifications', async (t) => {
     nvim.emit('notification', 'listNames', [])
     let called = false
-    let spy = vi.spyOn(console, 'error').mockImplementation(() => {
+    let spy = t.mock.method(console, 'error', () => {
       called = true
     })
     nvim.emit('notification', 'name_not_exists', [])
@@ -51,7 +52,7 @@ describe('notifications', () => {
     await helper.waitValue(() => {
       return called
     }, true)
-    spy.mockRestore()
+    spy.mock.restore()
   })
 })
 
@@ -95,15 +96,15 @@ describe('request', () => {
     }, true)
   })
 
-  it('should echo error instead of throw for autocmds request', async () => {
+  it('should echo error instead of throw for autocmds request', async (t) => {
     let disposable = events.on('CursorHold', async () => {
       throw new Error('my error')
     })
-    let s = vi.spyOn(events, 'fire').mockImplementation(() => {
+    let s = t.mock.method(events, 'fire', () => {
       return Promise.reject(new Error('my error'))
     })
     nvim.call('coc#rpc#request', ['CocAutocmd', ['CursorHold', 1, [1, 1]]], true)
-    let spy = vi.spyOn(nvim, 'echoError').mockImplementation(() => {
+    let spy = t.mock.method(nvim, 'echoError', () => {
       called = true
     })
     let called = false
@@ -111,8 +112,8 @@ describe('request', () => {
       return called
     }, true)
     disposable.dispose()
-    s.mockRestore()
-    spy.mockRestore()
+    s.mock.restore()
+    spy.mock.restore()
   })
 })
 

@@ -46,29 +46,29 @@ describe('Hover', () => {
     it('should addDocument', async () => {
       let docs: Documentation[] = []
       addDocument(docs, '', '')
-      expect(docs.length).toBe(0)
+      assert.strictEqual(docs.length, 0)
     })
 
     it('should check documentation', async () => {
-      expect(isDocumentation(undefined)).toBe(false)
-      expect(isDocumentation({})).toBe(false)
-      expect(isDocumentation({ filetype: '', content: '' })).toBe(true)
+      assert.strictEqual(isDocumentation(undefined), false)
+      assert.strictEqual(isDocumentation({}), false)
+      assert.strictEqual(isDocumentation({ filetype: '', content: '' }), true)
     })
 
     it('should readLines', async () => {
       let res = await readLines('file:///not_exists', 0, 1)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
     })
 
     it('should addDefinitions', async () => {
       let hovers = []
       let range = Range.create(0, 0, 0, 0)
       await addDefinitions(hovers, [undefined, {} as any, { targetUri: 'file:///not_exists', targetRange: range, targetSelectionRange: range }], '')
-      expect(hovers.length).toBe(0)
+      assert.strictEqual(hovers.length, 0)
       let file = await createTmpFile('  foo\nbar\n', disposables)
       range = Range.create(0, 0, 300, 0)
       await addDefinitions(hovers, [{ targetUri: URI.file(file).toString(), targetRange: range, targetSelectionRange: range }], '')
-      expect(hovers.length).toBe(1)
+      assert.strictEqual(hovers.length, 1)
     })
   })
 
@@ -76,7 +76,7 @@ describe('Hover', () => {
     it('should return false when hover not found', async () => {
       hoverResult = null
       let res = await hover.onHover('preview')
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should show MarkupContent hover', async () => {
@@ -84,7 +84,7 @@ describe('Hover', () => {
       hoverResult = { contents: { kind: 'plaintext', value: 'my hover' } }
       await helper.doAction('doHover')
       let res = await getDocumentText()
-      expect(res).toMatch('my hover')
+      assert.ok((res).includes('my hover'))
     })
 
     it('should merge hover results', async () => {
@@ -101,7 +101,7 @@ describe('Hover', () => {
       }))
       let doc = await workspace.document
       let hovers = await languages.getHover(doc.textDocument, Position.create(0, 0), CancellationToken.None)
-      expect(hovers.length).toBe(1)
+      assert.strictEqual(hovers.length, 1)
     })
 
     it('should show MarkedString hover', async () => {
@@ -113,16 +113,16 @@ describe('Hover', () => {
       }))
       await hover.onHover('preview')
       let res = await getDocumentText()
-      expect(res).toMatch('string hover')
-      expect(res).toMatch('language hover')
+      assert.ok((res).includes('string hover'))
+      assert.ok((res).includes('language hover'))
     })
 
     it('should show MarkedString hover array', async () => {
       hoverResult = { contents: ['foo', { language: 'typescript', value: 'bar' }] }
       await hover.onHover('preview')
       let res = await getDocumentText()
-      expect(res).toMatch('foo')
-      expect(res).toMatch('bar')
+      assert.ok((res).includes('foo'))
+      assert.ok((res).includes('bar'))
     })
 
     it('should highlight hover range', async () => {
@@ -131,8 +131,8 @@ describe('Hover', () => {
       hoverResult = { contents: ['foo'], range: Range.create(0, 0, 0, 3) }
       await hover.onHover('preview')
       let res = await nvim.call('getmatches') as any[]
-      expect(res.length).toBe(1)
-      expect(res[0].group).toBe('CocHoverRange')
+      assert.strictEqual(res.length, 1)
+      assert.strictEqual(res[0].group, 'CocHoverRange')
       await helper.waitValue(async () => {
         let res = await nvim.call('getmatches') as any[]
         return res.length
@@ -144,18 +144,18 @@ describe('Hover', () => {
     it('should echo hover message', async () => {
       hoverResult = { contents: ['foo'] }
       let res = await hover.onHover('echo')
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let msg = await helper.getCmdline()
-      expect(msg).toMatch('foo')
+      assert.ok((msg).includes('foo'))
     })
 
     it('should show hover in float window', async () => {
       hoverResult = { contents: { kind: 'markdown', value: '```typescript\nconst foo:number\n```' } }
       await hover.onHover('float')
       let win = await helper.getFloat()
-      expect(win).toBeDefined()
+      assert.notStrictEqual(win, undefined)
       let lines = await nvim.eval(`getbufline(winbufnr(${win.id}),1,'$')`)
-      expect(lines).toEqual(['const foo:number'])
+      assert.deepStrictEqual(lines, ['const foo:number'])
     })
   })
 
@@ -173,10 +173,10 @@ describe('Hover', () => {
         }
       }))
       let res = await helper.doAction('getHover')
-      expect(res.includes('foo')).toBe(true)
-      expect(res.includes('bar')).toBe(true)
-      expect(res.includes('MarkupContent hover')).toBe(true)
-      expect(res.includes('MarkedString hover')).toBe(true)
+      assert.strictEqual(res.includes('foo'), true)
+      assert.strictEqual(res.includes('bar'), true)
+      assert.strictEqual(res.includes('MarkupContent hover'), true)
+      assert.strictEqual(res.includes('MarkedString hover'), true)
     })
 
     it('should filter empty hover message', async () => {
@@ -187,11 +187,11 @@ describe('Hover', () => {
         }
       }))
       let res = await hover.getHover({ line: 1, col: 2 })
-      expect(res).toEqual(['value'])
+      assert.deepStrictEqual(res, ['value'])
     })
 
     it('should throw when buffer not attached', async () => {
-      await expect(hover.getHover({ bufnr: 999, line: 1, col: 2 })).rejects.toThrow(/not exists/)
+      await assert.rejects(hover.getHover({ bufnr: 999, line: 1, col: 2 }), /not exists/)
     })
   })
 
@@ -212,7 +212,7 @@ describe('Hover', () => {
       }))
       await helper.doAction('definitionHover', 'preview')
       let res = await getDocumentText()
-      expect(res).toBe('string hover\n\nfoo\nbar')
+      assert.strictEqual(res, 'string hover\n\nfoo\nbar')
     })
 
     it('should load definition link from file', async () => {
@@ -232,13 +232,13 @@ describe('Hover', () => {
       }))
       await hover.definitionHover('preview')
       let res = await getDocumentText()
-      expect(res).toBe('string hover\n\nfoo\nbar')
+      assert.strictEqual(res, 'string hover\n\nfoo\nbar')
     })
 
     it('should return false when hover not found', async () => {
       hoverResult = undefined
       let res = await hover.definitionHover('float')
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
   })
 })

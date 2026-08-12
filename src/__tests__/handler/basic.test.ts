@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util'
 // Merged from inlineCompletion.test.ts, inlineValue.test.ts,
 // selectionRange.test.ts and commands.test.ts to share a single nvim
 // session and reduce per-file startup overhead.
@@ -50,7 +51,7 @@ describe('InlineCompletion', () => {
     let pos = await window.getCursorPosition()
     let context: InlineCompletionContext = { triggerKind: InlineCompletionTriggerKind.Automatic }
     let res = await languages.provideInlineCompletionItems(doc.textDocument, pos, context, CancellationToken.None)
-    expect(res).toEqual([])
+    assert.deepStrictEqual(res, [])
     registerProvider()
     disposables.push(languages.registerInlineCompletionItemProvider(['*'], {
       provideInlineCompletionItems: () => {
@@ -59,7 +60,7 @@ describe('InlineCompletion', () => {
     }))
     items = [InlineCompletionItem.create('bar')]
     res = await languages.provideInlineCompletionItems(doc.textDocument, pos, context, CancellationToken.None)
-    expect(res.length).toBe(2)
+    assert.strictEqual(res.length, 2)
   })
 
   it('should return empty when token cancelled', async () => {
@@ -83,8 +84,8 @@ describe('InlineCompletion', () => {
     let p = languages.provideInlineCompletionItems(doc.textDocument, pos, context, tokenSource.token)
     tokenSource.cancel()
     let res = await p
-    expect(cancelled).toBe(true)
-    expect(res).toEqual([])
+    assert.strictEqual(cancelled, true)
+    assert.deepStrictEqual(res, [])
   })
 
   it('should not throw on provider error', async () => {
@@ -98,7 +99,7 @@ describe('InlineCompletion', () => {
     }))
     let tokenSource = new CancellationTokenSource()
     let res = await languages.provideInlineCompletionItems(doc.textDocument, pos, context, tokenSource.token)
-    expect(res).toEqual([])
+    assert.deepStrictEqual(res, [])
   })
 })
 
@@ -111,7 +112,7 @@ describe('InlineValue', () => {
     it('should return false when provider not exists', async () => {
       let doc = await workspace.document
       let res = languages.hasProvider(ProviderName.InlineValue, doc.textDocument)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should return merged results', async () => {
@@ -137,7 +138,7 @@ describe('InlineValue', () => {
       }))
       let doc = await workspace.document
       let res = await languages.provideInlineValues(doc.textDocument, Range.create(0, 0, 3, 0), { frameId: 3, stoppedLocation: Range.create(0, 0, 0, 3) }, CancellationToken.None)
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
   })
 })
@@ -147,7 +148,7 @@ describe('selectionRange', () => {
     it('should throw error when selectionRange provider does not exist', async () => {
       let doc = await helper.createDocument()
       await doc.synchronize()
-      await expect(helper.doAction('selectionRanges')).rejects.toThrow(Error)
+      await assert.rejects(helper.doAction('selectionRanges'), Error)
     })
 
     it('should return ranges', async () => {
@@ -160,15 +161,15 @@ describe('selectionRange', () => {
         }
       }))
       let res = await selection.getSelectionRanges()
-      expect(res).toBeDefined()
-      expect(Array.isArray(res)).toBe(true)
+      assert.notStrictEqual(res, undefined)
+      assert.strictEqual(Array.isArray(res), true)
     })
   })
 
   describe('selectRange()', () => {
     async function getSelectedRange(): Promise<Range> {
       let m = await nvim.mode
-      expect(m.mode).toBe('v')
+      assert.strictEqual(m.mode, 'v')
       await nvim.input('<esc>')
       let res = await window.getSelectedRange('v')
       return res
@@ -181,7 +182,7 @@ describe('selectionRange', () => {
       }))
       await doc.synchronize()
       let res = await selection.selectRange('', true)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should select single range', async () => {
@@ -192,7 +193,7 @@ describe('selectionRange', () => {
       }))
       await doc.synchronize()
       let res = await selection.selectRange('', true)
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
     it('should select ranges forward', async () => {
@@ -217,21 +218,21 @@ describe('selectionRange', () => {
       await doc.synchronize()
       await helper.doAction('rangeSelect', '', false)
       await selection.selectRange('', true)
-      expect(called).toBe(1)
+      assert.strictEqual(called, 1)
       let res = await getSelectedRange()
-      expect(res).toEqual(Range.create(0, 0, 0, 1))
+      assert.deepStrictEqual(res, Range.create(0, 0, 0, 1))
       await selection.selectRange('v', true)
-      expect(called).toBe(2)
+      assert.strictEqual(called, 2)
       res = await getSelectedRange()
-      expect(res).toEqual(Range.create(0, 0, 0, 3))
+      assert.deepStrictEqual(res, Range.create(0, 0, 0, 3))
       await selection.selectRange('v', true)
-      expect(called).toBe(3)
+      assert.strictEqual(called, 3)
       res = await getSelectedRange()
-      expect(res).toEqual(Range.create(0, 0, 1, 3))
+      assert.deepStrictEqual(res, Range.create(0, 0, 1, 3))
       await selection.selectRange('v', true)
-      expect(called).toBe(4)
+      assert.strictEqual(called, 4)
       let m = await nvim.mode
-      expect(m.mode).toBe('n')
+      assert.strictEqual(m.mode, 'n')
     })
 
     it('should select ranges backward', async () => {
@@ -253,21 +254,21 @@ describe('selectionRange', () => {
       await doc.synchronize()
       await selection.selectRange('', true)
       let mode = await nvim.call('mode')
-      expect(mode).toBe('v')
+      assert.strictEqual(mode, 'v')
       await nvim.input('<esc>')
       await window.selectRange(Range.create(0, 0, 1, 3))
       await nvim.input('<esc>')
       await selection.selectRange('v', false)
       let r = await getSelectedRange()
-      expect(r).toEqual(Range.create(0, 0, 0, 3))
+      assert.deepStrictEqual(r, Range.create(0, 0, 0, 3))
       await nvim.input('<esc>')
       await selection.selectRange('v', false)
       r = await getSelectedRange()
-      expect(r).toEqual(Range.create(0, 0, 0, 1))
+      assert.deepStrictEqual(r, Range.create(0, 0, 0, 1))
       await nvim.input('<esc>')
       await selection.selectRange('v', false)
       mode = await nvim.call('mode')
-      expect(mode).toBe('n')
+      assert.strictEqual(mode, 'n')
     })
   })
 
@@ -275,7 +276,7 @@ describe('selectionRange', () => {
     it('should return null when no provider available', async () => {
       let doc = await workspace.document
       let res = await languages.getSelectionRanges(doc.textDocument, [Position.create(0, 0)], CancellationToken.None)
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
     })
 
     it('should return null when no result available', async () => {
@@ -286,7 +287,7 @@ describe('selectionRange', () => {
       }))
       let doc = await workspace.document
       let res = await languages.getSelectionRanges(doc.textDocument, [Position.create(0, 0)], CancellationToken.None)
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
     })
 
     it('should append/prepend selection ranges', async () => {
@@ -313,9 +314,9 @@ describe('selectionRange', () => {
       }))
 
       let res = await languages.getSelectionRanges(doc.textDocument, [Position.create(0, 0)], CancellationToken.None)
-      expect(res.length).toBe(4)
-      expect(res[0].range).toEqual(Range.create(1, 2, 1, 3))
-      expect(res[3].range).toEqual(Range.create(0, 0, 3, 0))
+      assert.strictEqual(res.length, 4)
+      assert.deepStrictEqual(res[0].range, Range.create(1, 2, 1, 3))
+      assert.deepStrictEqual(res[3].range, Range.create(0, 0, 3, 0))
     })
   })
 })
@@ -329,42 +330,42 @@ describe('Commands', () => {
     it('should register global vim commands', async () => {
       await commandManager.executeCommand('vim.config')
       let val = await nvim.getVar('coc_config_init')
-      expect(val).toBe(1)
+      assert.strictEqual(val, 1)
       let list = await helper.doAction('commandList')
-      expect(list.includes('vim.config')).toBe(true)
+      assert.strictEqual(list.includes('vim.config'), true)
     })
 
     it('should add vim command with title', async () => {
       await helper.plugin.cocAction('addCommand', { id: 'bad', cmd: '', title: '' })
       commands.addVimCommand({ id: 'list', cmd: 'CocList', title: 'list of coc.nvim' })
       let res = commandManager.titles.get('vim.list')
-      expect(res).toBe('list of coc.nvim')
+      assert.strictEqual(res, 'list of coc.nvim')
       commandManager.unregister('vim.list')
       commandManager.unregister('unknown.command')
       let list = commands.getCommandList()
-      expect(list.includes('bad')).toBe(false)
+      assert.strictEqual(list.includes('bad'), false)
     })
   })
 
   describe('commandManager', () => {
-    it('should replace builtin command', async () => {
-      let fn = vi.fn()
+    it('should replace builtin command', async (t) => {
+      let fn = t.mock.fn()
       commandManager.registerCommand('editor.action.restart', () => {
         fn()
       })
       await commandManager.executeCommand('editor.action.restart')
-      expect(fn).toHaveBeenCalled()
+      assert.ok((fn).mock.callCount() > 0)
     })
 
     it('should throw when command not found', () => {
-      expect(() => commandManager.executeCommand('')).toThrow(Error)
+      assert.throws(() => commandManager.executeCommand(''), Error)
     })
 
     it('should add to recent', async () => {
       await commandManager.addRecent('document.checkBuffer', true)
       let mru = workspace.createMru('commands')
       let list = await mru.load()
-      expect(list[0]).toBe('document.checkBuffer')
+      assert.strictEqual(list[0], 'document.checkBuffer')
     })
   })
 
@@ -372,7 +373,7 @@ describe('Commands', () => {
     it('should get command items', async () => {
       let res = await helper.doAction('commands')
       let idx = res.findIndex(o => o.id == 'workspace.showOutput')
-      expect(idx != -1).toBe(true)
+      assert.strictEqual(idx != -1, true)
     })
   })
 
@@ -389,11 +390,11 @@ describe('Commands', () => {
   })
 
   describe('runCommand', () => {
-    it('should open command list without id', async () => {
-      let start = vi.spyOn(listManager, 'start').mockResolvedValue()
+    it('should open command list without id', async (t) => {
+      let start = t.mock.method(listManager, 'start', () => Promise.resolve(undefined))
       await commands.runCommand()
-      expect(start).toHaveBeenCalledWith(['commands'])
-      start.mockRestore()
+      assert.ok((start).mock.calls.some(call => isDeepStrictEqual(call.arguments, [['commands']])))
+      start.mock.restore()
     })
   })
 })

@@ -48,7 +48,7 @@ describe('diagnostic buffer', () => {
       let buf = await createDiagnosticBuffer()
       let diagnostics = [createDiagnostic('foo')]
       let res = await buf.showFloat(diagnostics, 'echo')
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should not show float in insert mode', async () => {
@@ -56,10 +56,10 @@ describe('diagnostic buffer', () => {
       let buf = new DiagnosticBuffer(nvim, doc)
       await nvim.input('i')
       let mode = await nvim.mode
-      expect(mode.mode).toBe('i')
+      assert.strictEqual(mode.mode, 'i')
       let diagnostics = [createDiagnostic('foo')]
       let res = await buf.showFloat(diagnostics)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should show related information in floating window', async () => {
@@ -74,9 +74,9 @@ describe('diagnostic buffer', () => {
       let win = nvim.createWindow(winid)
       let floatBuf = await win.buffer
       let lines = await floatBuf.lines
-      expect(lines.length).toBe(7)
-      expect(lines[2]).toBe('Related information:')
-      expect(lines[4].includes('this is a related information')).toBe(true)
+      assert.strictEqual(lines.length, 7)
+      assert.strictEqual(lines[2], 'Related information:')
+      assert.strictEqual(lines[4].includes('this is a related information'), true)
     })
 
     it('should show formated diagnostics', async () => {
@@ -90,7 +90,7 @@ describe('diagnostic buffer', () => {
       let win = nvim.createWindow(winid)
       let floatBuf = await win.buffer
       let lines = await floatBuf.lines
-      expect(lines[0]).toEqual('[test] foo')
+      assert.deepStrictEqual(lines[0], '[test] foo')
     })
   })
 
@@ -103,7 +103,7 @@ describe('diagnostic buffer', () => {
       await helper.wait(30)
       let res = await nvim.call('sign_getplaced', [buf.bufnr, { group: 'CocDiagnostica' }])
       let signs = res[0].signs
-      expect(signs).toEqual([])
+      assert.deepStrictEqual(signs, [])
     })
 
     it('should filter sign by signLevel', async () => {
@@ -115,8 +115,8 @@ describe('diagnostic buffer', () => {
       await helper.wait(30)
       let res = await nvim.call('sign_getplaced', [buf.bufnr, { group: 'CocDiagnostica' }])
       let signs = res[0].signs
-      expect(signs).toBeDefined()
-      expect(signs.length).toBe(0)
+      assert.notStrictEqual(signs, undefined)
+      assert.strictEqual(signs.length, 0)
     })
 
     it('should set diagnostic info', async () => {
@@ -131,7 +131,7 @@ describe('diagnostic buffer', () => {
       await buf.update('', diagnostics)
       let buffer = await nvim.buffer
       let res = await buffer.getVar('coc_diagnostic_info')
-      expect(res).toEqual({
+      assert.deepStrictEqual(res, {
         lnums: [1, 1, 1, 1],
         information: 1,
         hint: 1,
@@ -152,7 +152,7 @@ describe('diagnostic buffer', () => {
       ])
       await nvim.resumeNotification()
       let markers = await getExtmarkers(buf.bufnr, ns)
-      expect(markers).toEqual([
+      assert.deepStrictEqual(markers, [
         [0, 0, 0, 1, 'CocWarningHighlight'],
         [0, 0, 0, 1, 'CocErrorHighlight']
       ])
@@ -160,7 +160,7 @@ describe('diagnostic buffer', () => {
       buf.updateHighlights('', [])
       await nvim.resumeNotification()
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any[]
-      expect(res.length).toBe(0)
+      assert.strictEqual(res.length, 0)
     })
 
     it('should add deprecated highlight', async () => {
@@ -173,17 +173,17 @@ describe('diagnostic buffer', () => {
       buf.updateHighlights('', [diagnostic])
       await nvim.resumeNotification()
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, {}]) as [number, number, number][]
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
 
-    it('should not refresh for empty diagnostics', async () => {
+    it('should not refresh for empty diagnostics', async (t) => {
       let buf: any = await createDiagnosticBuffer()
-      let fn = vi.fn()
+      let fn = t.mock.fn()
       buf.refresh = () => {
         fn()
       }
       buf.update('c', [])
-      expect(fn).toHaveBeenCalledTimes(0)
+      assert.strictEqual((fn).mock.callCount(), 0)
     })
 
     it('should refresh when content changes is empty', async () => {
@@ -199,7 +199,7 @@ describe('diagnostic buffer', () => {
       await doc.patchChange()
       doc._forceSync()
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, ns, 0, -1, { details: true }]) as any
-      expect(res.length).toBe(1)
+      assert.strictEqual(res.length, 1)
     })
   })
 
@@ -222,9 +222,9 @@ describe('diagnostic buffer', () => {
       let diag = Diagnostic.create(Range.create(0, 3, 0, 5), 'after')
       buf['diagnosticsMap'].set('a', [diag])
       buf.onChange(createChange(buf, 1, Range.create(0, 8, 0, 8), 'x'))
-      expect(buf['_dirties'].has('a')).toBe(false)
+      assert.strictEqual(buf['_dirties'].has('a'), false)
       buf.onChange(createChange(buf, 2, Range.create(0, 1, 0, 1), 'xy'))
-      expect(buf['_dirties'].has('a')).toBe(true)
+      assert.strictEqual(buf['_dirties'].has('a'), true)
     })
 
     it('should keep unaffected collections unchanged', async () => {
@@ -237,13 +237,13 @@ describe('diagnostic buffer', () => {
       let before = buf['diagnosticsMap'].get('b')
       buf.onChange(createChange(buf, 1, Range.create(0, 1, 0, 1), 'xy'))
 
-      expect(buf['diagnosticsMap'].get('b')).toBe(before)
-      expect(buf['_dirties'].has('b')).toBe(false)
-      expect(buf['_dirties'].has('a')).toBe(true)
+      assert.strictEqual(buf['diagnosticsMap'].get('b'), before)
+      assert.strictEqual(buf['_dirties'].has('b'), false)
+      assert.strictEqual(buf['_dirties'].has('a'), true)
       let adjusted = buf['diagnosticsMap'].get('a')
-      expect(adjusted).not.toBe(before)
-      expect(adjusted[0].range).toEqual(Range.create(0, 5, 0, 7))
-      expect(affected.range).toEqual(Range.create(0, 3, 0, 5))
+      assert.notStrictEqual(adjusted, before)
+      assert.deepStrictEqual(adjusted[0].range, Range.create(0, 5, 0, 7))
+      assert.deepStrictEqual(affected.range, Range.create(0, 3, 0, 5))
     })
 
     it('should retain pre-existing dirty collections', async () => {
@@ -254,8 +254,8 @@ describe('diagnostic buffer', () => {
       buf['_dirties'].add('b')
       buf.onChange(createChange(buf, 1, Range.create(0, 1, 0, 1), 'xy'))
 
-      expect(buf['_dirties'].has('a')).toBe(true)
-      expect(buf['_dirties'].has('b')).toBe(true)
+      assert.strictEqual(buf['_dirties'].has('a'), true)
+      assert.strictEqual(buf['_dirties'].has('b'), true)
     })
   })
 
@@ -275,7 +275,7 @@ describe('diagnostic buffer', () => {
       await buf.update('', diagnostics)
       let buffer = await nvim.buffer
       let res = await buffer.getVar("coc_diagnostic_info") as any
-      expect(res.lnums).toEqual([0, 2, 2, 2])
+      assert.deepStrictEqual(res.lnums, [0, 2, 2, 2])
     })
   })
 
@@ -285,7 +285,7 @@ describe('diagnostic buffer', () => {
       let buf = await createDiagnosticBuffer()
       let res = await buf.echoMessage(false, Position.create(0, 0))
       res = await buf.echoMessage(true, Position.create(0, 0))
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
   })
 
@@ -302,12 +302,12 @@ describe('diagnostic buffer', () => {
       let diagnostics = [diagnostic]
       await buf.update('', diagnostics)
       let res = await buf.showVirtualTextCurrentLine(1)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
       helper.updateConfiguration('diagnostic.virtualTextCurrentLineOnly', true)
       buf.loadConfiguration()
       await buf.setState(false)
       res = await buf.showVirtualTextCurrentLine(1)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should change format of virtualText message', async () => {
@@ -317,7 +317,7 @@ describe('diagnostic buffer', () => {
       await buf.update('', [diagnostic])
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, virtualTextSrcId, 0, -1, { details: true }]) as any
       let texts = res[0][3].virt_text
-      expect(texts[0][0]).toBe(' test foo')
+      assert.strictEqual(texts[0][0], ' test foo')
     })
 
     it('should show virtual text on current line', async () => {
@@ -326,9 +326,9 @@ describe('diagnostic buffer', () => {
       let diagnostics = [diagnostic]
       await buf.update('', diagnostics)
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, virtualTextSrcId, 0, -1, { details: true }]) as any
-      expect(res.length).toBe(1)
+      assert.strictEqual(res.length, 1)
       let texts = res[0][3].virt_text
-      expect(texts[0]).toEqual([' foo', 'CocErrorVirtualText'])
+      assert.deepStrictEqual(texts[0], [' foo', 'CocErrorVirtualText'])
     })
 
     it('should show virtual text at window column', async () => {
@@ -338,9 +338,9 @@ describe('diagnostic buffer', () => {
       let diagnostics = [diagnostic]
       await buf.update('', diagnostics)
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, virtualTextSrcId, 0, -1, { details: true }]) as any
-      expect(res.length).toBe(1)
+      assert.strictEqual(res.length, 1)
       let texts = res[0][3].virt_text
-      expect(texts[0]).toEqual([' foo', 'CocErrorVirtualText'])
+      assert.deepStrictEqual(texts[0], [' foo', 'CocErrorVirtualText'])
     })
 
     it('should virtual text on all lines', async () => {
@@ -352,7 +352,7 @@ describe('diagnostic buffer', () => {
       ]
       await buf.update('', diagnostics)
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, virtualTextSrcId, 0, -1, { details: true }]) as any
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
 
     it('should filter by virtualTextLevel', async () => {
@@ -366,7 +366,7 @@ describe('diagnostic buffer', () => {
       ]
       await buf.update('', diagnostics)
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, virtualTextSrcId, 0, -1, { details: true }]) as any
-      expect(res.length).toBe(1)
+      assert.strictEqual(res.length, 1)
     })
 
     it('should limit virtual text count of one line', async () => {
@@ -379,7 +379,7 @@ describe('diagnostic buffer', () => {
       ]
       await buf.update('', diagnostics)
       let res = await nvim.call('nvim_buf_get_extmarks', [buf.bufnr, virtualTextSrcId, 0, -1, { details: true }]) as any
-      expect(res[0][3].virt_text.length).toBe(1)
+      assert.strictEqual(res[0][3].virt_text.length, 1)
     })
   })
 
@@ -393,8 +393,8 @@ describe('diagnostic buffer', () => {
       await nvim.call('setloclist', [0, [], 'r', { title: 'Diagnostics of coc', items: [] }])
       await buf.update('a', [createDiagnostic('foo')])
       let res = await nvim.eval(`getloclist(bufwinid(${buf.bufnr}))`) as any[]
-      expect(res.length).toBe(1)
-      expect(res[0].text).toBe('[test 999] foo [E]')
+      assert.strictEqual(res.length, 1)
+      assert.strictEqual(res[0].text, '[test 999] foo [E]')
     })
   })
 
@@ -411,7 +411,7 @@ describe('diagnostic buffer', () => {
       buf.clear()
       let buffer = await nvim.buffer
       let res = await buffer.getVar("coc_diagnostic_info")
-      expect(res == null).toBe(true)
+      assert.strictEqual(res == null, true)
     })
   })
 
@@ -424,7 +424,7 @@ describe('diagnostic buffer', () => {
       await helper.waitValue(async () => (await buf.doc.buffer.getVar('coc_diagnostic_info') as any)?.error, 1)
       await buf.reset({})
       let res = await buf.doc.buffer.getVar("coc_diagnostic_info") as any
-      expect(res?.error).toBe(0)
+      assert.strictEqual(res?.error, 0)
     })
 
     it('should not refresh when not enabled', async () => {
@@ -436,10 +436,10 @@ describe('diagnostic buffer', () => {
       await buf.setState(false)
       await buf.reset({ diagnostics: [createDiagnostic('bar')] })
       let res = await buf.doc.buffer.getVar("coc_diagnostic_info") as any
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
       await buf.setState(true)
       res = await buf.doc.buffer.getVar("coc_diagnostic_info") as any
-      expect(res?.error).toBe(1)
+      assert.strictEqual(res?.error, 1)
     })
   })
 
@@ -449,9 +449,9 @@ describe('diagnostic buffer', () => {
       await nvim.command(`bd! ${buf.bufnr}`)
       buf.dispose()
       let res = await buf.isEnabled()
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
       let arr = buf.getHighlightItems([])
-      expect(arr.length).toBe(0)
+      assert.strictEqual(arr.length, 0)
     })
   })
 
@@ -469,8 +469,8 @@ describe('diagnostic buffer', () => {
       diagnostics[0].tags = [DiagnosticTag.Unnecessary]
       diagnostics[1].tags = [DiagnosticTag.Deprecated]
       let res = buf.getHighlightItems(diagnostics)
-      expect(res.length).toBe(7)
-      expect(res.map(o => o.hlGroup)).toEqual([
+      assert.strictEqual(res.length, 7)
+      assert.deepStrictEqual(res.map(o => o.hlGroup), [
         'CocUnusedHighlight',
         'CocWarningHighlight',
         'CocErrorHighlight',
@@ -497,7 +497,7 @@ describe('diagnostic buffer', () => {
       })
       let res = buf.getDiagnosticsAt(Position.create(0, 1), false)
       let arr = res.map(o => o.message)
-      expect(arr).toEqual(['four', 'two', 'three', 'one'])
+      assert.deepStrictEqual(arr, ['four', 'two', 'three', 'one'])
     })
   })
 })

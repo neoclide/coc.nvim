@@ -51,12 +51,12 @@ describe('Connection Tests', () => {
       workspaceFolders: null,
     }
     await clientConnection.sendRequest(InitializeRequest.type, init)
-    expect(paramsCorrect).toBe(true)
+    assert.strictEqual(paramsCorrect, true)
   })
 
   it('should provide token', async () => {
     serverConnection.onRequest(DocumentSymbolRequest.type, params => {
-      expect(params.partialResultToken).toBe('3b1db4c9-e011-489e-a9d1-0653e64707c2')
+      assert.strictEqual(params.partialResultToken, '3b1db4c9-e011-489e-a9d1-0653e64707c2')
       return []
     })
 
@@ -77,7 +77,7 @@ describe('Connection Tests', () => {
       }
     }
     serverConnection.onRequest(DocumentSymbolRequest.type, async params => {
-      expect(params.partialResultToken).toBe('3b1db4c9-e011-489e-a9d1-0653e64707c2')
+      assert.strictEqual(params.partialResultToken, '3b1db4c9-e011-489e-a9d1-0653e64707c2')
       await serverConnection.sendProgress(progressType, params.partialResultToken, [result])
       return []
     })
@@ -91,12 +91,12 @@ describe('Connection Tests', () => {
       progressOK = (values !== undefined && values.length === 1)
     })
     await clientConnection.sendRequest(DocumentSymbolRequest.type, params)
-    expect(progressOK).toBeTruthy()
+    assert.ok(progressOK)
   })
 
   it('should provide workDoneToken', async () => {
     serverConnection.onRequest(DocumentSymbolRequest.type, params => {
-      expect(params.workDoneToken).toBe('3b1db4c9-e011-489e-a9d1-0653e64707c2')
+      assert.strictEqual(params.workDoneToken, '3b1db4c9-e011-489e-a9d1-0653e64707c2')
       return []
     })
 
@@ -109,7 +109,7 @@ describe('Connection Tests', () => {
 
   it('should report work done progress', async () => {
     serverConnection.onRequest(DocumentSymbolRequest.type, async params => {
-      expect(params.workDoneToken).toBe('3b1db4c9-e011-489e-a9d1-0653e64707c2')
+      assert.strictEqual(params.workDoneToken, '3b1db4c9-e011-489e-a9d1-0653e64707c2')
       await serverConnection.sendProgress(progressType, params.workDoneToken, {
         kind: 'begin',
         title: 'progress'
@@ -134,6 +134,6 @@ describe('Connection Tests', () => {
       result += value.kind
     })
     await clientConnection.sendRequest(DocumentSymbolRequest.type, params)
-    expect(result).toBe('beginreportend')
+    assert.strictEqual(result, 'beginreportend')
   })
 })

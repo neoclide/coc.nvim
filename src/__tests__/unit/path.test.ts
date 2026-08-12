@@ -2,7 +2,6 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { checkPath, collectEditUris, errorResult, folderPaths, globMatch, globVariants, textResult, toFsPath, toUri } from '../../mcp/tools/util'
 import workspace from '../../workspace'
 
@@ -23,17 +22,17 @@ afterAll(() => {
 
 describe('mcp path validation', () => {
   it('constructs results and normalizes paths', () => {
-    expect(textResult('text')).toEqual({ content: [{ type: 'text', text: 'text' }] })
-    expect(textResult('text', null).structuredContent).toBeNull()
-    expect(errorResult('bad')).toMatchObject({ isError: true })
+    assert.deepStrictEqual(textResult('text'), { content: [{ type: 'text', text: 'text' }] })
+    assert.strictEqual(textResult('text', null).structuredContent, null)
+    assert.strictEqual(errorResult('bad').isError, true)
     let uri = toUri(path.join(tmpdir, 'file.txt'))
-    expect(uri).toMatch(/^file:/)
-    expect(toUri('untitled://one')).toBe('untitled://one')
-    expect(toFsPath(uri)).toBe(path.join(tmpdir, 'file.txt'))
+    assert.match(uri, /^file:/)
+    assert.strictEqual(toUri('untitled://one'), 'untitled://one')
+    assert.strictEqual(toFsPath(uri), path.join(tmpdir, 'file.txt'))
   })
 
   it('collects every WorkspaceEdit URI form', () => {
-    expect(collectEditUris({
+    assert.deepStrictEqual(collectEditUris({
       changes: { 'file:///a': [] },
       documentChanges: [
         null,
@@ -42,46 +41,46 @@ describe('mcp path validation', () => {
         { oldUri: 'file:///d', newUri: 'file:///e' },
         { textDocument: { uri: 1 }, uri: 1 }
       ]
-    })).toEqual(['file:///a', 'file:///b', 'file:///c', 'file:///d', 'file:///e'])
-    expect(collectEditUris(null)).toEqual([])
-    expect(collectEditUris({ changes: null, documentChanges: {} })).toEqual([])
+    }), ['file:///a', 'file:///b', 'file:///c', 'file:///d', 'file:///e'])
+    assert.deepStrictEqual(collectEditUris(null), [])
+    assert.deepStrictEqual(collectEditUris({ changes: null, documentChanges: {} }), [])
   })
 
   it('matches glob variants for files, directories and missing paths', () => {
     let file = path.join(allowedDir, 'file.txt')
     fs.writeFileSync(file, 'x')
-    expect(globMatch(path.join(tmpdir, '**'), file)).toBe(true)
-    expect(globMatch(path.join(tmpdir, '**'), tmpdir)).toBe(true)
-    expect(globMatch(path.join(tmpdir, 'missing*'), path.join(tmpdir, 'missing.txt'))).toBe(true)
-    expect(globMatch('package.json', path.join(process.cwd(), 'package.json'))).toBe(true)
-    expect(globVariants('relative/**')).toEqual(['relative/**'])
-    expect(globVariants(file)[0]).toBe(file)
-    expect(folderPaths()).toEqual(workspace.folderPaths)
+    assert.strictEqual(globMatch(path.join(tmpdir, '**'), file), true)
+    assert.strictEqual(globMatch(path.join(tmpdir, '**'), tmpdir), true)
+    assert.strictEqual(globMatch(path.join(tmpdir, 'missing*'), path.join(tmpdir, 'missing.txt')), true)
+    assert.strictEqual(globMatch('package.json', path.join(process.cwd(), 'package.json')), true)
+    assert.deepStrictEqual(globVariants('relative/**'), ['relative/**'])
+    assert.strictEqual(globVariants(file)[0], file)
+    assert.deepStrictEqual(folderPaths(), workspace.folderPaths)
   })
 
   it('allows files inside the workspace root by default', () => {
-    expect(checkPath(path.join(process.cwd(), 'package.json'))).toBeNull()
+    assert.strictEqual(checkPath(path.join(process.cwd(), 'package.json')), null)
   })
 
   it('denies files outside the workspace when not opened', () => {
-    expect(checkPath('/etc/passwd')).not.toBeNull()
+    assert.notStrictEqual(checkPath('/etc/passwd'), null)
   })
 
   it('allows temporary directory reads but denies writes by default', () => {
     let file = path.join(os.tmpdir(), 'coc-mcp-tmp-read.txt')
-    expect(checkPath(file)).toBeNull()
-    expect(checkPath(file, { write: true })).not.toBeNull()
+    assert.strictEqual(checkPath(file), null)
+    assert.notStrictEqual(checkPath(file, { write: true }), null)
   })
 
   it('allows paths matching mcp.allowedPaths for writes', () => {
     workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [path.join(tmpdir, '**')] })
-    expect(checkPath(path.join(allowedDir, 'a.txt'), { write: true })).toBeNull()
+    assert.strictEqual(checkPath(path.join(allowedDir, 'a.txt'), { write: true }), null)
   })
 
   it('allows directory roots matching trailing /** globs', () => {
     workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [path.join(tmpdir, '**')] })
-    expect(checkPath(tmpdir)).toBeNull()
-    expect(checkPath(allowedDir)).toBeNull()
+    assert.strictEqual(checkPath(tmpdir), null)
+    assert.strictEqual(checkPath(allowedDir), null)
   })
 
   it('applies mcp.deniedPaths before mcp.allowedPaths', () => {
@@ -89,8 +88,8 @@ describe('mcp path validation', () => {
       'mcp.allowedPaths': [path.join(tmpdir, '**')],
       'mcp.deniedPaths': [path.join(allowedDir, 'secret*')]
     })
-    expect(checkPath(path.join(allowedDir, 'secret.txt'))).not.toBeNull()
-    expect(checkPath(path.join(allowedDir, 'ok.txt'))).toBeNull()
+    assert.notStrictEqual(checkPath(path.join(allowedDir, 'secret.txt')), null)
+    assert.strictEqual(checkPath(path.join(allowedDir, 'ok.txt')), null)
   })
 
   it('denies symlink paths that escape the workspace boundary', () => {
@@ -108,9 +107,9 @@ describe('mcp path validation', () => {
     })
     try {
       let throughLink = path.join(link, 'secret.txt')
-      expect(checkPath(throughLink)).not.toBeNull()
-      expect(checkPath(throughLink, { write: true })).not.toBeNull()
-      expect(checkPath(path.join(outside, 'secret.txt'))).not.toBeNull()
+      assert.notStrictEqual(checkPath(throughLink), null)
+      assert.notStrictEqual(checkPath(throughLink, { write: true }), null)
+      assert.notStrictEqual(checkPath(path.join(outside, 'secret.txt')), null)
     } finally {
       workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [], 'mcp.deniedPaths': [] })
       fs.rmSync(outside, { recursive: true, force: true })
@@ -132,13 +131,13 @@ describe('mcp path validation', () => {
     })
     try {
       let throughLink = path.join(link, 'secret.txt')
-      expect(checkPath(throughLink)).toBeNull()
+      assert.strictEqual(checkPath(throughLink), null)
       workspace.configurations.updateMemoryConfig({
         'mcp.allowedPaths': [path.join(tmpdir, '**'), path.join(outside, '**')],
         'mcp.deniedPaths': [path.join(outside, 'secret*')]
       })
-      expect(checkPath(throughLink)).not.toBeNull()
-      expect(checkPath(path.join(outside, 'ok.txt'))).toBeNull()
+      assert.notStrictEqual(checkPath(throughLink), null)
+      assert.strictEqual(checkPath(path.join(outside, 'ok.txt')), null)
     } finally {
       workspace.configurations.updateMemoryConfig({ 'mcp.allowedPaths': [], 'mcp.deniedPaths': [] })
       fs.rmSync(outside, { recursive: true, force: true })

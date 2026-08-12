@@ -291,15 +291,15 @@ describe('Client integration', () => {
     testFeature(DocumentDiagnosticRequest.method, 'document')
   })
 
-  test('warn and show output', async () => {
+  test('warn and show output', async (t) => {
     global.__showOutput = true
     let called = false
-    let spy = vi.spyOn(client.outputChannel, 'show').mockImplementation(() => {
+    let spy = t.mock.method(client.outputChannel, 'show', () => {
       called = true
     })
     client.warn(undefined, { x: 1 }, true)
     await helper.waitValue(() => called, true)
-    spy.mockRestore()
+    spy.mock.restore()
   })
 
   test('Goto Definition', async () => {
@@ -469,7 +469,7 @@ describe('Client integration', () => {
     assert.strictEqual(action.command?.title, 'title')
     assert.strictEqual(action.command?.command, 'test_command')
     let response = await commands.execute(action.command)
-    expect(response).toEqual({ success: true })
+    assert.deepStrictEqual(response, { success: true })
 
     const resolved = (await provider.resolveCodeAction(result[0], tokenSource.token))
     assert.strictEqual(resolved?.title, 'resolved')
@@ -499,19 +499,19 @@ describe('Client integration', () => {
     let res = (await provider.provideCodeActions(textDocument, range, {
       diagnostics: []
     }, tokenSource.token)) as CodeAction[]
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
   })
 
   test('CodeLens', async () => {
     let feature = client.getFeature(CodeLensRequest.method)
     let state = feature.getState()
-    expect((state as any).registrations).toBe(true)
-    expect((state as any).matches).toBe(true)
+    assert.strictEqual((state as any).registrations, true)
+    assert.strictEqual((state as any).matches, true)
     let tokenSource = new CancellationTokenSource()
     let codeLens = await languages.getCodeLens(document, tokenSource.token)
-    expect(codeLens.length).toBe(2)
+    assert.strictEqual(codeLens.length, 2)
     let resolved = await languages.resolveCodeLens(codeLens[0], tokenSource.token)
-    expect(resolved.command).toBeDefined()
+    assert.notStrictEqual(resolved.command, undefined)
     let fireRefresh = false
     let provider = feature.getProvider(document)
     provider.onDidChangeCodeLensEmitter.event(() => {
@@ -867,7 +867,7 @@ describe('Client integration', () => {
     const provider = client.getFeature(CallHierarchyPrepareRequest.method).getProvider(document)
     isDefined(provider)
     const result = (await provider.prepareCallHierarchy(document, position, tokenSource.token)) as CallHierarchyItem[]
-    expect(result.length).toBe(1)
+    assert.strictEqual(result.length, 1)
 
     let middlewareCalled = false
     middleware.prepareCallHierarchy = (d, p, t, n) => {
@@ -880,7 +880,7 @@ describe('Client integration', () => {
 
     const item = result[0]
     const incoming = (await provider.provideCallHierarchyIncomingCalls(item, tokenSource.token)) as CallHierarchyIncomingCall[]
-    expect(incoming.length).toBe(1)
+    assert.strictEqual(incoming.length, 1)
     assert.deepEqual(incoming[0].from, item)
     middlewareCalled = false
     middleware.provideCallHierarchyIncomingCalls = (i, t, n) => {
@@ -892,7 +892,7 @@ describe('Client integration', () => {
     assert.strictEqual(middlewareCalled, true)
 
     const outgoing = (await provider.provideCallHierarchyOutgoingCalls(item, tokenSource.token)) as CallHierarchyOutgoingCall[]
-    expect(outgoing.length).toBe(1)
+    assert.strictEqual(outgoing.length, 1)
     assert.deepEqual(outgoing[0].to, item)
     middlewareCalled = false
     middleware.provideCallHierarchyOutgoingCalls = (i, t, n) => {
@@ -1402,10 +1402,10 @@ describe('Client integration', () => {
   test('Inlay Hints', async () => {
     let feature = client.getFeature(InlayHintRequest.method) as InlayHintsFeature
     const providerData = feature.getProvider(document)
-    expect(feature.getProvider(TextDocument.create('term:///1', 'foo', 1, '\n'))).toBeUndefined()
+    assert.strictEqual(feature.getProvider(TextDocument.create('term:///1', 'foo', 1, '\n')), undefined)
     feature.register({ id: crypto.randomUUID(), registerOptions: { documentSelector: null } })
     let res = feature.getRegistration([], { id: '1', workDoneProgress: '' } as any)
-    expect(res).toEqual([undefined, undefined])
+    assert.deepStrictEqual(res, [undefined, undefined])
     isDefined(providerData)
     const provider = providerData.provider
     const results = (await provider.provideInlayHints(document, range, tokenSource.token))
@@ -1486,7 +1486,7 @@ describe('Client integration', () => {
     const result = await provider.provideTextDocumentContent(URI.parse('content-test:///test.txt'), tokenSource.token)
     assert.strictEqual(result, 'Some test content')
     feature.unregister('foo')
-    expect(feature.getState()).toBeDefined()
+    assert.notStrictEqual(feature.getState(), undefined)
 
     let middlewareCalled = false
     middleware.provideTextDocumentContent = (uri, token, next) => {
@@ -1529,7 +1529,7 @@ describe('Client integration', () => {
     assert.strictEqual(middlewareCallCount, 2)
   })
 
-  test('applyEdit middleware', async () => {
+  test('applyEdit middleware', async (t) => {
     const middlewareEvents: Array<ApplyWorkspaceEditParams> = []
     let currentProgressResolver: (value: unknown) => void | undefined
     let error = false
@@ -1557,7 +1557,7 @@ describe('Client integration', () => {
     assert.strictEqual(middlewareEvents[0].label, 'Apply Edit')
     error = true
     let called = false
-    let spy = vi.spyOn(client, 'error').mockImplementation(() => {
+    let spy = t.mock.method(client, 'error', () => {
       called = true
     })
     await client.sendRequest(
@@ -1567,7 +1567,7 @@ describe('Client integration', () => {
     )
     await helper.waitValue(() => called, true)
     middleware.workspace.handleApplyEdit = undefined
-    spy.mockRestore()
+    spy.mock.restore()
   })
 })
 
@@ -1629,21 +1629,21 @@ describe('sever tests', () => {
     await client.stop(10)
   })
 
-  test('Server can not be stopped when connection not exists', async () => {
+  test('Server can not be stopped when connection not exists', async (t) => {
     const serverOptions: ServerOptions = {
       module: path.join(__dirname, './server/testServer.js'),
       transport: TransportKind.ipc,
     }
     const clientOptions: LanguageClientOptions = {}
     const client = new LanguageClient('test svr', 'Test Language Server', serverOptions, clientOptions)
-    let spy = vi.spyOn(client, 'createConnection' as any).mockReturnValue(Promise.reject(new Error('myerror')))
+    let spy = t.mock.method(client, 'createConnection' as any, () => (Promise.reject(new Error('myerror'))))
     await assert.rejects(async () => {
       await client.start()
     }, Error)
     await assert.rejects(async () => {
       await client.stop()
     }, /Client is not running and can't be stopped/)
-    spy.mockRestore()
+    spy.mock.restore()
   })
 
   test('state change events', async () => {

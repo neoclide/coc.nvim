@@ -66,7 +66,7 @@ afterAll(async () => {
 describe('FileSystemWatcherFeature', () => {
   it('should hook file events from client configuration', async () => {
     let res = asRelativePattern({ baseUri: { name: 'name', uri: '/tmp' }, pattern: '**' })
-    expect(res.baseUri.fsPath).toBe('/tmp')
+    assert.strictEqual(res.baseUri.fsPath, '/tmp')
     let client: LanguageClient
     let watcher = new CustomWatcher()
     let called = false
@@ -87,26 +87,26 @@ describe('FileSystemWatcherFeature', () => {
       received = params.changes
     })
     await client.start()
-    expect(called).toBe(false)
+    assert.strictEqual(called, false)
     client.notifyFileEvent(undefined)
     await helper.wait(20)
     let uri = URI.file(__filename)
     watcher.fireCreate(uri)
-    expect(called).toBe(true)
+    assert.strictEqual(called, true)
     watcher.fireChange(uri)
     watcher.fireDelete(uri)
-    expect(changes).toEqual([1, 2, 3])
+    assert.deepStrictEqual(changes, [1, 2, 3])
     await helper.waitValue(() => {
       return received?.length
     }, 3)
     await client.stop()
-    expect(received[2]).toEqual({
+    assert.deepStrictEqual(received[2], {
       uri: uri.toString(),
       type: 3
     })
   })
 
-  it('should work with single watcher', async () => {
+  it('should work with single watcher', async (t) => {
     let client: LanguageClient
     let watcher = new CustomWatcher()
     client = createClient(watcher, {})
@@ -121,13 +121,13 @@ describe('FileSystemWatcherFeature', () => {
       return received?.length
     }, 1)
     let called = false
-    let spy = vi.spyOn(client, 'sendNotification').mockImplementation(() => {
+    let spy = t.mock.method(client, 'sendNotification', () => {
       called = true
       return Promise.reject(new Error('myerror'))
     })
     watcher.fireChange(uri)
     await helper.waitValue(() => called, true)
-    spy.mockRestore()
+    spy.mock.restore()
     await client.stop()
   })
 

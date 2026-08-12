@@ -72,7 +72,7 @@ describe('Colors', () => {
     it('should get hex string', () => {
       let color = getColor(255, 255, 255)
       let hex = toHexString(color)
-      expect(hex).toBe('ffffff')
+      assert.strictEqual(hex, 'ffffff')
     })
   })
 
@@ -81,13 +81,13 @@ describe('Colors', () => {
       let doc = await helper.createDocument()
       helper.updateConfiguration('colors.filetypes', [])
       let enabled = colors.isEnabled(doc.bufnr)
-      expect(enabled).toBe(false)
+      assert.strictEqual(enabled, false)
       helper.updateConfiguration('colors.enable', true)
       enabled = colors.isEnabled(doc.bufnr)
-      expect(enabled).toBe(true)
+      assert.strictEqual(enabled, true)
       helper.updateConfiguration('colors.enable', false)
       enabled = colors.isEnabled(doc.bufnr)
-      expect(enabled).toBe(false)
+      assert.strictEqual(enabled, false)
     })
   })
 
@@ -100,7 +100,7 @@ describe('Colors', () => {
       await colors.doHighlight(doc.bufnr)
       await commands.executeCommand('editor.action.pickColor')
       let line = await nvim.getLine()
-      expect(line).toBe('#000000')
+      assert.strictEqual(line, '#000000')
     })
 
     it('should register editor.action.colorPresentation command', async () => {
@@ -114,7 +114,7 @@ describe('Colors', () => {
       await nvim.input('1')
       await p
       let line = await nvim.getLine()
-      expect(line).toBe('red')
+      assert.strictEqual(line, 'red')
     })
 
     it('should register document.toggleColors command', async () => {
@@ -122,15 +122,15 @@ describe('Colors', () => {
       helper.updateConfiguration('colors.enable', true)
       let doc = await workspace.document
       await events.fire('BufUnload', [doc.bufnr])
-      await expect(commands.executeCommand('document.toggleColors')).rejects.toThrow(Error)
+      await assert.rejects(commands.executeCommand('document.toggleColors'), Error)
       doc = await helper.createDocument()
-      expect(colors.isEnabled(doc.bufnr)).toBe(true)
+      assert.strictEqual(colors.isEnabled(doc.bufnr), true)
       await commands.executeCommand('document.toggleColors')
       let enabled = colors.isEnabled(doc.bufnr)
-      expect(enabled).toBe(false)
+      assert.strictEqual(enabled, false)
       await commands.executeCommand('document.toggleColors')
       enabled = colors.isEnabled(doc.bufnr)
-      expect(enabled).toBe(true)
+      assert.strictEqual(enabled, true)
     })
   })
 
@@ -160,10 +160,10 @@ describe('Colors', () => {
       await nvim.setLine('#ffffff #ff0000')
       await doc.synchronize()
       let colors = await languages.provideDocumentColors(doc.textDocument, CancellationToken.None)
-      expect(colors.length).toBe(3)
+      assert.strictEqual(colors.length, 3)
       let color = ColorInformation.create(Range.create(0, 0, 1, 0), getColor(0, 0, 0))
       let presentation = await languages.provideColorPresentations(color, doc.textDocument, CancellationToken.None)
-      expect(presentation).toEqual([])
+      assert.deepStrictEqual(presentation, [])
     })
 
     it('should clearHighlight on empty result', async () => {
@@ -172,7 +172,7 @@ describe('Colors', () => {
       state = 'empty'
       await colors.doHighlight(doc.bufnr)
       let res = colors.hasColor(doc.bufnr)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should highlight after ColorScheme event', async () => {
@@ -181,7 +181,7 @@ describe('Colors', () => {
       await doc.synchronize()
       await colors.doHighlight(doc.bufnr)
       await events.fire('ColorScheme', [])
-      expect(colors.hasColor(doc.bufnr)).toBe(true)
+      assert.strictEqual(colors.hasColor(doc.bufnr), true)
     })
 
     it('should not throw on error result', async () => {
@@ -194,20 +194,20 @@ describe('Colors', () => {
       } catch (e) {
         err = e
       }
-      expect(err).toBeUndefined()
+      assert.strictEqual(err, undefined)
     })
 
     it('should highlight after document changed', async () => {
       let doc = await helper.createDocument()
       await colors.doHighlight(doc.bufnr)
-      expect(colors.hasColor(doc.bufnr)).toBe(false)
-      expect(colors.hasColorAtPosition(doc.bufnr, Position.create(0, 1))).toBe(false)
+      assert.strictEqual(colors.hasColor(doc.bufnr), false)
+      assert.strictEqual(colors.hasColorAtPosition(doc.bufnr, Position.create(0, 1)), false)
       await nvim.setLine('#ffffff #ff0000')
       await doc.synchronize()
       await helper.waitValue(() => {
         return colors.hasColorAtPosition(doc.bufnr, Position.create(0, 1))
       }, true)
-      expect(colors.hasColor(doc.bufnr)).toBe(true)
+      assert.strictEqual(colors.hasColor(doc.bufnr), true)
     })
 
     it('should clearHighlight on clearHighlight', async () => {
@@ -215,9 +215,9 @@ describe('Colors', () => {
       await nvim.setLine('#ffffff #ff0000')
       await doc.synchronize()
       await colors.doHighlight(doc.bufnr)
-      expect(colors.hasColor(doc.bufnr)).toBe(true)
+      assert.strictEqual(colors.hasColor(doc.bufnr), true)
       colors.clearHighlight(doc.bufnr)
-      expect(colors.hasColor(doc.bufnr)).toBe(false)
+      assert.strictEqual(colors.hasColor(doc.bufnr), false)
     })
 
     it('should highlight colors', async () => {
@@ -225,7 +225,7 @@ describe('Colors', () => {
       await nvim.setLine('#ffffff')
       await colors.doHighlight(doc.bufnr)
       let exists = await nvim.call('hlexists', 'BGffffff')
-      expect(exists).toBe(1)
+      assert.strictEqual(exists, 1)
     })
   })
 
@@ -233,14 +233,14 @@ describe('Colors', () => {
     it('should return false when bufnr does not exist', async () => {
       let res = colors.hasColor(99)
       colors.clearHighlight(99)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
   })
 
   describe('getColorInformation()', () => {
     it('should return null when highlighter does not exist', async () => {
       let res = await colors.getColorInformation(99)
-      expect(res).toBe(null)
+      assert.strictEqual(res, null)
     })
 
     it('should return null when color not found', async () => {
@@ -250,14 +250,14 @@ describe('Colors', () => {
       await colors.doHighlight(doc.bufnr)
       await nvim.call('cursor', [1, 12])
       let res = await colors.getColorInformation(doc.bufnr)
-      expect(res).toBe(null)
+      assert.strictEqual(res, null)
     })
   })
 
   describe('hasColorAtPosition()', () => {
     it('should return false when bufnr does not exist', async () => {
       let res = colors.hasColorAtPosition(99, Position.create(0, 0))
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
   })
 
@@ -266,7 +266,7 @@ describe('Colors', () => {
       await helper.createDocument()
       await colors.pickPresentation()
       let msg = await helper.getCmdline()
-      expect(msg).toMatch('Color not found')
+      assert.ok((msg).includes('Color not found'))
     })
 
     it('should not throw when presentations do not exist', async () => {
@@ -290,7 +290,7 @@ describe('Colors', () => {
       await nvim.input('1')
       await p
       let line = await nvim.getLine()
-      expect(line).toBe('red')
+      assert.strictEqual(line, 'red')
     })
   })
 
@@ -299,7 +299,7 @@ describe('Colors', () => {
       await helper.createDocument()
       await colors.pickColor()
       let msg = await helper.getCmdline()
-      expect(msg).toMatch('not found')
+      assert.ok((msg).includes('not found'))
     })
 
     it('should pickColor', async () => {
@@ -310,7 +310,7 @@ describe('Colors', () => {
       await colors.doHighlight(doc.bufnr)
       await helper.doAction('pickColor')
       let line = await nvim.getLine()
-      expect(line).toBe('#000000')
+      assert.strictEqual(line, '#000000')
     })
 
     it('should not throw when pick color return 0', async () => {
@@ -321,7 +321,7 @@ describe('Colors', () => {
       await colors.doHighlight(doc.bufnr)
       await helper.doAction('pickColor')
       let line = await nvim.getLine()
-      expect(line).toBe('#ffffff')
+      assert.strictEqual(line, '#ffffff')
     })
 
     it('should return null when provider not exists', async () => {
@@ -329,7 +329,7 @@ describe('Colors', () => {
       let doc = await workspace.document
       let color = ColorInformation.create(Range.create(0, 0, 0, 6), Color.create(100, 100, 100, 0))
       let res = await languages.provideColorPresentations(color, doc.textDocument, CancellationToken.None)
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
     })
   })
 })

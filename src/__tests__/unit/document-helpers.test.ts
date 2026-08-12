@@ -4,7 +4,6 @@ import os from 'os'
 import path from 'path'
 import { Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   lineWindow,
   readDiskText,
@@ -28,24 +27,24 @@ describe('mcp document helpers', () => {
   })
 
   it('reads complete files and reports disk errors', () => {
-    expect(readDiskText(URI.file(file).toString()).text).toBe('alpha\nbeta\ngamma\n')
+    assert.strictEqual(readDiskText(URI.file(file).toString()).text, 'alpha\nbeta\ngamma\n')
     let missing = readDiskText(URI.file(path.join(tmpdir, 'missing.txt')).toString())
-    expect(missing.text).toBe('')
-    expect(missing.error).toBeTruthy()
+    assert.strictEqual(missing.text, '')
+    assert.ok(missing.error)
   })
 
   it('reads line windows and reports disk errors', async () => {
-    expect((await readDiskWindow(URI.file(file).toString(), 1, 3)).lines).toEqual(['beta', 'gamma'])
+    assert.deepStrictEqual((await readDiskWindow(URI.file(file).toString(), 1, 3)).lines, ['beta', 'gamma'])
     let missing = await readDiskWindow(URI.file(path.join(tmpdir, 'missing.txt')).toString(), 0, 1)
-    expect(missing.lines).toEqual([])
-    expect(missing.error).toBeTruthy()
+    assert.deepStrictEqual(missing.lines, [])
+    assert.ok(missing.error)
   })
 
   it('reconstructs empty, single-line and multiline ranges', () => {
-    expect(windowToRangeText([], Range.create(0, 0, 0, 0))).toBe('')
-    expect(windowToRangeText(['abcdef'], Range.create(0, 1, 0, 4))).toBe('bcd')
-    expect(windowToRangeText(['abc', 'def'], Range.create(0, 1, 1, 2))).toBe('bc\nde')
-    expect(windowToRangeText(['abc', 'middle', 'def'], Range.create(0, 1, 2, 2))).toBe('bc\nmiddle\nde')
+    assert.strictEqual(windowToRangeText([], Range.create(0, 0, 0, 0)), '')
+    assert.strictEqual(windowToRangeText(['abcdef'], Range.create(0, 1, 0, 4)), 'bcd')
+    assert.strictEqual(windowToRangeText(['abc', 'def'], Range.create(0, 1, 1, 2)), 'bc\nde')
+    assert.strictEqual(windowToRangeText(['abc', 'middle', 'def'], Range.create(0, 1, 2, 2)), 'bc\nmiddle\nde')
   })
 
   it('reads normalized line windows from documents', () => {
@@ -53,9 +52,9 @@ describe('mcp document helpers', () => {
       lineCount: 3,
       getLines: (start: number, end: number) => ['zero', 'one', 'two'].slice(start, end)
     } as any
-    expect(lineWindow(doc, undefined, undefined)).toBe('zero\none\ntwo')
-    expect(lineWindow(doc, -5, 2)).toBe('zero\none')
-    expect(lineWindow(doc, 2, 2)).toBe('')
+    assert.strictEqual(lineWindow(doc, undefined, undefined), 'zero\none\ntwo')
+    assert.strictEqual(lineWindow(doc, -5, 2), 'zero\none')
+    assert.strictEqual(lineWindow(doc, 2, 2), '')
   })
 
   it('validates and converts text edits', () => {
@@ -65,7 +64,7 @@ describe('mcp document helpers', () => {
         newText: 'x'
       }]
     }
-    expect(toTextEdits(args)).toEqual([{ range: Range.create(0, 1, 0, 2), newText: 'x' }])
+    assert.deepStrictEqual(toTextEdits(args), [{ range: Range.create(0, 1, 0, 2), newText: 'x' }])
     for (let edits of [
       undefined,
       [],
@@ -77,7 +76,7 @@ describe('mcp document helpers', () => {
       [{ range: { start: { line: 0, character: 0 }, end: {} }, newText: 'x' }],
       [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, newText: 1 }]
     ]) {
-      expect(toTextEdits({ edits })).toBeNull()
+      assert.strictEqual(toTextEdits({ edits }), null)
     }
   })
 })

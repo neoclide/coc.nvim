@@ -25,27 +25,27 @@ describe('styles', () => {
     let keys = ['gray', 'magenta', 'bold', 'underline', 'italic', 'strikethrough', 'yellow', 'green', 'blue']
     for (let key of keys) {
       let res = styles[key]('text')
-      expect(res).toContain('text')
+      assert.ok((res).includes('text'))
     }
   })
 })
 
 describe('Renderer of marked', () => {
   it('should convert', () => {
-    expect(identify('  ', '')).toBe('')
-    expect(fixHardReturn('a\rb', true)).toBe('a\nb')
-    expect(toSpaces('ab')).toBe('  ')
-    expect(toSpecialSpaces('ab')).toBe('\0\0\0\0\0\0')
-    expect(bulletPointLine('  ', '  * foo')).toBe('  * foo')
-    expect(bulletPointLine('  ', 'foo')).toBe('\0\0\0\0\0\0foo')
-    expect(bulletPointLine('  ', '\0\0\0foo')).toBe('\0\0\0foo')
-    expect(generateTableRow('')).toEqual([])
-    expect(numberedLine('  ', 'foo', 1).line).toBe('   foo')
+    assert.strictEqual(identify('  ', ''), '')
+    assert.strictEqual(fixHardReturn('a\rb', true), 'a\nb')
+    assert.strictEqual(toSpaces('ab'), '  ')
+    assert.strictEqual(toSpecialSpaces('ab'), '\0\0\0\0\0\0')
+    assert.strictEqual(bulletPointLine('  ', '  * foo'), '  * foo')
+    assert.strictEqual(bulletPointLine('  ', 'foo'), '\0\0\0\0\0\0foo')
+    assert.strictEqual(bulletPointLine('  ', '\0\0\0foo'), '\0\0\0foo')
+    assert.deepStrictEqual(generateTableRow(''), [])
+    assert.strictEqual(numberedLine('  ', 'foo', 1).line, '   foo')
   })
 
   it('should create bold highlights', () => {
     let res = parse('**note**.')
-    expect(res.highlights[0]).toEqual({
+    assert.deepStrictEqual(res.highlights[0], {
       span: [0, 4],
       hlGroup: 'CocBold'
     })
@@ -53,7 +53,7 @@ describe('Renderer of marked', () => {
 
   it('should create italic highlights', () => {
     let res = parse('_note_.')
-    expect(res.highlights[0]).toEqual({
+    assert.deepStrictEqual(res.highlights[0], {
       span: [0, 4],
       hlGroup: 'CocItalic'
     })
@@ -61,17 +61,17 @@ describe('Renderer of marked', () => {
 
   it('should create underline highlights for link', () => {
     let res = parse('[baidu](https://baidu.com)')
-    expect(res.highlights[0]).toEqual({
+    assert.deepStrictEqual(res.highlights[0], {
       span: [0, 5],
       hlGroup: 'CocMarkdownLink'
     })
     res = parse('https://baidu.com')
-    expect(res.highlights[0]).toEqual({
+    assert.deepStrictEqual(res.highlights[0], {
       span: [0, 17],
       hlGroup: 'CocUnderline'
     })
     res = parse('https://baidu.com/%25E0%25A4%25A')
-    expect(res.line).toBe('')
+    assert.strictEqual(res.line, '')
   })
 
   it('should parse link', () => {
@@ -80,14 +80,14 @@ describe('Renderer of marked', () => {
     let link = 'https://doc.rust-lang.org/nightly/core/iter/traits/iterator/Iterator.t.html#map.v'
     let parsed = marked(link)
     let res = parseAnsiHighlights(parsed.split(/\n/)[0], true)
-    expect(res.line).toEqual(link)
-    expect(res.highlights.length).toBeGreaterThan(0)
-    expect(res.highlights[0].hlGroup).toBe('CocUnderline')
+    assert.deepStrictEqual(res.line, link)
+    assert.ok((res.highlights.length) > (0))
+    assert.strictEqual(res.highlights[0].hlGroup, 'CocUnderline')
   })
 
   it('should create highlight for code span', () => {
     let res = parse('`let foo = "bar"`')
-    expect(res.highlights[0]).toEqual({
+    assert.deepStrictEqual(res.highlights[0], {
       span: [0, 15],
       hlGroup: 'CocMarkdownCode'
     })
@@ -95,17 +95,17 @@ describe('Renderer of marked', () => {
 
   it('should create header highlights', () => {
     let res = parse('# header')
-    expect(res.highlights[0]).toEqual({
+    assert.deepStrictEqual(res.highlights[0], {
       span: [0, 6],
       hlGroup: 'CocMarkdownHeader'
     })
     res = parse('## header')
-    expect(res.highlights[0]).toEqual({
+    assert.deepStrictEqual(res.highlights[0], {
       span: [0, 6],
       hlGroup: 'CocMarkdownHeader'
     })
     res = parse('### header')
-    expect(res.highlights[0]).toEqual({
+    assert.deepStrictEqual(res.highlights[0], {
       span: [0, 6],
       hlGroup: 'CocMarkdownHeader'
     })
@@ -113,18 +113,18 @@ describe('Renderer of marked', () => {
 
   it('should indent blockquote', () => {
     let res = parse('> header')
-    expect(res.line).toBe('  header')
+    assert.strictEqual(res.line, '  header')
   })
 
   it('should parse image', async () => {
     let res = parse('![title](http://www.baidu.com)')
-    expect(res.line).toMatch('baidu')
+    assert.ok((res.line).includes('baidu'))
   })
 
   it('should preserve code block', () => {
     let text = '``` js\nconsole.log("foo")\n```'
     let m = marked(text)
-    expect(m.split('\n')).toEqual([
+    assert.deepStrictEqual(m.split('\n'), [
       '``` js',
       'console.log("foo")',
       '```',
@@ -140,6 +140,6 @@ describe('Renderer of marked', () => {
 | Paragraph   | Text        |
 `
     let res = marked(text)
-    expect(res).toContain('Syntax')
+    assert.ok((res).includes('Syntax'))
   })
 })

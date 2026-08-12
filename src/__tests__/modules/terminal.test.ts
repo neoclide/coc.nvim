@@ -19,7 +19,7 @@ afterAll(async () => {
 describe('terminal properties', () => {
   it('should get name', () => {
     let name = terminal.name
-    expect(name).toBe('sh')
+    assert.strictEqual(name, 'sh')
   })
 
   it('should have correct cwd and env', async () => {
@@ -27,29 +27,29 @@ describe('terminal properties', () => {
     terminal.sendText('echo $PWD')
     await helper.waitFor('eval', [`join(getbufline(${bufnr},1,'$'),'\n')`], /\S/)
     let lines = await nvim.call('getbufline', [bufnr, 1, '$']) as string[]
-    expect(lines[0].trim().length).toBeGreaterThan(0)
+    assert.ok((lines[0].trim().length) > (0))
     terminal.sendText('echo $COC_TERMINAL')
     await helper.waitFor('eval', [`join(getbufline(${bufnr},1,'$'),'\n')`], /option '-term'/)
     lines = await nvim.call('getbufline', [bufnr, 1, '$']) as string[]
-    expect(lines.includes(`option '-term'`)).toBe(true)
+    assert.strictEqual(lines.includes(`option '-term'`), true)
     terminal.onExit(-1)
   })
 
   it('should get pid', async () => {
     let pid = await terminal.processId
-    expect(typeof pid).toBe('number')
+    assert.strictEqual(typeof pid, 'number')
   })
 
   it('should hide terminal window', async () => {
     await terminal.hide()
     let winnr = await nvim.call('bufwinnr', terminal.bufnr)
-    expect(winnr).toBe(-1)
+    assert.strictEqual(winnr, -1)
   })
 
   it('should show terminal window', async () => {
     await terminal.show()
     let winnr = await nvim.call('bufwinnr', terminal.bufnr)
-    expect(winnr != -1).toBe(true)
+    assert.strictEqual(winnr != -1, true)
   })
 
   it('should  not throw when not shown', async () => {

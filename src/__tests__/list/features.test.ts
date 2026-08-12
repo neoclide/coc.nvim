@@ -250,8 +250,8 @@ afterEach(async () => {
 
 describe('List util', () => {
   it('should get list score', () => {
-    expect(mruScore(['foo'], 'foo')).toBe(1)
-    expect(mruScore([], 'foo')).toBe(-1)
+    assert.strictEqual(mruScore(['foo'], 'foo'), 1)
+    assert.strictEqual(mruScore([], 'foo'), -1)
   })
 })
 
@@ -262,48 +262,48 @@ describe('BasicList util', () => {
   })
 
   it('should get filetype', async () => {
-    expect(toVimFiletype('latex')).toBe('tex')
-    expect(toVimFiletype('foo')).toBe('foo')
+    assert.strictEqual(toVimFiletype('latex'), 'tex')
+    assert.strictEqual(toVimFiletype('foo'), 'foo')
   })
 
   it('should convert uri', async () => {
     let uri = URI.file(__filename).toString()
     let res = await list.convertLocation(uri)
-    expect(res.uri).toBe(uri)
+    assert.strictEqual(res.uri, uri)
   })
 
   it('should convert location with line', async () => {
     let uri = URI.file(__filename).toString()
     let res = await list.convertLocation({ uri, line: 'convertLocation()', text: 'convertLocation' })
-    expect(res.uri).toBe(uri)
+    assert.strictEqual(res.uri, uri)
     res = await list.convertLocation({ uri, line: 'convertLocation()' })
-    expect(res.uri).toBe(uri)
+    assert.strictEqual(res.uri, uri)
   })
 
   it('should convert location with custom schema', async () => {
     let uri = 'test:///foo'
     let res = await list.convertLocation({ uri, line: 'convertLocation()' })
-    expect(res.uri).toBe(uri)
+    assert.strictEqual(res.uri, uri)
   })
 })
 
 describe('Outline util', () => {
   it('should getFilterText', () => {
-    expect(getFilterText(DocumentSymbol.create('name', '', SymbolKind.Function, Range.create(0, 0, 0, 1), Range.create(0, 0, 0, 1)), 'kind')).toBe('name')
-    expect(getFilterText(DocumentSymbol.create('name', '', SymbolKind.Function, Range.create(0, 0, 0, 1), Range.create(0, 0, 0, 1)), '')).toBe('nameFunction')
+    assert.strictEqual(getFilterText(DocumentSymbol.create('name', '', SymbolKind.Function, Range.create(0, 0, 0, 1), Range.create(0, 0, 0, 1)), 'kind'), 'name')
+    assert.strictEqual(getFilterText(DocumentSymbol.create('name', '', SymbolKind.Function, Range.create(0, 0, 0, 1), Range.create(0, 0, 0, 1)), ''), 'nameFunction')
   })
 
-  it('should load items by ctags', async () => {
+  it('should load items by ctags', async (t) => {
     let doc = await workspace.document
-    let spy = vi.spyOn(which, 'sync').mockImplementation(() => {
+    let spy = t.mock.method(which, 'sync', () => {
       return ''
     })
     let items = await loadCtagsSymbols(doc, nvim, CancellationToken.None)
-    expect(items).toEqual([])
-    spy.mockRestore()
+    assert.deepStrictEqual(items, [])
+    spy.mock.restore()
     doc = await helper.createDocument(__filename)
     items = await loadCtagsSymbols(doc, nvim, CancellationToken.None)
-    expect(Array.isArray(items)).toBe(true)
+    assert.strictEqual(Array.isArray(items), true)
   })
 
   it('should convert symbols to list items', async () => {
@@ -311,81 +311,81 @@ describe('Outline util', () => {
     symbols.push(DocumentSymbol.create('function', '', SymbolKind.Function, Range.create(1, 0, 1, 1), Range.create(1, 0, 1, 1)))
     symbols.push(DocumentSymbol.create('class', '', SymbolKind.Class, Range.create(0, 0, 0, 1), Range.create(0, 0, 0, 1)))
     let items = symbolsToListItems(symbols, 'lsp:/1', 'class')
-    expect(items.length).toBe(1)
-    expect(items[0].data.kind).toBe('Class')
+    assert.strictEqual(items.length, 1)
+    assert.strictEqual(items[0].data.kind, 'Class')
   })
 
   it('should convert to list items', async () => {
     let doc = await workspace.document
-    expect(contentToItems('a\tb\t2\td\n\n', doc).length).toBe(1)
+    assert.strictEqual(contentToItems('a\tb\t2\td\n\n', doc).length, 1)
   })
 })
 
 describe('Extensions util', () => {
   it('should sortExtensionItem', () => {
-    expect(sortExtensionItem({ data: { priority: 1 } }, { data: { priority: 0 } })).toBe(-1)
-    expect(sortExtensionItem({ data: { id: 'a' } }, { data: { id: 'b' } })).toBe(1)
-    expect(sortExtensionItem({ data: { id: 'b' } }, { data: { id: 'a' } })).toBe(-1)
+    assert.strictEqual(sortExtensionItem({ data: { priority: 1 } }, { data: { priority: 0 } }), -1)
+    assert.strictEqual(sortExtensionItem({ data: { id: 'a' } }, { data: { id: 'b' } }), 1)
+    assert.strictEqual(sortExtensionItem({ data: { id: 'b' } }, { data: { id: 'a' } }), -1)
   })
 
   it('should get extension prefix', () => {
-    expect(getExtensionPrefix('')).toBe('+')
-    expect(getExtensionPrefix('disabled')).toBe('-')
-    expect(getExtensionPrefix('activated')).toBe('*')
-    expect(getExtensionPrefix('unknown')).toBe('?')
+    assert.strictEqual(getExtensionPrefix(''), '+')
+    assert.strictEqual(getExtensionPrefix('disabled'), '-')
+    assert.strictEqual(getExtensionPrefix('activated'), '*')
+    assert.strictEqual(getExtensionPrefix('unknown'), '?')
   })
 
   it('should get extension priority', () => {
-    expect(getExtensionPriority('')).toBe(0)
-    expect(getExtensionPriority('unknown')).toBe(2)
-    expect(getExtensionPriority('activated')).toBe(1)
-    expect(getExtensionPriority('disabled')).toBe(-1)
+    assert.strictEqual(getExtensionPriority(''), 0)
+    assert.strictEqual(getExtensionPriority('unknown'), 2)
+    assert.strictEqual(getExtensionPriority('activated'), 1)
+    assert.strictEqual(getExtensionPriority('disabled'), -1)
   })
 })
 
 describe('Symbols util', () => {
   it('should convert to location', () => {
     let res = toTargetLocation({ uri: 'untitled:1' })
-    expect(Location.is(res)).toBe(true)
+    assert.strictEqual(Location.is(res), true)
   })
 })
 
 describe('formatting', () => {
   it('should format path', () => {
     let base = path.basename(__filename)
-    expect(formatPath('short', 'home')).toMatch('home')
-    expect(formatPath('hidden', 'path')).toBe('')
-    expect(formatPath('full', __filename)).toMatch(base)
-    expect(formatPath('short', __filename)).toMatch(base)
-    expect(formatPath('filename', __filename)).toMatch(base)
+    assert.ok((formatPath('short', 'home')).includes('home'))
+    assert.strictEqual(formatPath('hidden', 'path'), '')
+    assert.ok((formatPath('full', __filename)).includes(base))
+    assert.ok((formatPath('short', __filename)).includes(base))
+    assert.ok((formatPath('filename', __filename)).includes(base))
   })
 
   it('should format uri', () => {
     let cwd = process.cwd()
-    expect(formatUri('http://www.example.com', cwd)).toMatch('http')
-    expect(formatUri(URI.file(__filename).toString(), cwd)).toMatch('list')
-    expect(formatUri(URI.file(os.tmpdir()).toString(), cwd)).toMatch(os.tmpdir())
+    assert.ok((formatUri('http://www.example.com', cwd)).includes('http'))
+    assert.ok((formatUri(URI.file(__filename).toString(), cwd)).includes('list'))
+    assert.ok((formatUri(URI.file(os.tmpdir()).toString(), cwd)).includes(os.tmpdir()))
   })
 
   it('should fixWidth', () => {
-    expect(fixWidth('a'.repeat(10), 2)).toBe('a.')
+    assert.strictEqual(fixWidth('a'.repeat(10), 2), 'a.')
   })
 
   it('should sort symbols', () => {
-    const assert = (a, b, n) => {
-      expect(sortSymbolItems(a, b)).toBe(n)
+    const compare = (a, b, n) => {
+      assert.strictEqual(sortSymbolItems(a, b), n)
     }
-    assert({ data: { score: 1 } }, { data: { score: 2 } }, 1)
-    assert({ data: { kind: 1 } }, { data: { kind: 2 } }, -1)
-    assert({ data: { file: 'aa' } }, { data: { file: 'b' } }, 1)
+    compare({ data: { score: 1 } }, { data: { score: 2 } }, 1)
+    compare({ data: { kind: 1 } }, { data: { kind: 2 } }, -1)
+    compare({ data: { file: 'aa' } }, { data: { file: 'b' } }, 1)
   })
 
   it('should format list items', () => {
-    expect(formatListItems(false, [])).toEqual([])
+    assert.deepStrictEqual(formatListItems(false, []), [])
     let items: UnformattedListItem[] = [{
       label: ['a', 'b', 'c']
     }]
-    expect(formatListItems(false, items)).toEqual([{
+    assert.deepStrictEqual(formatListItems(false, items), [{
       label: 'a\tb\tc'
     }])
     items = [{
@@ -393,7 +393,7 @@ describe('formatting', () => {
     }, {
       label: ['foo', 'bar', 'go']
     }]
-    expect(formatListItems(true, items)).toEqual([{
+    assert.deepStrictEqual(formatListItems(true, items), [{
       label: 'a  \tb  \tc '
     }, {
       label: 'foo\tbar\tgo'
@@ -406,42 +406,42 @@ describe('formatting', () => {
       label: ['+ bar', '2.0.0', '/tmp/bar']
     }]
     let result = formatListItems(true, items)
-    expect(result[0].label.split('\t')).toEqual(['* foo', '[RTP]', '1.0.0   ', '/tmp/foo'])
-    expect(result[1].label.split('\t')).toEqual(['+ bar', '2.0.0', '/tmp/bar'])
+    assert.deepStrictEqual(result[0].label.split('\t'), ['* foo', '[RTP]', '1.0.0   ', '/tmp/foo'])
+    assert.deepStrictEqual(result[1].label.split('\t'), ['+ bar', '2.0.0', '/tmp/bar'])
   })
 })
 
 describe('util', () => {
   it('should get index', () => {
-    expect(indexOf('Abc', 'a', true, false)).toBe(0)
-    expect(indexOf('Abc', 'A', false, false)).toBe(0)
-    expect(indexOf('abc', 'A', false, true)).toBe(0)
+    assert.strictEqual(indexOf('Abc', 'a', true, false), 0)
+    assert.strictEqual(indexOf('Abc', 'A', false, false), 0)
+    assert.strictEqual(indexOf('abc', 'A', false, true), 0)
   })
 
   it('should parse input with space', () => {
     let res = parseInput('a b')
-    expect(res).toEqual(['a', 'b'])
+    assert.deepStrictEqual(res, ['a', 'b'])
     res = parseInput('a b ')
-    expect(res).toEqual(['a', 'b'])
+    assert.deepStrictEqual(res, ['a', 'b'])
     res = parseInput('ab ')
-    expect(res).toEqual(['ab'])
+    assert.deepStrictEqual(res, ['ab'])
   })
 
   it('should parse input with escaped space', () => {
     let res = parseInput('a\\ b')
-    expect(res).toEqual(['a b'])
+    assert.deepStrictEqual(res, ['a b'])
   })
 
   it('should convert item label', () => {
-    expect(convertItemLabel({ label: 'foo\nbar\nx' }).label).toBe('foo')
+    assert.strictEqual(convertItemLabel({ label: 'foo\nbar\nx' }).label, 'foo')
     const redOpen = '\x1B[31m'
     const redClose = '\x1B[39m'
     let label = redOpen + 'foo' + redClose
-    expect(convertItemLabel({ label }).label).toBe('foo')
+    assert.strictEqual(convertItemLabel({ label }).label, 'foo')
   })
 
   it('should convert input', () => {
-    expect(toInputs('foo bar', false)).toEqual(['foo bar'])
+    assert.deepStrictEqual(toInputs('foo bar', false), ['foo bar'])
   })
 })
 
@@ -487,18 +487,18 @@ describe('list worker', () => {
     await manager.start(['empty'])
     await manager.session.ui.ready
     let line = await nvim.call('getline', [1])
-    expect(line).toMatch('No results')
+    assert.ok(typeof line === 'string' && line.includes('No results'))
     await manager.cancel()
   })
 
   it('should cancel task by use CancellationToken', async () => {
     disposables.push(manager.registerList(new IntervalTaskList()))
     await manager.start(['task'])
-    expect(manager.session?.worker.isLoading).toBe(true)
+    assert.strictEqual(manager.session?.worker.isLoading, true)
     await helper.listInput('1')
     await helper.wait(50)
     manager.session?.stop()
-    expect(manager.session?.worker.isLoading).toBe(false)
+    assert.strictEqual(manager.session?.worker.isLoading, false)
   })
 
   it('should render slow interactive list', async () => {
@@ -512,7 +512,7 @@ describe('list worker', () => {
     disposables.push(manager.registerList(new InteractiveList()))
     await manager.start(['-I', 'test'])
     await manager.session?.ui.ready
-    expect(manager.isActivated).toBe(true)
+    assert.strictEqual(manager.isActivated, true)
     await helper.listInput('f')
     await helper.listInput('a')
     await helper.listInput('x')
@@ -523,7 +523,7 @@ describe('list worker', () => {
   it('should not activate on load error', async () => {
     disposables.push(manager.registerList(new ErrorList()))
     await manager.start(['test'])
-    expect(manager.isActivated).toBe(false)
+    assert.strictEqual(manager.isActivated, false)
   })
 
   it('should deactivate on task error', async () => {
@@ -553,14 +553,14 @@ describe('list session', () => {
       } catch (e) {
         err = e
       }
-      expect(err).toBeDefined()
+      assert.notStrictEqual(err, undefined)
       err = null
       try {
         await manager.session.last()
       } catch (e) {
         err = e
       }
-      expect(err).toBeDefined()
+      assert.notStrictEqual(err, undefined)
     })
   })
 
@@ -574,12 +574,12 @@ describe('list session', () => {
       await ui.ready
       await ui.selectAll()
       await manager.doAction('multiple')
-      expect(lastItems.length).toBe(3)
+      assert.strictEqual(lastItems.length, 3)
       lastItems = undefined
       await manager.session.doPreview(0)
       await manager.doAction('not_exists')
       let line = await helper.getCmdline()
-      expect(line).toMatch('not found')
+      assert.ok((line).includes('not found'))
     })
 
     it('should invoke parallel action', async () => {
@@ -592,7 +592,7 @@ describe('list session', () => {
       await ui.selectAll()
       let d = Date.now()
       await manager.doAction('parallel')
-      expect(Date.now() - d).toBeLessThan(300)
+      assert.ok((Date.now() - d) < (300))
     })
 
     it('should support tabPersist action', async () => {
@@ -604,10 +604,10 @@ describe('list session', () => {
       await ui.ready
       await manager.doAction('open')
       let tabnr = await nvim.call('tabpagenr')
-      expect(tabnr).toBeGreaterThan(1)
+      assert.ok((tabnr as number) > 1)
       let win = nvim.createWindow(ui.winid)
       let valid = await win.valid
-      expect(valid).toBe(true)
+      assert.strictEqual(valid, true)
     })
 
     it('should invoke reload action', async () => {
@@ -622,13 +622,13 @@ describe('list session', () => {
       let buf = await nvim.buffer
       await helper.waitValue(async () => (await buf.lines).join('\n'), 'd\ne')
       let lines = await buf.lines
-      expect(lines).toEqual(['d', 'e'])
+      assert.deepStrictEqual(lines, ['d', 'e'])
     })
   })
 
   describe('reloadItems()', () => {
-    it('should not reload items when window is hidden', async () => {
-      let fn = vi.fn()
+    it('should not reload items when window is hidden', async (t) => {
+      let fn = t.mock.fn()
       let list: IList = {
         name: 'reload',
         defaultAction: 'open',
@@ -648,7 +648,7 @@ describe('list session', () => {
       await manager.cancel(true)
       let ses = manager.getSession('reload')
       await ses.reloadItems()
-      expect(fn).toHaveBeenCalledTimes(1)
+      assert.strictEqual((fn).mock.callCount(), 1)
     })
   })
 
@@ -673,7 +673,7 @@ describe('list session', () => {
       await helper.wait(100)
       await manager.session.resume()
       await helper.waitValue(() => lastItem != null, true)
-      expect(lastItem).toBeDefined()
+      assert.notStrictEqual(lastItem, undefined)
     })
   })
 
@@ -689,7 +689,7 @@ describe('list session', () => {
       manager.session.jumpBack()
       await helper.waitValue(() => nvim.call('win_getid'), win.id)
       let winid = await nvim.call('win_getid')
-      expect(winid).toBe(win.id)
+      assert.strictEqual(winid, win.id)
     })
   })
 
@@ -709,7 +709,7 @@ describe('list session', () => {
         noQuit: false,
         sort: false
       }, [])
-      await expect(session.call('fn_not_exists')).rejects.toThrow(Error)
+      await assert.rejects(session.call('fn_not_exists'), Error)
       await session.doPreview(0)
       await session.first()
       await session.hide(false, true)
@@ -737,16 +737,16 @@ describe('list session', () => {
     it('should return false for invalid number', async () => {
       let session = await create(5)
       let res = await session.doNumberSelect('a')
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
       res = await session.doNumberSelect('8')
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should consider 0 as 10', async () => {
       let session = await create(15)
       let res = await session.doNumberSelect('0')
-      expect(res).toBe(true)
-      expect(lastItem).toBe('j')
+      assert.strictEqual(res, true)
+      assert.strictEqual(lastItem, 'j')
     })
   })
 })
@@ -761,15 +761,15 @@ describe('showHelp()', () => {
     await ui.ready
     await manager.session.showHelp()
     let lines = await nvim.call('getline', [1, '$']) as string[]
-    expect(lines.indexOf('DESCRIPTION')).toBeGreaterThan(0)
-    expect(lines.indexOf('ARGUMENTS')).toBeGreaterThan(0)
+    assert.ok((lines.indexOf('DESCRIPTION')) > (0))
+    assert.ok((lines.indexOf('ARGUMENTS')) > (0))
   })
 })
 
 describe('chooseAction()', () => {
-  it('should filter actions not have shortcuts', async () => {
+  it('should filter actions not have shortcuts', async (t) => {
     labels = ['a', 'b', 'c']
-    let fn = vi.fn()
+    let fn = t.mock.fn()
     let list = new SimpleList()
     list.actions.push({
       name: 'a',
@@ -794,13 +794,13 @@ describe('chooseAction()', () => {
     await helper.wait(50)
     await nvim.input('a')
     await p
-    expect(fn).toHaveBeenCalled()
+    assert.ok((fn).mock.callCount() > 0)
   })
 
-  it('should choose action by menu picker', async () => {
+  it('should choose action by menu picker', async (t) => {
     helper.updateConfiguration('list.menuAction', true)
     labels = ['a', 'b', 'c']
-    let fn = vi.fn()
+    let fn = t.mock.fn()
     let list = new SimpleList()
     let len = list.actions.length
     list.actions.splice(0, len)
@@ -832,7 +832,7 @@ describe('Command task', () => {
     await manager.start(['stderr'])
     await manager.session.ui.ready
     let lines = await nvim.call('getline', [1, '$']) as string[]
-    expect(lines).toEqual(['stdout'])
+    assert.deepStrictEqual(lines, ['stdout'])
   })
 
   it('should not show error', async () => {
@@ -841,7 +841,7 @@ describe('Command task', () => {
     await helper.waitValue(() => manager.session?.ui.length, 0)
     await nvim.command('redraw')
     let len = manager.session.ui.length
-    expect(len).toBe(0)
+    assert.strictEqual(len, 0)
   })
 
   it('should create command task', async () => {
@@ -851,7 +851,7 @@ describe('Command task', () => {
     await manager.session.ui.ready
     await helper.waitValue(async () => nvim.call('getline', [1, '$']), ['foo', 'bar'])
     let lines = await nvim.call('getline', [1, '$']) as string[]
-    expect(lines).toEqual(['foo', 'bar'])
+    assert.deepStrictEqual(lines, ['foo', 'bar'])
   })
 
   it('should stop command task', async () => {

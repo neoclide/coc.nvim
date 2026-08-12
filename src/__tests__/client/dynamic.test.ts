@@ -64,7 +64,7 @@ describe('DynamicFeature', () => {
       })
       let feature = client.getFeature(RenameRequest.method)
       let provider = feature.getProvider(textDocument)
-      expect(provider.prepareRename).toBeUndefined()
+      assert.strictEqual(provider.prepareRename, undefined)
       feature.unregister('')
       client['_state'] = ClientState.StartFailed
       await helper.waitValue(() => called, true)
@@ -89,7 +89,7 @@ describe('DynamicFeature', () => {
       await helper.waitValue(() => feature.getProviders().length, 2)
       // The server's own registration object must not be mutated.
       await helper.waitValue(() => originalOptions != null, true)
-      expect(originalOptions.documentSelector).toBeUndefined()
+      assert.strictEqual(originalOptions.documentSelector, undefined)
       await client.stop()
     })
 
@@ -104,20 +104,20 @@ describe('DynamicFeature', () => {
       })
       let feature = client.getFeature(RenameRequest.method)
       let provider = feature.getProvider(textDocument)
-      expect(provider.prepareRename).toBeDefined()
+      assert.notStrictEqual(provider.prepareRename, undefined)
       let res = await provider.prepareRename(textDocument, position, token)
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
 
       await client.sendRequest('setPrepareResponse', { defaultBehavior: true })
       res = await provider.prepareRename(textDocument, position, token)
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
       await client.sendRequest('setPrepareResponse', { range: Range.create(0, 0, 0, 3), placeholder: 'placeholder' })
       res = await provider.prepareRename(textDocument, position, token)
-      expect((res as any).placeholder).toBe('placeholder')
-      await expect(async () => {
+      assert.strictEqual((res as any).placeholder, 'placeholder')
+      await assert.rejects(async () => {
         await client.sendRequest('setPrepareResponse', { defaultBehavior: false })
         res = await provider.prepareRename(textDocument, position, token)
-      }).rejects.toThrow(Error)
+      }, Error)
       await client.stop()
     })
   })
@@ -137,13 +137,13 @@ describe('DynamicFeature', () => {
         return feature.getProviders().length
       }, 2)
       let provider = feature.getProviders().find(o => typeof o.resolveWorkspaceSymbol === 'function')
-      expect(provider).toBeDefined()
+      assert.notStrictEqual(provider, undefined)
       let token = CancellationToken.None
       let res = await provider.provideWorkspaceSymbols('', token)
-      expect(res.length).toBe(0)
+      assert.strictEqual(res.length, 0)
       let sym = SymbolInformation.create('name', SymbolKind.Array, Range.create(0, 1, 0, 1), 'file:///1')
       let resolved = await provider.resolveWorkspaceSymbol(sym, token)
-      expect(resolved.name).toBe(sym.name)
+      assert.strictEqual(resolved.name, sym.name)
       await client.stop()
     })
   })
@@ -157,7 +157,7 @@ describe('DynamicFeature', () => {
         provider = feature.getProvider(textDocument)
         return provider != null
       }, true)
-      expect(provider.range).toBeUndefined()
+      assert.strictEqual(provider.range, undefined)
       await client.stop()
     })
 
@@ -168,10 +168,10 @@ describe('DynamicFeature', () => {
         return feature.getProvider(textDocument) != null
       }, true)
       let provider = feature.getProvider(textDocument)
-      expect(provider).toBeDefined()
-      expect(provider.range).toBeDefined()
+      assert.notStrictEqual(provider, undefined)
+      assert.notStrictEqual(provider.range, undefined)
       let res = await provider.full.provideDocumentSemanticTokensEdits(textDocument, '2', CancellationToken.None)
-      expect(res.resultId).toBe('3')
+      assert.strictEqual(res.resultId, '3')
       await client.stop()
     })
   })
@@ -185,7 +185,7 @@ describe('DynamicFeature', () => {
       }, true)
       let provider = feature.getProvider(textDocument)
       let actions = await provider.provideCodeActions(textDocument, Range.create(0, 1, 0, 1), { diagnostics: [] }, token)
-      expect(actions.length).toBe(1)
+      assert.strictEqual(actions.length, 1)
       await client.stop()
     })
   })
@@ -200,8 +200,8 @@ describe('DynamicFeature', () => {
         return Array.isArray(res)
       }, true)
       let res = await client.sendRequest('getConfiguration')
-      expect(Array.isArray(res)).toBe(true)
-      expect(res[0]).toEqual('bar')
+      assert.strictEqual(Array.isArray(res), true)
+      assert.deepStrictEqual(res[0], 'bar')
       helper.updateConfiguration('suggest.noselect', true)
       await helper.wait(20)
       await client.stop()
@@ -209,8 +209,8 @@ describe('DynamicFeature', () => {
   })
 
   describe('CodeLensFeature', () => {
-    it('should use codeLens middleware', async () => {
-      let fn = vi.fn()
+    it('should use codeLens middleware', async (t) => {
+      let fn = t.mock.fn()
       let client = await startServer({}, {
         provideCodeLenses: (doc, token, next) => {
           fn()
@@ -223,12 +223,12 @@ describe('DynamicFeature', () => {
       })
       let feature = client.getFeature(CodeLensRequest.method)
       let provider = feature.getProvider(textDocument).provider
-      expect(provider).toBeDefined()
+      assert.notStrictEqual(provider, undefined)
       let res = await provider.provideCodeLenses(textDocument, token)
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
       let resolved = await provider.resolveCodeLens(res[0], token)
-      expect(resolved.command).toBeDefined()
-      expect(fn).toHaveBeenCalledTimes(2)
+      assert.notStrictEqual(resolved.command, undefined)
+      assert.strictEqual((fn).mock.callCount(), 2)
       await client.stop()
     })
 
@@ -236,19 +236,19 @@ describe('DynamicFeature', () => {
       let client = await startServer({ noResolve: true }, {})
       let feature = client.getFeature(CodeLensRequest.method)
       let provider = feature.getProvider(textDocument).provider
-      expect(provider).toBeDefined()
-      expect(provider.resolveCodeLens).toBeUndefined()
+      assert.notStrictEqual(provider, undefined)
+      assert.strictEqual(provider.resolveCodeLens, undefined)
       {
         let feature = client.getFeature(DocumentLinkRequest.method)
         let provider = feature.getProvider(textDocument)
-        expect(provider).toBeDefined()
-        expect(provider.resolveDocumentLink).toBeUndefined()
+        assert.notStrictEqual(provider, undefined)
+        assert.strictEqual(provider.resolveDocumentLink, undefined)
       }
       {
         let feature = client.getFeature(InlayHintRequest.method)
         let provider = feature.getProvider(textDocument).provider
-        expect(provider).toBeDefined()
-        expect(provider.resolveInlayHint).toBeUndefined()
+        assert.notStrictEqual(provider, undefined)
+        assert.strictEqual(provider.resolveInlayHint, undefined)
       }
       {
         let feature: SemanticTokensFeature
@@ -257,8 +257,8 @@ describe('DynamicFeature', () => {
           return feature != null && feature.getProvider(textDocument) != null
         }, true)
         let provider = feature.getProvider(textDocument).full
-        expect(provider).toBeDefined()
-        expect(provider.provideDocumentSemanticTokensEdits).toBeUndefined()
+        assert.notStrictEqual(provider, undefined)
+        assert.strictEqual(provider.provideDocumentSemanticTokensEdits, undefined)
       }
       await client.stop()
     })
@@ -268,7 +268,7 @@ describe('DynamicFeature', () => {
     it('should fire refresh', async () => {
       let client = await startServer({})
       let feature = client.getFeature(InlineValueRequest.method)
-      expect(feature).toBeDefined()
+      assert.notStrictEqual(feature, undefined)
       await helper.waitValue(() => {
         return feature.getProvider(textDocument) != null
       }, true)
@@ -286,7 +286,7 @@ describe('DynamicFeature', () => {
   })
 
   describe('ExecuteCommandFeature', () => {
-    it('should register command with middleware', async () => {
+    it('should register command with middleware', async (t) => {
       let called = false
       let client = await startServer({}, {
         executeCommand: (cmd, args, next) => {
@@ -298,19 +298,19 @@ describe('DynamicFeature', () => {
         return commands.has('test_command')
       }, true)
       let feature = client.getFeature(ExecuteCommandRequest.method)
-      expect(feature).toBeDefined()
+      assert.notStrictEqual(feature, undefined)
       feature.unregister('other_command')
-      expect(feature.getState().kind).toBe('workspace')
+      assert.strictEqual(feature.getState().kind, 'workspace')
       let res = await commands.executeCommand('test_command')
-      expect(res).toEqual({ success: true })
-      expect(called).toBe(true)
+      assert.deepStrictEqual(res, { success: true })
+      assert.strictEqual(called, true)
       let err
-      let spy = vi.spyOn(client, 'handleFailedRequest').mockImplementation((_type, _token, error) => {
+      let spy = t.mock.method(client, 'handleFailedRequest', (_type, _token, error) => {
         err = error
       })
       await commands.executeCommand('other_command')
-      spy.mockRestore()
-      expect(err.message).toMatch(/not exists/)
+      spy.mock.restore()
+      assert.match(err.message, /not exists/)
       await client.sendNotification('unregister')
       await helper.waitValue(() => {
         return commands.has('test_command')
@@ -324,7 +324,7 @@ describe('DynamicFeature', () => {
         return commands.has('test_command')
       }, true)
       let res = await commands.executeCommand('test_command')
-      expect(res).toEqual({ success: true })
+      assert.deepStrictEqual(res, { success: true })
       await client.stop()
     })
   })
@@ -333,11 +333,11 @@ describe('DynamicFeature', () => {
     it('should provide documentSymbols without middleware', async () => {
       let client = await startServer({}, {})
       let feature = client.getFeature(DocumentSymbolRequest.method)
-      expect(feature).toBeDefined()
-      expect(feature.getState()).toBeDefined()
+      assert.notStrictEqual(feature, undefined)
+      assert.notStrictEqual(feature.getState(), undefined)
       let provider = feature.getProvider(textDocument)
       let res = await provider.provideDocumentSymbols(textDocument, token)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
       await client.stop()
     })
 
@@ -351,10 +351,10 @@ describe('DynamicFeature', () => {
       })
       let feature = client.getFeature(DocumentSymbolRequest.method)
       let provider = feature.getProvider(textDocument)
-      expect(provider.meta).toEqual({ label: 'test' })
+      assert.deepStrictEqual(provider.meta, { label: 'test' })
       let res = await provider.provideDocumentSymbols(textDocument, token)
-      expect(res).toEqual([])
-      expect(called).toBe(true)
+      assert.deepStrictEqual(res, [])
+      assert.strictEqual(called, true)
       await client.stop()
     })
   })
@@ -456,9 +456,9 @@ describe('DynamicFeature', () => {
     it('should register listeners', async () => {
       let client = await startServer({}, {})
       let feature = client.getFeature(DidChangeWorkspaceFoldersNotification.method)
-      expect(feature).toBeDefined()
+      assert.notStrictEqual(feature, undefined)
       let state = feature.getState() as any
-      expect(state.registrations).toBe(true)
+      assert.strictEqual(state.registrations, true)
       feature.register({ id: '1', registerOptions: undefined })
       feature.unregister('b346648e-88e0-44e3-91e3-52fd6addb8c7')
       feature.unregister('2')
@@ -468,22 +468,22 @@ describe('DynamicFeature', () => {
     it('should handle WorkspaceFoldersRequest', async () => {
       let client = await startServer({ changeNotifications: true }, {})
       let folders = workspace.workspaceFolders
-      expect(folders.length).toBe(0)
+      assert.strictEqual(folders.length, 0)
       await client.sendNotification('requestFolders')
       await helper.wait(20)
       let res = await client.sendRequest('getFolders')
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
       workspace.workspaceFolderControl.addWorkspaceFolder(process.cwd(), true)
       await helper.wait(20)
       await client.stop()
     })
 
-    it('should use workspaceFolders middleware', async () => {
+    it('should use workspaceFolders middleware', async (t) => {
       await workspace.loadFile(__filename)
       let folders = workspace.workspaceFolders
-      expect(folders.length).toBe(1)
+      assert.strictEqual(folders.length, 1)
       let called = false
-      let fn = vi.fn()
+      let fn = t.mock.fn()
       let client = await startServer({ changeNotifications: true }, {
         workspace: {
           workspaceFolders: (token, next) => {
@@ -501,9 +501,9 @@ describe('DynamicFeature', () => {
         let res = await client.sendRequest('getFolders') as WorkspaceFolder[]
         return Array.isArray(res) && res.length == 1
       }, true)
-      expect(called).toBe(true)
+      assert.strictEqual(called, true)
       workspace.workspaceFolderControl.addWorkspaceFolder(os.tmpdir(), true)
-      expect(fn).toHaveBeenCalled()
+      assert.ok((fn).mock.callCount() > 0)
       await client.stop()
     })
 
@@ -518,7 +518,7 @@ describe('DynamicFeature', () => {
         }
       })
       let folders = workspace.workspaceFolders
-      expect(folders.length).toBe(0)
+      assert.strictEqual(folders.length, 0)
       await workspace.loadFile(__filename)
       await helper.waitValue(() => {
         return called
@@ -528,13 +528,13 @@ describe('DynamicFeature', () => {
   })
 
   describe('TextDocumentContentFeature', () => {
-    it('should register static TextDocumentContent feature', async () => {
+    it('should register static TextDocumentContent feature', async (t) => {
       let client = await startServer({ textDocumentContent: true }, {})
       let feature = client.getFeature(TextDocumentContentRequest.method)
-      expect(feature.getState()['registrations']).toBe(true)
+      assert.strictEqual(feature.getState()['registrations'], true)
       let providers = feature.getProviders() as TextDocumentContentProviderShape[]
       let provider = providers[0]
-      expect(provider.scheme).toBe('lsptest')
+      assert.strictEqual(provider.scheme, 'lsptest')
       let times = 0
       provider.provider.onDidChange(() => {
         times++
@@ -542,19 +542,19 @@ describe('DynamicFeature', () => {
       await client.sendNotification('fireDocumentContentRefresh')
       await helper.waitValue(() => times, 1)
       let uri = URI.parse('lsptest:///1')
-      let spy = vi.spyOn(client, 'sendRequest').mockReturnValue(Promise.resolve(undefined))
+      let spy = t.mock.method(client, 'sendRequest', () => (Promise.resolve(undefined)))
       let res = await provider.provider.provideTextDocumentContent(uri, token)
-      expect(res).toBeUndefined()
-      spy.mockRestore()
-      spy = vi.spyOn(client, 'sendRequest').mockReturnValue(Promise.resolve({ text: 'foo' }))
+      assert.strictEqual(res, undefined)
+      spy.mock.restore()
+      spy = t.mock.method(client, 'sendRequest', () => (Promise.resolve({ text: 'foo' })))
       res = await provider.provider.provideTextDocumentContent(uri, token)
-      expect(res).toBe('foo')
-      spy.mockRestore()
-      spy = vi.spyOn(client, 'sendRequest').mockReturnValue(Promise.reject(new Error('myerror')))
-      await expect(provider.provider.provideTextDocumentContent(uri, token)).rejects.toThrow(Error)
-      spy.mockRestore()
+      assert.strictEqual(res, 'foo')
+      spy.mock.restore()
+      spy = t.mock.method(client, 'sendRequest', () => (Promise.reject(new Error('myerror'))))
+      await assert.rejects(async () => provider.provider.provideTextDocumentContent(uri, token), Error)
+      spy.mock.restore()
       feature.unregister('b346648e-88e0-44e3-91e3-52fd6addb8c7')
-      expect(feature.getState()['registrations']).toBe(false)
+      assert.strictEqual(feature.getState()['registrations'], false)
       await client.stop()
     })
   })

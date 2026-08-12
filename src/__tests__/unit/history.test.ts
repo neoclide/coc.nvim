@@ -42,13 +42,13 @@ describe('History', () => {
     let p = { input: '' }
     let history = new History(p, 'name', db, '/a/b')
     history.filter()
-    expect(history.filtered).toEqual(['text'])
+    assert.deepStrictEqual(history.filtered, ['text'])
     p.input = 't'
     history.filter()
-    expect(history.filtered).toEqual(['text'])
+    assert.deepStrictEqual(history.filtered, ['text'])
     history.previous()
     history.filter()
-    expect(history.filtered).toEqual(['text'])
+    assert.deepStrictEqual(history.filtered, ['text'])
   })
 
   it('should add item', async () => {
@@ -60,7 +60,7 @@ describe('History', () => {
     history.add()
     p.input = ''
     history.filter()
-    expect(history.filtered).toEqual(['input'])
+    assert.deepStrictEqual(history.filtered, ['input'])
   })
 
   it('should change to previous', async () => {
@@ -74,8 +74,8 @@ describe('History', () => {
     history.filter()
     history.previous()
     history.previous()
-    expect(history.index).toBe(0)
-    expect(history.curr).toBe('one')
+    assert.strictEqual(history.index, 0)
+    assert.strictEqual(history.curr, 'one')
   })
 
   it('should change to next', async () => {
@@ -90,28 +90,28 @@ describe('History', () => {
     history.next()
     history.next()
     history.next()
-    expect(history.index).toBe(0)
-    expect(history.curr).toBe('one')
+    assert.strictEqual(history.index, 0)
+    assert.strictEqual(history.curr, 'one')
   })
 })
 
 describe('DataBase', () => {
-  it('should not throw on load', async () => {
-    let spy = vi.spyOn(DataBase.prototype, 'load').mockImplementation(() => {
+  it('should not throw on load', async (t) => {
+    let spy = t.mock.method(DataBase.prototype, 'load', () => {
       throw new Error('error')
     })
     new DataBase()
-    spy.mockRestore()
+    spy.mock.restore()
   })
 
   it('should add items', async () => {
     let db = new DataBase()
     db.addItem('name', 'x'.repeat(260), '/a/b/c')
     let item = db.currItems[0]
-    expect(item[0].length).toBe(255)
+    assert.strictEqual(item[0].length, 255)
     db.addItem('name', 'xy', '/a/b/c')
     db.addItem('name', 'xy', '/a/b/c')
-    expect(db.currItems.length).toBe(2)
+    assert.strictEqual(db.currItems.length, 2)
   })
 
   it('should save data', async () => {
@@ -120,7 +120,7 @@ describe('DataBase', () => {
     db.addItem('other_name', 'te', '/a/b/x/y')
     db.save()
     let d = new DataBase()
-    expect(d.currItems.length).toBe(2)
+    assert.strictEqual(d.currItems.length, 2)
   })
 })
 

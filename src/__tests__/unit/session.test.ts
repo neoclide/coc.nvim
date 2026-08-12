@@ -1,117 +1,113 @@
 'use strict'
+import { isDeepStrictEqual } from 'node:util'
 import type { Socket } from 'net'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { MockTracker } from 'node:test'
 import { Session } from '../../mcp/session'
 
-function createSocket(overrides: Record<string, unknown> = {}): Socket {
+function createSocket(mock: MockTracker, overrides: Record<string, unknown> = {}): Socket {
   return {
-    write: vi.fn(),
-    end: vi.fn(),
+    write: mock.fn(),
+    end: mock.fn(),
     ...overrides
   } as unknown as Socket
 }
 
 describe('mcp Session', () => {
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
-  it('closes an unauthenticated session after the auth timeout', () => {
-    vi.useFakeTimers()
-    let socket = createSocket()
-    let onClose = vi.fn()
+  it('closes an unauthenticated session after the auth timeout', (t) => {
+    t.mock.timers.enable({ apis: ['Date', 'setTimeout'] })
+    let socket = createSocket(t.mock)
+    let onClose = t.mock.fn()
     let session = new Session(socket, onClose, 10)
-    vi.advanceTimersByTime(10)
-    expect(session.active).toBe(false)
-    expect(onClose).toHaveBeenCalledWith(session)
-    expect(socket.end).toHaveBeenCalled()
+    t.mock.timers.tick(10)
+    assert.strictEqual(session.active, false)
+    assert.ok((onClose).mock.calls.some(call => isDeepStrictEqual(call.arguments, [session])))
+    assert.ok((socket.end as any).mock.callCount() > 0)
   })
 
-  it('keeps an authenticated session open after the auth timeout', () => {
-    vi.useFakeTimers()
-    let socket = createSocket()
-    let session = new Session(socket, vi.fn(), 10)
+  it('keeps an authenticated session open after the auth timeout', (t) => {
+    t.mock.timers.enable({ apis: ['Date', 'setTimeout'] })
+    let socket = createSocket(t.mock)
+    let session = new Session(socket, t.mock.fn(), 10)
     session.authenticated = true
-    vi.advanceTimersByTime(10)
-    expect(session.active).toBe(true)
+    t.mock.timers.tick(10)
+    assert.strictEqual(session.active, true)
     session.close()
   })
 
-  it('closes the session when writing to the socket throws', () => {
-    let socket = createSocket({
-      write: vi.fn(() => {
+  it('closes the session when writing to the socket throws', (t) => {
+    let socket = createSocket(t.mock, {
+      write: t.mock.fn(() => {
         throw new Error('write failed')
       })
     })
-    let onClose = vi.fn()
+    let onClose = t.mock.fn()
     let session = new Session(socket, onClose, 0)
     session.sendResult(1, { ok: true })
-    expect(session.active).toBe(false)
-    expect(onClose).toHaveBeenCalledWith(session)
+    assert.strictEqual(session.active, false)
+    assert.ok((onClose).mock.calls.some(call => isDeepStrictEqual(call.arguments, [session])))
   })
 
-  it('sends errors and notifications with optional data', () => {
-    let socket = createSocket()
-    let session = new Session(socket, vi.fn(), 0)
+  it('sends errors and notifications with optional data', (t) => {
+    let socket = createSocket(t.mock)
+    let session = new Session(socket, t.mock.fn(), 0)
     session.sendError(1, -1, 'failed', { detail: true })
     session.sendNotification('coc/test', { value: 1 })
     session.sendNotification('coc/empty')
-    let writes = (socket.write as ReturnType<typeof vi.fn>).mock.calls.map(args => (args[0] as Buffer).toString())
-    expect(writes[0]).toContain('"data":{"detail":true}')
-    expect(writes[1]).toContain('"params":{"value":1}')
-    expect(writes[2]).not.toContain('params')
+    let writes = (socket.write as unknown as ReturnType<typeof t.mock.fn>).mock.calls.map(call => (call.arguments[0] as Buffer).toString())
+    assert.ok((writes[0]).includes('"data":{"detail":true}'))
+    assert.ok((writes[1]).includes('"params":{"value":1}'))
+    assert.ok(!(writes[2]).includes('params'))
     session.close()
   })
 
-  it('uses a sliding request limit and allows unlimited requests', () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(1000)
-    let session = new Session(createSocket(), vi.fn(), 0)
-    expect(session.checkRateLimit(0)).toBe(true)
-    expect(session.checkRateLimit(1)).toBe(true)
-    expect(session.checkRateLimit(1)).toBe(false)
-    vi.setSystemTime(2001)
-    expect(session.checkRateLimit(1)).toBe(true)
+  it('uses a sliding request limit and allows unlimited requests', (t) => {
+    t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 1000 })
+    let session = new Session(createSocket(t.mock), t.mock.fn(), 0)
+    assert.strictEqual(session.checkRateLimit(0), true)
+    assert.strictEqual(session.checkRateLimit(1), true)
+    assert.strictEqual(session.checkRateLimit(1), false)
+    t.mock.timers.setTime(2001)
+    assert.strictEqual(session.checkRateLimit(1), true)
     session.close()
   })
 
-  it('refreshes and fires the idle timeout', () => {
-    vi.useFakeTimers()
-    let onClose = vi.fn()
-    let session = new Session(createSocket(), onClose, 0, 20)
+  it('refreshes and fires the idle timeout', (t) => {
+    t.mock.timers.enable({ apis: ['Date', 'setTimeout'] })
+    let onClose = t.mock.fn()
+    let session = new Session(createSocket(t.mock), onClose, 0, 20)
     session.touch()
-    vi.advanceTimersByTime(10)
+    t.mock.timers.tick(10)
     session.touch()
-    vi.advanceTimersByTime(19)
-    expect(session.active).toBe(true)
-    vi.advanceTimersByTime(1)
-    expect(session.active).toBe(false)
+    t.mock.timers.tick(19)
+    assert.strictEqual(session.active, true)
+    t.mock.timers.tick(1)
+    assert.strictEqual(session.active, false)
   })
 
-  it('cancels pending work and ignores sends after close', () => {
-    let socket = createSocket({ end: vi.fn(() => { throw new Error('end failed') }) })
-    let cancel = vi.fn()
-    let session = new Session(socket, vi.fn(), 0)
+  it('cancels pending work and ignores sends after close', (t) => {
+    let socket = createSocket(t.mock, { end: t.mock.fn(() => { throw new Error('end failed') }) })
+    let cancel = t.mock.fn()
+    let session = new Session(socket, t.mock.fn(), 0)
     session.pending.set(1, { cancel })
     session.close()
     session.close()
     session.sendResult(1, {})
-    expect(cancel).toHaveBeenCalledOnce()
-    expect(socket.write).not.toHaveBeenCalled()
+    assert.strictEqual((cancel).mock.callCount(), 1)
+    assert.strictEqual((socket.write as any).mock.callCount(), 0)
   })
 
-  it('drops queued tasks after close and keeps the queue alive after rejection', async () => {
-    let session = new Session(createSocket(), vi.fn(), 0)
+  it('drops queued tasks after close and keeps the queue alive after rejection', async (t) => {
+    let session = new Session(createSocket(t.mock), t.mock.fn(), 0)
     let calls: string[] = []
     let done!: () => void
     let completed = new Promise<void>(resolve => { done = resolve })
     session.enqueue(async () => { calls.push('first'); throw new Error('failed') })
     session.enqueue(async () => { calls.push('second'); done() })
     await completed
-    expect(calls).toEqual(['first', 'second'])
+    assert.deepStrictEqual(calls, ['first', 'second'])
     session.enqueue(async () => { calls.push('closed') })
     session.close()
     await Promise.resolve()
-    expect(calls).not.toContain('closed')
+    assert.ok(!(calls).includes('closed'))
   })
 })

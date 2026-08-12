@@ -22,18 +22,18 @@ afterEach(async () => {
 
 describe('Menu', () => {
   it('should check isMenuItem', () => {
-    expect(isMenuItem(null)).toBe(false)
+    assert.strictEqual(isMenuItem(null), false)
   })
 
   it('should get aligned index text', () => {
-    expect(toIndexText(0)).toBe('1. ')
-    expect(toIndexText(98)).toBe('99. ')
-    expect(toIndexText(99)).toBe('    ')
-    expect(toIndexText(0, 100)).toBe(' 1. ')
-    expect(toIndexText(1, 100)).toBe(' 2. ')
-    expect(toIndexText(9, 100)).toBe('10. ')
-    expect(toIndexText(98, 100)).toBe('99. ')
-    expect(toIndexText(99, 100)).toBe('    ')
+    assert.strictEqual(toIndexText(0), '1. ')
+    assert.strictEqual(toIndexText(98), '99. ')
+    assert.strictEqual(toIndexText(99), '    ')
+    assert.strictEqual(toIndexText(0, 100), ' 1. ')
+    assert.strictEqual(toIndexText(1, 100), ' 2. ')
+    assert.strictEqual(toIndexText(9, 100), '10. ')
+    assert.strictEqual(toIndexText(98, 100), '99. ')
+    assert.strictEqual(toIndexText(99, 100), '    ')
   })
 
   it('should dispose on window close', async () => {
@@ -50,7 +50,7 @@ describe('Menu', () => {
     nvim.call('coc#window#close', [currWin.id], true)
     nvim.call('coc#float#close', [win.id], true)
     let res = await p
-    expect(res).toBe(-1)
+    assert.strictEqual(res, -1)
   })
 
   it('should cancel by <esc>', async () => {
@@ -64,7 +64,7 @@ describe('Menu', () => {
     await helper.waitPrompt()
     await nvim.input('<esc>')
     let res = await p
-    expect(res).toBe(-1)
+    assert.strictEqual(res, -1)
   })
 
   it('should cancel before float window shown', async () => {
@@ -79,7 +79,7 @@ describe('Menu', () => {
     tokenSource.cancel()
     await promise
     let res = await p
-    expect(res).toBe(-1)
+    assert.strictEqual(res, -1)
   })
 
   it('should support menu shortcut', async () => {
@@ -93,7 +93,7 @@ describe('Menu', () => {
     await helper.waitPrompt()
     await nvim.input('b')
     let res = await p
-    expect(res).toBe(1)
+    assert.strictEqual(res, 1)
   })
 
   it('should support content', async () => {
@@ -105,10 +105,10 @@ describe('Menu', () => {
       })
     })
     let lines = await menu.buffer.lines
-    expect(lines[0]).toBe('content')
+    assert.strictEqual(lines[0], 'content')
     await nvim.input('<C-j>')
     let res = await p
-    expect(res).toBe(0)
+    assert.strictEqual(res, 0)
     menu.dispose()
   })
 
@@ -123,13 +123,13 @@ describe('Menu', () => {
     await helper.waitPrompt()
     await nvim.input('j<cr>')
     let res = await p
-    expect(res).toBe(1)
+    assert.strictEqual(res, 1)
   })
 
   it('should show menu in center', async () => {
     menu = new Menu(nvim, { items: ['foo', 'bar'], position: 'center' })
     await menu.show()
-    expect(menu.buffer).toBeDefined()
+    assert.notStrictEqual(menu.buffer, undefined)
   })
 
   it('should ignore invalid index', async () => {
@@ -139,7 +139,7 @@ describe('Menu', () => {
     await nvim.input('0')
     await helper.waitValue(() => nvim.call('coc#float#has_float', []), 1)
     let exists = await nvim.call('coc#float#has_float', [])
-    expect(exists).toBe(1)
+    assert.strictEqual(exists, 1)
   })
 
   it('should select by index number', async () => {
@@ -153,7 +153,7 @@ describe('Menu', () => {
     await helper.waitPrompt()
     await nvim.input('1')
     let res = await p
-    expect(res).toBe(0)
+    assert.strictEqual(res, 0)
   })
 
   it('should choose item after timer', async () => {
@@ -167,16 +167,16 @@ describe('Menu', () => {
     await helper.waitPrompt()
     await nvim.input('1')
     let res = await p
-    expect(res).toBe(0)
+    assert.strictEqual(res, 0)
   })
 
   it('should navigate by j, k, g & G', async () => {
     menu = new Menu(nvim, { items: ['one', 'two', 'three'] })
-    expect(menu.buffer).toBeUndefined()
+    assert.strictEqual(menu.buffer, undefined)
     await menu.onInputChar('session', 'j')
     await menu.show({ floatHighlight: 'CocFloating', floatBorderHighlight: 'CocFloatBorder' })
     let id = await nvim.call('GetFloatWin') as number
-    expect(id).toBeGreaterThan(0)
+    assert.ok((id) > (0))
     let win = nvim.createWindow(id)
     await nvim.input('x')
     await nvim.input('j')
@@ -184,21 +184,21 @@ describe('Menu', () => {
     await nvim.input('j')
     await helper.waitValue(async () => (await win.cursor)[0], 1)
     let cursor = await win.cursor
-    expect(cursor[0]).toBe(1)
+    assert.strictEqual(cursor[0], 1)
     await nvim.input('k')
     await nvim.input('k')
     await nvim.input('k')
     await helper.waitValue(async () => (await win.cursor)[0], 1)
     cursor = await win.cursor
-    expect(cursor[0]).toBe(1)
+    assert.strictEqual(cursor[0], 1)
     await nvim.input('G')
     await helper.waitValue(async () => (await win.cursor)[0], 3)
     cursor = await win.cursor
-    expect(cursor[0]).toBe(3)
+    assert.strictEqual(cursor[0], 3)
     await nvim.input('g')
     await helper.waitValue(async () => (await win.cursor)[0], 1)
     cursor = await win.cursor
-    expect(cursor[0]).toBe(1)
+    assert.strictEqual(cursor[0], 1)
     await nvim.input('<C-f>')
     await nvim.input('<C-b>')
     await nvim.input('9')
@@ -220,6 +220,6 @@ describe('Menu', () => {
     await helper.wait(20)
     await nvim.input('0')
     await promise
-    expect(selected).toBe(9)
+    assert.strictEqual(selected, 9)
   })
 })

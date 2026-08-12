@@ -33,7 +33,7 @@ describe('signatureHelp', () => {
   describe('triggerSignatureHelp', () => {
     it('should show signature by api', async () => {
       let res = await signature.triggerSignatureHelp()
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
       disposables.push(languages.registerSignatureHelpProvider([{ scheme: 'file' }], {
         provideSignatureHelp: (_doc, _position) => {
           return {
@@ -47,9 +47,9 @@ describe('signatureHelp', () => {
       await nvim.input('foo')
       await commands.executeCommand('editor.action.triggerParameterHints')
       let win = await helper.getFloat()
-      expect(win).toBeDefined()
+      assert.notStrictEqual(win, undefined)
       let lines = await helper.getWinLines(win.id)
-      expect(lines[2]).toMatch('my signature')
+      assert.ok((lines[2]).includes('my signature'))
     })
 
     it('should load configuration', async () => {
@@ -72,11 +72,11 @@ describe('signatureHelp', () => {
       await helper.doAction('showSignatureHelp')
       await signature.triggerSignatureHelp()
       let win = await helper.getFloat()
-      expect(win).toBeDefined()
+      assert.notStrictEqual(win, undefined)
       let buf = await win.buffer
       let hls = await buf.getHighlights(-1 as any)
-      expect(hls.length).toBe(2)
-      expect(hls[0].hlGroup).toBe('CocFloatActive')
+      assert.strictEqual(hls.length, 2)
+      assert.strictEqual(hls[0].hlGroup, 'CocFloatActive')
     })
 
     it('should not highlight parameter when activeParameter is null', async () => {
@@ -94,10 +94,10 @@ describe('signatureHelp', () => {
       await helper.doAction('showSignatureHelp')
       await signature.triggerSignatureHelp()
       let win = await helper.getFloat()
-      expect(win).toBeDefined()
+      assert.notStrictEqual(win, undefined)
       let buf = await win.buffer
       let hls = await buf.getHighlights(-1 as any)
-      expect(hls.some(h => h.hlGroup === 'CocFloatActive')).toBe(false)
+      assert.strictEqual(hls.some(h => h.hlGroup === 'CocFloatActive'), false)
     })
 
     it('should not highlight parameter when signature activeParameter is null', async () => {
@@ -120,10 +120,10 @@ describe('signatureHelp', () => {
       await helper.doAction('showSignatureHelp')
       await signature.triggerSignatureHelp()
       let win = await helper.getFloat()
-      expect(win).toBeDefined()
+      assert.notStrictEqual(win, undefined)
       let buf = await win.buffer
       let hls = await buf.getHighlights(-1 as any)
-      expect(hls.some(h => h.hlGroup === 'CocFloatActive')).toBe(false)
+      assert.strictEqual(hls.some(h => h.hlGroup === 'CocFloatActive'), false)
     })
 
     it('should trigger by space', async () => {
@@ -163,9 +163,9 @@ describe('signatureHelp', () => {
       await nvim.input('foo')
       await signature.triggerSignatureHelp()
       let win = await helper.getFloat()
-      expect(win).toBeDefined()
+      assert.notStrictEqual(win, undefined)
       let lines = await helper.getWinLines(win.id)
-      expect(lines.join('\n')).toMatch(/description/)
+      assert.match(lines.join('\n'), /description/)
     })
   })
 
@@ -193,7 +193,7 @@ describe('signatureHelp', () => {
       }, true)
       let win = await helper.getFloat()
       let lines = await helper.getWinLines(win.id)
-      expect(lines[2]).toMatch('my signature')
+      assert.ok((lines[2]).includes('my signature'))
     })
 
     it('should trigger signature help on PlaceholderJump', async () => {
@@ -214,10 +214,10 @@ describe('signatureHelp', () => {
       Object.assign((workspace as any)._env, { jumpAutocmd: false })
       await events.fire('PlaceholderJump', [doc.bufnr, { charbefore: '', range: Range.create(0, 0, 0, 0) }])
       await events.fire('PlaceholderJump', [doc.bufnr + 1, { charbefore: '(', range: Range.create(0, 0, 0, 0) }])
-      expect(called).toBe(0)
+      assert.strictEqual(called, 0)
       await nvim.input('ifoo(b)')
       await events.fire('PlaceholderJump', [doc.bufnr, { charbefore: '(', range: Range.create(0, 5, 0, 6) }])
-      expect(called).toBe(1)
+      assert.strictEqual(called, 1)
     })
 
     it('should cancel trigger on InsertLeave', async () => {
@@ -245,7 +245,7 @@ describe('signatureHelp', () => {
       await nvim.command('stopinsert')
       await nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
       let res = await p
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should not close signature on type', async () => {
@@ -266,7 +266,7 @@ describe('signatureHelp', () => {
       await helper.waitFloat()
       let win = await helper.getFloat()
       let lines = await helper.getWinLines(win.id)
-      expect(lines[2]).toMatch('my signature')
+      assert.ok((lines[2]).includes('my signature'))
     })
 
     it('should close signature float when empty signatures returned', async () => {
@@ -289,7 +289,7 @@ describe('signatureHelp', () => {
       await signature.triggerSignatureHelp()
       await helper.waitValue(() => nvim.call('coc#float#valid', [win.id]), 0)
       let res = await nvim.call('coc#float#valid', [win.id])
-      expect(res).toBe(0)
+      assert.strictEqual(res, 0)
     })
 
     it('should close float on cursor moved', async () => {
@@ -347,9 +347,9 @@ describe('signatureHelp', () => {
       let winid = await helper.waitFloat()
       let win = nvim.createWindow(winid)
       let lines = await helper.getWinLines(win.id)
-      expect(lines[2]).toMatch('my signature')
+      assert.ok((lines[2]).includes('my signature'))
       let res = await nvim.call('GetFloatCursorRelative', [win.id]) as any
-      expect(res.row).toBeLessThan(0)
+      assert.ok((res.row) < (0))
     })
 
     it('should show parameter docs', async () => {
@@ -372,7 +372,7 @@ describe('signatureHelp', () => {
       let winid = await helper.waitFloat()
       let win = nvim.createWindow(winid)
       let lines = await helper.getWinLines(win.id)
-      expect(lines.join('\n')).toMatch('bar')
+      assert.ok((lines.join('\n')).includes('bar'))
     })
   })
 
@@ -409,7 +409,7 @@ describe('signatureHelp', () => {
       await helper.createDocument()
       await signature.triggerSignatureHelp()
       let win = await helper.getFloat()
-      expect(win).toBeUndefined()
+      assert.strictEqual(win, undefined)
       configurations.updateMemoryConfig({ 'signature.triggerSignatureWait': 100 })
     })
 
@@ -432,21 +432,21 @@ describe('signatureHelp', () => {
       await nvim.input('x')
       await helper.waitValue(() => nvim.call('coc#float#valid', [winid]), 0)
       let res = await nvim.call('coc#float#valid', [winid])
-      expect(res).toBe(0)
+      assert.strictEqual(res, 0)
       configurations.updateMemoryConfig({ 'signature.hideOnTextChange': false })
     })
 
-    it('should not retrigger signature on MenuPopupChanged when hideOnTextChange enabled', async () => {
+    it('should not retrigger signature on MenuPopupChanged when hideOnTextChange enabled', async (t) => {
       configurations.updateMemoryConfig({ 'signature.hideOnTextChange': true })
       let doc = await helper.createDocument()
       Object.assign(signature as any, {
         lastPosition: { bufnr: doc.bufnr, lnum: 1, col: 1 }
       })
-      let spy = vi.spyOn(signature as any, '_triggerSignatureHelp').mockResolvedValue(true)
+      let spy = t.mock.method(signature as any, '_triggerSignatureHelp', () => Promise.resolve(true))
       await events.fire('MenuPopupChanged', [{}])
       await helper.wait(30)
-      expect(spy).not.toHaveBeenCalled()
-      spy.mockRestore()
+      assert.strictEqual((spy).mock.callCount(), 0)
+      spy.mock.restore()
       configurations.updateMemoryConfig({ 'signature.hideOnTextChange': false })
     })
 
@@ -466,7 +466,7 @@ describe('signatureHelp', () => {
       await nvim.input('(')
       await helper.wait(30)
       let win = await helper.getFloat()
-      expect(win).toBeUndefined()
+      assert.strictEqual(win, undefined)
     })
 
     it('should echo simple signature help', async () => {
@@ -490,16 +490,16 @@ describe('signatureHelp', () => {
       await nvim.input('foo(')
       await signature.triggerSignatureHelp()
       let line = await helper.getCmdline()
-      expect(line).toMatch('(a, b)')
+      assert.ok((line).includes('(a, b)'))
       await nvim.input('a,')
       idx = 1
       await signature.triggerSignatureHelp()
       line = await helper.getCmdline()
-      expect(line).toMatch('foo(a, b)')
+      assert.ok((line).includes('foo(a, b)'))
       activeSignature = 1
       await signature.triggerSignatureHelp()
       line = await helper.getCmdline()
-      expect(line).toMatch('aaaaaa')
+      assert.ok((line).includes('aaaaaa'))
     })
 
     it('should echo signature without match', async () => {
@@ -515,7 +515,7 @@ describe('signatureHelp', () => {
       signature.echoSignature(signatureHelp)
       await helper.wait(20)
       let line = await helper.getCmdline()
-      expect(line).toMatch('foo')
+      assert.ok((line).includes('foo'))
       signatureHelp.signatures[0].parameters = undefined
       signature.echoSignature(signatureHelp)
     })

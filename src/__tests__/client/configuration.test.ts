@@ -57,7 +57,7 @@ describe('pull configuration feature', () => {
     await helper.waitValue(() => {
       return config != null
     }, true)
-    expect(config[0].http).toBeDefined()
+    assert.notStrictEqual(config[0].http, undefined)
   })
 
   it('should request configurations with sections', async () => {
@@ -71,9 +71,9 @@ describe('pull configuration feature', () => {
     await helper.waitValue(() => {
       return config?.length
     }, 3)
-    expect(config[1]).toBeNull()
-    expect(config[0].proxy).toBeDefined()
-    expect(config[2]).toBeNull()
+    assert.strictEqual(config[1], null)
+    assert.notStrictEqual(config[0].proxy, undefined)
+    assert.strictEqual(config[2], null)
   })
 })
 
@@ -89,7 +89,7 @@ describe('publish configuration feature', () => {
     await helper.waitValue(() => {
       return changed != null
     }, true)
-    expect(changed).toEqual({ settings: {} })
+    assert.deepStrictEqual(changed, { settings: {} })
     await client.stop()
   })
 
@@ -109,7 +109,7 @@ describe('publish configuration feature', () => {
     await helper.waitValue(() => {
       return changed != null
     }, true)
-    expect(changed.settings.coc.preferences.rootPath).toBe('./src')
+    assert.strictEqual(changed.settings.coc.preferences.rootPath, './src')
     workspace.workspaceFolderControl.removeWorkspaceFolder(folder)
     let feature = client.getFeature(DidChangeConfigurationNotification.method)
     feature.dispose()
@@ -138,8 +138,8 @@ describe('publish configuration feature', () => {
     await helper.waitValue(() => {
       return changed != null
     }, true)
-    expect(changed.settings.coc).toBeDefined()
-    expect(changed.settings.npm).toBeDefined()
+    assert.notStrictEqual(changed.settings.coc, undefined)
+    assert.notStrictEqual(changed.settings.npm, undefined)
     let { configurations } = workspace
     configurations.updateMemoryConfig({ 'npm.binPath': 'cnpm' })
     await helper.waitValue(() => {
@@ -164,7 +164,7 @@ describe('publish configuration feature', () => {
     })
     await client.start()
     await helper.wait(50)
-    expect(called).toBe(false)
+    assert.strictEqual(called, false)
     void client.stop()
     await client.stop()
   })
@@ -184,13 +184,13 @@ describe('publish configuration feature', () => {
     })
     await client.start()
     await helper.waitValue(() => changed != null, true)
-    expect(changed).toEqual({ settings: null })
+    assert.deepStrictEqual(changed, { settings: null })
     await client.stop()
   })
 
   it('should extractSettingsInformation', async () => {
     let res = SyncConfigurationFeature.extractSettingsInformation(['http.proxy', 'http.proxyCA'])
-    expect(res.http).toBeDefined()
-    expect(res.http.proxy).toBeDefined()
+    assert.notStrictEqual(res.http, undefined)
+    assert.notStrictEqual(res.http.proxy, undefined)
   })
 })

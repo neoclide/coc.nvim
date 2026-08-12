@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CodeLens, Command, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import commands from '../../commands'
@@ -55,10 +56,10 @@ async function createBufferWithCodeLens(): Promise<CodeLensBuffer> {
 
 describe('codeLenes feature', () => {
   it('should get text align', async () => {
-    expect(getTextAlign(undefined)).toBe('above')
-    expect(getTextAlign('top')).toBe('above')
-    expect(getTextAlign('eol')).toBe('after')
-    expect(getTextAlign('right_align')).toBe('right')
+    assert.strictEqual(getTextAlign(undefined), 'above')
+    assert.strictEqual(getTextAlign('top'), 'above')
+    assert.strictEqual(getTextAlign('eol'), 'after')
+    assert.strictEqual(getTextAlign('right_align'), 'right')
   })
 
   it('should not throw when srcId not exists', async () => {
@@ -68,15 +69,15 @@ describe('codeLenes feature', () => {
     await item.doAction(0)
   })
 
-  it('should invoke codeLenes action', async () => {
-    let fn = vi.fn()
+  it('should invoke codeLenes action', async (t) => {
+    let fn = t.mock.fn()
     disposables.push(commands.registerCommand('__save', (...args) => {
       fn(...args)
     }))
     await createBufferWithCodeLens()
     await helper.doAction('codeLensAction')
     await nvim.call('cursor', [1, 1])
-    expect(fn).toHaveBeenCalledWith(1, 2, 3)
+    assert.ok((fn).mock.calls.some(call => isDeepStrictEqual(call.arguments, [1, 2, 3])))
     await nvim.command('normal! G')
     await helper.doAction('codeLensAction')
   })
@@ -84,12 +85,12 @@ describe('codeLenes feature', () => {
   it('should toggle codeLens display', async () => {
     await codeLens.toggle(999)
     let line = await helper.getCmdline()
-    expect(line).toMatch('not exists')
+    assert.ok((line).includes('not exists'))
     await createBufferWithCodeLens()
     await commands.executeCommand('document.toggleCodeLens')
     let doc = await workspace.document
     let res = await doc.buffer.getExtMarks(srcId, 0, -1, { details: true })
-    expect(res.length).toBe(0)
+    assert.strictEqual(res.length, 0)
     await commands.executeCommand('document.toggleCodeLens')
     await helper.waitValue(async () => {
       let res = await doc.buffer.getExtMarks(srcId, 0, -1, { details: true })
@@ -100,7 +101,7 @@ describe('codeLenes feature', () => {
   it('should return codeLenes when resolve not exists', async () => {
     let codeLens = CodeLens.create(Range.create(0, 0, 1, 1))
     let resolved = await languages.resolveCodeLens(codeLens, CancellationToken.None)
-    expect(resolved).toBeDefined()
+    assert.notStrictEqual(resolved, undefined)
   })
 
   it('should do codeLenes request and resolve codeLenes', async () => {
@@ -111,7 +112,7 @@ describe('codeLenes feature', () => {
       return Array.isArray(codelens) && codelens[0].command != null
     }, true)
     let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
-    expect(markers.length).toBe(1)
+    assert.strictEqual(markers.length, 1)
     let codeLenes = buf.currentCodeLens
     await languages.resolveCodeLens(codeLenes[0], CancellationToken.None)
   })
@@ -122,7 +123,7 @@ describe('codeLenes feature', () => {
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await doc.synchronize()
     let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
-    expect(markers.length).toBeGreaterThan(0)
+    assert.ok((markers.length) > (0))
   })
 
   it('should work with empty codeLens', async () => {
@@ -134,14 +135,14 @@ describe('codeLenes feature', () => {
     let doc = await helper.createDocument('t.js')
     let buf = codeLens.buffers.getItem(doc.bufnr)
     let codelens = buf.currentCodeLens
-    expect(codelens).toBeUndefined()
+    assert.strictEqual(codelens, undefined)
   })
 
   it('should change codeLenes position', async () => {
     helper.updateConfiguration('codeLens.position', 'eol')
     let bufnr = await nvim.call('bufnr', ['%']) as number
     let item = codeLens.buffers.getItem(bufnr)
-    expect(item.config.position).toBe('eol')
+    assert.strictEqual(item.config.position, 'eol')
   })
 
   it('should refresh codeLens on CursorHold', async () => {
@@ -204,7 +205,7 @@ describe('codeLenes feature', () => {
     let doc = await helper.createDocument('codelens.js')
     await helper.waitValue(() => started, true)
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'a\nb\nc')])
-    expect(cancelled).toBe(true)
+    assert.strictEqual(cancelled, true)
   })
 
   it('should resolve on CursorMoved', async () => {
@@ -235,10 +236,10 @@ describe('codeLenes feature', () => {
       let buf = codeLens.buffers.getItem(bufnr)
       return buf && buf.currentCodeLens && buf.currentCodeLens[0].command != null
     }, true)
-  }, 10000)
+  })
 
-  it('should use picker for multiple codeLenses', async () => {
-    let fn = vi.fn()
+  it('should use picker for multiple codeLenses', async (t) => {
+    let fn = t.mock.fn()
     let resolved = false
     disposables.push(commands.registerCommand('__save', (...args) => {
       fn(...args)
@@ -269,11 +270,11 @@ describe('codeLenes feature', () => {
     await helper.waitPrompt()
     await nvim.input('<cr>')
     await p
-    expect(fn).toHaveBeenCalledWith(1, 2, 3)
+    assert.ok((fn).mock.calls.some(call => isDeepStrictEqual(call.arguments, [1, 2, 3])))
   })
 
-  it('should show tooltip in codeLens picker', async () => {
-    let fn = vi.fn()
+  it('should show tooltip in codeLens picker', async (t) => {
+    let fn = t.mock.fn()
     disposables.push(commands.registerCommand('__save', () => {
       fn()
     }))
@@ -303,17 +304,17 @@ describe('codeLenes feature', () => {
     let p = helper.doAction('codeLensAction')
     await helper.waitPrompt()
     let win = await helper.getFloat()
-    expect(win).toBeDefined()
+    assert.notStrictEqual(win, undefined)
     let lines = await helper.getWinLines(win.id)
-    expect(lines.join('\n')).toMatch(/save the file/)
-    expect(lines.join('\n')).toMatch(/delete the file/)
+    assert.match(lines.join('\n'), /save the file/)
+    assert.match(lines.join('\n'), /delete the file/)
     await nvim.input('<cr>')
     await p
   })
 
-  it('should refresh for failed codeLens request', async () => {
+  it('should refresh for failed codeLens request', async (t) => {
     let called = 0
-    let fn = vi.fn()
+    let fn = t.mock.fn()
     disposables.push(commands.registerCommand('__save', (...args) => {
       fn(...args)
     }))
@@ -345,12 +346,12 @@ describe('codeLenes feature', () => {
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await codeLens.checkProvider()
     let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
-    expect(markers.length).toBeGreaterThan(0)
+    assert.ok((markers.length) > (0))
     let codeLensBuffer = codeLens.buffers.getItem(doc.buffer.id)
     await codeLensBuffer.forceFetch()
     await helper.waitValue(() => codeLensBuffer.currentCodeLens.length > 1, true)
     let curr = codeLensBuffer.currentCodeLens
-    expect(curr.length).toBeGreaterThan(1)
+    assert.ok((curr.length) > (1))
   })
 
   it('should use custom separator & position', async () => {
@@ -373,25 +374,25 @@ describe('codeLenes feature', () => {
     await helper.wait(20)
     await codeLens.checkProvider()
     let res = await doc.buffer.getExtMarks(srcId, 0, -1, { details: true })
-    expect(res.length).toBe(1)
+    assert.strictEqual(res.length, 1)
   })
 
   it('should get commands from codeLenses', async () => {
-    expect(getCommands(1, undefined)).toEqual([])
+    assert.deepStrictEqual(getCommands(1, undefined), [])
     let codeLenses = [CodeLens.create(Range.create(0, 0, 0, 0))]
-    expect(getCommands(0, codeLenses)).toEqual([])
+    assert.deepStrictEqual(getCommands(0, codeLenses), [])
     codeLenses = [CodeLens.create(Range.create(0, 0, 1, 0)), CodeLens.create(Range.create(2, 0, 3, 0))]
     codeLenses[0].command = Command.create('save', '__save')
-    expect(getCommands(0, codeLenses).length).toEqual(1)
+    assert.deepStrictEqual(getCommands(0, codeLenses).length, 1)
   })
 
   it('should get command text with tooltip', () => {
     let cmd = Command.create('save', '__save')
-    expect(getCommandText(cmd)).toBe('save')
+    assert.strictEqual(getCommandText(cmd), 'save')
     cmd.tooltip = 'save the file'
-    expect(getCommandText(cmd)).toBe('save - save the file')
+    assert.strictEqual(getCommandText(cmd), 'save - save the file')
     cmd.title = 's'
     cmd.tooltip = 't'.repeat(100)
-    expect(getCommandText(cmd).endsWith('...')).toBe(true)
+    assert.strictEqual(getCommandText(cmd).endsWith('...'), true)
   })
 })

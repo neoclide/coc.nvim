@@ -4,7 +4,6 @@ import os from 'os'
 import path from 'path'
 import { DocumentSymbol, Position, Range, SymbolKind } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import languages from '../../languages'
 import { createEditorTools, getVisualSelection, innermostSymbol, lineText } from '../../mcp/tools/editor'
 import { lspQueryCache } from '../../mcp/tools/lsp'
@@ -41,50 +40,51 @@ function tool() {
 }
 
 describe('mcp editor tools', () => {
-  it('exports editor state helpers for edge-case testing', async () => {
+  it('exports editor state helpers for edge-case testing', async (t) => {
     let doc: any = {
       lineCount: 2,
       getLines: (start: number) => start === 0 ? ['alpha'] : [''],
       textDocument: { getText: () => 'selection' }
     }
-    expect(lineText(doc, -1)).toBe('')
-    expect(lineText(doc, 2)).toBe('')
-    expect(lineText(doc, 0)).toBe('alpha')
-    expect(lineText(doc, 1)).toBe('')
-    expect(innermostSymbol(null, Position.create(0, 0))).toBeNull()
+    assert.strictEqual(lineText(doc, -1), '')
+    assert.strictEqual(lineText(doc, 2), '')
+    assert.strictEqual(lineText(doc, 0), 'alpha')
+    assert.strictEqual(lineText(doc, 1), '')
+    assert.strictEqual(innermostSymbol(null, Position.create(0, 0)), null)
     let outside = DocumentSymbol.create('outside', undefined, SymbolKind.File, Range.create(1, 0, 1, 1), Range.create(1, 0, 1, 1))
-    expect(innermostSymbol([outside], Position.create(0, 0))).toBeNull()
+    assert.strictEqual(innermostSymbol([outside], Position.create(0, 0)), null)
 
+    let evalMock = t.mock.fn<(...args: any[]) => Promise<any>>()
+    evalMock.mock.mockImplementationOnce(() => Promise.resolve([1, 1, 1, 1, true]), 0)
+    evalMock.mock.mockImplementationOnce(() => Promise.resolve(['', '']), 1)
     let nvim: any = {
-      call: vi.fn().mockResolvedValue('v'),
-      eval: vi.fn()
-        .mockResolvedValueOnce([1, 1, 1, 1, true])
-        .mockResolvedValueOnce(['', ''])
+      call: t.mock.fn(() => Promise.resolve('v')),
+      eval: evalMock
     }
-    expect((await getVisualSelection(doc, nvim))!.range).toEqual(Range.create(0, 0, 0, 1))
+    assert.deepStrictEqual((await getVisualSelection(doc, nvim))!.range, Range.create(0, 0, 0, 1))
   })
 
   it('editor/state returns active editor state', async () => {
     await helper.nvim.call('cursor', [2, 3])
     let result = await tool().handler({}, { token })
-    expect(result.isError).toBeFalsy()
+    assert.ok(!(result.isError))
     let s = result.structuredContent
-    expect(s.workspace).toBe(workspace.root)
-    expect(s.document.uri).toBe(uri)
-    expect(s.document.language).toBe('typescript')
-    expect(s.document.version).toBeGreaterThan(0)
-    expect(s.cursor).toEqual({ line: 1, character: 2 })
-    expect(s.surroundingCode).toEqual({
+    assert.strictEqual(s.workspace, workspace.root)
+    assert.strictEqual(s.document.uri, uri)
+    assert.strictEqual(s.document.language, 'typescript')
+    assert.ok((s.document.version) > (0))
+    assert.deepStrictEqual(s.cursor, { line: 1, character: 2 })
+    assert.deepStrictEqual(s.surroundingCode, {
       before: 'function foo() {',
       current: '  return 42',
       after: '}'
     })
-    expect(s.selection).toBeNull()
-    expect(s.visibleRange.start).toBeLessThanOrEqual(1)
-    expect(s.visibleRange.end).toBeGreaterThanOrEqual(1)
-    expect(s.visibleRange.lines).toContain('  return 42')
-    expect(Array.isArray(s.diagnostics)).toBe(true)
-    expect(s.symbol).toBeNull()
+    assert.strictEqual(s.selection, null)
+    assert.ok((s.visibleRange.start) <= (1))
+    assert.ok((s.visibleRange.end) >= (1))
+    assert.ok((s.visibleRange.lines).includes('  return 42'))
+    assert.strictEqual(Array.isArray(s.diagnostics), true)
+    assert.strictEqual(s.symbol, null)
   })
 
   it('editor/state returns visual selection', async () => {
@@ -93,10 +93,10 @@ describe('mcp editor tools', () => {
     let result = await tool().handler({}, { token })
     await helper.nvim.input('<esc>')
     let s = result.structuredContent
-    expect(s.selection).not.toBeNull()
-    expect(s.selection.text).toBe('  return 42')
-    expect(s.selection.range.start).toEqual({ line: 1, character: 0 })
-    expect(s.selection.range.end).toEqual({ line: 1, character: '  return 42'.length })
+    assert.notStrictEqual(s.selection, null)
+    assert.strictEqual(s.selection.text, '  return 42')
+    assert.deepStrictEqual(s.selection.range.start, { line: 1, character: 0 })
+    assert.deepStrictEqual(s.selection.range.end, { line: 1, character: '  return 42'.length })
   })
 
   it('editor/state returns linewise visual selection', async () => {
@@ -105,10 +105,10 @@ describe('mcp editor tools', () => {
     let result = await tool().handler({}, { token })
     await helper.nvim.input('<esc>')
     let s = result.structuredContent
-    expect(s.selection).not.toBeNull()
-    expect(s.selection.text).toBe('  return 42\n}\n')
-    expect(s.selection.range.start).toEqual({ line: 1, character: 0 })
-    expect(s.selection.range.end).toEqual({ line: 3, character: 0 })
+    assert.notStrictEqual(s.selection, null)
+    assert.strictEqual(s.selection.text, '  return 42\n}\n')
+    assert.deepStrictEqual(s.selection.range.start, { line: 1, character: 0 })
+    assert.deepStrictEqual(s.selection.range.end, { line: 3, character: 0 })
   })
 
   it('editor/state normalizes a backwards visual selection', async () => {
@@ -117,9 +117,9 @@ describe('mcp editor tools', () => {
     let result = await tool().handler({}, { token })
     await helper.nvim.input('<esc>')
     let selection = result.structuredContent.selection
-    expect(selection.text).toBe('  return')
-    expect(selection.range.start).toEqual({ line: 1, character: 0 })
-    expect(selection.range.end).toEqual({ line: 1, character: 8 })
+    assert.strictEqual(selection.text, '  return')
+    assert.deepStrictEqual(selection.range.start, { line: 1, character: 0 })
+    assert.deepStrictEqual(selection.range.end, { line: 1, character: 8 })
   })
 
   it('editor/state returns the innermost symbol at the cursor', async () => {
@@ -133,27 +133,27 @@ describe('mcp editor tools', () => {
     try {
       await helper.nvim.call('cursor', [2, 3])
       let result = await tool().handler({}, { token })
-      expect(result.structuredContent.symbol).toEqual({ name: 'inner', kind: 'function' })
+      assert.deepStrictEqual(result.structuredContent.symbol, { name: 'inner', kind: 'function' })
     } finally {
       disposable.dispose()
       lspQueryCache.clear()
     }
   })
 
-  it('editor/state returns an error without an active editor', async () => {
-    let spy = vi.spyOn(window, 'activeTextEditor', 'get').mockReturnValue(undefined)
+  it('editor/state returns an error without an active editor', async (t) => {
+    let spy = t.mock.getter(window, 'activeTextEditor', () => (undefined))
     try {
       let result = await tool().handler({}, { token })
-      expect(result.isError).toBe(true)
-      expect(result.content[0].text).toBe('No active editor')
+      assert.strictEqual(result.isError, true)
+      assert.strictEqual(result.content[0].text, 'No active editor')
     } finally {
-      spy.mockRestore()
+      spy.mock.restore()
     }
   })
 
   it('editor/state returns null selection outside visual mode', async () => {
     await helper.nvim.input('v<esc>')
     let result = await tool().handler({}, { token })
-    expect(result.structuredContent.selection).toBeNull()
+    assert.strictEqual(result.structuredContent.selection, null)
   })
 })

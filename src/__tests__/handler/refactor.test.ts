@@ -54,7 +54,7 @@ async function assertSynchronized(buf: RefactorBuffer) {
     })
   })
   curr.sort((a, b) => a.lnum - b.lnum)
-  expect(items).toEqual(curr)
+  assert.deepStrictEqual(items, curr)
 }
 
 describe('fixChangeParams', () => {
@@ -78,8 +78,8 @@ describe('fixChangeParams', () => {
       '\u3000bara'
     ])
     e = fixChangeParams(e)
-    expect(e.original).toBe('\u3000barx\nfoo\n')
-    expect(e.contentChanges[0].range).toEqual(Range.create(0, 0, 2, 0))
+    assert.strictEqual(e.original, '\u3000barx\nfoo\n')
+    assert.deepStrictEqual(e.contentChanges[0].range, Range.create(0, 0, 2, 0))
   })
 
   it('should fix insert change params', async () => {
@@ -87,10 +87,10 @@ describe('fixChangeParams', () => {
       '\u3000bara'
     ])
     e = fixChangeParams(e)
-    expect(e.original).toBe('')
+    assert.strictEqual(e.original, '')
     let change = e.contentChanges[0]
-    expect(change.range).toEqual(Range.create(0, 0, 0, 0))
-    expect(change.text).toBe('\u3000barx\nfoo\n')
+    assert.deepStrictEqual(change.range, Range.create(0, 0, 0, 0))
+    assert.strictEqual(change.text, '\u3000barx\nfoo\n')
   })
 })
 
@@ -98,9 +98,9 @@ describe('refactor', () => {
   describe('checkInsert()', () => {
     it('should check inserted ranges', async () => {
       let c = new Changes()
-      expect(c.checkInsert([1])).toBeUndefined()
+      assert.strictEqual(c.checkInsert([1]), undefined)
       c.add([{ filepath: __filename, start: 1, lnum: 1, lines: [''] }])
-      expect(c.checkInsert([2])).toBeUndefined()
+      assert.strictEqual(c.checkInsert([2]), undefined)
     })
   })
 
@@ -112,7 +112,7 @@ describe('refactor', () => {
       let fn = () => {
         buf.getFileRange(1)
       }
-      expect(fn).toThrow(Error)
+      assert.throws(fn, Error)
     })
 
     it('should find file range', async () => {
@@ -120,7 +120,7 @@ describe('refactor', () => {
       let locations = [{ uri, range: Range.create(0, 0, 0, 6) }]
       let buf = await commands.executeCommand<any>('editor.action.showRefactor', locations)
       let res = buf.getFileRange(4)
-      expect(res).toBeDefined()
+      assert.notStrictEqual(res, undefined)
     })
   })
 
@@ -135,10 +135,10 @@ describe('refactor', () => {
       await buf.addFileItems([fileItem])
       let res = buf.getFileRange(4)
       let r = buf.getDeleteRange(res)
-      expect(r).toEqual(Range.create(3, 0, 6, 0))
+      assert.deepStrictEqual(r, Range.create(3, 0, 6, 0))
       res = buf.getFileRange(7)
       r = buf.getDeleteRange(res)
-      expect(r).toEqual(Range.create(6, 0, 8, 0))
+      assert.deepStrictEqual(r, Range.create(6, 0, 8, 0))
     })
 
     it('should get replace range', async () => {
@@ -151,32 +151,32 @@ describe('refactor', () => {
       await buf.addFileItems([fileItem])
       let res = buf.getFileRange(4)
       let r = buf.getReplaceRange(res)
-      expect(r).toEqual(Range.create(4, 0, 4, 3))
+      assert.deepStrictEqual(r, Range.create(4, 0, 4, 3))
       res = buf.getFileRange(7)
       r = buf.getReplaceRange(res)
-      expect(r).toEqual(Range.create(7, 0, 7, 3))
+      assert.deepStrictEqual(r, Range.create(7, 0, 7, 3))
     })
   })
 
   describe('fromWorkspaceEdit()', () => {
     it('should not create from invalid workspaceEdit', async () => {
       let res = await refactor.fromWorkspaceEdit(undefined)
-      expect(res).toBeUndefined()
+      assert.strictEqual(res, undefined)
       res = await refactor.fromWorkspaceEdit({ documentChanges: [] })
-      expect(res).toBeUndefined()
+      assert.strictEqual(res, undefined)
     })
 
     it('should create from document changes', async () => {
       let edit = createEdit(URI.file(__filename).toString())
       let buf = await refactor.fromWorkspaceEdit(edit)
       let shown = await buf.valid
-      expect(shown).toBe(true)
+      assert.strictEqual(shown, true)
       let items = buf.fileItems
-      expect(items.length).toBe(1)
+      assert.strictEqual(items.length, 1)
       await nvim.command(`bd! ${buf.bufnr}`)
       await helper.waitValue(() => refactor.has(buf.bufnr), false)
       let has = refactor.has(buf.bufnr)
-      expect(has).toBe(false)
+      assert.strictEqual(has, false)
     })
 
     it('should create from workspaceEdit', async () => {
@@ -198,9 +198,9 @@ describe('refactor', () => {
       let edit: WorkspaceEdit = { changes }
       let buf = await refactor.fromWorkspaceEdit(edit)
       let shown = await buf.valid
-      expect(shown).toBe(true)
+      assert.strictEqual(shown, true)
       let items = buf.fileItems
-      expect(items.length).toBe(1)
+      assert.strictEqual(items.length, 1)
     })
   })
 
@@ -216,14 +216,14 @@ describe('refactor', () => {
       }]
       let buf = await refactor.fromLocations(locations)
       let shown = await buf.valid
-      expect(shown).toBe(true)
+      assert.strictEqual(shown, true)
       let items = buf.fileItems
-      expect(items.length).toBe(1)
+      assert.strictEqual(items.length, 1)
     })
 
     it('should not create from empty locations', async () => {
       let buf = await refactor.fromLocations([])
-      expect(buf).toBeUndefined()
+      assert.strictEqual(buf, undefined)
     })
   })
 
@@ -251,7 +251,7 @@ describe('refactor', () => {
       doc._forceSync()
       let srcId = await nvim.createNamespace('coc-refactor')
       let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
-      expect(markers.length).toBe(2)
+      assert.strictEqual(markers.length, 2)
     })
 
     it('should detect range delete and undo', async () => {
@@ -299,7 +299,7 @@ describe('refactor', () => {
       await doc.buffer.append(['def'])
       await doc.synchronize()
       let newLines = await nvim.call('getline', [1, '$'])
-      expect(lines).toEqual(newLines)
+      assert.deepStrictEqual(lines, newLines)
       await assertSynchronized(buf)
     })
 
@@ -311,8 +311,8 @@ describe('refactor', () => {
       await doc.buffer.setLines(['def'], { start: 0, end: 0, strictIndexing: false })
       await doc.synchronize()
       let fileRange = buf.getFileRange(4)
-      expect(fileRange.start).toBe(2)
-      expect(fileRange.lines.length).toBe(6)
+      assert.strictEqual(fileRange.start, 2)
+      assert.strictEqual(fileRange.lines.length, 6)
       await assertSynchronized(buf)
     })
 
@@ -324,9 +324,9 @@ describe('refactor', () => {
       await doc.buffer.setLines([], { start: 0, end: -1, strictIndexing: false })
       await doc.synchronize()
       let lines = await nvim.call('getline', [1, '$']) as string[]
-      expect(lines.length).toBe(3)
+      assert.strictEqual(lines.length, 3)
       let items = buf.fileItems
-      expect(items.length).toBe(0)
+      assert.strictEqual(items.length, 0)
       await assertSynchronized(buf)
     })
 
@@ -338,7 +338,7 @@ describe('refactor', () => {
       await doc.buffer.setLines(['def', 'def'], { start: 5, end: 6, strictIndexing: false })
       await doc.synchronize()
       let lines = await nvim.call('getline', [1, '$']) as string[]
-      expect(lines[lines.length - 2]).toBe('def')
+      assert.strictEqual(lines[lines.length - 2], 'def')
       await assertSynchronized(buf)
     })
   })
@@ -355,7 +355,7 @@ Save current buffer to make changes
   } `
       let buf = await refactor.fromLines(lines.split('\n'))
       let changes = await buf.getFileChanges()
-      expect(changes).toEqual([{ lnum: 5, filepath: '/a.ts', lines: ['    })', '  } '] }])
+      assert.deepStrictEqual(changes, [{ lnum: 5, filepath: '/a.ts', lines: ['    })', '  } '] }])
     })
 
     it('should get changes #2', async () => {
@@ -365,7 +365,7 @@ Save current buffer to make changes
   } `
       let buf = await refactor.fromLines(lines.split('\n'))
       let changes = await buf.getFileChanges()
-      expect(changes).toEqual([{ lnum: 2, filepath: '/a.ts', lines: ['    })', '  } '] }])
+      assert.deepStrictEqual(changes, [{ lnum: 2, filepath: '/a.ts', lines: ['    })', '  } '] }])
     })
 
     it('should get changes #3', async () => {
@@ -376,7 +376,7 @@ Save current buffer to make changes
 \u3000`
       let buf = await refactor.fromLines(lines.split('\n'))
       let changes = await buf.getFileChanges()
-      expect(changes).toEqual([{ lnum: 2, filepath: '/a.ts', lines: ['    })', '  }'] }])
+      assert.deepStrictEqual(changes, [{ lnum: 2, filepath: '/a.ts', lines: ['    })', '  }'] }])
     })
 
     it('should get changes #4', async () => {
@@ -388,7 +388,7 @@ bar
 \u3000`
       let buf = await refactor.fromLines(lines.split('\n'))
       let changes = await buf.getFileChanges()
-      expect(changes).toEqual([
+      assert.deepStrictEqual(changes, [
         { filepath: '/a.ts', lnum: 2, lines: ['foo'] },
         { filepath: '/b.ts', lnum: 4, lines: ['bar'] }
       ])
@@ -400,12 +400,12 @@ bar
       let winid = await nvim.call('win_getid') as number
       let buf = await refactor.createRefactorBuffer()
       let curr = await nvim.call('win_getid')
-      expect(curr).toBeGreaterThan(winid)
+      assert.ok((curr as number) > winid)
       let valid = await buf.valid
-      expect(valid).toBe(true)
+      assert.strictEqual(valid, true)
       buf = await refactor.createRefactorBuffer('vim')
       valid = await buf.valid
-      expect(valid).toBe(true)
+      assert.strictEqual(valid, true)
     })
 
     it('should use conceal for line numbers', async () => {
@@ -417,7 +417,7 @@ bar
       await buf.addFileItems([fileItem])
       let arr = await nvim.call('getmatches') as any[]
       arr = arr.filter(o => o.group == 'Conceal')
-      expect(arr.length).toBeGreaterThan(0)
+      assert.ok((arr.length) > (0))
       await buf.addFileItems([{
         filepath: __filename,
         ranges: [{ start: 1, end: 3 }]
@@ -427,7 +427,7 @@ bar
       await doc.synchronize()
       let b = nvim.createBuffer(buf.bufnr)
       let res = await b.getVar('line_infos')
-      expect(res).toEqual({})
+      assert.deepStrictEqual(res, {})
     })
   })
 
@@ -448,8 +448,8 @@ bar
       await buf.splitOpen()
       let line = await nvim.eval('line(".")')
       let bufname = await nvim.eval('bufname("%")')
-      expect(bufname).toMatch('refactor.test.ts')
-      expect(line).toBe(11)
+      assert.ok(typeof bufname === 'string' && bufname.includes('refactor.test.ts'))
+      assert.strictEqual(line, 11)
     })
 
     it('should jump split window when original window not valid', async () => {
@@ -459,8 +459,8 @@ bar
       await buf.splitOpen()
       let line = await nvim.eval('line(".")')
       let bufname = await nvim.eval('bufname("%")')
-      expect(bufname).toMatch('refactor.test.ts')
-      expect(line).toBe(11)
+      assert.ok(typeof bufname === 'string' && bufname.includes('refactor.test.ts'))
+      assert.strictEqual(line, 11)
     })
   })
 
@@ -483,14 +483,14 @@ bar
       await nvim.input('<esc>')
       await p
       let bufnr = await nvim.call('bufnr', ['%'])
-      expect(bufnr).toBe(buf.bufnr)
+      assert.strictEqual(bufnr, buf.bufnr)
       await nvim.call('cursor', [1, 1])
       p = buf.showMenu()
       await helper.waitPrompt()
       await nvim.input('1')
       await p
       bufnr = await nvim.call('bufnr', ['%'])
-      expect(bufnr).toBe(buf.bufnr)
+      assert.strictEqual(bufnr, buf.bufnr)
     })
 
     it('should open file in new tab', async () => {
@@ -501,9 +501,9 @@ bar
       await nvim.input('1')
       await p
       let nr = await nvim.call('tabpagenr')
-      expect(nr).toBe(2)
+      assert.strictEqual(nr, 2)
       let lnum = await nvim.call('line', ['.'])
-      expect(lnum).toBe(11)
+      assert.strictEqual(lnum, 11)
     })
 
     it('should remove current block', async () => {
@@ -514,7 +514,7 @@ bar
       await nvim.input('2')
       await p
       let items = buf.fileItems
-      expect(items[0].ranges.length).toBe(1)
+      assert.strictEqual(items[0].ranges.length, 1)
       await assertSynchronized(buf)
     })
   })
@@ -538,7 +538,7 @@ bar
         filepath: __filename,
         ranges: [{ start: 1, end: 5 }]
       }])
-      expect(getRanges()).toEqual([[0, 1], [2, 3]])
+      assert.deepStrictEqual(getRanges(), [[0, 1], [2, 3]])
       nvim.pauseNotification()
       nvim.call('setline', [5, ['xyoo']], true)
       nvim.command('undojoin', true)
@@ -549,10 +549,10 @@ bar
       let doc = workspace.getDocument(buf.bufnr)
       await doc.synchronize()
       let res = await helper.doAction('saveRefactor', doc.bufnr)
-      expect(res).toBe(true)
-      expect(getRanges()).toEqual([[0, 2], [3, 4]])
+      assert.strictEqual(res, true)
+      assert.deepStrictEqual(getRanges(), [[0, 2], [3, 4]])
       let content = fs.readFileSync(filename, 'utf8')
-      expect(content).toBe('xyoo\nde\n\nb\n')
+      assert.strictEqual(content, 'xyoo\nde\n\nb\n')
     })
 
     it('should not save when no change made', async () => {
@@ -563,7 +563,7 @@ bar
       }
       await buf.addFileItems([fileItem])
       let res = await buf.save()
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should sync buffer change to file', async () => {
@@ -579,11 +579,11 @@ bar
       await buf.addFileItems([fileItem])
       await nvim.call('setline', [5, 'changed'])
       let res = await buf.save()
-      expect(res).toBe(true)
-      expect(fs.existsSync(filename)).toBe(true)
+      assert.strictEqual(res, true)
+      assert.strictEqual(fs.existsSync(filename), true)
       let content = fs.readFileSync(filename, 'utf8')
       let lines = content.split('\n')
-      expect(lines).toEqual(['changed', 'bar', 'line', ''])
+      assert.deepStrictEqual(lines, ['changed', 'bar', 'line', ''])
       fs.unlinkSync(filename)
     })
   })
@@ -604,7 +604,7 @@ bar
       } catch (e) {
         err = e
       }
-      expect(err).toBeDefined()
+      assert.notStrictEqual(err, undefined)
     })
 
     it('should show message when prepare failed', async () => {
@@ -619,7 +619,7 @@ bar
       })
       await helper.doAction('refactor')
       let res = await helper.getCmdline()
-      expect(res).toMatch(/Error/)
+      assert.match(res, /Error/)
     })
 
     it('should show message when returned edits is null', async () => {
@@ -631,7 +631,7 @@ bar
       })
       await refactor.doRefactor()
       let res = await helper.getCmdline()
-      expect(res).toMatch(/returns null/)
+      assert.match(res, /returns null/)
     })
 
     it('should open refactor window when edits is valid', async () => {
@@ -655,10 +655,10 @@ bar
       let winid = await nvim.call('win_getid') as number
       await refactor.doRefactor()
       let currWin = await nvim.call('win_getid') as number
-      expect(currWin - winid).toBeGreaterThan(0)
+      assert.ok((currWin - winid) > (0))
       let bufnr = await nvim.call('bufnr', ['%']) as number
       let b = refactor.getBuffer(bufnr)
-      expect(b).toBeDefined()
+      assert.notStrictEqual(b, undefined)
     })
   })
 
@@ -670,9 +670,9 @@ bar
       await refactor.search(['registerRenameProvider'])
       let buf = await nvim.buffer
       let name = await buf.name
-      expect(name).toMatch(/__coc_refactor__/)
+      assert.match(name, /__coc_refactor__/)
       let lines = await buf.lines
-      expect(lines[0]).toMatch(/Save current buffer/)
+      assert.match(lines[0], /Save current buffer/)
     })
   })
 })

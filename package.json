@@ -15,8 +15,8 @@
     "lint:typecheck": "tsc -p tsconfig.json",
     "build": "node esbuild.js",
     "watch": "node esbuild.js --watch",
-    "test": "vitest run",
-    "test-build": "vitest run --coverage",
+    "test": "node test-runner.cjs",
+    "test-build": "c8 --all --reporter=text --reporter=lcov --reports-dir=coverage --include=\"src/**/*.ts\" --exclude=\"src/__tests__/**\" node test-runner.cjs",
     "prepare": "node esbuild.js"
   },
   "repository": {
@@ -40,12 +40,11 @@
     "@types/semver": "^7.7.1",
     "@types/unidecode": "^1.1.0",
     "@types/which": "^3.0.4",
-    "@vitest/coverage-v8": "^4.1.10",
+    "c8": "^12.0.0",
     "esbuild": "^0.28.2",
     "oxlint": "^1.75.0",
     "oxlint-tsgolint": "^7.0.2001",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.10",
     "vscode-languageserver": "^10.1.0"
   },
   "dependencies": {

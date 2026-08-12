@@ -1,5 +1,4 @@
 'use strict'
-import { describe, expect, it } from 'vitest'
 import { createDocumentTools } from '../../mcp/tools/document'
 import { createLspTools } from '../../mcp/tools/lsp'
 import { createWorkspaceTools } from '../../mcp/tools/workspace'
@@ -42,12 +41,12 @@ describe('mcp security hardening', () => {
         await client.request(i, 'ping')
         ok++
       } catch (e) {
-        expect(String(e)).toContain('Rate limit')
+        assert.ok((String(e)).includes('Rate limit'))
         errors++
       }
     }
-    expect(ok).toBeGreaterThanOrEqual(1)
-    expect(errors).toBeGreaterThanOrEqual(2)
+    assert.ok((ok) >= (1))
+    assert.ok((errors) >= (2))
     client.close()
     server.dispose()
   })
@@ -116,13 +115,13 @@ describe('mcp security hardening', () => {
       cEcho,
       new Promise((_, reject) => setTimeout(() => reject(new Error('echo was blocked by the write lock')), 2000))
     ])
-    expect(echoResult.content[0].text).toBe('parallel')
-    expect(count).toBe(1)
+    assert.strictEqual(echoResult.content[0].text, 'parallel')
+    assert.strictEqual(count, 1)
     release()
     let [aResult, bResult] = await Promise.all([aCall, bCall])
-    expect(aResult.content[0].text).toBe('done 1')
-    expect(bResult.content[0].text).toBe('done 2')
-    expect(order).toEqual(['start:1', 'end:1', 'start:2', 'end:2'])
+    assert.strictEqual(aResult.content[0].text, 'done 1')
+    assert.strictEqual(bResult.content[0].text, 'done 2')
+    assert.deepStrictEqual(order, ['start:1', 'end:1', 'start:2', 'end:2'])
     a.close()
     b.close()
     c.close()
@@ -133,10 +132,10 @@ describe('mcp security hardening', () => {
     let tools = [...createWorkspaceTools(), ...createDocumentTools(), ...createLspTools()]
     let byName = new Map(tools.map(t => [t.name, t]))
     for (let name of ['workspace/delete_file', 'workspace/rename_file', 'workspace/apply_edit', 'document/apply_edits', 'lsp/apply_code_action', 'lsp/rename']) {
-      expect(byName.get(name)?.annotations?.destructiveHint).toBe(true)
+      assert.strictEqual(byName.get(name)?.annotations?.destructiveHint, true)
     }
     for (let name of ['document/read', 'workspace/search', 'lsp/references', 'lsp/hover']) {
-      expect(byName.get(name)?.annotations?.readOnlyHint).toBe(true)
+      assert.strictEqual(byName.get(name)?.annotations?.readOnlyHint, true)
     }
   })
 
@@ -200,7 +199,7 @@ describe('mcp security hardening', () => {
     // queued second call would have run; a short settle is enough for the
     // buggy behavior to manifest.
     await new Promise(resolve => setTimeout(resolve, 50))
-    expect(secondEntered).toBe(0)
+    assert.strictEqual(secondEntered, 0)
     client.close()
     server.dispose()
   })
@@ -263,8 +262,8 @@ describe('mcp security hardening', () => {
     server.dispose()
     release()
     await pollUntil(() => secondEntered > 0 || cancelled > 0, 1000)
-    expect(secondEntered).toBe(0)
-    expect(cancelled).toBeGreaterThan(0)
+    assert.strictEqual(secondEntered, 0)
+    assert.ok((cancelled) > (0))
     client.close()
   })
 
@@ -326,11 +325,11 @@ describe('mcp security hardening', () => {
     // Slots must be released immediately: a new call succeeds instead of
     // returning "Too many concurrent requests".
     let res = await client.request(90, 'tools/call', { name: 'echo', arguments: { value: 'ok' } })
-    expect(res.content[0].text).toBe('ok')
+    assert.strictEqual(res.content[0].text, 'ok')
     // A late result is consumed silently: no second response for id 60.
     resolveNever?.({ content: [{ type: 'text', text: 'late' }] })
     await new Promise(resolve => setImmediate(resolve))
-    expect(client.notifications.some(n => n.id === 60)).toBe(false)
+    assert.strictEqual(client.notifications.some(n => n.id === 60), false)
     client.close()
     server.dispose()
   })

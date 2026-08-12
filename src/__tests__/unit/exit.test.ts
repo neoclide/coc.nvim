@@ -1,10 +1,13 @@
+import { isDeepStrictEqual } from 'node:util'
+import type { Mock as NodeMock } from 'node:test'
 import { EXIT_TIMEOUT, gracefulExit, registerExitHandlers, setExitHook } from '../../exit'
 import mcp from '../../mcp'
 import services from '../../services'
+import helper from '../helper'
 
 describe('gracefulExit()', () => {
   let exitCode: number | undefined
-  let stopSpy: ReturnType<typeof vi.spyOn> | undefined
+  let stopSpy: NodeMock<any> | undefined
 
   beforeEach(() => {
     exitCode = undefined
@@ -16,61 +19,58 @@ describe('gracefulExit()', () => {
 
   afterEach(() => {
     setExitHook(code => process.exit(code))
-    if (stopSpy) stopSpy.mockRestore()
+    if (stopSpy) stopSpy.mock.restore()
     stopSpy = undefined
   })
 
-  it('should stop services before exit', async () => {
-    stopSpy = vi.spyOn(services, 'stopAll').mockResolvedValue(undefined)
-    let mcpSpy = vi.spyOn(mcp, 'stop')
+  it('should stop services before exit', async (t) => {
+    stopSpy = t.mock.method(services, 'stopAll', () => Promise.resolve(undefined))
+    let mcpSpy = t.mock.method(mcp, 'stop')
     try {
       gracefulExit('SIGTERM')
-      await vi.waitFor(() => {
-        expect(exitCode).toBe(0)
-      })
-      expect(stopSpy).toHaveBeenCalledWith(EXIT_TIMEOUT)
-      expect(mcpSpy).toHaveBeenCalledTimes(1)
+      await helper.waitValue(() => exitCode, 0)
+      assert.ok((stopSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, [EXIT_TIMEOUT])))
+      assert.strictEqual((mcpSpy).mock.callCount(), 1)
     } finally {
-      mcpSpy.mockRestore()
+      mcpSpy.mock.restore()
     }
   })
 
-  it('should exit on timeout when stop hangs', async () => {
-    stopSpy = vi.spyOn(services, 'stopAll').mockImplementation(() => new Promise(() => {}))
-    let mcpSpy = vi.spyOn(mcp, 'stop')
-    vi.useFakeTimers()
+  it('should exit on timeout when stop hangs', async (t) => {
+    stopSpy = t.mock.method(services, 'stopAll', () => new Promise(() => {}))
+    let mcpSpy = t.mock.method(mcp, 'stop')
+    t.mock.timers.enable({ apis: ['setTimeout'] })
     try {
       gracefulExit('SIGTERM')
-      await vi.advanceTimersByTimeAsync(EXIT_TIMEOUT)
-      expect(exitCode).toBe(0)
+      t.mock.timers.tick(EXIT_TIMEOUT)
+      await Promise.resolve()
+      assert.strictEqual(exitCode, 0)
     } finally {
-      vi.useRealTimers()
-      mcpSpy.mockRestore()
+      t.mock.timers.reset()
+      mcpSpy.mock.restore()
     }
   })
 
-  it('should register signal handlers and ignore repeated signals', async () => {
+  it('should register signal handlers and ignore repeated signals', async (t) => {
     let handlers = new Map<string, (...args: any[]) => void>()
-    let onSpy = vi.spyOn(process, 'on').mockImplementation(((event: string, listener: (...args: any[]) => void) => {
+    let onSpy = t.mock.method(process, 'on', ((event: string, listener: (...args: any[]) => void) => {
       handlers.set(event, listener)
       return process
     }) as any)
-    let mcpSpy = vi.spyOn(mcp, 'stop')
-    stopSpy = vi.spyOn(services, 'stopAll').mockResolvedValue(undefined)
+    let mcpSpy = t.mock.method(mcp, 'stop')
+    stopSpy = t.mock.method(services, 'stopAll', () => Promise.resolve(undefined))
     try {
       registerExitHandlers()
-      expect(handlers.has('SIGTERM')).toBe(true)
-      expect(handlers.has('SIGINT')).toBe(true)
+      assert.strictEqual(handlers.has('SIGTERM'), true)
+      assert.strictEqual(handlers.has('SIGINT'), true)
       handlers.get('SIGTERM')!()
       handlers.get('SIGINT')!()
-      await vi.waitFor(() => {
-        expect(exitCode).toBe(0)
-      })
-      expect(mcpSpy).toHaveBeenCalledTimes(1)
-      expect(stopSpy).toHaveBeenCalledTimes(1)
+      await helper.waitValue(() => exitCode, 0)
+      assert.strictEqual((mcpSpy).mock.callCount(), 1)
+      assert.strictEqual((stopSpy).mock.callCount(), 1)
     } finally {
-      onSpy.mockRestore()
-      mcpSpy.mockRestore()
+      onSpy.mock.restore()
+      mcpSpy.mock.restore()
     }
   })
 })

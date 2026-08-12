@@ -1,5 +1,4 @@
 'use strict'
-import { describe, expect, it } from 'vitest'
 import { ToolRegistry } from '../../mcp/tools'
 import { createWorkspaceTools } from '../../mcp/tools/workspace'
 import { CancellationToken } from '../../util/protocol'
@@ -9,26 +8,26 @@ describe('mcp workspace tools', () => {
     let tools = createWorkspaceTools()
     let info = tools.find(t => t.name === 'workspace/info')!
     let result = await info.handler({}, { token: CancellationToken.None })
-    expect(result.structuredContent.version).toBeTruthy()
-    expect(result.structuredContent.cwd).toBeTruthy()
-    expect(Array.isArray(result.structuredContent.services)).toBe(true)
-    expect(result.content[0].type).toBe('text')
+    assert.ok(result.structuredContent.version)
+    assert.ok(result.structuredContent.cwd)
+    assert.strictEqual(Array.isArray(result.structuredContent.services), true)
+    assert.strictEqual(result.content[0].type, 'text')
   })
 
   it('workspace/configuration reads defaults from the schema', async () => {
     let tools = createWorkspaceTools()
     let tool = tools.find(t => t.name === 'workspace/configuration')!
     let result = await tool.handler({ key: 'mcp.autoStart' }, { token: CancellationToken.None })
-    expect(result.structuredContent.key).toBe('mcp.autoStart')
-    expect(result.structuredContent.value).toBe(false)
-    expect(result.structuredContent.inspect).toBeTruthy()
+    assert.strictEqual(result.structuredContent.key, 'mcp.autoStart')
+    assert.strictEqual(result.structuredContent.value, false)
+    assert.ok(result.structuredContent.inspect)
   })
 
   it('workspace/configuration returns undefined for unknown keys', async () => {
     let tools = createWorkspaceTools()
     let tool = tools.find(t => t.name === 'workspace/configuration')!
     let result = await tool.handler({ key: 'mcp.notARealKey' }, { token: CancellationToken.None })
-    expect(result.structuredContent.value).toBeUndefined()
+    assert.strictEqual(result.structuredContent.value, undefined)
   })
 })
 
@@ -52,47 +51,47 @@ describe('mcp ToolRegistry whitelist', () => {
 
   it('allows every tool by default', () => {
     let registry = sampleRegistry()
-    expect(registry.list().tools.map(t => t.name)).toEqual(['a', 'b'])
-    expect(registry.has('a')).toBe(true)
-    expect(registry.get('b')).toBeDefined()
+    assert.deepStrictEqual(registry.list().tools.map(t => t.name), ['a', 'b'])
+    assert.strictEqual(registry.has('a'), true)
+    assert.notStrictEqual(registry.get('b'), undefined)
   })
 
   it('hides tools outside the whitelist', () => {
     let registry = sampleRegistry()
     registry.setAllowedTools(['a'])
-    expect(registry.list().tools.map(t => t.name)).toEqual(['a'])
-    expect(registry.has('a')).toBe(true)
-    expect(registry.has('b')).toBe(false)
-    expect(registry.get('b')).toBeUndefined()
+    assert.deepStrictEqual(registry.list().tools.map(t => t.name), ['a'])
+    assert.strictEqual(registry.has('a'), true)
+    assert.strictEqual(registry.has('b'), false)
+    assert.strictEqual(registry.get('b'), undefined)
   })
 
   it('exposes no tools when the whitelist is empty', () => {
     let registry = sampleRegistry()
     registry.setAllowedTools([])
-    expect(registry.list().tools).toEqual([])
-    expect(registry.has('a')).toBe(false)
-    expect(registry.isAllowed('a')).toBe(false)
+    assert.deepStrictEqual(registry.list().tools, [])
+    assert.strictEqual(registry.has('a'), false)
+    assert.strictEqual(registry.isAllowed('a'), false)
   })
 
   it('rejects calls to blocked tools', async () => {
     let registry = sampleRegistry()
     registry.setAllowedTools(['a'])
-    await expect(registry.call('b', {}, { token: CancellationToken.None })).rejects.toThrow(/Unknown tool/)
+    await assert.rejects(registry.call('b', {}, { token: CancellationToken.None }), /Unknown tool/)
     let result = await registry.call('a', {}, { token: CancellationToken.None })
-    expect(result.content[0].text).toBe('a')
+    assert.strictEqual(result.content[0].text, 'a')
   })
 
   it('restores full access with a null whitelist', () => {
     let registry = sampleRegistry()
     registry.setAllowedTools(['a'])
     registry.setAllowedTools(null)
-    expect(registry.list().tools.map(t => t.name)).toEqual(['a', 'b'])
+    assert.deepStrictEqual(registry.list().tools.map(t => t.name), ['a', 'b'])
   })
 
   it('clears registered tools on dispose', () => {
     let registry = sampleRegistry()
     registry.unregister('missing')
     registry.dispose()
-    expect(registry.list().tools).toEqual([])
+    assert.deepStrictEqual(registry.list().tools, [])
   })
 })

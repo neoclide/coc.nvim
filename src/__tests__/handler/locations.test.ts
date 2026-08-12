@@ -50,12 +50,12 @@ describe('locations', () => {
       let pos = Position.create(0, 0)
       let tokenSource = new CancellationTokenSource()
       let token = tokenSource.token
-      expect(await languages.getDefinition(doc, pos, token)).toEqual([])
-      expect(await languages.getDefinitionLinks(doc, pos, token)).toEqual([])
-      expect(await languages.getDeclaration(doc, pos, token)).toEqual([])
-      expect(await languages.getTypeDefinition(doc, pos, token)).toEqual([])
-      expect(await languages.getImplementation(doc, pos, token)).toEqual([])
-      expect(await languages.getReferences(doc, { includeDeclaration: false }, pos, token)).toEqual([])
+      assert.deepStrictEqual(await languages.getDefinition(doc, pos, token), [])
+      assert.deepStrictEqual(await languages.getDefinitionLinks(doc, pos, token), [])
+      assert.deepStrictEqual(await languages.getDeclaration(doc, pos, token), [])
+      assert.deepStrictEqual(await languages.getTypeDefinition(doc, pos, token), [])
+      assert.deepStrictEqual(await languages.getImplementation(doc, pos, token), [])
+      assert.deepStrictEqual(await languages.getReferences(doc, { includeDeclaration: false }, pos, token), [])
     })
   })
 
@@ -71,23 +71,23 @@ describe('locations', () => {
     it('should get references', async () => {
       currLocations = [createLocationLink('foo', 0, 0, 0, 0), createLocationLink('bar', 0, 0, 0, 0)]
       let res = await helper.doAction('references')
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
 
     it('should jump to references', async () => {
       currLocations = [createLocation('foo', 0, 0, 0, 0)]
       let res = await helper.doAction('jumpReferences', 'edit')
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let name = await nvim.call('bufname', ['%'])
-      expect(name).toBe('test://foo')
+      assert.strictEqual(name, 'test://foo')
     })
 
     it('should return false when references not found', async () => {
       currLocations = []
       let res = await locations.gotoReferences('edit', true)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
       res = await helper.doAction('jumpUsed', 'edit')
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
   })
 
@@ -123,31 +123,31 @@ describe('locations', () => {
         }
       }))
       let res = await helper.doAction('definitions')
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
 
     it('should return empty locations when no definitions exist', async () => {
       currLocations = null
       let doc = await workspace.document
       let res = await languages.getDefinitionLinks(doc.textDocument, Position.create(0, 0), CancellationToken.None)
-      expect(res.length).toBe(0)
+      assert.strictEqual(res.length, 0)
       currLocations = [createLocation('foo', 0, 0, 0, 0)]
       res = await languages.getDefinitionLinks(doc.textDocument, Position.create(0, 0), CancellationToken.None)
-      expect(res.length).toBe(0)
+      assert.strictEqual(res.length, 0)
     })
 
     it('should jump to definitions', async () => {
       currLocations = [createLocation('foo', 0, 0, 0, 0)]
       let res = await helper.doAction('jumpDefinition', 'edit')
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let name = await nvim.call('bufname', ['%'])
-      expect(name).toBe('test://foo')
+      assert.strictEqual(name, 'test://foo')
     })
 
     it('should return false when definitions not found', async () => {
       currLocations = []
       let res = await locations.gotoDefinition('edit')
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
   })
 
@@ -163,21 +163,21 @@ describe('locations', () => {
     it('should get declarations', async () => {
       currLocations = [createLocation('foo', 0, 0, 0, 0), createLocation('bar', 0, 0, 0, 0)]
       let res = await locations.declarations() as Location[]
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
 
     it('should jump to declaration', async () => {
       currLocations = [createLocation('foo', 0, 0, 0, 0)]
       let res = await locations.gotoDeclaration('edit')
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let name = await nvim.call('bufname', ['%'])
-      expect(name).toBe('test://foo')
+      assert.strictEqual(name, 'test://foo')
     })
 
     it('should return false when declaration not found', async () => {
       currLocations = []
       let res = await helper.doAction('jumpDeclaration', 'edit')
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
   })
 
@@ -193,21 +193,21 @@ describe('locations', () => {
     it('should get type definition', async () => {
       currLocations = [createLocation('foo', 0, 0, 0, 0), createLocation('bar', 0, 0, 0, 0)]
       let res = await helper.doAction('typeDefinitions')
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
 
     it('should jump to type definition', async () => {
       currLocations = [createLocation('foo', 0, 0, 0, 0)]
       let res = await locations.gotoTypeDefinition('edit')
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let name = await nvim.call('bufname', ['%'])
-      expect(name).toBe('test://foo')
+      assert.strictEqual(name, 'test://foo')
     })
 
     it('should return false when type definition not found', async () => {
       currLocations = []
       let res = await helper.doAction('jumpTypeDefinition', 'edit')
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
   })
 
@@ -223,42 +223,42 @@ describe('locations', () => {
     it('should get implementations', async () => {
       currLocations = [createLocation('foo', 0, 0, 0, 0), createLocation('bar', 0, 0, 0, 0)]
       let res = await helper.doAction('implementations')
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
 
     it('should jump to implementation', async () => {
       currLocations = [createLocation('foo', 0, 0, 0, 0)]
       let res = await helper.doAction('jumpImplementation', 'edit')
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let name = await nvim.call('bufname', ['%'])
-      expect(name).toBe('test://foo')
+      assert.strictEqual(name, 'test://foo')
     })
 
     it('should return false when implementation not found', async () => {
       currLocations = []
       let res = await locations.gotoImplementation('edit')
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
   })
 
   describe('getTagList', () => {
     it('should return null when cword does not exist', async () => {
       let res = await helper.doAction('getTagList')
-      expect(res).toBe(null)
+      assert.strictEqual(res, null)
     })
 
     it('should return null when provider does not exist', async () => {
       await nvim.setLine('foo')
       await nvim.command('normal! ^')
       let res = await locations.getTagList()
-      expect(res).toBe(null)
+      assert.strictEqual(res, null)
     })
 
     it('should null when buffer not attached', async () => {
       let doc = await workspace.document
       if (doc) doc.detach()
       let res = await locations.getTagList()
-      expect(res).toBe(null)
+      assert.strictEqual(res, null)
     })
 
     it('should return null when result is empty', async () => {
@@ -270,7 +270,7 @@ describe('locations', () => {
       await nvim.setLine('foo')
       await nvim.command('normal! ^')
       let res = await locations.getTagList()
-      expect(res).toBe(null)
+      assert.strictEqual(res, null)
     })
 
     it('should return tag definitions', async () => {
@@ -282,7 +282,7 @@ describe('locations', () => {
       await nvim.setLine('foo')
       await nvim.command('normal! ^')
       let res = await locations.getTagList()
-      expect(res).toEqual([
+      assert.deepStrictEqual(res, [
         {
           name: 'foo',
           cmd: 'silent keepjumps call coc#cursor#move_to(2, 0)',
@@ -312,7 +312,7 @@ describe('locations', () => {
       result = [createLocation('bar', 2, 0, 2, 5)]
       await helper.doAction('findLocations', 'foo', 'mylocation', {}, false)
       let res = await nvim.getVar('coc_jump_locations')
-      expect(res).toEqual([{
+      assert.deepStrictEqual(res, [{
         uri: 'test://bar',
         lnum: 3,
         end_lnum: 3,
@@ -327,7 +327,7 @@ describe('locations', () => {
     it('should handle empty result', async () => {
       result = null
       let res = await locations.findLocations('foo', 'mylocation', undefined, 'edit')
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should handle nested locations', async () => {
@@ -344,20 +344,20 @@ describe('locations', () => {
       result = location
       await locations.findLocations('foo', 'mylocation', {})
       let res = await nvim.getVar('coc_jump_locations') as any[]
-      expect(res.length).toBe(3)
+      assert.strictEqual(res.length, 3)
     })
   })
 
   describe('toLocations()', () => {
     it('should convert to locations', async () => {
       let loc = createLocation('file', 0, 0, 0, 0)
-      expect(locations.toLocations(loc).length).toBe(1)
-      expect(locations.toLocations([loc]).length).toBe(1)
+      assert.strictEqual(locations.toLocations(loc).length, 1)
+      assert.strictEqual(locations.toLocations([loc]).length, 1)
       let link = LocationLink.create(`test://a`, Range.create(0, 0, 1, 0), Range.create(0, 0, 0, 1))
-      expect(locations.toLocations(link).length).toBe(1)
-      expect(locations.toLocations([link]).length).toBe(1)
-      expect(locations.toLocations(null).length).toBe(0)
-      expect(locations.toLocations(undefined).length).toBe(0)
+      assert.strictEqual(locations.toLocations(link).length, 1)
+      assert.strictEqual(locations.toLocations([link]).length, 1)
+      assert.strictEqual(locations.toLocations(null).length, 0)
+      assert.strictEqual(locations.toLocations(undefined).length, 0)
       let location: any = {
         location: createLocation('file', 0, 0, 0, 0),
         children: [{
@@ -367,7 +367,7 @@ describe('locations', () => {
           }, null, undefined, {}]
         }]
       }
-      expect(locations.toLocations(location).length).toBe(3)
+      assert.strictEqual(locations.toLocations(location).length, 3)
     })
   })
 

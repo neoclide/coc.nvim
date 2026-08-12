@@ -103,18 +103,18 @@ describe('Handler', () => {
   })
   describe('util', () => {
     it('should to documentation', () => {
-      expect(toDocumentation('doc')).toEqual({ content: 'doc', filetype: 'txt' })
-      expect(toDocumentation({ kind: 'markdown', value: 'doc' })).toEqual({ content: 'doc', filetype: 'markdown' })
+      assert.deepStrictEqual(toDocumentation('doc'), { content: 'doc', filetype: 'txt' })
+      assert.deepStrictEqual(toDocumentation({ kind: 'markdown', value: 'doc' }), { content: 'doc', filetype: 'markdown' })
     })
   })
 
   describe('hasProvider', () => {
     it('should check provider for document', async () => {
       let res = await helper.doAction('hasProvider', 'definition')
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
       await nvim.command(`edit +setl\\ buftype=nofile foo`)
       res = await handler.hasProvider('formatOnType')
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
   })
 
@@ -124,33 +124,33 @@ describe('Handler', () => {
         default: 'd'
       })
       let res = handler.getIcon(SymbolKind.Array)
-      expect(res).toBeDefined()
+      assert.notStrictEqual(res, undefined)
       res = handler.getIcon('a' as any)
-      expect(res.text).toBe('d')
+      assert.strictEqual(res.text, 'd')
     })
   })
 
   describe('commands', () => {
-    it('should open url', async () => {
-      let fn = vi.fn()
-      let spy = vi.spyOn(nvim, 'call').mockImplementation(() => {
+    it('should open url', async (t) => {
+      let fn = t.mock.fn()
+      let spy = t.mock.method(nvim, 'call', () => {
         fn()
         return null
       })
       await commands.executeCommand('vscode.open', 'http://www.example.com')
-      spy.mockRestore()
-      expect(fn).toHaveBeenCalled()
+      spy.mock.restore()
+      assert.ok((fn).mock.callCount() > 0)
     })
 
-    it('should restart', async () => {
-      let fn = vi.fn()
-      let spy = vi.spyOn(nvim, 'command').mockImplementation(() => {
+    it('should restart', async (t) => {
+      let fn = t.mock.fn()
+      let spy = t.mock.method(nvim, 'command', () => {
         fn()
         return null
       })
       await commands.executeCommand('workbench.action.reloadWindow')
-      spy.mockRestore()
-      expect(fn).toHaveBeenCalled()
+      spy.mock.restore()
+      assert.ok((fn).mock.callCount() > 0)
     })
   })
 
@@ -163,7 +163,7 @@ describe('Handler', () => {
       } catch (e) {
         err = e
       }
-      expect(err).toBeDefined()
+      assert.notStrictEqual(err, undefined)
     })
   })
 
@@ -188,7 +188,7 @@ describe('Handler', () => {
         }, false)
       }, 50)
       await p
-      expect(cancelled).toBe(true)
+      assert.strictEqual(cancelled, true)
     })
 
     it('should cancel request on insert start', async () => {
@@ -207,7 +207,7 @@ describe('Handler', () => {
       }, false)
       await nvim.input('i')
       await p
-      expect(cancelled).toBe(true)
+      assert.strictEqual(cancelled, true)
     })
 
     it('should not dispose newer token source when stale request completes', async () => {
@@ -220,23 +220,23 @@ describe('Handler', () => {
         releaseSecond = s
       }), false)
       let current = (handler as any).requestTokenSource
-      expect(current).toBeDefined()
+      assert.notStrictEqual(current, undefined)
       releaseFirst(undefined)
       await p1
       // The stale request must not tear down the newer request's token source.
-      expect((handler as any).requestTokenSource).toBe(current)
+      assert.strictEqual((handler as any).requestTokenSource, current)
       releaseSecond(undefined)
       await p2
-      expect((handler as any).requestTokenSource).toBeUndefined()
+      assert.strictEqual((handler as any).requestTokenSource, undefined)
     })
   })
 })
 
 describe('Links', () => {
   it('should check sameLinks', () => {
-    expect(sameLinks([], [])).toBe(true)
-    expect(sameLinks([{ range: Range.create(0, 0, 0, 1) }], [])).toBe(false)
-    expect(sameLinks([{ range: Range.create(0, 0, 0, 1) }], [{ range: Range.create(0, 0, 1, 0) }])).toBe(false)
+    assert.strictEqual(sameLinks([], []), true)
+    assert.strictEqual(sameLinks([{ range: Range.create(0, 0, 0, 1) }], []), false)
+    assert.strictEqual(sameLinks([{ range: Range.create(0, 0, 0, 1) }], [{ range: Range.create(0, 0, 1, 0) }]), false)
   })
 
   it('should get document links', async () => {
@@ -249,7 +249,7 @@ describe('Links', () => {
       }
     }))
     let res = await helper.doAction('links')
-    expect(res.length).toBe(2)
+    assert.strictEqual(res.length, 2)
   })
 
   it('should merge link results', async () => {
@@ -275,9 +275,9 @@ describe('Links', () => {
       }
     }))
     let res = await links.getLinks()
-    expect(res.length).toBe(3)
+    assert.strictEqual(res.length, 3)
     let link = await languages.resolveDocumentLink(res[0], CancellationToken.None)
-    expect(link).toBeDefined()
+    assert.notStrictEqual(link, undefined)
   })
 
   it('should throw error when link target not resolved', async () => {
@@ -298,7 +298,7 @@ describe('Links', () => {
     } catch (e) {
       err = e
     }
-    expect(err).toBeDefined()
+    assert.notStrictEqual(err, undefined)
   })
 
   it('should return link when resolve undefined', async () => {
@@ -312,7 +312,7 @@ describe('Links', () => {
     }))
     let res = await links.getLinks()
     let link = await languages.resolveDocumentLink(res[0], CancellationToken.None)
-    expect(link).toBeDefined()
+    assert.notStrictEqual(link, undefined)
   })
 
   it('should cancel resolve on InsertEnter', async () => {
@@ -344,7 +344,7 @@ describe('Links', () => {
     }, true)
     await events.fire('InsertEnter', [doc.bufnr])
     await p
-    expect(cancelled).toBe(true)
+    assert.strictEqual(cancelled, true)
   })
 
   it('should open link at current position', async () => {
@@ -368,11 +368,11 @@ describe('Links', () => {
     }))
     await helper.doAction('openLink')
     let bufname = await nvim.call('bufname', '%')
-    expect(bufname).toBe('test:///foo')
+    assert.strictEqual(bufname, 'test:///foo')
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await nvim.call('cursor', [3, 1])
     let res = await links.openCurrentLink()
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
   })
 
   it('should return false when current links not found', async () => {
@@ -384,7 +384,7 @@ describe('Links', () => {
       }
     }))
     let res = await links.openCurrentLink()
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
   })
 
   it('should show tooltip', async () => {
@@ -405,17 +405,17 @@ describe('Links', () => {
     }))
     await links.showTooltip()
     let win = await helper.getFloat()
-    expect(win).toBeUndefined()
+    assert.strictEqual(win, undefined)
     helper.updateConfiguration('links.tooltip', true)
     await links.showTooltip()
     win = await helper.getFloat()
-    expect(win).toBeUndefined()
+    assert.strictEqual(win, undefined)
     resolve = true
     await links.showTooltip()
     win = await helper.getFloat()
     let buf = await win.buffer
     let lines = await buf.lines
-    expect(lines[0]).toMatch('test')
+    assert.ok((lines[0]).includes('test'))
   })
 
   it('should enable tooltip on CursorHold', async () => {
@@ -424,12 +424,12 @@ describe('Links', () => {
     await nvim.setLine('http://www.baidu.com')
     await nvim.call('cursor', [1, 1])
     let link = await links.getCurrentLink()
-    expect(link).toBeDefined()
+    assert.notStrictEqual(link, undefined)
     await events.fire('CursorHold', [doc.bufnr])
     let win = await helper.getFloat()
     let buf = await win.buffer
     let lines = await buf.lines
-    expect(lines[0]).toMatch('baidu')
+    assert.ok((lines[0]).includes('baidu'))
   })
 })
 
@@ -438,7 +438,7 @@ describe('LinkBuffer', () => {
     let doc = await workspace.document
     let buf = links.getBuffer(doc.bufnr)
     await buf.getLinks()
-    expect(buf.links).toEqual([])
+    assert.deepStrictEqual(buf.links, [])
     let timeout = 100
     disposables.push(languages.registerDocumentLinkProvider([{ language: '*' }], {
       provideDocumentLinks: (_doc, token) => {
@@ -460,7 +460,7 @@ describe('LinkBuffer', () => {
     p = buf.getLinks()
     buf.cancel()
     await p
-    expect(buf.links).toEqual([])
+    assert.deepStrictEqual(buf.links, [])
   })
 
   it('should do highlight', async () => {
@@ -489,7 +489,7 @@ describe('LinkBuffer', () => {
     await nvim.setLine('foo')
     doc._forceSync()
     let hls = await buf.buffer.getHighlights('links')
-    expect(hls.length).toBe(2)
+    assert.strictEqual(hls.length, 2)
   })
 })
 
@@ -511,8 +511,8 @@ describe('document highlights', () => {
     }))
   }
 
-  it('should not throw when no range to jump', async () => {
-    let fn = vi.fn()
+  it('should not throw when no range to jump', async (t) => {
+    let fn = t.mock.fn()
     registerTimerProvider(fn, 10)
     await commands.executeCommand('document.jumpToNextSymbol')
     await commands.executeCommand('document.jumpToPrevSymbol')
@@ -534,13 +534,13 @@ describe('document highlights', () => {
     await nvim.command('normal! $')
     await commands.executeCommand('document.jumpToPrevSymbol')
     let cur = await window.getCursorPosition()
-    expect(cur).toEqual(Position.create(0, 2))
+    assert.deepStrictEqual(cur, Position.create(0, 2))
     await commands.executeCommand('document.jumpToPrevSymbol')
     cur = await window.getCursorPosition()
-    expect(cur).toEqual(Position.create(0, 0))
+    assert.deepStrictEqual(cur, Position.create(0, 0))
     await commands.executeCommand('document.jumpToPrevSymbol')
     cur = await window.getCursorPosition()
-    expect(cur).toEqual(Position.create(0, 2))
+    assert.deepStrictEqual(cur, Position.create(0, 2))
   })
 
   it('should jump to next range', async () => {
@@ -559,13 +559,13 @@ describe('document highlights', () => {
     await nvim.command('normal! ^')
     await commands.executeCommand('document.jumpToNextSymbol')
     let cur = await window.getCursorPosition()
-    expect(cur).toEqual(Position.create(0, 2))
+    assert.deepStrictEqual(cur, Position.create(0, 2))
     await commands.executeCommand('document.jumpToNextSymbol')
     cur = await window.getCursorPosition()
-    expect(cur).toEqual(Position.create(0, 0))
+    assert.deepStrictEqual(cur, Position.create(0, 0))
     await commands.executeCommand('document.jumpToNextSymbol')
     cur = await window.getCursorPosition()
-    expect(cur).toEqual(Position.create(0, 2))
+    assert.deepStrictEqual(cur, Position.create(0, 2))
   })
 
   it('should not throw when provide throws', async () => {
@@ -590,18 +590,18 @@ describe('document highlights', () => {
     let doc = await workspace.document
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
     let res = await highlights.getHighlights(doc, Position.create(0, 0))
-    expect(res).toBeDefined()
+    assert.notStrictEqual(res, undefined)
   })
 
   it('should return null when highlights provide not exist', async () => {
     let doc = await workspace.document
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
     let res = await highlights.getHighlights(doc, Position.create(0, 0))
-    expect(res).toBeNull()
+    assert.strictEqual(res, null)
   })
 
-  it('should cancel request on CursorMoved', async () => {
-    let fn = vi.fn()
+  it('should cancel request on CursorMoved', async (t) => {
+    let fn = t.mock.fn()
     registerTimerProvider(fn, 3000)
     await helper.edit()
     await nvim.setLine('foo')
@@ -609,17 +609,17 @@ describe('document highlights', () => {
     await helper.wait(20)
     await nvim.call('cursor', [1, 2])
     await p
-    expect(fn).toHaveBeenCalled()
+    assert.ok((fn).mock.callCount() > 0)
   })
 
-  it('should cancel on timeout', async () => {
+  it('should cancel on timeout', async (t) => {
     helper.updateConfiguration('documentHighlight.timeout', 10)
-    let fn = vi.fn()
+    let fn = t.mock.fn()
     registerTimerProvider(fn, 3000)
     await helper.edit()
     await nvim.setLine('foo')
     await highlights.highlight()
-    expect(fn).toHaveBeenCalled()
+    assert.ok((fn).mock.callCount() > 0)
   })
 
   it('should add highlights to symbols', async () => {
@@ -628,7 +628,7 @@ describe('document highlights', () => {
     await nvim.setLine('foo bar foo foo bar')
     await helper.doAction('highlight')
     let winid = await nvim.call('win_getid') as number
-    expect(highlights.hasHighlights(winid)).toBe(true)
+    assert.strictEqual(highlights.hasHighlights(winid), true)
   })
 
   it('should return highlight ranges', async () => {
@@ -636,7 +636,7 @@ describe('document highlights', () => {
     await helper.createDocument()
     await nvim.setLine('foo bar foo')
     let res = await helper.doAction('symbolRanges')
-    expect(res.length).toBe(2)
+    assert.strictEqual(res.length, 2)
   })
 
   it('should return null when cursor not in word range', async () => {
@@ -649,13 +649,13 @@ describe('document highlights', () => {
     await nvim.setLine('  oo')
     await nvim.call('cursor', [1, 2])
     let res = await highlights.getHighlights(doc, Position.create(0, 0))
-    expect(res).toBeNull()
+    assert.strictEqual(res, null)
   })
 
   it('should not throw when document is command line', async () => {
     await nvim.call('feedkeys', ['q:', 'in'])
     let doc = await workspace.document
-    expect(doc.isCommandLine).toBe(true)
+    assert.strictEqual(doc.isCommandLine, true)
     await highlights.highlight()
     await nvim.input('<C-c>')
   })
@@ -676,7 +676,7 @@ describe('Folds', () => {
   it('should return empty array when provider does not exist', async () => {
     let doc = await workspace.document
     let token = (new CancellationTokenSource()).token
-    expect(await languages.provideFoldingRanges(doc.textDocument, {}, token)).toEqual([])
+    assert.deepStrictEqual(await languages.provideFoldingRanges(doc.textDocument, {}, token), [])
   })
 
   it('should return false when no fold ranges found', async () => {
@@ -687,7 +687,7 @@ describe('Folds', () => {
     }))
     await helper.wait(20)
     let res = await helper.doAction('fold')
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
   })
 
   it('should fold all fold ranges', async () => {
@@ -699,11 +699,11 @@ describe('Folds', () => {
     await helper.wait(20)
     await nvim.call('setline', [1, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']])
     let res = await folds.fold()
-    expect(res).toBe(true)
+    assert.strictEqual(res, true)
     let closed = await nvim.call('foldclosed', [2])
-    expect(closed).toBe(2)
+    assert.strictEqual(closed, 2)
     closed = await nvim.call('foldclosed', [5])
-    expect(closed).toBe(5)
+    assert.strictEqual(closed, 5)
   })
 
   it('should merge folds from all providers', async () => {
@@ -722,7 +722,7 @@ describe('Folds', () => {
     await nvim.call('setline', [1, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']])
     await doc.synchronize()
     let foldingRanges = await languages.provideFoldingRanges(doc.textDocument, {}, CancellationToken.None)
-    expect(foldingRanges.length).toBe(4)
+    assert.strictEqual(foldingRanges.length, 4)
   })
 
   it('should ignore range start at the same line', async () => {
@@ -741,7 +741,7 @@ describe('Folds', () => {
     await nvim.call('setline', [1, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']])
     await doc.synchronize()
     let foldingRanges = await languages.provideFoldingRanges(doc.textDocument, {}, CancellationToken.None)
-    expect(foldingRanges.length).toBe(2)
+    assert.strictEqual(foldingRanges.length, 2)
   })
 
   it('should fold comment ranges', async () => {
@@ -753,11 +753,11 @@ describe('Folds', () => {
     await helper.wait(20)
     await nvim.call('setline', [1, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']])
     let res = await folds.fold('comment')
-    expect(res).toBe(true)
+    assert.strictEqual(res, true)
     let closed = await nvim.call('foldclosed', [2])
-    expect(closed).toBe(-1)
+    assert.strictEqual(closed, -1)
     closed = await nvim.call('foldclosed', [5])
-    expect(closed).toBe(5)
+    assert.strictEqual(closed, 5)
   })
 })
 
@@ -767,7 +767,7 @@ describe('LinkedEditing', () => {
   })
   it('should active and cancel on cursor moved', async () => {
     await registerLinkedEditingProvider('foo foo a ', Position.create(0, 0))
-    expect(await matches()).toBe(2)
+    assert.strictEqual(await matches(), 2)
     await nvim.command(`normal! $`)
     await helper.waitValue(() => {
       return matches()
@@ -789,11 +789,11 @@ describe('LinkedEditing', () => {
     await nvim.call('nvim_buf_set_text', [doc.bufnr, 0, 0, 0, 0, ['i']])
     await doc.synchronize()
     let line = await nvim.line
-    expect(line).toBe('ifoo ifoo a ')
+    assert.strictEqual(line, 'ifoo ifoo a ')
     await nvim.call('nvim_buf_set_text', [doc.bufnr, 0, 0, 0, 1, []])
     await doc.synchronize()
     line = await nvim.line
-    expect(line).toBe('foo foo a ')
+    assert.strictEqual(line, 'foo foo a ')
   })
 
   it('should cancel when change out of range', async () => {
@@ -905,11 +905,11 @@ describe('LinkedEditing', () => {
 describe('getPathFromArgs', () => {
   it('should get undefined path', async () => {
     let res = getPathFromArgs(['a'])
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
     res = getPathFromArgs(['a', 'b', '-c'])
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
     res = getPathFromArgs(['a', '-b', 'c'])
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
   })
 })
 
@@ -921,8 +921,8 @@ describe('search', () => {
     await search.run([], cwd, buf)
     await helper.wait(20)
     let fileItems = buf.fileItems
-    expect(fileItems.length).toBe(2)
-    expect(fileItems[0].ranges.length).toBe(2)
+    assert.strictEqual(fileItems.length, 2)
+    assert.strictEqual(fileItems[0].ranges.length, 2)
   })
 
   it('should abort task', async () => {
@@ -932,14 +932,14 @@ describe('search', () => {
     search.abort()
     await p
     let fileItems = buf.fileItems
-    expect(fileItems.length).toBe(0)
+    assert.strictEqual(fileItems.length, 0)
   })
 
   it('should work with CocAction search', async () => {
     await helper.doAction('search', ['CocAction'])
     let bufnr = await nvim.call('bufnr', ['%']) as number
     let buf = refactor.getBuffer(bufnr)
-    expect(buf).toBeDefined()
+    assert.notStrictEqual(buf, undefined)
   })
 
   it('should fail on invalid command', async () => {
@@ -951,19 +951,19 @@ describe('search', () => {
     } catch (e) {
       err = e
     }
-    expect(err).toBeDefined()
+    assert.notStrictEqual(err, undefined)
     let msg = await helper.getCmdline()
-    expect(msg).toMatch(/Error on command "rrg"/)
+    assert.match(msg, /Error on command "rrg"/)
   })
 
   it('should show empty result when no result found', async () => {
     await helper.doAction('search', ['should found ' + ' no result'])
     let bufnr = await nvim.call('bufnr', ['%']) as number
     let buf = refactor.getBuffer(bufnr)
-    expect(buf).toBeDefined()
+    assert.notStrictEqual(buf, undefined)
     let buffer = await nvim.buffer
     let lines = await buffer.lines
-    expect(lines[1]).toMatch(/No match found/)
+    assert.match(lines[1], /No match found/)
   })
 
   it('should use current search folder for rg', async () => {
@@ -973,6 +973,6 @@ describe('search', () => {
     await search.run(['-w', 'createRefactorBuffer', 'src/__tests__'], cwd, buf)
     let buffer = await nvim.buffer
     let lines = await buffer.lines
-    expect(lines[1].startsWith('Files: ')).toBe(true)
+    assert.strictEqual(lines[1].startsWith('Files: '), true)
   })
 })

@@ -44,8 +44,8 @@ describe('InputBox', () => {
     await nvim.input('bar<enter>')
     let res = await p
     let curr = await nvim.call('win_getid')
-    expect(curr).toBe(winid)
-    expect(res).toBe('bar')
+    assert.strictEqual(curr, winid)
+    assert.strictEqual(res, 'bar')
   })
 
   it('should use input method of vim', async () => {
@@ -55,7 +55,7 @@ describe('InputBox', () => {
     await helper.wait(50)
     await nvim.input('<enter>')
     let res = await p
-    expect(res).toBe(defaultValue)
+    assert.strictEqual(res, defaultValue)
   })
 
   it('should return empty string when input empty', async () => {
@@ -63,7 +63,7 @@ describe('InputBox', () => {
     await helper.wait(30)
     await nvim.input('<enter>')
     let res = await p
-    expect(res).toBe('')
+    assert.strictEqual(res, '')
   })
 
   it('should emit change event', async () => {
@@ -78,11 +78,11 @@ describe('InputBox', () => {
       return curr
     }), 'abc')
     input.title = 'foo'
-    expect(input.title).toBe('foo')
+    assert.strictEqual(input.title, 'foo')
     input.loading = true
-    expect(input.loading).toBe(true)
+    assert.strictEqual(input.loading, true)
     input.borderhighlight = 'WarningMsg'
-    expect(input.borderhighlight).toBe('WarningMsg')
+    assert.strictEqual(input.borderhighlight, 'WarningMsg')
   })
 
   it('should not check bufnr for events', async () => {
@@ -102,9 +102,9 @@ describe('InputBox', () => {
       changedtick: 0,
       pre: ''
     }])
-    expect(called).toBe(false)
-    expect(input.bufnr).toBeDefined()
-    expect(input.dimension).toBeDefined()
+    assert.strictEqual(called, false)
+    assert.notStrictEqual(input.bufnr, undefined)
+    assert.notStrictEqual(input.dimension, undefined)
   })
 
   it('should change input value', async () => {
@@ -119,8 +119,8 @@ describe('InputBox', () => {
       let lines = await nvim.call('getbufline', [input.bufnr, 1]) as string[]
       return lines[0]
     }, 'foo')
-    expect(called).toBe(true)
-    expect(input.value).toBe('foo')
+    assert.strictEqual(called, true)
+    assert.strictEqual(input.value, 'foo')
   })
 
   it('should show and hide placeHolder', async () => {
@@ -128,9 +128,9 @@ describe('InputBox', () => {
     disposables.push(input)
     let buf = nvim.createBuffer(input.bufnr)
     let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
-    expect(markers.length).toBe(1)
+    assert.strictEqual(markers.length, 1)
     let blocks = markers[0][3].virt_text
-    expect(blocks).toEqual([['placeHolder', 'CocInputBoxVirtualText']])
+    assert.deepStrictEqual(blocks, [['placeHolder', 'CocInputBoxVirtualText']])
     await nvim.input('a')
     await helper.waitValue(async () => {
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
@@ -143,16 +143,16 @@ describe('QuickPick', () => {
   it('should not thrown when window not shown', async () => {
     let q = new QuickPick(nvim)
     q.items = undefined
-    expect(q.winid).toBeUndefined()
-    expect(q.activeItems).toEqual([])
+    assert.strictEqual(q.winid, undefined)
+    assert.deepStrictEqual(q.activeItems, [])
     q.title = 'title'
-    expect(q.title).toBe('title')
+    assert.strictEqual(q.title, 'title')
     q.loading = true
-    expect(q.loading).toBe(true)
+    assert.strictEqual(q.loading, true)
     q.value = 'value'
-    expect(q.value).toBe('value')
-    expect(q.buffer).toBeUndefined()
-    expect(q.currIndex).toBe(0)
+    assert.strictEqual(q.value, 'value')
+    assert.strictEqual(q.buffer, undefined)
+    assert.strictEqual(q.currIndex, 0)
     q.setCursor(0)
     q.filterItems('a')
     q.showFilteredItems()
@@ -178,9 +178,9 @@ describe('QuickPick', () => {
     await helper.waitValue(() => {
       return q.activeItems.length
     }, 2)
-    expect(q.value).toBe('f')
-    expect(q.selectedItems.length).toBe(2)
-    expect(q.inputBox).toBeDefined()
+    assert.strictEqual(q.value, 'f')
+    assert.strictEqual(q.selectedItems.length, 2)
+    assert.notStrictEqual(q.inputBox, undefined)
     await nvim.input('<C-space>')
     await helper.waitValue(() => {
       return q.selectedItems.length
@@ -205,15 +205,15 @@ describe('showQuickPick', () => {
     }
     let result = await p
     if (res == null) {
-      expect(result).toBe(res)
+      assert.strictEqual(result, res)
     } else {
-      expect(res).toEqual(res)
+      assert.deepStrictEqual(res, res)
     }
   }
 
   it('should resolve for empty list', async () => {
     let res = await window.showQuickPick([], { title: 'title' })
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
   })
 
   it('should resolve undefined when token cancelled', async () => {
@@ -221,14 +221,14 @@ describe('showQuickPick', () => {
     let token = tokenSource.token
     tokenSource.cancel()
     let res = await window.showQuickPick(['foo', 'bar'], undefined, token)
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
     await helper.wait(20)
     tokenSource = new CancellationTokenSource()
     token = tokenSource.token
     let p = window.showQuickPick(['foo', 'bar'], undefined, token)
     tokenSource.cancel()
     res = await p
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
   })
 
   it('should show quickfix with items or texts', async () => {
@@ -244,7 +244,7 @@ describe('showQuickPick', () => {
     let p = window.showQuickPick(['foo', 'bar'], { title: 'title' })
     await helper.waitFloat()
     let line = await getTitleLine()
-    expect(line).toMatch('title')
+    assert.ok((line).includes('title'))
     await nvim.input('<esc>')
     await p
   })
@@ -257,7 +257,7 @@ describe('showQuickPick', () => {
     await helper.wait(20)
     await nvim.input('<cr>')
     let res = await p
-    expect(res).toBeDefined()
+    assert.notStrictEqual(res, undefined)
   })
 })
 
@@ -276,7 +276,7 @@ describe('QuickPick configuration', () => {
     await quickpick.show()
     let win = nvim.createWindow(quickpick.winid)
     let width = await win.width
-    expect(width).toBe(50)
+    assert.strictEqual(width, 50)
   })
 
   it('should scroll by <C-f> and <C-b>', async () => {
@@ -317,7 +317,7 @@ describe('QuickPick configuration', () => {
     let winid = Math.max(...winids)
     let win = nvim.createWindow(winid)
     let h = await win.height
-    expect(h).toBe(2)
+    assert.strictEqual(h, 2)
     await nvim.input('<esc>')
   })
 
@@ -339,12 +339,12 @@ describe('createQuickPick', () => {
       })
       await quickpick.show()
     }
-    await expect(fun()).rejects.toThrow(/Unable to open/)
+    await assert.rejects(fun(), /Unable to open/)
   })
 
-  it('should throw when unable to open list window', async () => {
+  it('should throw when unable to open list window', async (t) => {
     let fn = nvim.call
-    let spy = vi.spyOn(nvim, 'call').mockImplementation((...args: any) => {
+    let spy = t.mock.method(nvim, 'call', (...args: any) => {
       if (args[0] === 'coc#dialog#create_list') return undefined
       return fn.apply(nvim, args)
     })
@@ -355,8 +355,8 @@ describe('createQuickPick', () => {
       disposables.push(quickpick)
       await quickpick.show()
     }
-    await expect(fun()).rejects.toThrow(/Unable to open/)
-    spy.mockRestore()
+    await assert.rejects(fun(), /Unable to open/)
+    spy.mock.restore()
     await nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
   })
 
@@ -369,7 +369,7 @@ describe('createQuickPick', () => {
     let winid = Math.min(...winids)
     let buf = await (nvim.createWindow(winid)).buffer
     let lines = await buf.lines
-    expect(lines[0]).toBe('value')
+    assert.strictEqual(lines[0], 'value')
     await nvim.input('<esc>')
   })
 
@@ -380,7 +380,7 @@ describe('createQuickPick', () => {
     disposables.push(quickpick)
     let win = nvim.createWindow(quickpick.winid)
     let height = await win.height
-    expect(height).toBe(4)
+    assert.strictEqual(height, 4)
     await nvim.input('<C-j>')
     await helper.wait(20)
     await nvim.input('<C-j>')
@@ -418,7 +418,7 @@ describe('createQuickPick', () => {
     disposables.push(quickpick)
     await events.fire('BufWinLeave', [quickpick.buffer.id + 1])
     await events.fire('PromptKeyPress', [quickpick.buffer.id + 1, 'C-f'])
-    expect(quickpick.currIndex).toBe(0)
+    assert.strictEqual(quickpick.currIndex, 0)
   })
 
   it('should change title', async () => {
@@ -427,10 +427,10 @@ describe('createQuickPick', () => {
     quickpick.title = 'from'
     disposables.push(quickpick)
     quickpick.title = 'to'
-    expect(quickpick.title).toBe('to')
+    assert.strictEqual(quickpick.title, 'to')
     await quickpick.show()
     let line = await getTitleLine()
-    expect(line).toMatch(/to/)
+    assert.match(line, /to/)
   })
 
   it('should change loading', async () => {
@@ -439,9 +439,9 @@ describe('createQuickPick', () => {
     disposables.push(quickpick)
     await quickpick.show()
     quickpick.loading = true
-    expect(quickpick.loading).toBe(true)
+    assert.strictEqual(quickpick.loading, true)
     quickpick.loading = false
-    expect(quickpick.loading).toBe(false)
+    assert.strictEqual(quickpick.loading, false)
   })
 
   it('should change items', async () => {

@@ -7,16 +7,16 @@ describe('LineBuilder', () => {
     line.append('text')
     line.append('comment', 'Comment')
     line.append('nested', undefined, [{ hlGroup: 'Search', offset: 1, length: 2 }])
-    expect(line.label).toBe('text comment nested')
-    expect(line.highlights).toEqual([
+    assert.strictEqual(line.label, 'text comment nested')
+    assert.deepStrictEqual(line.highlights, [
       { hlGroup: 'Comment', span: [5, 12] },
       { hlGroup: 'Search', span: [14, 16] }
     ])
     let other = new LineBuilder()
     other.append('text', 'More')
     line.appendBuilder(other)
-    expect(line.label).toBe('text comment nested text')
-    expect(line.highlights).toEqual([
+    assert.strictEqual(line.label, 'text comment nested text')
+    assert.deepStrictEqual(line.highlights, [
       { hlGroup: 'Comment', span: [5, 12] },
       { hlGroup: 'Search', span: [14, 16] },
       { hlGroup: 'More', span: [20, 24] }
@@ -29,8 +29,8 @@ describe('LineBuilder', () => {
     let other = new LineBuilder()
     other.append('text', 'More')
     line.appendBuilder(other)
-    expect(line.label).toBe('texttext')
-    expect(line.highlights).toEqual([
+    assert.strictEqual(line.label, 'texttext')
+    assert.deepStrictEqual(line.highlights, [
       { hlGroup: 'More', span: [4, 8] }
     ])
   })

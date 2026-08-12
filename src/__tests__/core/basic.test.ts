@@ -47,7 +47,7 @@ describe('getCursorPosition()', () => {
   it('should get cursor position', async () => {
     await nvim.call('cursor', [1, 1])
     let res = await ui.getCursorPosition(nvim)
-    expect(res).toEqual({
+    assert.deepStrictEqual(res, {
       line: 0,
       character: 0
     })
@@ -59,16 +59,16 @@ describe('moveTo()', () => {
     await nvim.setLine('foo')
     await ui.moveTo(nvim, Position.create(0, 1), true)
     let res = await ui.getCursorPosition(nvim)
-    expect(res).toEqual({ line: 0, character: 1 })
+    assert.deepStrictEqual(res, { line: 0, character: 1 })
   })
 })
 
 describe('getCursorScreenPosition()', () => {
   it('should get cursor screen position', async () => {
     let res = await ui.getCursorScreenPosition(nvim)
-    expect(res).toBeDefined()
-    expect(typeof res.row).toBe('number')
-    expect(typeof res.col).toBe('number')
+    assert.notStrictEqual(res, undefined)
+    assert.strictEqual(typeof res.row, 'number')
+    assert.strictEqual(typeof res.col, 'number')
   })
 })
 
@@ -77,17 +77,17 @@ describe('createFloatFactory()', () => {
     let f = ui.createFloatFactory(nvim, { border: true, autoHide: false, breaks: false }, { close: true })
     await f.show([{ content: 'shown', filetype: 'txt' }])
     let activated = await f.activated()
-    expect(activated).toBe(true)
-    expect(f.window != null).toBe(true)
+    assert.strictEqual(activated, true)
+    assert.strictEqual(f.window != null, true)
     let win = await helper.getFloat()
-    expect(win).toBeDefined()
+    assert.notStrictEqual(win, undefined)
     let id = await nvim.call('coc#float#get_related', [win.id, 'border', 0]) as number
-    expect(id).toBeGreaterThan(0)
+    assert.ok((id) > (0))
     id = await nvim.call('coc#float#get_related', [win.id, 'close', 0]) as number
-    expect(id).toBeGreaterThan(0)
+    assert.ok((id) > (0))
     await f.show([{ content: 'shown', filetype: 'txt' }], { offsetX: 10 })
     let curr = await helper.getFloat()
-    expect(curr.id).toBe(win.id)
+    assert.strictEqual(curr.id, win.id)
   })
 })
 
@@ -96,23 +96,23 @@ describe('showMessage()', () => {
     ui.echoMessages(nvim, 'my message', 'more', 'more')
     await helper.waitValue(async () => helper.getCmdline().then(s => s.includes('my message')), true)
     let cmdline = await helper.getCmdline()
-    expect(cmdline).toMatch(/my message/)
+    assert.match(cmdline, /my message/)
   })
 
   it('should get messageLevel', () => {
     let level = ui.toMessageLevel('error')
-    expect(level).toBe(ui.MessageLevel.Error)
+    assert.strictEqual(level, ui.MessageLevel.Error)
     level = ui.toMessageLevel('warning')
-    expect(level).toBe(ui.MessageLevel.Warning)
+    assert.strictEqual(level, ui.MessageLevel.Warning)
     level = ui.toMessageLevel('more')
-    expect(level).toBe(ui.MessageLevel.More)
+    assert.strictEqual(level, ui.MessageLevel.More)
   })
 })
 
 describe('getSelection()', () => {
   it('should return null when no selection exists', async () => {
     let res = await ui.getSelection(nvim, 'v')
-    expect(res).toBeNull()
+    assert.strictEqual(res, null)
   })
 
   it('should return range for line selection', async () => {
@@ -120,13 +120,13 @@ describe('getSelection()', () => {
     await nvim.input('V')
     await nvim.input('<esc>')
     let res = await ui.getSelection(nvim, 'V')
-    expect(res).toEqual({ start: { line: 0, character: 0 }, end: { line: 1, character: 0 } })
+    assert.deepStrictEqual(res, { start: { line: 0, character: 0 }, end: { line: 1, character: 0 } })
   })
 
   it('should return range of current line', async () => {
     await nvim.command('normal! gg')
     let res = await ui.getSelection(nvim, 'currline')
-    expect(res).toEqual(Range.create(0, 0, 1, 0))
+    assert.deepStrictEqual(res, Range.create(0, 0, 1, 0))
   })
 })
 
@@ -138,7 +138,7 @@ describe('selectRange()', () => {
     await ui.selectRange(nvim, Range.create(0, 0, 1, 1), true)
     await nvim.input('<esc>')
     let res = await ui.getSelection(nvim, 'v')
-    expect(res).toEqual(Range.create(0, 0, 1, 1))
+    assert.deepStrictEqual(res, Range.create(0, 0, 1, 1))
   })
 
   it('should select range #2', async () => {
@@ -146,13 +146,13 @@ describe('selectRange()', () => {
     await ui.selectRange(nvim, Range.create(0, 0, 1, 0), true)
     await nvim.input('<esc>')
     let res = await ui.getSelection(nvim, 'v')
-    expect(res).toEqual(Range.create(0, 0, 0, 3))
+    assert.deepStrictEqual(res, Range.create(0, 0, 0, 3))
   })
 
   it('should select range #3', async () => {
     await ui.selectRange(nvim, Range.create(0, 0, 0, 0), true)
     let m = await nvim.mode
-    expect(m.mode).toBe('v')
+    assert.strictEqual(m.mode, 'v')
     await nvim.input('<esc>')
     await ui.selectRange(nvim, Range.create(0, 0, 0, 1), true)
   })
@@ -170,51 +170,51 @@ describe('doKeymap()', () => {
       return 'result'
     })
     let res = await keymaps.doKeymap('test-keymap', '')
-    expect(res).toBe('result')
-    expect(called).toBe(true)
+    assert.strictEqual(res, 'result')
+    assert.strictEqual(called, true)
   })
 })
 
 describe('registerKeymap()', () => {
   it('should getBufnr', () => {
-    expect(getBufnr(3)).toBe(3)
-    expect(getBufnr(true)).toBe(0)
+    assert.strictEqual(getBufnr(3), 3)
+    assert.strictEqual(getBufnr(true), 0)
   })
 
   it('should getKeymapModifier', () => {
-    expect(getKeymapModifier('i', true)).toBe('<Cmd>')
-    expect(getKeymapModifier('i')).toBe('<C-o>')
-    expect(getKeymapModifier('s')).toBe('<Esc>')
-    expect(getKeymapModifier('x')).toBe('<C-U>')
-    expect(getKeymapModifier('t')).toBe('<Cmd>')
+    assert.strictEqual(getKeymapModifier('i', true), '<Cmd>')
+    assert.strictEqual(getKeymapModifier('i'), '<C-o>')
+    assert.strictEqual(getKeymapModifier('s'), '<Esc>')
+    assert.strictEqual(getKeymapModifier('x'), '<C-U>')
+    assert.strictEqual(getKeymapModifier('t'), '<Cmd>')
   })
 
-  it('should throw for invalid key', () => {
+  it('should throw for invalid key', (t) => {
     let err
     try {
-      keymaps.registerKeymap(['i'], '', vi.fn())
+      keymaps.registerKeymap(['i'], '', t.mock.fn())
     } catch (e) {
       err = e
     }
-    expect(err).toBeDefined()
+    assert.notStrictEqual(err, undefined)
   })
 
-  it('should throw for duplicated key', async () => {
-    keymaps.registerKeymap(['i'], 'tmp', vi.fn())
+  it('should throw for duplicated key', async (t) => {
+    keymaps.registerKeymap(['i'], 'tmp', t.mock.fn())
     let err
     try {
-      keymaps.registerKeymap(['i'], 'tmp', vi.fn())
+      keymaps.registerKeymap(['i'], 'tmp', t.mock.fn())
     } catch (e) {
       err = e
     }
-    expect(err).toBeDefined()
+    assert.notStrictEqual(err, undefined)
   })
 
-  it('should register insert key mapping', async () => {
-    let fn = vi.fn()
+  it('should register insert key mapping', async (t) => {
+    let fn = t.mock.fn()
     disposables.push(keymaps.registerKeymap(['i'], 'test', fn))
     let res = await nvim.call('execute', ['verbose imap <Plug>(coc-test)'])
-    expect(res).toMatch('coc#_insert_key')
+    assert.ok(typeof res === 'string' && res.includes('coc#_insert_key'))
   })
 
   it('should register with different options', async () => {
@@ -230,7 +230,7 @@ describe('registerKeymap()', () => {
       repeat: true
     }))
     let res = await nvim.exec(`verbose nmap <Plug>(coc-test)`, true)
-    expect(res).toMatch('coc#rpc#notify')
+    assert.ok((res).includes('coc#rpc#notify'))
     await nvim.eval(`feedkeys("\\<Plug>(coc-test)")`)
     await helper.waitValue(() => called, true)
   })
@@ -259,20 +259,20 @@ describe('registerExprKeymap()', () => {
     }
     let disposable = keymaps.registerExprKeymap('i', 'x', fn, buf.id)
     let res = await nvim.exec('imap x', true)
-    expect(res).toMatch('coc#_insert_key')
+    assert.ok((res).includes('coc#_insert_key'))
     await nvim.input('i')
     await nvim.input('x')
     await helper.waitValue(() => called, true)
     disposable.dispose()
     res = await nvim.exec('imap x', true)
-    expect(res).toMatch('No mapping found')
+    assert.ok((res).includes('No mapping found'))
   })
 
-  it('should regist key mapping without cancel pum', async () => {
-    let fn = vi.fn()
+  it('should regist key mapping without cancel pum', async (t) => {
+    let fn = t.mock.fn()
     let disposable = keymaps.registerExprKeymap('i', 'x', fn, false, false)
     let res = await nvim.exec('imap x', true)
-    expect(res).toMatch('coc#_insert_key')
+    assert.ok((res).includes('coc#_insert_key'))
     disposable.dispose()
   })
 })
@@ -290,7 +290,7 @@ describe('registerLocalKeymap', () => {
     await helper.waitValue(() => called, true)
     disposable.dispose()
     res = await nvim.exec('nmap n', true)
-    expect(res).toMatch('No mapping found')
+    assert.ok((res).includes('No mapping found'))
   })
 
   it('should regist insert mode keymap', async () => {
@@ -330,30 +330,30 @@ describe('registerLocalKeymap', () => {
     await nvim.setLine('foo')
     await nvim.command('normal! v$')
     let m = await nvim.mode
-    expect(m.mode).toBe('v')
+    assert.strictEqual(m.mode, 'v')
     await nvim.input('<C-i>')
     await helper.waitValue(() => called, true)
     m = await nvim.mode
-    expect(m.mode).toBe('c')
+    assert.strictEqual(m.mode, 'c')
   })
 })
 
 describe('watchers', () => {
-  it('should watch options', async () => {
+  it('should watch options', async (t) => {
     await events.fire('OptionSet', ['showmode', 0, 1])
     let times = 0
     let fn = () => {
       times++
     }
     let disposable = workspace.watchOption('showmode', fn)
-    disposables.push(workspace.watchOption('showmode', vi.fn()))
+    disposables.push(workspace.watchOption('showmode', t.mock.fn()))
     nvim.command('set showmode', true)
-    expect(workspace.watchers.options.length).toBeGreaterThan(0)
+    assert.ok((workspace.watchers.options.length) > (0))
     await helper.waitValue(() => times, 1)
     disposable.dispose()
     nvim.command('set noshowmode', true)
     await helper.wait(20)
-    expect(times).toBe(1)
+    assert.strictEqual(times, 1)
   })
 
   it('should watch global', async () => {
@@ -370,7 +370,7 @@ describe('watchers', () => {
     disposable.dispose()
     await nvim.command('let g:x = 2')
     await helper.wait(20)
-    expect(times).toBe(1)
+    assert.strictEqual(times, 1)
   })
 
   it('should show error on watch callback error', async () => {
@@ -383,13 +383,13 @@ describe('watchers', () => {
     nvim.command('set showmode', true)
     await helper.waitValue(() => called, true)
     let line = await helper.getCmdline()
-    expect(line).toMatch('Error on OptionSet')
+    assert.ok((line).includes('Error on OptionSet'))
     called = false
     workspace.watchGlobal('y', fn, disposables)
     await nvim.command('let g:y = 2')
     await helper.waitValue(() => called, true)
     line = await helper.getCmdline()
-    expect(line).toMatch('Error on GlobalChange')
+    assert.ok((line).includes('Error on GlobalChange'))
   })
 })
 
@@ -406,7 +406,7 @@ describe('contentProvider', () => {
     await nvim.command('edit test://1')
     let buf = await nvim.buffer
     let lines = await buf.lines
-    expect(lines).toEqual(['sample text'])
+    assert.deepStrictEqual(lines, ['sample text'])
   })
 
   it('should react on change event of document content provider', async () => {
@@ -458,7 +458,7 @@ describe('contentProvider', () => {
       await helper.waitFor('getline', ['.'], 'new content')
       await helper.wait(50)
       let line = await nvim.getLine()
-      expect(line).toBe('new content')
+      assert.strictEqual(line, 'new content')
     } finally {
       disposable.dispose()
       await nvim.command('bwipeout!')
@@ -490,7 +490,7 @@ describe('contentProvider', () => {
     resolveContent('should not appear')
     await helper.wait(50)
     let line = await nvim.getLine()
-    expect(line).not.toBe('should not appear')
+    assert.notStrictEqual(line, 'should not appear')
     await nvim.command('bwipeout!')
     await helper.waitValue(() => doc.attached, false)
   })
@@ -526,7 +526,7 @@ describe('setupDynamicAutocmd()', () => {
       arglist: ['3', '4'],
       request: true,
     })
-    expect(res).toBe(`autocmd coc_dynamic_autocmd BufEnter ++once ++nested  call coc#rpc#request('doAutocmd', [1, 3, 4])`)
+    assert.strictEqual(res, `autocmd coc_dynamic_autocmd BufEnter ++once ++nested  call coc#rpc#request('doAutocmd', [1, 3, 4])`)
   })
 
   it('should convert to autocmd option', () => {
@@ -540,7 +540,7 @@ describe('setupDynamicAutocmd()', () => {
       event: 'BufEnter', callback: () => {}
     })
     let res = toAutocmdOption(item)
-    expect(res).toEqual({
+    assert.deepStrictEqual(res, {
       group: "coc_dynamic_autocmd",
       buffer: 1,
       pattern: "*.js",
@@ -561,13 +561,13 @@ describe('setupDynamicAutocmd()', () => {
       }
     })
     let ids = await getAutocmdIds('CursorMoved')
-    expect(ids.length).toBe(1)
+    assert.strictEqual(ids.length, 1)
     await triggerAutocmd(ids[0])
-    expect(times).toBe(1)
+    assert.strictEqual(times, 1)
     disposable.dispose()
     await new Promise(resolve => process.nextTick(resolve))
     let list = await nvim.call('nvim_get_autocmds', [{ group: 'coc_dynamic_autocmd', event: 'CursorMoved' }]) as any[]
-    expect(list.length).toBe(0)
+    assert.strictEqual(list.length, 0)
   })
 
   it('should remove autocmd from nvim on dispose', async () => {
@@ -579,11 +579,11 @@ describe('setupDynamicAutocmd()', () => {
       callback: () => {}
     })
     let list = await nvim.call('nvim_get_autocmds', [{ group: 'coc_dynamic_autocmd', event: 'BufEnter' }]) as any[]
-    expect(list.filter(o => o.pattern === pattern).length).toBe(1)
+    assert.strictEqual(list.filter(o => o.pattern === pattern).length, 1)
     disposable.dispose()
     await new Promise(resolve => process.nextTick(resolve))
     list = await nvim.call('nvim_get_autocmds', [{ group: 'coc_dynamic_autocmd', event: 'BufEnter' }]) as any[]
-    expect(list.filter(o => o.pattern === pattern).length).toBe(0)
+    assert.strictEqual(list.filter(o => o.pattern === pattern).length, 0)
   })
 
   it('should remove user autocmd from nvim on dispose', async () => {
@@ -593,11 +593,11 @@ describe('setupDynamicAutocmd()', () => {
       callback: () => {}
     })
     let list = await nvim.call('nvim_get_autocmds', [{ group: 'coc_dynamic_autocmd', event: 'User' }]) as any[]
-    expect(list.filter(o => o.pattern === name).length).toBe(1)
+    assert.strictEqual(list.filter(o => o.pattern === name).length, 1)
     disposable.dispose()
     await new Promise(resolve => process.nextTick(resolve))
     list = await nvim.call('nvim_get_autocmds', [{ group: 'coc_dynamic_autocmd', event: 'User' }]) as any[]
-    expect(list.filter(o => o.pattern === name).length).toBe(0)
+    assert.strictEqual(list.filter(o => o.pattern === name).length, 0)
   })
 
   it('should keep same event autocmd after other is disposed', async () => {
@@ -612,16 +612,16 @@ describe('setupDynamicAutocmd()', () => {
       callback: () => { second++ }
     })
     let ids = await getAutocmdIds('CursorMoved')
-    expect(ids.length).toBe(2)
+    assert.strictEqual(ids.length, 2)
     for (let id of ids) await triggerAutocmd(id)
-    expect(first + second).toBe(2)
+    assert.strictEqual(first + second, 2)
     disposable.dispose()
     await new Promise(resolve => process.nextTick(resolve))
     ids = await getAutocmdIds('CursorMoved')
-    expect(ids.length).toBe(1)
+    assert.strictEqual(ids.length, 1)
     await triggerAutocmd(ids[0])
-    expect(second).toBe(2)
-    expect(first).toBe(1)
+    assert.strictEqual(second, 2)
+    assert.strictEqual(first, 1)
   })
 
   it('should not throw on autocmd callback error', async () => {
@@ -635,9 +635,9 @@ describe('setupDynamicAutocmd()', () => {
       }
     })
     let ids = await getAutocmdIds('CursorHold')
-    expect(ids.length).toBe(1)
+    assert.strictEqual(ids.length, 1)
     await triggerAutocmd(ids[0])
-    expect(called).toBe(true)
+    assert.strictEqual(called, true)
     disposable.dispose()
   })
 
@@ -652,9 +652,9 @@ describe('setupDynamicAutocmd()', () => {
       }
     })
     let ids = await getAutocmdIds('CursorHold')
-    expect(ids.length).toBe(1)
+    assert.strictEqual(ids.length, 1)
     await triggerAutocmd(ids[0])
-    expect(called).toBe(1)
+    assert.strictEqual(called, 1)
     disposable.dispose()
   })
 
@@ -667,9 +667,9 @@ describe('setupDynamicAutocmd()', () => {
       }
     })
     let ids = await getAutocmdIds('User', 'CocJumpPlaceholder')
-    expect(ids.length).toBe(1)
+    assert.strictEqual(ids.length, 1)
     await triggerAutocmd(ids[0])
-    expect(called).toBe(true)
+    assert.strictEqual(called, true)
   })
 })
 
@@ -701,7 +701,7 @@ describe('doAutocmd()', () => {
     let keys = autocmds.keys()
     let max = Math.max(...Array.from(keys))
     await workspace.autocmds.doAutocmd(max, [], 10)
-    expect(cancelled).toBe(true)
+    assert.strictEqual(cancelled, true)
   })
 
   it('should dispose', async () => {
@@ -721,12 +721,12 @@ describe('create terminal', () => {
     let buf = nvim.createBuffer(terminal.bufnr)
     await helper.waitFor('eval', [`join(getbufline(${terminal.bufnr},1,'$'),'\n')`], /\S/)
     let lines = await buf.lines
-    expect(lines.includes('test')).toBe(false)
+    assert.strictEqual(lines.includes('test'), false)
   })
 
-  it('strictEnv forwards caller-provided variables to terminal startup', async () => {
+  it('strictEnv forwards caller-provided variables to terminal startup', async (t) => {
     let call = nvim.call.bind(nvim)
-    let spy = vi.spyOn(nvim, 'call').mockImplementation((method, args) => {
+    let spy = t.mock.method(nvim, 'call', (method, args) => {
       if (method === 'coc#terminal#start') return Promise.resolve([12345, 0]) as never
       return call(method, args) as never
     })
@@ -737,14 +737,13 @@ describe('create terminal', () => {
         env: { COC_AUDIT_ENV: 'wanted' },
         strictEnv: true
       })
-      expect(spy).toHaveBeenCalledWith('coc#terminal#start', [
-        [which.sync('bash')],
-        expect.any(String),
-        { COC_AUDIT_ENV: 'wanted' },
-        true
-      ])
+      let args = spy.mock.calls.find(call => call.arguments[0] === 'coc#terminal#start')?.arguments[1]
+      assert.ok(Array.isArray(args))
+      assert.deepStrictEqual(args[0], [which.sync('bash')])
+      assert.strictEqual(typeof args[1], 'string')
+      assert.deepStrictEqual(args.slice(2), [{ COC_AUDIT_ENV: 'wanted' }, true])
     } finally {
-      spy.mockRestore()
+      spy.mock.restore()
     }
   })
 
@@ -755,11 +754,11 @@ describe('create terminal', () => {
     let fn = async () => {
       await model.start('/definitely/not/a/real/dir', { COC_AUDIT_ENV: 'new' })
     }
-    await expect(fn()).rejects.toThrow()
-    expect(await nvim.call('winnr', ['$'])).toBe(winCount)
-    expect(await nvim.call('win_getid')).toBe(winid)
+    await assert.rejects(fn())
+    assert.strictEqual(await nvim.call('winnr', ['$']), winCount)
+    assert.strictEqual(await nvim.call('win_getid'), winid)
     // the editor process environment is never mutated
-    expect(await nvim.call('getenv', ['COC_AUDIT_ENV'])).toBeNull()
+    assert.strictEqual(await nvim.call('getenv', ['COC_AUDIT_ENV']), null)
   })
 
   it('should use custom shell command', async () => {
@@ -769,7 +768,7 @@ describe('create terminal', () => {
     })
     let bufnr = terminal.bufnr
     let bufname = await nvim.call('bufname', [bufnr]) as string
-    expect(bufname.includes('bash')).toBe(true)
+    assert.strictEqual(bufname.includes('bash'), true)
   })
 
   it('should use custom cwd', async () => {
@@ -780,7 +779,7 @@ describe('create terminal', () => {
     })
     let bufnr = terminal.bufnr
     let bufname = await nvim.call('bufname', [bufnr]) as string
-    expect(bufname.includes(basename)).toBe(true)
+    assert.strictEqual(bufname.includes(basename), true)
   })
 
   it('should have exit code', async () => {
@@ -798,16 +797,16 @@ describe('create terminal', () => {
     await helper.waitValue(() => {
       return exitStatus != null
     }, true)
-    expect(exitStatus.code).toBeDefined()
+    assert.notStrictEqual(exitStatus.code, undefined)
   })
 
   it('should return false on show when buffer unloaded', async () => {
     let model = new TerminalModel('bash', [], nvim)
     await model.start()
-    expect(model.bufnr).toBeDefined()
+    assert.notStrictEqual(model.bufnr, undefined)
     await nvim.command(`bd! ${model.bufnr}`)
     let res = await model.show()
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
   })
 
   it('cleans the terminal channel map after exit and dispose', async () => {
@@ -819,7 +818,7 @@ describe('create terminal', () => {
       shellArgs: ['-c', 'echo done; exit 0']
     })
     await helper.waitFor('bufloaded', [t1.bufnr], 0)
-    expect(await nvim.call('coc#terminal#_channel_count')).toBe(base)
+    assert.strictEqual(await nvim.call('coc#terminal#_channel_count'), base)
     // nonzero exit
     let t2 = await terminals.createTerminal(nvim, {
       name: `clean-${crypto.randomUUID()}`,
@@ -827,7 +826,7 @@ describe('create terminal', () => {
       shellArgs: ['-c', 'exit 3']
     })
     await helper.waitFor('bufloaded', [t2.bufnr], 0)
-    expect(await nvim.call('coc#terminal#_channel_count')).toBe(base)
+    assert.strictEqual(await nvim.call('coc#terminal#_channel_count'), base)
     // manual dispose
     let t3 = await terminals.createTerminal(nvim, {
       name: `clean-${crypto.randomUUID()}`,
@@ -835,7 +834,7 @@ describe('create terminal', () => {
     })
     t3.dispose()
     await helper.waitFor('bufloaded', [t3.bufnr], 0)
-    expect(await nvim.call('coc#terminal#_channel_count')).toBe(base)
+    assert.strictEqual(await nvim.call('coc#terminal#_channel_count'), base)
   })
 
   it('should not throw when show & hide disposed terminal', async () => {
@@ -854,7 +853,7 @@ describe('create terminal', () => {
       shellPath: which.sync('bash')
     })
     let winid = await nvim.call('bufwinid', [terminal.bufnr])
-    expect(winid).toBeGreaterThan(0)
+    assert.ok((winid as number) > 0)
     await nvim.call('win_gotoid', [winid])
     await terminal.show()
   })
@@ -865,7 +864,7 @@ describe('create terminal', () => {
       shellPath: which.sync('bash')
     })
     let res = await terminal.show(true)
-    expect(res).toBe(true)
+    assert.strictEqual(res, true)
   })
 
   it('should show hidden terminal', async () => {
@@ -881,11 +880,11 @@ describe('create terminal', () => {
     let terminal = await window.createTerminal({
       name: `test-${crypto.randomUUID()}`,
     })
-    expect(terminal).toBeDefined()
-    expect(terminal.processId).toBeDefined()
-    expect(terminal.name).toBeDefined()
+    assert.notStrictEqual(terminal, undefined)
+    assert.notStrictEqual(terminal.processId, undefined)
+    assert.notStrictEqual(terminal.name, undefined)
     terminal.dispose()
     await helper.waitValue(() => terminal.bufnr, undefined)
-    expect(terminal.bufnr).toBeUndefined()
+    assert.strictEqual(terminal.bufnr, undefined)
   })
 })

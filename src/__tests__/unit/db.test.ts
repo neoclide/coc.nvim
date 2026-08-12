@@ -22,27 +22,27 @@ describe('DB', () => {
 
   test('db.exists()', () => {
     let exists = db.exists('a.b')
-    expect(exists).toBe(false)
+    assert.strictEqual(exists, false)
     db.push('a.b', { foo: 1 })
     exists = db.exists('a.b.foo')
-    expect(exists).toBe(true)
+    assert.strictEqual(exists, true)
   })
 
   test('db.load()', () => {
     fs.rmSync(root, { force: true, recursive: true })
     db.clear()
-    expect(db.fetch(undefined)).toEqual({})
+    assert.deepStrictEqual(db.fetch(undefined), {})
   })
 
   test('db.fetch()', () => {
     let res = db.fetch('x')
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
     db.push('x', 1)
     res = db.fetch('x')
-    expect(res).toBe(1)
+    assert.strictEqual(res, 1)
     db.push('x', { foo: 1 })
     res = db.fetch('x')
-    expect(res).toEqual({ foo: 1 })
+    assert.deepStrictEqual(res, { foo: 1 })
   })
 
   test('db.delete()', () => {
@@ -50,7 +50,7 @@ describe('DB', () => {
     db.delete('not_exists')
     db.delete('foo.bar')
     let exists = db.exists('foo.bar')
-    expect(exists).toBe(false)
+    assert.strictEqual(exists, false)
   })
 
   test('db.push()', () => {
@@ -60,7 +60,7 @@ describe('DB', () => {
     db.push('foo.n', null)
     db.push('foo.o', { x: 1 })
     let res = db.fetch('foo')
-    expect(res).toEqual({
+    assert.deepStrictEqual(res, {
       x: 1,
       y: '2',
       z: true,
@@ -75,9 +75,9 @@ describe('Mru', () => {
     let mru = new Mru('test', root)
     await mru.clean()
     let res = await mru.load()
-    expect(res.length).toBe(0)
+    assert.strictEqual(res.length, 0)
     res = mru.loadSync()
-    expect(res.length).toBe(0)
+    assert.strictEqual(res.length, 0)
   })
 
   it('should consider last line break', async () => {
@@ -85,7 +85,7 @@ describe('Mru', () => {
     fs.writeFileSync(file, '1\n2\n3\n4\n5\n', 'utf8')
     let mru = new Mru('test', root)
     let res = await mru.load()
-    expect(res.length).toBe(5)
+    assert.strictEqual(res.length, 5)
     await mru.clean()
   })
 
@@ -94,10 +94,10 @@ describe('Mru', () => {
     fs.writeFileSync(file, '\n', 'utf8')
     let mru = new Mru('test', root)
     let res = mru.loadSync()
-    expect(res.length).toBe(0)
+    assert.strictEqual(res.length, 0)
     fs.writeFileSync(file, '1\n2\n3\n4\n5\n', 'utf8')
     res = mru.loadSync()
-    expect(res.length).toBe(5)
+    assert.strictEqual(res.length, 5)
   })
 
   it('should limit lines', async () => {
@@ -105,7 +105,7 @@ describe('Mru', () => {
     fs.writeFileSync(file, '1\n2\n3\n4\n5\n', 'utf8')
     let mru = new Mru('test', root, 3)
     let lines = await mru.load()
-    expect(lines).toEqual(['1', '2', '3'])
+    assert.deepStrictEqual(lines, ['1', '2', '3'])
     await mru.clean()
   })
 
@@ -114,7 +114,7 @@ describe('Mru', () => {
     await mru.add('a')
     await mru.add('b')
     let res = await mru.load()
-    expect(res.length).toBe(2)
+    assert.strictEqual(res.length, 2)
     await mru.clean()
   })
 
@@ -125,7 +125,7 @@ describe('Mru', () => {
     fs.writeFileSync(file, buf)
     await mru.add('item')
     let res = await mru.load()
-    expect(res.length).toBe(1)
+    assert.strictEqual(res.length, 1)
   })
 
   it('should add when file it does not exist', async () => {
@@ -133,7 +133,7 @@ describe('Mru', () => {
     await mru.clean()
     await mru.add('a')
     let res = await mru.load()
-    expect(res).toEqual(['a'])
+    assert.deepStrictEqual(res, ['a'])
   })
 
   it('should remove item', async () => {
@@ -141,7 +141,7 @@ describe('Mru', () => {
     await mru.add('a')
     await mru.remove('a')
     let res = await mru.load()
-    expect(res.length).toBe(0)
+    assert.strictEqual(res.length, 0)
     await mru.clean()
   })
 })

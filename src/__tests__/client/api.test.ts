@@ -22,7 +22,7 @@ describe('rpc client', () => {
   it('should report live channel as running', async () => {
     // The E475 handling checks is_running before resetting the client, a
     // live channel must never be reported as dead.
-    expect(await nvim.call('coc#client#is_running', ['coc'])).toBe(1)
+    assert.strictEqual(await nvim.call('coc#client#is_running', ['coc']), 1)
   })
 
   it('should reset client when channel is gone on E475', async () => {
@@ -34,7 +34,7 @@ describe('rpc client', () => {
       let g:fake['chan_id'] = 99999
       call g:fake['notify']('testMethod', [])
     `)
-    expect(await nvim.call('eval', ["coc#client#get_client('fake')['running']"])).toBe(0)
+    assert.strictEqual(await nvim.call('eval', ["coc#client#get_client('fake')['running']"]), 0)
   })
 })
 
@@ -46,56 +46,56 @@ describe('lua api wrapper', () => {
 
   it('should load require("coc") without error', async () => {
     const ok = await nvim.request('nvim_exec_lua', [`local r, e = pcall(require, 'coc'); return r`, []])
-    expect(ok).toBe(true)
+    assert.strictEqual(ok, true)
   })
 
   it('get_diagnostics should exist', async () => {
     const ok = await nvim.request('nvim_exec_lua', [
       `local ok, coc = pcall(require, 'coc'); return ok and type(coc.get_diagnostics) == 'function'`, []
     ])
-    expect(ok).toBe(true)
+    assert.strictEqual(ok, true)
   })
 
   it('get_config should exist', async () => {
     const ok = await nvim.request('nvim_exec_lua', [
       `local ok, coc = pcall(require, 'coc'); return ok and type(coc.get_config) == 'function'`, []
     ])
-    expect(ok).toBe(true)
+    assert.strictEqual(ok, true)
   })
 
   it('workspace_symbols should exist', async () => {
     const ok = await nvim.request('nvim_exec_lua', [
       `local ok, coc = pcall(require, 'coc'); return ok and type(coc.workspace_symbols) == 'function'`, []
     ])
-    expect(ok).toBe(true)
+    assert.strictEqual(ok, true)
   })
 
   it('document_symbols should exist', async () => {
     const ok = await nvim.request('nvim_exec_lua', [
       `local ok, coc = pcall(require, 'coc'); return ok and type(coc.document_symbols) == 'function'`, []
     ])
-    expect(ok).toBe(true)
+    assert.strictEqual(ok, true)
   })
 
   it('execute_command should exist', async () => {
     const ok = await nvim.request('nvim_exec_lua', [
       `local ok, coc = pcall(require, 'coc'); return ok and type(coc.execute_command) == 'function'`, []
     ])
-    expect(ok).toBe(true)
+    assert.strictEqual(ok, true)
   })
 
   it('command_list should exist', async () => {
     const ok = await nvim.request('nvim_exec_lua', [
       `local ok, coc = pcall(require, 'coc'); return ok and type(coc.command_list) == 'function'`, []
     ])
-    expect(ok).toBe(true)
+    assert.strictEqual(ok, true)
   })
 
   it('extension_stats should exist', async () => {
     const ok = await nvim.request('nvim_exec_lua', [
       `local ok, coc = pcall(require, 'coc'); return ok and type(coc.extension_stats) == 'function'`, []
     ])
-    expect(ok).toBe(true)
+    assert.strictEqual(ok, true)
   })
 
   it('get_diagnostics should return table when called', async () => {
@@ -103,7 +103,7 @@ describe('lua api wrapper', () => {
       `return require('coc').get_diagnostics()`, []
     ])
     // should return a table (nil or list) without throwing
-    expect(result == null || Array.isArray(result)).toBe(true)
+    assert.strictEqual(result == null || Array.isArray(result), true)
   })
 
   it('get_config should return config', async () => {
@@ -111,7 +111,7 @@ describe('lua api wrapper', () => {
       `return require('coc').get_config('suggest')`, []
     ])
     // should return a table without throwing
-    expect(result == null || typeof result === 'object').toBe(true)
+    assert.strictEqual(result == null || typeof result === 'object', true)
   })
 })
 
@@ -148,7 +148,7 @@ describe('ProgressPart', () => {
     let p = new ProgressPart(client, '0c7faec8-e36c-4cde-9815-95635c37d696')
     p.report({ kind: 'report', message: 'msg' })
     p.cancel()
-    expect(p.begin({ kind: 'begin', title: 'canceleld' })).toBe(false)
+    assert.strictEqual(p.begin({ kind: 'begin', title: 'canceleld' }), false)
   })
 
   it('should report progress', async () => {
@@ -168,15 +168,15 @@ describe('ProgressPart', () => {
     let client = createClient()
     let p = new ProgressPart(client, '0c7faec8-e36c-4cde-9815-95635c37d696')
     let started = p.begin({ kind: 'begin', title: 'canceleld' })
-    expect(started).toBe(true)
+    assert.strictEqual(started, true)
     p.cancel()
     p.cancel()
     await helper.waitValue(async () => (await nvim.call('coc#notify#win_list') as number[]).length, 1)
     let winids = await nvim.call('coc#notify#win_list') as number[]
-    expect(winids.length).toBe(1)
+    assert.strictEqual(winids.length, 1)
     let win = nvim.createWindow(winids[0])
     let closing = await win.getVar('closing')
-    expect(closing).toBe(1)
+    assert.strictEqual(closing, 1)
   })
 
   it('should send notification on cancel', async () => {
@@ -185,7 +185,7 @@ describe('ProgressPart', () => {
     let token = '0c7faec8-e36c-4cde-9815-95635c37d696'
     let p = new ProgressPart(client, token)
     let started = p.begin({ kind: 'begin', title: 'canceleld', cancellable: true })
-    expect(started).toBe(true)
+    assert.strictEqual(started, true)
     await helper.waitValue(async () => (await nvim.call('coc#notify#win_list') as number[]).length, 1)
     nvim.call('coc#float#close_all', [], true)
     await helper.waitValue(() => {

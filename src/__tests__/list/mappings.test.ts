@@ -1,4 +1,6 @@
+import { isDeepStrictEqual } from 'node:util'
 import { Neovim } from '@chemzqm/neovim'
+import type { MockTracker } from 'node:test'
 import path from 'path'
 import { CancellationToken, Disposable } from 'vscode-languageserver-protocol'
 import BasicList from '../../list/basic'
@@ -36,10 +38,10 @@ let callSpy: any
 let commandSpy: any
 let evalSpy: any
 
-function installSpies(): void {
-  callSpy = vi.spyOn(nvim, 'call')
-  commandSpy = vi.spyOn(nvim, 'command')
-  evalSpy = vi.spyOn(nvim, 'eval')
+function installSpies(mock: MockTracker): void {
+  callSpy = mock.method(nvim, 'call')
+  commandSpy = mock.method(nvim, 'command')
+  evalSpy = mock.method(nvim, 'eval')
 }
 const locations: ReadonlyArray<QuickfixItem> = [{
   filename: __filename,
@@ -99,7 +101,6 @@ afterAll(async () => {
 })
 
 afterEach(async () => {
-  vi.restoreAllMocks()
   manager.reset()
   await helper.reset()
 })
@@ -107,10 +108,10 @@ afterEach(async () => {
 describe('isValidAction()', () => {
   it('should check invalid action', () => {
     let mappings = manager.mappings
-    expect(mappings.isValidAction('foo')).toBe(false)
-    expect(mappings.isValidAction('do:switch')).toBe(true)
-    expect(mappings.isValidAction('eval:@*')).toBe(true)
-    expect(mappings.isValidAction('undefined:undefined')).toBe(false)
+    assert.strictEqual(mappings.isValidAction('foo'), false)
+    assert.strictEqual(mappings.isValidAction('do:switch'), true)
+    assert.strictEqual(mappings.isValidAction('eval:@*'), true)
+    assert.strictEqual(mappings.isValidAction('undefined:undefined'), false)
   })
 })
 
@@ -118,54 +119,54 @@ describe('User mappings', () => {
   it('should not throw when session not exists', async () => {
     let mappings = manager.mappings
     let res = await mappings.navigate(true)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
     res = await mappings.navigate(false)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
   })
 
-  it('should show warning for invalid key', async () => {
-    expect(ListConfiguration).toBeDefined()
-    expect(listConfiguration.fixKey('<c-a>')).toBe('<C-a>')
-    let errorSpy = vi.spyOn(window, 'showErrorMessage').mockImplementation((() => Promise.resolve(undefined)) as any)
-    let warningSpy = vi.spyOn(window, 'showWarningMessage').mockImplementation((() => Promise.resolve(undefined)) as any)
+  it('should show warning for invalid key', async (t) => {
+    assert.notStrictEqual(ListConfiguration, undefined)
+    assert.strictEqual(listConfiguration.fixKey('<c-a>'), '<C-a>')
+    let errorSpy = t.mock.method(window, 'showErrorMessage', (() => Promise.resolve(undefined)) as any)
+    let warningSpy = t.mock.method(window, 'showWarningMessage', (() => Promise.resolve(undefined)) as any)
     listConfiguration.fixKey('<a')
-    expect(errorSpy).toHaveBeenCalledWith('Configured key "<a" not supported.')
+    assert.ok((errorSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['Configured key "<a" not supported.'])))
     let revert = helper.updateConfiguration('list.insertMappings', {
       xy: 'action:tabe',
     })
-    expect(warningSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid configuration'))
+    assert.ok(warningSpy.mock.calls.some(call => call.arguments[0].includes('Invalid configuration')))
     revert()
-    warningSpy.mockClear()
+    warningSpy.mock.resetCalls()
     revert = helper.updateConfiguration('list.insertMappings', {
       '<M-x>': 'action:tabe',
     })
-    expect(warningSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid configuration'))
+    assert.ok(warningSpy.mock.calls.some(call => call.arguments[0].includes('Invalid configuration')))
     revert()
-    warningSpy.mockClear()
+    warningSpy.mock.resetCalls()
     revert = helper.updateConfiguration('list.insertMappings', {
       '<C-a>': 'foo:bar',
     })
-    expect(warningSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid configuration'))
+    assert.ok(warningSpy.mock.calls.some(call => call.arguments[0].includes('Invalid configuration')))
     revert()
   })
 
-  it('should execute action keymap', async () => {
-    installSpies()
+  it('should execute action keymap', async (t) => {
+    installSpies(t.mock)
     let revert = helper.updateConfiguration('list.insertMappings', {
       '<C-d>': 'action:quickfix',
     })
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-d>')
-    expect(callSpy).toHaveBeenCalledWith('setqflist', [expect.any(Array)])
-    expect(commandSpy).toHaveBeenCalledWith('copen', true)
+    assert.ok(callSpy.mock.calls.some(call => call.arguments[0] === 'setqflist' && Array.isArray(call.arguments[1]?.[0])))
+    assert.ok((commandSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['copen', true])))
     let buftype = await nvim.eval('&buftype')
-    expect(buftype).toBe('quickfix')
+    assert.strictEqual(buftype, 'quickfix')
     revert()
   })
 
-  it('should execute expr keymap', async () => {
-    installSpies()
+  it('should execute expr keymap', async (t) => {
+    installSpies(t.mock)
     await helper.mockFunction('TabOpen', 'quickfix')
     helper.updateConfiguration('list.insertMappings', {
       '<C-t>': 'expr:TabOpen',
@@ -176,17 +177,17 @@ describe('User mappings', () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-t>')
-    expect(callSpy).toHaveBeenCalledWith('TabOpen', [expect.any(Object)])
-    expect(commandSpy).toHaveBeenCalledWith('copen', true)
+    assert.ok(callSpy.mock.calls.some(call => call.arguments[0] === 'TabOpen' && typeof call.arguments[1]?.[0] === 'object'))
+    assert.ok((commandSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['copen', true])))
     let buftype = await nvim.eval('&buftype')
-    expect(buftype).toBe('quickfix')
+    assert.strictEqual(buftype, 'quickfix')
     await nvim.command('close')
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     await helper.listInput('t')
-    expect(commandSpy).toHaveBeenCalledWith('copen', true)
+    assert.ok((commandSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['copen', true])))
     buftype = await nvim.eval('&buftype')
-    expect(buftype).toBe('quickfix')
+    assert.strictEqual(buftype, 'quickfix')
   })
 
   it('should execute do mappings', async () => {
@@ -201,18 +202,18 @@ describe('User mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('<C-n>')
     let item = await manager.session?.ui.item
-    expect(item.label).toMatch(locations[1].text)
+    assert.ok((item.label).includes(locations[1].text))
     await helper.listInput('<C-p>')
     item = await manager.session?.ui.item
-    expect(item.label).toMatch(locations[0].text)
+    assert.ok((item.label).includes(locations[0].text))
     await helper.listInput('<C-k>')
     item = await manager.session?.ui.item
-    expect(item.label).toMatch(locations[1].text)
+    assert.ok((item.label).includes(locations[1].text))
     await helper.listInput('<C-j>')
     item = await manager.session?.ui.item
-    expect(item.label).toMatch(locations[0].text)
+    assert.ok((item.label).includes(locations[0].text))
     await helper.listInput('<C-d>')
-    expect(manager.isActivated).toBe(false)
+    assert.strictEqual(manager.isActivated, false)
   })
 
   it('should execute prompt mappings', async () => {
@@ -233,11 +234,11 @@ describe('User mappings', () => {
     for (let key of ['<C-p>', '<C-n>', '<C-a>', '<C-e>', '<Left>', '<Right>', '<backspace>', '<C-x>', '<C-k>', '<C-u>']) {
       await helper.listInput(key)
     }
-    expect(manager.isActivated).toBe(true)
+    assert.strictEqual(manager.isActivated, true)
   })
 
-  it('should execute feedkeys keymap', async () => {
-    installSpies()
+  it('should execute feedkeys keymap', async (t) => {
+    installSpies(t.mock)
     helper.updateConfiguration('list.insertMappings', {
       '<C-f>': 'feedkeys:\\<C-f>',
       '<C-b>': 'feedkeys!:\\<C-b>',
@@ -245,9 +246,9 @@ describe('User mappings', () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-f>')
-    expect(callSpy).toHaveBeenCalledWith('eval', ['feedkeys("\\<C-f>", "i")'])
+    assert.ok((callSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['eval', ['feedkeys("\\<C-f>", "i")']])))
     await helper.listInput('<C-b>')
-    expect(callSpy).toHaveBeenCalledWith('eval', ['feedkeys("\\<C-b>", "in")'])
+    assert.ok((callSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['eval', ['feedkeys("\\<C-b>", "in")']])))
   })
 
   it('should execute normal keymap', async () => {
@@ -258,7 +259,7 @@ describe('User mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('<C-g>')
     let line = await nvim.call('line', '.')
-    expect(line).toBe(locations.length)
+    assert.strictEqual(line, locations.length)
   })
 
   it('should execute command keymap', async () => {
@@ -268,9 +269,9 @@ describe('User mappings', () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-w>')
-    expect(manager.isActivated).toBe(true)
+    assert.strictEqual(manager.isActivated, true)
     let winnr = await nvim.call('winnr')
-    expect(winnr).toBe(1)
+    assert.strictEqual(winnr, 1)
   })
 
   it('should execute call keymap', async () => {
@@ -281,7 +282,7 @@ describe('User mappings', () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-t>')
-    expect(manager.isActivated).toBe(true)
+    assert.strictEqual(manager.isActivated, true)
   })
 
   it('should insert clipboard register to prompt', async () => {
@@ -293,10 +294,10 @@ describe('User mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('<C-r>')
     let { input } = manager.prompt
-    expect(input).toMatch('foobar')
+    assert.ok((input).includes('foobar'))
     await nvim.command('let @* = ""')
     await helper.listInput('<C-r>')
-    expect(manager.prompt.input).toMatch('foobar')
+    assert.ok((manager.prompt.input).includes('foobar'))
   })
 
   it('should insert text from default register to prompt', async () => {
@@ -308,7 +309,7 @@ describe('User mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('<C-v>')
     let { input } = manager.prompt
-    expect(input).toMatch('bar')
+    assert.ok((input).includes('bar'))
   })
 })
 
@@ -318,7 +319,7 @@ describe('doAction()', () => {
     let fn = async () => {
       await mappings.doAction('foo:bar')
     }
-    await expect(fn()).rejects.toThrow(/doesn't exist/)
+    await assert.rejects(fn(), /doesn't exist/)
   })
 
   it('should not throw when session does not exist', async () => {
@@ -346,11 +347,11 @@ describe('getAction()', () => {
     let fn = () => {
       mappings.getAction('foo')
     }
-    expect(fn).toThrow(Error)
+    assert.throws(fn, Error)
     fn = () => {
       mappings.getAction('do:bar')
     }
-    expect(fn).toThrow(Error)
+    assert.throws(fn, Error)
   })
 })
 
@@ -361,19 +362,19 @@ describe('Default normal mappings', () => {
     let winid = manager.session.ui.winid
     await helper.listInput('t')
     let nr = await nvim.call('tabpagenr')
-    expect(nr).toBe(2)
+    assert.strictEqual(nr, 2)
     await nvim.call('win_gotoid', [winid])
     await helper.listInput('s')
     let winnr = await nvim.call('winnr', ['$'])
-    expect(winnr).toBe(3)
+    assert.strictEqual(winnr, 3)
     await nvim.call('win_gotoid', [winid])
     await helper.listInput('d')
     let filename = await nvim.call('expand', ['%'])
-    expect(filename).toMatch(path.basename(__filename))
+    assert.ok(typeof filename === 'string' && filename.includes(path.basename(__filename)))
     await nvim.call('win_gotoid', [winid])
     await helper.listInput('<cr>')
     filename = await nvim.call('expand', ['%'])
-    expect(filename).toMatch(path.basename(__filename))
+    assert.ok(typeof filename === 'string' && filename.includes(path.basename(__filename)))
   })
 
   it('should select all items by <C-a>', async () => {
@@ -381,7 +382,7 @@ describe('Default normal mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('<C-a>')
     let selected = manager.session?.ui.selectedItems
-    expect(selected.length).toBe(locations.length)
+    assert.strictEqual(selected.length, locations.length)
   })
 
   it('should stop by <C-b>', async () => {
@@ -389,7 +390,7 @@ describe('Default normal mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('<C-b>')
     let loading = manager.session?.worker.isLoading
-    expect(loading).toBe(false)
+    assert.strictEqual(loading, false)
   })
 
   it('should jump back by <C-o>', async () => {
@@ -398,7 +399,7 @@ describe('Default normal mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('<C-o>')
     let bufnr = await nvim.call('bufnr', ['%'])
-    expect(bufnr).toBe(doc.bufnr)
+    assert.strictEqual(bufnr, doc.bufnr)
   })
 
   it('should scroll preview window by <C-e>, <C-y>', async () => {
@@ -410,32 +411,32 @@ describe('Default normal mappings', () => {
     let winid = await nvim.call('win_getid', [winnr])
     await helper.listInput('<C-e>')
     let res = await nvim.call('getwininfo', [winid])
-    expect(res[0].topline).toBeGreaterThan(1)
+    assert.ok((res[0].topline) > (1))
     await helper.listInput('<C-y>')
     res = await nvim.call('getwininfo', [winid])
-    expect(res[0].topline).toBeLessThan(7)
+    assert.ok((res[0].topline) < (7))
   })
 
-  it('should insert command by :', async () => {
-    installSpies()
+  it('should insert command by :', async (t) => {
+    installSpies(t.mock)
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     await helper.listInput(':')
-    expect(evalSpy).toHaveBeenCalledWith('feedkeys(":")')
+    assert.ok((evalSpy).mock.calls.some(call => isDeepStrictEqual(call.arguments, ['feedkeys(":")'])))
     await nvim.eval('feedkeys("let g:x = 1\\<cr>", "in")')
     await helper.waitValue(() => {
       return nvim.getVar('x')
     }, 1)
   })
 
-  it('should select action by <tab>', async () => {
+  it('should select action by <tab>', async (t) => {
     let originalCall = nvim.call.bind(nvim)
-    installSpies()
+    installSpies(t.mock)
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
     // Select the 'tabe' action directly instead of driving the real
     // confirm dialog, the dialog input is timing sensitive under load.
-    callSpy.mockImplementation(((fname: string, args: any[], isNotify?: boolean): Promise<any> | null => {
+    callSpy.mock.mockImplementation(((fname: string, args: any[], isNotify?: boolean): Promise<any> | null => {
       if (fname === 'confirm') return Promise.resolve(5)
       if (fname === 'coc#prompt#stop_prompt' || fname === 'coc#prompt#start_prompt') {
         return isNotify ? null : Promise.resolve()
@@ -443,9 +444,12 @@ describe('Default normal mappings', () => {
       return (originalCall as any)(fname, args, isNotify)
     }) as any)
     await helper.listInput('<tab>')
-    expect(callSpy).toHaveBeenCalledWith('confirm', [expect.stringContaining('Choose action:'), expect.any(String)])
+    assert.ok(callSpy.mock.calls.some(call => {
+      let args = call.arguments[1]
+      return call.arguments[0] === 'confirm' && args[0].includes('Choose action:') && typeof args[1] === 'string'
+    }))
     let nr = await nvim.call('tabpagenr')
-    expect(nr).toBe(2)
+    assert.strictEqual(nr, 2)
   })
 
   it('should preview by p', async () => {
@@ -453,7 +457,7 @@ describe('Default normal mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('p')
     let winnr = await nvim.call('coc#list#has_preview')
-    expect(winnr).toBe(2)
+    assert.strictEqual(winnr, 2)
   })
 
   it('should stop task by <C-c>', async () => {
@@ -463,7 +467,7 @@ describe('Default normal mappings', () => {
     await nvim.input('<C-c>')
     await p
     let len = manager.session?.ui.length
-    expect(len).toBe(0)
+    assert.strictEqual(len, 0)
   })
 
   it('should cancel list by <esc>', async () => {
@@ -484,15 +488,15 @@ describe('Default normal mappings', () => {
     list.text = 'new'
     await helper.listInput('<C-l>')
     let line = await nvim.line
-    expect(line).toMatch('new')
+    assert.ok((line).includes('new'))
   })
 
-  it('should toggle selection <space>', async () => {
+  it('should toggle selection <space>', async (t) => {
     // Mock the nvim state toggleSelection reads so the toggle is
     // deterministic. Real cursor movement via feedkeys is asynchronous
     // and timing sensitive under load.
     let originalCall = nvim.call.bind(nvim)
-    let spy = vi.spyOn(nvim, 'call').mockImplementation(((fname: string, args: any[], isNotify?: boolean): Promise<any> | null => {
+    let spy = t.mock.method(nvim, 'call', ((fname: string, args: any[], isNotify?: boolean): Promise<any> | null => {
       if (fname === 'line') return Promise.resolve(1)
       if (fname === 'mode') return Promise.resolve('n')
       if (fname === 'win_gotoid') return Promise.resolve(1)
@@ -510,7 +514,7 @@ describe('Default normal mappings', () => {
         return manager.session?.ui.selectedItems.length
       }, 0)
     } finally {
-      spy.mockRestore()
+      spy.mock.restore()
     }
   })
 
@@ -521,10 +525,10 @@ describe('Default normal mappings', () => {
     for (let key of keys) {
       await helper.listInput(key)
       let mode = manager.prompt.mode
-      expect(mode).toBe('insert')
+      assert.strictEqual(mode, 'insert')
       await helper.listInput('<C-o>')
       mode = manager.prompt.mode
-      expect(mode).toBe('normal')
+      assert.strictEqual(mode, 'normal')
     }
   })
 
@@ -533,7 +537,7 @@ describe('Default normal mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('?')
     let bufname = await nvim.call('bufname', '%')
-    expect(bufname).toBe('[LIST HELP]')
+    assert.strictEqual(bufname, '[LIST HELP]')
   })
 })
 
@@ -543,7 +547,7 @@ describe('list insert mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('<cr>')
     let bufname = await nvim.call('expand', ['%:p'])
-    expect(bufname).toMatch('mappings.test.ts')
+    assert.ok(typeof bufname === 'string' && bufname.includes('mappings.test.ts'))
   })
 
   it('should paste input by <C-v>', async () => {
@@ -554,7 +558,7 @@ describe('list insert mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('<C-v>')
     let input = manager.prompt.input
-    expect(input).toBe('foo')
+    assert.strictEqual(input, 'foo')
   })
 
   it('should insert register content by <C-r>', async () => {
@@ -566,11 +570,11 @@ describe('list insert mappings', () => {
     await helper.listInput('<C-r>')
     await helper.listInput('*')
     let input = manager.prompt.input
-    expect(input).toBe('foo')
+    assert.strictEqual(input, 'foo')
     await helper.listInput('<C-r>')
     await helper.listInput('<')
     input = manager.prompt.input
-    expect(input).toBe('foo')
+    assert.strictEqual(input, 'foo')
     manager.prompt.reset()
   })
 
@@ -578,18 +582,18 @@ describe('list insert mappings', () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<esc>')
-    expect(manager.isActivated).toBe(false)
+    assert.strictEqual(manager.isActivated, false)
   })
 
-  it('should select action by insert <tab>', async () => {
+  it('should select action by insert <tab>', async (t) => {
     let originalCall = nvim.call.bind(nvim)
-    installSpies()
+    installSpies(t.mock)
     await manager.start(['location'])
     await manager.session.ui.ready
     // Select the default 'open' action directly instead of driving the
     // real confirm dialog, the dialog input is timing sensitive under
     // load.
-    callSpy.mockImplementation(((fname: string, args: any[], isNotify?: boolean): Promise<any> | null => {
+    callSpy.mock.mockImplementation(((fname: string, args: any[], isNotify?: boolean): Promise<any> | null => {
       if (fname === 'confirm') return Promise.resolve(1)
       if (fname === 'coc#prompt#stop_prompt' || fname === 'coc#prompt#start_prompt') {
         return isNotify ? null : Promise.resolve()
@@ -597,7 +601,10 @@ describe('list insert mappings', () => {
       return (originalCall as any)(fname, args, isNotify)
     }) as any)
     await helper.listInput('<tab>')
-    expect(callSpy).toHaveBeenCalledWith('confirm', [expect.stringContaining('Choose action:'), expect.any(String)])
+    assert.ok(callSpy.mock.calls.some(call => {
+      let args = call.arguments[1]
+      return call.arguments[0] === 'confirm' && args[0].includes('Choose action:') && typeof args[1] === 'string'
+    }))
     await helper.waitFor('bufname', ['%'], new RegExp(path.basename(__filename)))
   })
 
@@ -613,28 +620,28 @@ describe('list insert mappings', () => {
     await helper.wait(30)
     await manager.doAction('quickfix')
     let buftype = await nvim.eval('&buftype')
-    expect(buftype).toBe('quickfix')
+    assert.strictEqual(buftype, 'quickfix')
   })
 
   it('should stop loading by <C-c>', async () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-c>')
-    expect(manager.isActivated).toBe(true)
+    assert.strictEqual(manager.isActivated, true)
   })
 
   it('should reload by <C-l>', async () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-l>')
-    expect(manager.isActivated).toBe(true)
+    assert.strictEqual(manager.isActivated, true)
   })
 
   it('should change to normal mode by <C-o>', async () => {
     await manager.start(['location'])
     await manager.session.ui.ready
     await helper.listInput('<C-o>')
-    expect(manager.isActivated).toBe(true)
+    assert.strictEqual(manager.isActivated, true)
   })
 
   it('should select line by <down> and <up>', async () => {
@@ -642,9 +649,9 @@ describe('list insert mappings', () => {
     await manager.session.ui.ready
     await nvim.eval('feedkeys("\\<down>", "in")')
     await nvim.eval('feedkeys("\\<up>", "in")')
-    expect(manager.isActivated).toBe(true)
+    assert.strictEqual(manager.isActivated, true)
     let line = await nvim.line
-    expect(line).toMatch('foo')
+    assert.ok((line).includes('foo'))
   })
 
   it('should move cursor by <left> and <right>', async () => {
@@ -666,7 +673,7 @@ describe('list insert mappings', () => {
     manager.prompt.removeNext()
     manager.prompt.removeNext()
     manager.prompt.removeNext()
-    expect(input).toBe('afc')
+    assert.strictEqual(input, 'afc')
   })
 
   it('should move cursor by leftword and rightword', async () => {
@@ -682,11 +689,11 @@ describe('list insert mappings', () => {
     await helper.listInput('ddd ')        // -> aaa ddd |bbb ccc
     await helper.listInput('<A-f>')       // -> aaa ddd bbb |ccc
     await helper.listInput('eee ')        // -> aaa ddd bbb eee |ccc
-    expect(manager.mappings.hasUserMapping('insert', '<A-b>')).toBe(true)
-    expect(manager.mappings.hasUserMapping('insert', '<A-f>')).toBe(true)
+    assert.strictEqual(manager.mappings.hasUserMapping('insert', '<A-b>'), true)
+    assert.strictEqual(manager.mappings.hasUserMapping('insert', '<A-f>'), true)
     let input = manager.prompt.input
     revert()
-    expect(input).toBe('aaa ddd bbb eee ccc')
+    assert.strictEqual(input, 'aaa ddd bbb eee ccc')
   })
 
   it('should move cursor by <end> and <home>', async () => {
@@ -701,7 +708,7 @@ describe('list insert mappings', () => {
     manager.prompt.removeWord()
     manager.prompt.removeTail()
     manager.prompt.removeTail()
-    expect(input).toBe('ff')
+    assert.strictEqual(input, 'ff')
   })
 
   it('should move cursor by <PageUp> <PageDown> <C-d>', async () => {
@@ -726,7 +733,7 @@ describe('list insert mappings', () => {
     await helper.listInput('f')
     await helper.listInput('<backspace>')
     let input = manager.prompt.input
-    expect(input).toBe('')
+    assert.strictEqual(input, '')
   })
 
   it('should change input by <C-b>', async () => {
@@ -740,10 +747,10 @@ describe('list insert mappings', () => {
     await helper.listInput('o')
     await helper.listInput('<C-a>')
     await helper.listInput('<C-b>')
-    expect(manager.mappings.hasUserMapping('insert', '<C-b>')).toBe(true)
+    assert.strictEqual(manager.mappings.hasUserMapping('insert', '<C-b>'), true)
     let input = manager.prompt.input
     revert()
-    expect(input).toBe('')
+    assert.strictEqual(input, '')
   })
 
   it('should change input by <C-h>', async () => {
@@ -752,7 +759,7 @@ describe('list insert mappings', () => {
     await helper.listInput('f')
     await helper.listInput('<C-h>')
     let input = manager.prompt.input
-    expect(input).toBe('')
+    assert.strictEqual(input, '')
   })
 
   it('should change input by <C-w>', async () => {
@@ -762,7 +769,7 @@ describe('list insert mappings', () => {
     await helper.listInput('a')
     await helper.listInput('<C-w>')
     let input = manager.prompt.input
-    expect(input).toBe('')
+    assert.strictEqual(input, '')
   })
 
   it('should change input by <C-u>', async () => {
@@ -770,7 +777,7 @@ describe('list insert mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('<C-u>')
     let input = manager.prompt.input
-    expect(input).toBe('')
+    assert.strictEqual(input, '')
   })
 
   it('should change input by <C-n> and <C-p>', async () => {
@@ -788,10 +795,10 @@ describe('list insert mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('<C-n>')
     let input = manager.prompt.input
-    expect(input.length).toBeGreaterThan(0)
+    assert.ok((input.length) > (0))
     await helper.listInput('<C-p>')
     input = manager.prompt.input
-    expect(input.length).toBeGreaterThan(0)
+    assert.ok((input.length) > (0))
   })
 
   it('should change matcher by <C-s>', async () => {
@@ -799,13 +806,13 @@ describe('list insert mappings', () => {
     await manager.session.ui.ready
     await helper.listInput('<C-s>')
     let matcher = manager.session?.listOptions.matcher
-    expect(matcher).toBe('strict')
+    assert.strictEqual(matcher, 'strict')
     await helper.listInput('<C-s>')
     matcher = manager.session?.listOptions.matcher
-    expect(matcher).toBe('regex')
+    assert.strictEqual(matcher, 'regex')
     await helper.listInput('f')
     let len = manager.session?.ui.length
-    expect(len).toBeGreaterThan(0)
+    assert.ok((len) > (0))
   })
 })
 
@@ -816,9 +823,9 @@ describe('evalExpression', () => {
     })
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
-    expect(manager.mappings.hasUserMapping('normal', 't')).toBe(true)
+    assert.strictEqual(manager.mappings.hasUserMapping('normal', 't'), true)
     await helper.listInput('t')
-    expect(manager.isActivated).toBe(false)
+    assert.strictEqual(manager.isActivated, false)
   })
 
   it('should cancel prompt', async () => {
@@ -829,7 +836,7 @@ describe('evalExpression', () => {
     await manager.session.ui.ready
     await helper.listInput('t')
     let res = await nvim.call('coc#prompt#activated')
-    expect(res).toBe(0)
+    assert.strictEqual(res, 0)
   })
 
   it('should invoke normal command', async () => {
@@ -841,7 +848,7 @@ describe('evalExpression', () => {
     await helper.listInput('x')
     revert()
     let lnum = await nvim.call('line', ['.'])
-    expect(lnum).toBeGreaterThan(1)
+    assert.ok((lnum as number) > 1)
   })
 
   it('should toggle, scroll preview', async () => {
@@ -862,6 +869,6 @@ describe('evalExpression', () => {
       await helper.listInput(key)
     }
     revert()
-    expect(manager.isActivated).toBe(true)
+    assert.strictEqual(manager.isActivated, true)
   })
 })

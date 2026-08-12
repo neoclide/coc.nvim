@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import type { MockTracker } from 'node:test'
 import os from 'os'
 import path from 'path'
 import { CancellationToken, DidCloseTextDocumentNotification, DocumentDiagnosticRequest, Position, TextEdit } from 'vscode-languageserver-protocol'
@@ -47,7 +48,7 @@ describe('BackgroundScheduler', () => {
       return uris.length
     }, 3)
     let ids = uris.map(u => getId(u))
-    expect(ids).toEqual([1, 2, 3])
+    assert.deepStrictEqual(ids, [1, 2, 3])
   })
 
   it('should schedule documents by remove', async () => {
@@ -73,7 +74,7 @@ describe('BackgroundScheduler', () => {
       return uris.length
     }, 1)
     let ids = uris.map(u => getId(u))
-    expect(ids).toEqual([1])
+    assert.deepStrictEqual(ids, [1])
     s.dispose()
   })
 })
@@ -83,55 +84,55 @@ describe('DocumentPullStateTracker', () => {
     let tracker = new DocumentPullStateTracker()
     let state = tracker.track(PullState.document, createDocument(1))
     let other = tracker.track(PullState.document, createDocument(1))
-    expect(state).toBe(other)
+    assert.strictEqual(state, other)
     tracker.track(PullState.workspace, createDocument(3))
     let id = 'dcf06d3b-79f6-4a5e-bc8d-d3334f7b4cad'
     tracker.update(PullState.document, createDocument(1, 2), id)
     tracker.update(PullState.document, createDocument(2, 2), 'f758ae47-c94e-406e-ba41-0f3bb2fe4fc7')
     let curr = tracker.getResultId(PullState.document, createDocument(1, 2))
-    expect(curr).toBe(id)
-    expect(tracker.getResultId(PullState.workspace, createDocument(1, 2))).toBeUndefined()
+    assert.strictEqual(curr, id)
+    assert.strictEqual(tracker.getResultId(PullState.workspace, createDocument(1, 2)), undefined)
     tracker.unTrack(PullState.document, createDocument(2, 2))
-    expect(tracker.trackingDocuments()).toEqual(['file:///1'])
+    assert.deepStrictEqual(tracker.trackingDocuments(), ['file:///1'])
     tracker.update(PullState.workspace, createDocument(3, 2), 'fcb905e2-8edb-4239-9150-198c8175ed4a')
     tracker.update(PullState.workspace, createDocument(1, 2), 'fe96d175-c19f-4705-bff1-101bf83b2953')
-    expect(tracker.tracks(PullState.workspace, createDocument(3, 1))).toBe(true)
-    expect(tracker.tracks(PullState.document, createDocument(4, 1))).toBe(false)
+    assert.strictEqual(tracker.tracks(PullState.workspace, createDocument(3, 1)), true)
+    assert.strictEqual(tracker.tracks(PullState.document, createDocument(4, 1)), false)
     let res = tracker.getAllResultIds()
-    expect(res.length).toBe(2)
+    assert.strictEqual(res.length, 2)
   })
 
   it('should track URI', async () => {
     let tracker = new DocumentPullStateTracker()
     let state = tracker.track(PullState.document, createUri(1), undefined)
     let other = tracker.track(PullState.document, createUri(1), undefined)
-    expect(state).toBe(other)
+    assert.strictEqual(state, other)
     tracker.track(PullState.workspace, createUri(3), undefined)
     let id = 'dcf06d3b-79f6-4a5e-bc8d-d3334f7b4cad'
     tracker.update(PullState.document, createUri(1), undefined, id)
     tracker.update(PullState.document, createUri(2), undefined, 'f758ae47-c94e-406e-ba41-0f3bb2fe4fc7')
     let curr = tracker.getResultId(PullState.document, createUri(1))
-    expect(curr).toBe(id)
+    assert.strictEqual(curr, id)
     tracker.unTrack(PullState.document, createUri(2))
-    expect(tracker.trackingDocuments()).toEqual(['file:///1'])
+    assert.deepStrictEqual(tracker.trackingDocuments(), ['file:///1'])
     tracker.update(PullState.workspace, createUri(3), undefined, undefined)
     tracker.update(PullState.workspace, createUri(1), undefined, 'fe96d175-c19f-4705-bff1-101bf83b2953')
-    expect(tracker.tracks(PullState.workspace, createUri(3))).toBe(true)
-    expect(tracker.tracks(PullState.document, createUri(4))).toBe(false)
+    assert.strictEqual(tracker.tracks(PullState.workspace, createUri(3)), true)
+    assert.strictEqual(tracker.tracks(PullState.document, createUri(4)), false)
     let res = tracker.getAllResultIds()
-    expect(res.length).toBe(1)
+    assert.strictEqual(res.length, 1)
   })
 })
 
 describe('DiagnosticRequestor', () => {
-  function createRequestor(options: any = {}): { manager: DiagnosticRequestor, client: any } {
+  function createRequestor(mock: MockTracker, options: any = {}): { manager: DiagnosticRequestor, client: any } {
     const client: any = {
       clientOptions: { diagnosticPullOptions: {} },
       middleware: {},
-      error: vi.fn(),
-      sendRequest: vi.fn(),
-      handleFailedRequest: vi.fn(),
-      onProgress: vi.fn().mockReturnValue({ dispose: () => {} })
+      error: mock.fn(),
+      sendRequest: mock.fn(),
+      handleFailedRequest: mock.fn(),
+      onProgress: mock.fn(() => ({ dispose: () => {} }))
     }
     const manager = new DiagnosticRequestor(client, {
       workspaceDiagnostics: true,
@@ -141,10 +142,10 @@ describe('DiagnosticRequestor', () => {
     return { manager, client }
   }
 
-  it('should not reschedule workspace pull after dispose', async () => {
+  it('should not reschedule workspace pull after dispose', async (t) => {
     let calls = 0
     let resolvePull: (value?: any) => void
-    const { manager, client } = createRequestor()
+    const { manager, client } = createRequestor(t.mock)
     client.middleware.provideWorkspaceDiagnostics = () => {
       calls++
       return new Promise(res => {
@@ -156,12 +157,12 @@ describe('DiagnosticRequestor', () => {
     manager.dispose()
     resolvePull({ items: [] })
     await helper.waitValue(() => calls, 1)
-    expect(calls).toBe(1)
+    assert.strictEqual(calls, 1)
   })
 
-  it('should reset workspace error counter on success', async () => {
+  it('should reset workspace error counter on success', async (t) => {
     let calls = 0
-    const { manager, client } = createRequestor()
+    const { manager, client } = createRequestor(t.mock)
     client.middleware.provideWorkspaceDiagnostics = () => {
       calls++
       if (calls <= 3) return Promise.reject(new Error('fail'))
@@ -173,19 +174,19 @@ describe('DiagnosticRequestor', () => {
     // on success so only consecutive errors count).
     await helper.waitValue(() => calls, 10)
     await helper.wait(100)
-    expect(calls).toBe(10)
+    assert.strictEqual(calls, 10)
   })
 
-  it('should not repull a forgotten document when its request is cancelled', async () => {
+  it('should not repull a forgotten document when its request is cancelled', async (t) => {
     let calls = 0
-    const { manager, client } = createRequestor({ workspaceDiagnostics: false })
+    const { manager, client } = createRequestor(t.mock, { workspaceDiagnostics: false })
     client.middleware.provideDiagnostics = (_document: any, _previous: any, token: any, _next: any) => {
       calls++
       return new Promise((_resolve, reject) => {
         token.onCancellationRequested(() => reject(new CancellationError()))
       })
     }
-    let visible = vi.spyOn(workspace.tabs, 'isVisible').mockReturnValue(true)
+    let visible = t.mock.method(workspace.tabs, 'isVisible', () => (true))
     try {
       let doc = createDocument(1)
       let p = manager.pullAsync(doc)
@@ -193,9 +194,9 @@ describe('DiagnosticRequestor', () => {
       manager.forgetDocument(doc)
       await p
       await helper.waitValue(() => calls, 1)
-      expect(calls).toBe(1)
+      assert.strictEqual(calls, 1)
     } finally {
-      visible.mockRestore()
+      visible.mock.restore()
     }
   })
 })
@@ -242,14 +243,14 @@ describe('DiagnosticFeature', () => {
 
   it('should create push diagnostics collection lazily', async () => {
     let client = await createServer(true)
-    expect(client['_diagnostics']).toBeUndefined()
+    assert.strictEqual(client['_diagnostics'], undefined)
     await client.sendRequest('sendDiagnostics')
     await helper.waitValue(() => {
       return client['_diagnostics']?.has('file:///abc.txt')
     }, true)
     await client.stop()
-    expect(client['_diagnostics']).toBeNull()
-    expect(client.diagnostics).toBeUndefined()
+    assert.strictEqual(client['_diagnostics'], null)
+    assert.strictEqual(client.diagnostics, undefined)
   })
 
   it('should work when change visible editor', async () => {
@@ -262,14 +263,14 @@ describe('DiagnosticFeature', () => {
     await workspace.loadFile(getUri(3), 'tabe')
     await helper.wait(30)
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
-    expect(feature).toBeDefined()
+    assert.notStrictEqual(feature, undefined)
     let provider = feature.getProvider(doc.textDocument)
     let res = provider.knows(PullState.document, doc.textDocument)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
     await client.stop()
   })
 
-  it('should clean up diagnostics before close notification is sent', async () => {
+  it('should clean up diagnostics before close notification is sent', async (t) => {
     let doc = await workspace.loadFile(getUri('close-diagnostic'), 'edit')
     let client = await createServer(false, false, {}, opt => {
       opt.diagnosticPullOptions = {
@@ -287,7 +288,7 @@ describe('DiagnosticFeature', () => {
     let pending = new Promise<void>(resolve => {
       release = resolve
     })
-    let spy = vi.spyOn(client, 'sendNotification').mockImplementation((type: any) => {
+    let spy = t.mock.method(client, 'sendNotification', (type: any) => {
       if (typeof type !== 'string' && type.method === DidCloseTextDocumentNotification.method) {
         return pending
       }
@@ -299,18 +300,18 @@ describe('DiagnosticFeature', () => {
       closeSent = true
     })
     let closeProvider = closeFeature.getProvider(doc.textDocument)
-    expect(closeProvider).toBeDefined()
+    assert.notStrictEqual(closeProvider, undefined)
 
     let close = closeProvider!.send(doc.textDocument)
     await helper.waitValue(() => {
       return provider.knows(PullState.document, doc.textDocument)
     }, false)
-    expect(closeSent).toBe(false)
+    assert.strictEqual(closeSent, false)
 
     release()
     await close
-    expect(closeSent).toBe(true)
-    spy.mockRestore()
+    assert.strictEqual(closeSent, true)
+    spy.mock.restore()
     await client.stop()
   })
 
@@ -323,7 +324,7 @@ describe('DiagnosticFeature', () => {
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
     let provider = feature.getProvider(TextDocument.create('file:///1', 'vim', 1, ''))
     let res = provider.knows(PullState.document, doc.textDocument)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
     doc = await workspace.loadFile(getUri(2), 'edit')
     await helper.waitValue(() => window.activeTextEditor?.uri === doc.uri, true)
     provider.forget(doc.textDocument)
@@ -341,7 +342,7 @@ describe('DiagnosticFeature', () => {
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
     let provider = feature.getProvider(doc.textDocument)
     let res = provider.knows(PullState.document, doc.textDocument)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
     await client.stop()
   })
 
@@ -424,12 +425,12 @@ describe('DiagnosticFeature', () => {
     }
     let client = await createServer(true, false, middleware)
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
-    expect(feature).toBeDefined()
+    assert.notStrictEqual(feature, undefined)
     let textDocument = TextDocument.create(getUri('empty'), 'e', 1, '')
     let provider = feature.getProvider(textDocument)
     let res = await provider.diagnostics.provideDiagnostics(textDocument, '', CancellationToken.None)
-    expect(called).toBe(true)
-    expect(res).toEqual({ kind: 'full', items: [] })
+    assert.strictEqual(called, true)
+    assert.deepStrictEqual(res, { kind: 'full', items: [] })
     await helper.waitValue(() => {
       return callHandle
     }, true)
@@ -446,7 +447,7 @@ describe('DiagnosticFeature', () => {
         return next(resultIds, token, resultReporter)
       }
     })
-    expect(called).toBe(true)
+    assert.strictEqual(called, true)
     await helper.waitValue(async () => {
       let count = await client.sendRequest('getWorkspaceCount') as number
       return count > 1
@@ -467,7 +468,7 @@ describe('DiagnosticFeature', () => {
     await provider.diagnostics.provideWorkspaceDiagnostics([{ uri: 'uri', value: '1' }], CancellationToken.None, chunk => {
       n++
     })
-    expect(n).toBe(4)
+    assert.strictEqual(n, 4)
     await client.stop()
   })
 

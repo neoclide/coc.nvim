@@ -69,23 +69,23 @@ describe('InlayHint', () => {
   describe('utils', () => {
     it('should check same hint', () => {
       let hint = InlayHint.create(Position.create(0, 0), 'foo')
-      expect(sameHint(hint, InlayHint.create(Position.create(0, 0), 'bar'))).toBe(false)
-      expect(sameHint(hint, InlayHint.create(Position.create(0, 0), [{ value: 'foo' }]))).toBe(true)
+      assert.strictEqual(sameHint(hint, InlayHint.create(Position.create(0, 0), 'bar')), false)
+      assert.strictEqual(sameHint(hint, InlayHint.create(Position.create(0, 0), [{ value: 'foo' }])), true)
     })
 
     it('should check valid hint', () => {
       let hint = InlayHint.create(Position.create(0, 0), 'foo')
-      expect(isValidInlayHint(hint, Range.create(0, 0, 1, 0))).toBe(true)
-      expect(isValidInlayHint(InlayHint.create(Position.create(0, 0), ''), Range.create(0, 0, 1, 0))).toBe(false)
-      expect(isValidInlayHint(InlayHint.create(Position.create(3, 0), 'foo'), Range.create(0, 0, 1, 0))).toBe(false)
-      expect(isValidInlayHint({ label: 'f' } as any, Range.create(0, 0, 1, 0))).toBe(false)
+      assert.strictEqual(isValidInlayHint(hint, Range.create(0, 0, 1, 0)), true)
+      assert.strictEqual(isValidInlayHint(InlayHint.create(Position.create(0, 0), ''), Range.create(0, 0, 1, 0)), false)
+      assert.strictEqual(isValidInlayHint(InlayHint.create(Position.create(3, 0), 'foo'), Range.create(0, 0, 1, 0)), false)
+      assert.strictEqual(isValidInlayHint({ label: 'f' } as any, Range.create(0, 0, 1, 0)), false)
     })
 
     it('should check inlayHint instance', async () => {
-      expect(isInlayHint(null)).toBe(false)
+      assert.strictEqual(isInlayHint(null), false)
       let position = Position.create(0, 0)
-      expect(isInlayHint({ position, label: null })).toBe(false)
-      expect(isInlayHint({ position, label: [{ value: '' }] })).toBe(true)
+      assert.strictEqual(isInlayHint({ position, label: null }), false)
+      assert.strictEqual(isInlayHint({ position, label: [{ value: '' }] }), true)
     })
   })
 
@@ -125,7 +125,7 @@ describe('InlayHint', () => {
       let doc = await workspace.document
       let tokenSource = new CancellationTokenSource()
       let res = await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 3, 0), tokenSource.token)
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
 
     it('should not throw when provider return null', async () => {
@@ -155,9 +155,9 @@ describe('InlayHint', () => {
       let tokenSource = new CancellationTokenSource()
       let res = await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 1, 0), tokenSource.token)
       let resolved = await languages.resolveInlayHint(res[0], tokenSource.token)
-      expect(resolved.tooltip).toBe('tooltip')
+      assert.strictEqual(resolved.tooltip, 'tooltip')
       resolved = await languages.resolveInlayHint(resolved, tokenSource.token)
-      expect(resolved.tooltip).toBe('tooltip')
+      assert.strictEqual(resolved.tooltip, 'tooltip')
     })
 
     it('should not resolve when cancelled', async () => {
@@ -184,7 +184,7 @@ describe('InlayHint', () => {
       let p = languages.resolveInlayHint(res[0], tokenSource.token)
       tokenSource.cancel()
       let resolved = await p
-      expect(resolved.tooltip).toBeUndefined()
+      assert.strictEqual(resolved.tooltip, undefined)
     })
   })
 
@@ -194,11 +194,11 @@ describe('InlayHint', () => {
       let doc = await workspace.document
       let item = handler.getItem(doc.bufnr)
       item.clearVirtualText()
-      expect(item.enabled).toBe(false)
+      assert.strictEqual(item.enabled, false)
       helper.updateConfiguration('inlayHint.filetypes', ['dos'], disposables)
       doc = await helper.createDocument()
       item = handler.getItem(doc.bufnr)
-      expect(item.enabled).toBe(false)
+      assert.strictEqual(item.enabled, false)
     })
   })
 
@@ -213,8 +213,8 @@ describe('InlayHint', () => {
       await waitRefresh(doc.bufnr)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
       let obj = markers[0][3].virt_text
-      expect(obj).toEqual([['baz', 'CocInlayHintType']])
-      expect(markers[1][3].virt_text).toEqual([['foo', 'CocInlayHintParameter']])
+      assert.deepStrictEqual(obj, [['baz', 'CocInlayHintType']])
+      assert.deepStrictEqual(markers[1][3].virt_text, [['foo', 'CocInlayHintParameter']])
     })
 
     it('should disable parameter inlayHint', async () => {
@@ -224,7 +224,7 @@ describe('InlayHint', () => {
       disposables.push(disposable)
       await waitRefresh(doc.bufnr)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(1)
+      assert.strictEqual(markers.length, 1)
     })
 
     it('should enable & disable inlayHint', async () => {
@@ -234,7 +234,7 @@ describe('InlayHint', () => {
       await waitRefresh(doc.bufnr)
       helper.updateConfiguration('inlayHint.enable', false)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(0)
+      assert.strictEqual(markers.length, 0)
       helper.updateConfiguration('inlayHint.enable', true)
     })
 
@@ -245,10 +245,10 @@ describe('InlayHint', () => {
       disposables.push(disposable)
       await waitRefresh(doc.bufnr)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(2)
+      assert.strictEqual(markers.length, 2)
       for (const m of markers) {
         let detail = m[3]
-        expect(detail['virt_text_pos']).toBe('eol')
+        assert.strictEqual(detail['virt_text_pos'], 'eol')
       }
     })
 
@@ -268,11 +268,11 @@ describe('InlayHint', () => {
       await doc.synchronize()
       await waitRefresh(doc.bufnr)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(2)
+      assert.strictEqual(markers.length, 2)
       let first = markers[0][3].virt_text
-      expect(first).toEqual([['firstLabel', 'CocInlayHintType']])
+      assert.deepStrictEqual(first, [['firstLabel', 'CocInlayHintType']])
       let second = markers[1][3].virt_text
-      expect(second).toEqual([['sec…', 'CocInlayHintType']])
+      assert.deepStrictEqual(second, [['sec…', 'CocInlayHintType']])
     })
 
     it('should not truncate hint label when maximumLength is 0', async () => {
@@ -291,11 +291,11 @@ describe('InlayHint', () => {
       await doc.synchronize()
       await waitRefresh(doc.bufnr)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(2)
+      assert.strictEqual(markers.length, 2)
       let first = markers[0][3].virt_text
-      expect(first).toEqual([['firstLabel', 'CocInlayHintType']])
+      assert.deepStrictEqual(first, [['firstLabel', 'CocInlayHintType']])
       let second = markers[1][3].virt_text
-      expect(second).toEqual([['secondLabel', 'CocInlayHintType']])
+      assert.deepStrictEqual(second, [['secondLabel', 'CocInlayHintType']])
     })
   })
 
@@ -309,7 +309,7 @@ describe('InlayHint', () => {
       let doc = await workspace.document
       handler.setState('toggle', doc.bufnr)
       let cmdline = await helper.getCmdline()
-      expect(cmdline).toMatch(/not\sfound/)
+      assert.match(cmdline, /not\sfound/)
     })
 
     it('should show message when not enabled', async () => {
@@ -319,7 +319,7 @@ describe('InlayHint', () => {
       disposables.push(disposable)
       handler.setState('toggle', doc.bufnr)
       let cmdline = await helper.getCmdline()
-      expect(cmdline).toMatch(/not\senabled/)
+      assert.match(cmdline, /not\senabled/)
     })
 
     it('should toggle inlayHints', async () => {
@@ -341,7 +341,7 @@ describe('InlayHint', () => {
       await commands.executeCommand('document.disableInlayHint')
       await commands.executeCommand('document.enableInlayHint')
       let item = handler.getItem(doc.bufnr)
-      expect(item.enabled).toBe(true)
+      assert.strictEqual(item.enabled, true)
     })
   })
 
@@ -383,7 +383,7 @@ describe('InlayHint', () => {
       await doc.synchronize()
       await helper.wait(30)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(0)
+      assert.strictEqual(markers.length, 0)
     })
 
     it('should refresh on text change', async () => {
@@ -394,10 +394,10 @@ describe('InlayHint', () => {
       await buf.setLines(['a', 'b', 'c'], { start: 0, end: -1 })
       await waitRefresh(buf.id)
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(3)
+      assert.strictEqual(markers.length, 3)
       let item = handler.getItem(buf.id)
       await item.render()
-      expect(item.current.length).toBe(3)
+      assert.strictEqual(item.current.length, 3)
     })
 
     it('should refresh on insert leave', async () => {
@@ -410,11 +410,11 @@ describe('InlayHint', () => {
       await buf.setLines(['a', 'b', 'c'], { start: 0, end: -1 })
       await helper.wait(30)
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(0)
+      assert.strictEqual(markers.length, 0)
       await nvim.input('<esc>')
       await waitRefresh(doc.bufnr)
       markers = await buf.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(3)
+      assert.strictEqual(markers.length, 3)
     })
 
     it('should refresh on provider dispose', async () => {
@@ -423,11 +423,11 @@ describe('InlayHint', () => {
       await waitRefresh(buf.id)
       disposable.dispose()
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(0)
+      assert.strictEqual(markers.length, 0)
       let item = handler.getItem(buf.id)
-      expect(item.current.length).toBe(0)
+      assert.strictEqual(item.current.length, 0)
       await item.render()
-      expect(item.current.length).toBe(0)
+      assert.strictEqual(item.current.length, 0)
     })
 
     it('should refresh on scroll', async () => {
@@ -448,7 +448,7 @@ describe('InlayHint', () => {
       await waitRefresh(buf.id)
       await nvim.command('normal! G')
       markers = await buf.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBeGreaterThan(len)
+      assert.ok((markers.length) > (len))
     })
 
     it('should cancel previous render', async () => {
@@ -459,7 +459,7 @@ describe('InlayHint', () => {
       let item = handler.getItem(buf.id)
       await item.render()
       await item.render()
-      expect(item.current.length).toBe(1)
+      assert.strictEqual(item.current.length, 1)
     })
 
     it('should resend request on CancellationError', async () => {

@@ -48,7 +48,7 @@ describe('TypeHierarchy', () => {
     it('should return false when provider not exists', async () => {
       let doc = await workspace.document
       let res = languages.hasProvider(ProviderName.TypeHierarchy, doc.textDocument)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
     it('should return merged results', async () => {
@@ -87,16 +87,16 @@ describe('TypeHierarchy', () => {
       }))
       let doc = await workspace.document
       let res = await languages.prepareTypeHierarchy(doc.textDocument, position, token)
-      expect(res.length).toBe(3)
+      assert.strictEqual(res.length, 3)
     })
 
     it('should return empty array when provider not found', async () => {
       let item = createItem('foo')
       let res: any
       res = await languages.provideTypeHierarchySupertypes(item, token)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
       res = await languages.provideTypeHierarchySubtypes(item, token)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
     })
 
     it('should return subtypes and supertypes', async () => {
@@ -115,11 +115,11 @@ describe('TypeHierarchy', () => {
       let res = await languages.prepareTypeHierarchy(doc.textDocument, position, token)
       let arr: any[]
       arr = await languages.provideTypeHierarchySubtypes(res[0], token)
-      expect(arr.length).toBe(1)
-      expect(arr[0].source).toBeDefined()
+      assert.strictEqual(arr.length, 1)
+      assert.notStrictEqual(arr[0].source, undefined)
       arr = await languages.provideTypeHierarchySupertypes(res[0], token)
-      expect(arr.length).toBe(1)
-      expect(arr[0].source).toBeDefined()
+      assert.strictEqual(arr.length, 1)
+      assert.notStrictEqual(arr[0].source, undefined)
     })
 
     it('should not throw when prepareTypeHierarchy throws', async () => {
@@ -136,7 +136,7 @@ describe('TypeHierarchy', () => {
       }))
       let doc = await workspace.document
       let res = await languages.prepareTypeHierarchy(doc.textDocument, position, token)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
     })
 
     it('should return empty supertypes and supertypes', async () => {
@@ -155,9 +155,9 @@ describe('TypeHierarchy', () => {
       let res = await languages.prepareTypeHierarchy(doc.textDocument, position, token)
       let arr: any[]
       arr = await languages.provideTypeHierarchySubtypes(res[0], token)
-      expect(arr).toEqual([])
+      assert.deepStrictEqual(arr, [])
       arr = await languages.provideTypeHierarchySupertypes(res[0], token)
-      expect(arr).toEqual([])
+      assert.deepStrictEqual(arr, [])
     })
   })
 
@@ -165,16 +165,16 @@ describe('TypeHierarchy', () => {
     it('should add children', async () => {
       let item = createItem('foo')
       addChildren(item, undefined)
-      expect(item['children']).toBeUndefined()
+      assert.strictEqual(item['children'], undefined)
       addChildren(item, [], CancellationToken.Cancelled)
-      expect(item['children']).toBeUndefined()
+      assert.strictEqual(item['children'], undefined)
     })
 
     it('should throw when provider not exist', async () => {
       let fn = async () => {
         await handler.showTypeHierarchyTree('supertypes')
       }
-      await expect(fn()).rejects.toThrow(Error)
+      await assert.rejects(fn(), Error)
     })
 
     it('should show warning when prepare return empty', async () => {
@@ -194,7 +194,7 @@ describe('TypeHierarchy', () => {
       await nvim.command('echo ""')
       await plugin.cocAction('showSubTypes')
       let line = await helper.getCmdline()
-      expect(line).toMatch('Unable')
+      assert.ok((line).includes('Unable'))
     })
 
     it('should invoke super types and sub types action', async () => {
@@ -246,7 +246,7 @@ describe('TypeHierarchy', () => {
       await handler.showTypeHierarchyTree('supertypes')
       let buf = await nvim.buffer
       let lines = await buf.lines
-      expect(lines).toEqual([
+      assert.deepStrictEqual(lines, [
         'Super types',
         '- c foo',
         '  + c bar Detail'
@@ -257,13 +257,13 @@ describe('TypeHierarchy', () => {
       await nvim.input('<cr>')
       await helper.waitFor('expand', ['%:p'], fsPath)
       let res = await nvim.call('coc#cursor#position')
-      expect(res).toEqual([1, 0])
+      assert.deepStrictEqual(res, [1, 0])
       let matches = await nvim.call('getmatches') as any[]
-      expect(matches.length).toBe(1)
+      assert.strictEqual(matches.length, 1)
       await nvim.command(`b ${bufnr}`)
       await helper.waitValue(async () => (await nvim.call('getmatches') as any[]).length, 0)
       matches = await nvim.call('getmatches') as any[]
-      expect(matches.length).toBe(0)
+      assert.strictEqual(matches.length, 0)
       await nvim.command(`wincmd o`)
     })
   })
