@@ -1,23 +1,17 @@
+import workspace from '../../workspace'
+import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import OutputChannel from '../../model/outputChannel'
-import helper from '../helper'
+import { before, describe, test } from 'node:test'
+import assert from 'node:assert/strict'
 
 let nvim: Neovim
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-})
-
-afterEach(async () => {
-  await helper.reset()
-})
-
-afterAll(async () => {
-  await helper.shutdown()
+before(async () => {
+  nvim = workspace.nvim
 })
 
 describe('OutputChannel', () => {
-  test('without nvim', () => {
+  test('without nvim', t => {
     let o = new OutputChannel('f')
     o.appendLine('foo')
     o.append('bar')
@@ -26,25 +20,25 @@ describe('OutputChannel', () => {
     o.clear()
   })
 
-  test('channel name with special characters', async () => {
+  test('channel name with special characters', async t => {
     let ch = new OutputChannel("a@b 'c", nvim)
     ch.show(false, 'edit')
     let bufname = await nvim.call('bufname', '%')
-    expect(bufname).toBe('output:///a@b%20\'c')
+    assert.strictEqual(bufname, 'output:///a@b%20\'c')
     let bufnr = await nvim.call('bufnr', ['%'])
     ch.hide()
-    await helper.waitValue(() => nvim.call('bufloaded', [bufnr]), 0)
+    await shared.waitValue(() => nvim.call('bufloaded', [bufnr]), 0)
     let loaded = await nvim.call('bufloaded', [bufnr])
-    expect(loaded).toBe(0)
+    assert.strictEqual(loaded, 0)
     ch.dispose()
   })
 
-  test('outputChannel.show(true)', async () => {
+  test('outputChannel.show(true)', async t => {
     await nvim.setLine('foo')
     let c = new OutputChannel('0', nvim)
     let bufnr = (await nvim.buffer).id
     c.show(true)
-    await helper.waitFor('bufnr', ['%'], bufnr)
+    await shared.waitFor('bufnr', ['%'], bufnr)
     c.hide()
     c.clear(1)
     c.dispose()
@@ -52,89 +46,89 @@ describe('OutputChannel', () => {
     c.appendLine('')
   })
 
-  test('outputChannel.keep()', async () => {
+  test('outputChannel.keep()', async t => {
     let c = new OutputChannel('clear', nvim)
     c.show(false)
-    await helper.waitFor('bufname', ['%'], 'output:///clear')
+    await shared.waitFor('bufname', ['%'], 'output:///clear')
     let buf = await nvim.buffer
     c.appendLine('foo')
     c.appendLine('bar')
     // appends land in the buffer before clear, so the keep assertion below
     // is not racing the buffer creation
-    await helper.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /bar/)
+    await shared.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /bar/)
     c.clear(2)
-    await helper.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /bar/)
+    await shared.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /bar/)
     let lines = await buf.lines
-    expect(lines.includes('bar')).toBe(true)
+    assert.strictEqual(lines.includes('bar'), true)
   })
 
-  test('outputChannel caps retained lines', async () => {
+  test('outputChannel caps retained lines', async t => {
     let c = new OutputChannel('cap', nvim, undefined, 3)
     for (let i = 1; i <= 5; i++) c.appendLine(`${i}`)
-    expect(c.content.split('\n').filter(Boolean)).toEqual(['4', '5'])
+    assert.deepStrictEqual(c.content.split('\n').filter(Boolean), ['4', '5'])
     c.dispose()
   })
 
-  test('outputChannel trims buffer over cap', async () => {
+  test('outputChannel trims buffer over cap', async t => {
     let c = new OutputChannel('trim', nvim, undefined, 3)
     c.show(false, 'edit')
-    await helper.waitFor('bufloaded', ['output:///trim'], 1)
+    await shared.waitFor('bufloaded', ['output:///trim'], 1)
     for (let i = 1; i <= 5; i++) c.appendLine(`${i}`)
-    await helper.waitFor('eval', [`join(getbufline('output:///trim',1,'$'),'\n')`], /5/)
+    await shared.waitFor('eval', [`join(getbufline('output:///trim',1,'$'),'\n')`], /5/)
     let lines = await nvim.call('getbufline', ['output:///trim', 1, '$']) as string[]
-    expect(lines.filter(Boolean)).toEqual(['4', '5'])
+    assert.deepStrictEqual(lines.filter(Boolean), ['4', '5'])
     c.dispose()
   })
 
-  test('outputChannel rewrites buffer on oversized burst append', async () => {
+  test('outputChannel rewrites buffer on oversized burst append', async t => {
     let c = new OutputChannel('burst', nvim, undefined, 2)
     c.show(false, 'edit')
-    await helper.waitFor('bufloaded', ['output:///burst'], 1)
+    await shared.waitFor('bufloaded', ['output:///burst'], 1)
     c.appendLine('a\nb\nc\nd')
-    await helper.waitFor('eval', [`join(getbufline('output:///burst',1,'$'),'\n')`], /d/)
-    expect(c.content.split('\n').filter(Boolean)).toEqual(['d'])
+    await shared.waitFor('eval', [`join(getbufline('output:///burst',1,'$'),'\n')`], /d/)
+    assert.deepStrictEqual(c.content.split('\n').filter(Boolean), ['d'])
     let lines = await nvim.call('getbufline', ['output:///burst', 1, '$']) as string[]
-    expect(lines.filter(Boolean)).toEqual(['d'])
+    assert.deepStrictEqual(lines.filter(Boolean), ['d'])
     c.dispose()
   })
 
-  test('outputChannel.show(false)', async () => {
+  test('outputChannel.show(false)', async t => {
     let c = new OutputChannel('1', nvim)
     let bufnr = (await nvim.buffer).id
     c.show()
-    await helper.waitFor('bufname', ['%'], 'output:///1')
+    await shared.waitFor('bufname', ['%'], 'output:///1')
     let nr = (await nvim.buffer).id
-    expect(bufnr).toBeLessThan(nr)
+    assert.ok(bufnr < nr)
   })
 
-  test('outputChannel.appendLine()', async () => {
+  test('outputChannel.appendLine()', async t => {
     let c = new OutputChannel('2', nvim)
     c.show()
-    await helper.waitFor('bufname', ['%'], 'output:///2')
+    await shared.waitFor('bufname', ['%'], 'output:///2')
     let buf = await nvim.buffer
     c.appendLine('foo')
-    await helper.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /foo/)
+    await shared.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /foo/)
   })
 
-  test('outputChannel.append()', async () => {
+  test('outputChannel.append()', async t => {
     let c = new OutputChannel('3', nvim)
     c.show(false)
-    await helper.waitFor('bufname', ['%'], 'output:///3')
+    await shared.waitFor('bufname', ['%'], 'output:///3')
     let buf = await nvim.buffer
     c.append('foo')
     c.append('bar')
-    await helper.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /foo/)
+    await shared.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /foo/)
   })
 
-  test('outputChannel.clear()', async () => {
+  test('outputChannel.clear()', async t => {
     let c = new OutputChannel('4', nvim)
     c.show(false)
-    await helper.waitFor('bufname', ['%'], 'output:///4')
+    await shared.waitFor('bufname', ['%'], 'output:///4')
     let buf = await nvim.buffer
     c.appendLine('foo')
     c.appendLine('bar')
-    await helper.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /bar/)
+    await shared.waitFor('eval', [`join(getbufline(${buf.id},1,'$'),'\n')`], /bar/)
     c.clear()
-    await helper.waitValue(async () => (await buf.lines).join(''), '')
+    await shared.waitValue(async () => (await buf.lines).join(''), '')
   })
 })

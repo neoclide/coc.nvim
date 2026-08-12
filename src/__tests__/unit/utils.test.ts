@@ -1,4 +1,3 @@
-/* eslint-disable */
 import assert from 'assert'
 import { spawn } from 'child_process'
 import { NotificationType, NotificationType1, RequestType, RequestType1 } from 'vscode-languageserver-protocol'
@@ -8,7 +7,18 @@ import { Delayer } from '../../language-client/utils/async'
 import { CloseAction, DefaultErrorHandler, ErrorAction, toCloseHandlerResult } from '../../language-client/utils/errorHandler'
 import { ConsoleLogger, NullLogger } from '../../language-client/utils/logger'
 import { wait } from '../../util/index'
-import helper from '../helper'
+import { test } from 'node:test'
+
+const nullChannel = {
+  content: '',
+  show: () => {},
+  dispose: () => {},
+  name: 'null',
+  append: () => {},
+  appendLine: () => {},
+  clear: () => {},
+  hide: () => {}
+}
 
 test('Logger', () => {
   const logger = new ConsoleLogger()
@@ -28,99 +38,98 @@ test('checkProcessDied', async () => {
   let child = spawn('sleep', ['3'], { cwd: process.cwd(), detached: true })
   checkProcessDied(child)
   await wait(20)
-  assert.rejects(async () => {
+  await assert.rejects(async () => {
     await handleChildProcessStartError(null, 'msg')
   })
 })
 
 test('getLocale', () => {
   process.env.LANG = ''
-  expect(getLocale()).toBe('en')
+  assert.strictEqual(getLocale(), 'en')
   process.env.LANG = 'en_US.UTF-8'
-  expect(getLocale()).toBe('en_US')
+  assert.strictEqual(getLocale(), 'en_US')
 })
 
 test('getTraceMessage', () => {
-  expect(getTracePrefix({})).toMatch('Trace')
-  expect(getTracePrefix({ isLSPMessage: true, type: 'request' })).toMatch('LSP')
+  assert.match(getTracePrefix({}), /Trace/)
+  assert.match(getTracePrefix({ isLSPMessage: true, type: 'request' }), /LSP/)
 })
 
 test('getParameterStructures', () => {
-  expect(getParameterStructures('auto').toString()).toBe('auto')
+  assert.strictEqual(getParameterStructures('auto').toString(), 'auto')
   // test all the cased of getParameterStructures
-  expect(getParameterStructures('byPosition').toString()).toBe('byPosition')
-  expect(getParameterStructures('byName').toString()).toBe('byName')
-  expect(getParameterStructures('unknown').toString()).toBe('auto')
+  assert.strictEqual(getParameterStructures('byPosition').toString(), 'byPosition')
+  assert.strictEqual(getParameterStructures('byName').toString(), 'byName')
+  assert.strictEqual(getParameterStructures('unknown').toString(), 'auto')
 })
 
 test('isValidRequestType', () => {
-  expect(isValidRequestType('test')).toBe(true)
-  expect(isValidRequestType({ method: 'test' })).toBe(false)
-  expect(isValidRequestType(new RequestType('test'))).toBe(true)
+  assert.strictEqual(isValidRequestType('test'), true)
+  assert.strictEqual(isValidRequestType({ method: 'test' }), false)
+  assert.strictEqual(isValidRequestType(new RequestType('test')), true)
 })
 
 test('isValidNotificationType', () => {
-  expect(isValidNotificationType('test')).toBe(true)
-  expect(isValidNotificationType({ method: 'test' })).toBe(false)
-  expect(isValidNotificationType(new NotificationType('test'))).toBe(true)
+  assert.strictEqual(isValidNotificationType('test'), true)
+  assert.strictEqual(isValidNotificationType({ method: 'test' }), false)
+  assert.strictEqual(isValidNotificationType(new NotificationType('test')), true)
 })
 
 test('fixRequestType', () => {
-  expect(fixRequestType('test', [])).toBe('test')
+  assert.strictEqual(fixRequestType('test', []), 'test')
   for (let i = 0; i <= 10; i++) {
     let type = { method: 'test', numberOfParams: i }
-    expect(fixRequestType(type, [])).toBeDefined()
+    assert.notStrictEqual(fixRequestType(type, []), undefined)
   }
   let type = { method: 'test', numberOfParams: 1, parameterStructures: 'auto' }
   let res = fixRequestType(type, []) as RequestType1<unknown, undefined, undefined>
-  expect(res.numberOfParams).toBe(1)
-  expect(res.parameterStructures).toBeDefined()
+  assert.strictEqual(res.numberOfParams, 1)
+  assert.notStrictEqual(res.parameterStructures, undefined)
 })
 
 test('fixNotificationType', () => {
-  expect(fixNotificationType('test', [])).toBe('test')
+  assert.strictEqual(fixNotificationType('test', []), 'test')
   for (let i = 0; i <= 10; i++) {
     let type = { method: 'test', numberOfParams: i }
-    expect(fixNotificationType(type, [])).toBeDefined()
+    assert.notStrictEqual(fixNotificationType(type, []), undefined)
   }
   let type = { method: 'test', numberOfParams: 1, parameterStructures: 'auto' }
   let res = fixNotificationType(type, []) as NotificationType1<unknown>
-  expect(res.numberOfParams).toBe(1)
-  expect(res.parameterStructures).toBeDefined()
+  assert.strictEqual(res.numberOfParams, 1)
+  assert.notStrictEqual(res.parameterStructures, undefined)
 })
 
 test('data2String', () => {
   let err = new Error('my error')
   err.stack = undefined
   let text = data2String(err)
-  expect(text).toMatch('error')
+  assert.match(text, /error/)
 })
 
 test('parseTraceData', () => {
-  expect(parseTraceData({})).toBe('{}')
-  expect(parseTraceData('msg')).toMatch('msg')
-  expect(parseTraceData('Params: data')).toMatch('data')
-  expect(parseTraceData('Result: {"foo": "bar"}')).toMatch('bar')
+  assert.strictEqual(parseTraceData({}), '{}')
+  assert.match(parseTraceData('msg'), /msg/)
+  assert.match(parseTraceData('Params: data'), /data/)
+  assert.match(parseTraceData('Result: {"foo": "bar"}'), /bar/)
 })
 
-test('DefaultErrorHandler', async () => {
-  let spy = vi.spyOn(console, 'error').mockImplementation(() => {
+test('DefaultErrorHandler', async t => {
+  t.mock.method(console, 'error', () => {
     // ignore
   })
   let handler = new DefaultErrorHandler('test', 2)
-  expect(handler.error(new Error('test'), { jsonrpc: '' }, 1).action).toBe(ErrorAction.Continue)
-  expect(handler.error(new Error('test'), { jsonrpc: '' }, 5).action).toBe(ErrorAction.Shutdown)
+  assert.strictEqual(handler.error(new Error('test'), { jsonrpc: '' }, 1).action, ErrorAction.Continue)
+  assert.strictEqual(handler.error(new Error('test'), { jsonrpc: '' }, 5).action, ErrorAction.Shutdown)
   handler.closed()
   handler.milliseconds = 1
   await wait(20)
   let res = handler.closed()
-  expect(res.action).toBe(CloseAction.Restart)
+  assert.strictEqual(res.action, CloseAction.Restart)
   handler.milliseconds = 10 * 1000
   res = handler.closed()
-  expect(res.action).toBe(CloseAction.DoNotRestart)
-  spy.mockRestore()
-  expect(toCloseHandlerResult(CloseAction.DoNotRestart)).toBeDefined()
-  handler = new DefaultErrorHandler('test', 1, helper.createNullChannel())
+  assert.strictEqual(res.action, CloseAction.DoNotRestart)
+  assert.notStrictEqual(toCloseHandlerResult(CloseAction.DoNotRestart), undefined)
+  handler = new DefaultErrorHandler('test', 1, nullChannel as any)
   handler.closed()
 })
 
@@ -128,12 +137,12 @@ test('DefaultErrorHandler restart budget', () => {
   let handler = new DefaultErrorHandler('test', 2)
   handler.milliseconds = 60 * 1000
   // Crashes within the restart budget keep restarting.
-  expect(handler.closed().action).toBe(CloseAction.Restart)
-  expect(handler.closed().action).toBe(CloseAction.Restart)
+  assert.strictEqual(handler.closed().action, CloseAction.Restart)
+  assert.strictEqual(handler.closed().action, CloseAction.Restart)
   // The crash after the budget reports the actual number of crashes.
   let res = handler.closed()
-  expect(res.action).toBe(CloseAction.DoNotRestart)
-  expect(res.message).toContain('crashed 3 times')
+  assert.strictEqual(res.action, CloseAction.DoNotRestart)
+  assert.ok(res.message.includes('crashed 3 times'))
 })
 
 test('Delayer', () => {
@@ -146,7 +155,7 @@ test('Delayer', () => {
   let promises: Thenable<any>[] = []
 
   assert(!delayer.isTriggered())
-  delayer.trigger(factory, -1)
+  void delayer.trigger(factory, -1)
 
   promises.push(delayer.trigger(factory).then((result) => { assert.equal(result, 1); assert(!delayer.isTriggered()) }))
   assert(delayer.isTriggered())
@@ -172,15 +181,15 @@ test('Delayer - forceDelivery', async () => {
 
   let delayer = new Delayer(150)
   delayer.forceDelivery()
-  delayer.trigger(factory).then((result) => { assert.equal(result, 1); assert(!delayer.isTriggered()) })
+  void delayer.trigger(factory).then((result) => { assert.equal(result, 1); assert(!delayer.isTriggered()) })
   await wait(20)
   delayer.forceDelivery()
-  expect(count).toBe(1)
+  assert.strictEqual(count, 1)
   void delayer.trigger(factory)
-  delayer.trigger(factory, -1)
+  void delayer.trigger(factory, -1)
   await wait(20)
   delayer.cancel()
-  expect(count).toBe(1)
+  assert.strictEqual(count, 1)
 })
 
 test('Delayer - last task should be the one getting called', function() {

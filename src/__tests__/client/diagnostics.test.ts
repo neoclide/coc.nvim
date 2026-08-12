@@ -1,3 +1,4 @@
+import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import os from 'os'
 import path from 'path'
@@ -9,7 +10,10 @@ import { BackgroundScheduler, DiagnosticRequestor, DocumentPullStateTracker, Pul
 import { CancellationError } from '../../util/errors'
 import window from '../../window'
 import workspace from '../../workspace'
-import helper from '../helper'
+import { afterEach, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+
+
 
 function getId(uri: string): number {
   let ms = uri.match(/\d+$/)
@@ -26,7 +30,7 @@ function createUri(id: number): URI {
 }
 
 describe('BackgroundScheduler', () => {
-  it('should schedule documents by add', async () => {
+  it('should schedule documents by add', async t => {
     let uris: string[] = []
     let client = { error: () => {} }
     let s = new BackgroundScheduler(client as any, {
@@ -43,14 +47,14 @@ describe('BackgroundScheduler', () => {
     s.add(createDocument(2))
     s.add(createDocument(3))
     s.trigger()
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return uris.length
     }, 3)
     let ids = uris.map(u => getId(u))
-    expect(ids).toEqual([1, 2, 3])
+    assert.deepStrictEqual(ids, [1, 2, 3])
   })
 
-  it('should schedule documents by remove', async () => {
+  it('should schedule documents by remove', async t => {
     let uris: string[] = []
     let client = { error: () => {} }
     let s = new BackgroundScheduler(client as any, {
@@ -69,69 +73,69 @@ describe('BackgroundScheduler', () => {
     s.remove(createDocument(3))
     s.trigger()
     s.trigger()
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return uris.length
     }, 1)
     let ids = uris.map(u => getId(u))
-    expect(ids).toEqual([1])
+    assert.deepStrictEqual(ids, [1])
     s.dispose()
   })
 })
 
 describe('DocumentPullStateTracker', () => {
-  it('should track document', async () => {
+  it('should track document', async t => {
     let tracker = new DocumentPullStateTracker()
     let state = tracker.track(PullState.document, createDocument(1))
     let other = tracker.track(PullState.document, createDocument(1))
-    expect(state).toBe(other)
+    assert.strictEqual(state, other)
     tracker.track(PullState.workspace, createDocument(3))
     let id = 'dcf06d3b-79f6-4a5e-bc8d-d3334f7b4cad'
     tracker.update(PullState.document, createDocument(1, 2), id)
     tracker.update(PullState.document, createDocument(2, 2), 'f758ae47-c94e-406e-ba41-0f3bb2fe4fc7')
     let curr = tracker.getResultId(PullState.document, createDocument(1, 2))
-    expect(curr).toBe(id)
-    expect(tracker.getResultId(PullState.workspace, createDocument(1, 2))).toBeUndefined()
+    assert.strictEqual(curr, id)
+    assert.strictEqual(tracker.getResultId(PullState.workspace, createDocument(1, 2)), undefined)
     tracker.unTrack(PullState.document, createDocument(2, 2))
-    expect(tracker.trackingDocuments()).toEqual(['file:///1'])
+    assert.deepStrictEqual(tracker.trackingDocuments(), ['file:///1'])
     tracker.update(PullState.workspace, createDocument(3, 2), 'fcb905e2-8edb-4239-9150-198c8175ed4a')
     tracker.update(PullState.workspace, createDocument(1, 2), 'fe96d175-c19f-4705-bff1-101bf83b2953')
-    expect(tracker.tracks(PullState.workspace, createDocument(3, 1))).toBe(true)
-    expect(tracker.tracks(PullState.document, createDocument(4, 1))).toBe(false)
+    assert.strictEqual(tracker.tracks(PullState.workspace, createDocument(3, 1)), true)
+    assert.strictEqual(tracker.tracks(PullState.document, createDocument(4, 1)), false)
     let res = tracker.getAllResultIds()
-    expect(res.length).toBe(2)
+    assert.strictEqual(res.length, 2)
   })
 
-  it('should track URI', async () => {
+  it('should track URI', async t => {
     let tracker = new DocumentPullStateTracker()
     let state = tracker.track(PullState.document, createUri(1), undefined)
     let other = tracker.track(PullState.document, createUri(1), undefined)
-    expect(state).toBe(other)
+    assert.strictEqual(state, other)
     tracker.track(PullState.workspace, createUri(3), undefined)
     let id = 'dcf06d3b-79f6-4a5e-bc8d-d3334f7b4cad'
     tracker.update(PullState.document, createUri(1), undefined, id)
     tracker.update(PullState.document, createUri(2), undefined, 'f758ae47-c94e-406e-ba41-0f3bb2fe4fc7')
     let curr = tracker.getResultId(PullState.document, createUri(1))
-    expect(curr).toBe(id)
+    assert.strictEqual(curr, id)
     tracker.unTrack(PullState.document, createUri(2))
-    expect(tracker.trackingDocuments()).toEqual(['file:///1'])
+    assert.deepStrictEqual(tracker.trackingDocuments(), ['file:///1'])
     tracker.update(PullState.workspace, createUri(3), undefined, undefined)
     tracker.update(PullState.workspace, createUri(1), undefined, 'fe96d175-c19f-4705-bff1-101bf83b2953')
-    expect(tracker.tracks(PullState.workspace, createUri(3))).toBe(true)
-    expect(tracker.tracks(PullState.document, createUri(4))).toBe(false)
+    assert.strictEqual(tracker.tracks(PullState.workspace, createUri(3)), true)
+    assert.strictEqual(tracker.tracks(PullState.document, createUri(4)), false)
     let res = tracker.getAllResultIds()
-    expect(res.length).toBe(1)
+    assert.strictEqual(res.length, 1)
   })
 })
 
 describe('DiagnosticRequestor', () => {
-  function createRequestor(options: any = {}): { manager: DiagnosticRequestor, client: any } {
+  function createRequestor(t: any, options: any = {}): { manager: DiagnosticRequestor, client: any } {
     const client: any = {
       clientOptions: { diagnosticPullOptions: {} },
       middleware: {},
-      error: vi.fn(),
-      sendRequest: vi.fn(),
-      handleFailedRequest: vi.fn(),
-      onProgress: vi.fn().mockReturnValue({ dispose: () => {} })
+      error: t.mock.fn(),
+      sendRequest: t.mock.fn(),
+      handleFailedRequest: t.mock.fn(),
+      onProgress: t.mock.fn(() => ({ dispose: () => {} }))
     }
     const manager = new DiagnosticRequestor(client, {
       workspaceDiagnostics: true,
@@ -141,10 +145,10 @@ describe('DiagnosticRequestor', () => {
     return { manager, client }
   }
 
-  it('should not reschedule workspace pull after dispose', async () => {
+  it('should not reschedule workspace pull after dispose', async t => {
     let calls = 0
     let resolvePull: (value?: any) => void
-    const { manager, client } = createRequestor()
+    const { manager, client } = createRequestor(t)
     client.middleware.provideWorkspaceDiagnostics = () => {
       calls++
       return new Promise(res => {
@@ -152,16 +156,16 @@ describe('DiagnosticRequestor', () => {
       })
     }
     manager.pullWorkspace()
-    await helper.waitValue(() => calls, 1)
+    await shared.waitValue(() => calls, 1)
     manager.dispose()
     resolvePull({ items: [] })
-    await helper.waitValue(() => calls, 1)
-    expect(calls).toBe(1)
+    await shared.waitValue(() => calls, 1)
+    assert.strictEqual(calls, 1)
   })
 
-  it('should reset workspace error counter on success', async () => {
+  it('should reset workspace error counter on success', async t => {
     let calls = 0
-    const { manager, client } = createRequestor()
+    const { manager, client } = createRequestor(t)
     client.middleware.provideWorkspaceDiagnostics = () => {
       calls++
       if (calls <= 3) return Promise.reject(new Error('fail'))
@@ -171,49 +175,40 @@ describe('DiagnosticRequestor', () => {
     manager.pullWorkspace()
     // 3 errors, one success, then 6 more errors stop the loop (counter resets
     // on success so only consecutive errors count).
-    await helper.waitValue(() => calls, 10)
-    await helper.wait(100)
-    expect(calls).toBe(10)
+    await shared.waitValue(() => calls, 10)
+    await shared.wait(100)
+    assert.strictEqual(calls, 10)
   })
 
-  it('should not repull a forgotten document when its request is cancelled', async () => {
+  it('should not repull a forgotten document when its request is cancelled', async t => {
     let calls = 0
-    const { manager, client } = createRequestor({ workspaceDiagnostics: false })
+    const { manager, client } = createRequestor(t, { workspaceDiagnostics: false })
     client.middleware.provideDiagnostics = (_document: any, _previous: any, token: any, _next: any) => {
       calls++
       return new Promise((_resolve, reject) => {
         token.onCancellationRequested(() => reject(new CancellationError()))
       })
     }
-    let visible = vi.spyOn(workspace.tabs, 'isVisible').mockReturnValue(true)
+    let visible = t.mock.method(workspace.tabs, 'isVisible', () => true)
     try {
       let doc = createDocument(1)
       let p = manager.pullAsync(doc)
-      await helper.waitValue(() => calls, 1)
+      await shared.waitValue(() => calls, 1)
       manager.forgetDocument(doc)
       await p
-      await helper.waitValue(() => calls, 1)
-      expect(calls).toBe(1)
+      await shared.waitValue(() => calls, 1)
+      assert.strictEqual(calls, 1)
     } finally {
-      visible.mockRestore()
     }
   })
 })
 
 describe('DiagnosticFeature', () => {
   let nvim: Neovim
-  beforeAll(async () => {
-    await helper.setup()
+  before(async () => {
     nvim = workspace.nvim
   })
-
-  afterAll(async () => {
-    await helper.shutdown()
-  })
-
-  afterEach(async () => {
-    await helper.reset()
-  })
+  afterEach(editorReset)
 
   async function createServer(interFileDependencies: boolean, workspaceDiagnostics = false, middleware: lsclient.Middleware = {}, fun?: (opt: lsclient.LanguageClientOptions) => void) {
     let clientOptions: lsclient.LanguageClientOptions = {
@@ -225,7 +220,7 @@ describe('DiagnosticFeature', () => {
       }
     }
     if (fun) fun(clientOptions)
-    let serverModule = path.join(__dirname, './server/diagnosticServer.js')
+    let serverModule = path.join(import.meta.dirname, './server/diagnosticServer.js')
     let serverOptions: lsclient.ServerOptions = {
       module: serverModule,
       transport: lsclient.TransportKind.ipc
@@ -240,36 +235,36 @@ describe('DiagnosticFeature', () => {
     return URI.file(fsPath).toString()
   }
 
-  it('should create push diagnostics collection lazily', async () => {
+  it('should create push diagnostics collection lazily', async t => {
     let client = await createServer(true)
-    expect(client['_diagnostics']).toBeUndefined()
+    assert.strictEqual(client['_diagnostics'], undefined)
     await client.sendRequest('sendDiagnostics')
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return client['_diagnostics']?.has('file:///abc.txt')
     }, true)
     await client.stop()
-    expect(client['_diagnostics']).toBeNull()
-    expect(client.diagnostics).toBeUndefined()
+    assert.strictEqual(client['_diagnostics'], null)
+    assert.strictEqual(client.diagnostics, undefined)
   })
 
-  it('should work when change visible editor', async () => {
+  it('should work when change visible editor', async t => {
     let doc = await workspace.loadFile(getUri(1), 'edit')
     await workspace.loadFile(getUri(3), 'tabe')
     let client = await createServer(true)
-    await helper.wait(30)
+    await shared.wait(30)
     await workspace.loadFile(getUri(2), 'edit')
-    await helper.wait(30)
+    await shared.wait(30)
     await workspace.loadFile(getUri(3), 'tabe')
-    await helper.wait(30)
+    await shared.wait(30)
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
-    expect(feature).toBeDefined()
+    assert.notStrictEqual(feature, undefined)
     let provider = feature.getProvider(doc.textDocument)
     let res = provider.knows(PullState.document, doc.textDocument)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
     await client.stop()
   })
 
-  it('should clean up diagnostics before close notification is sent', async () => {
+  it('should clean up diagnostics before close notification is sent', async t => {
     let doc = await workspace.loadFile(getUri('close-diagnostic'), 'edit')
     let client = await createServer(false, false, {}, opt => {
       opt.diagnosticPullOptions = {
@@ -278,16 +273,16 @@ describe('DiagnosticFeature', () => {
     })
     let diagnosticFeature = client.getFeature(DocumentDiagnosticRequest.method)
     let provider = diagnosticFeature.getProvider(doc.textDocument)
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return provider.knows(PullState.document, doc.textDocument)
     }, true)
-    await helper.wait(30)
+    await shared.wait(30)
 
     let release!: () => void
     let pending = new Promise<void>(resolve => {
       release = resolve
     })
-    let spy = vi.spyOn(client, 'sendNotification').mockImplementation((type: any) => {
+    let spy = t.mock.method(client, 'sendNotification', (type: any) => {
       if (typeof type !== 'string' && type.method === DidCloseTextDocumentNotification.method) {
         return pending
       }
@@ -299,65 +294,64 @@ describe('DiagnosticFeature', () => {
       closeSent = true
     })
     let closeProvider = closeFeature.getProvider(doc.textDocument)
-    expect(closeProvider).toBeDefined()
+    assert.notStrictEqual(closeProvider, undefined)
 
     let close = closeProvider!.send(doc.textDocument)
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return provider.knows(PullState.document, doc.textDocument)
     }, false)
-    expect(closeSent).toBe(false)
+    assert.strictEqual(closeSent, false)
 
     release()
     await close
-    expect(closeSent).toBe(true)
-    spy.mockRestore()
+    assert.strictEqual(closeSent, true)
     await client.stop()
   })
 
-  it('should filter by document selector', async () => {
+  it('should filter by document selector', async t => {
     let client = await createServer(true, false, {}, opt => {
       opt.documentSelector = [{ language: 'vim' }]
     })
     let doc = await workspace.loadFile(getUri(1), 'edit')
-    await helper.wait(20)
+    await shared.wait(20)
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
     let provider = feature.getProvider(TextDocument.create('file:///1', 'vim', 1, ''))
     let res = provider.knows(PullState.document, doc.textDocument)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
     doc = await workspace.loadFile(getUri(2), 'edit')
-    await helper.waitValue(() => window.activeTextEditor?.uri === doc.uri, true)
+    await shared.waitValue(() => window.activeTextEditor?.uri === doc.uri, true)
     provider.forget(doc.textDocument)
     await client.stop()
   })
 
-  it('should filter by ignore', async () => {
+  it('should filter by ignore', async t => {
     let client = await createServer(true, false, {}, opt => {
       opt.diagnosticPullOptions = {
         ignored: ['**/*.ts']
       }
     })
     let doc = await workspace.loadFile(getUri('a.ts'), 'edit')
-    await helper.wait(20)
+    await shared.wait(20)
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
     let provider = feature.getProvider(doc.textDocument)
     let res = provider.knows(PullState.document, doc.textDocument)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
     await client.stop()
   })
 
-  it('should not throw on request error', async () => {
+  it('should not throw on request error', async t => {
     let client = await createServer(true)
     await workspace.loadFile(getUri('error'), 'edit')
     await workspace.loadFile(getUri('cancel'), 'tabe')
     await workspace.loadFile(getUri('retrigger'), 'tabe')
-    await helper.wait(20)
+    await shared.wait(20)
     await nvim.command('normal! 2gt')
     await workspace.loadFile(getUri('unchanged'), 'edit')
-    await helper.wait(20)
+    await shared.wait(20)
     await client.stop()
   })
 
-  it('should pull diagnostic on change', async () => {
+  it('should pull diagnostic on change', async t => {
     let doc = await workspace.loadFile(getUri('change'), 'edit')
     let client = await createServer(true, false, {}, opt => {
       opt.diagnosticPullOptions = {
@@ -369,24 +363,24 @@ describe('DiagnosticFeature', () => {
     })
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
     let provider = feature.getProvider(doc.textDocument)
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return provider.knows(PullState.document, doc.textDocument)
     }, true)
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
-    await helper.waitValue(async () => {
+    await shared.waitValue(async () => {
       let n = await client.sendRequest('getChangeCount') as number
       return n >= 2
     }, true)
     await nvim.call('setline', [1, 'foo'])
     let d = await workspace.loadFile(getUri('filtered'), 'tabe')
     await d.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
-    await helper.wait(30)
+    await shared.wait(30)
     feature.refresh()
     await nvim.command(`bd! ${doc.bufnr}`)
     await client.stop()
   })
 
-  it('should pull diagnostic on save', async () => {
+  it('should pull diagnostic on save', async t => {
     let doc = await workspace.loadFile(getUri(crypto.randomUUID() + 'filtered'), 'edit')
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
     doc = await workspace.loadFile(getUri(crypto.randomUUID() + 'save'), 'tabe')
@@ -400,16 +394,16 @@ describe('DiagnosticFeature', () => {
     })
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
     let provider = feature.getProvider(doc.textDocument)
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return provider.knows(PullState.document, doc.textDocument)
     }, true)
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
     await nvim.command('wa')
-    await helper.wait(20)
+    await shared.wait(20)
     await client.stop()
   })
 
-  it('should use provideDiagnostics middleware', async () => {
+  it('should use provideDiagnostics middleware', async t => {
     let called = false
     let callHandle = false
     let middleware = {
@@ -424,13 +418,13 @@ describe('DiagnosticFeature', () => {
     }
     let client = await createServer(true, false, middleware)
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
-    expect(feature).toBeDefined()
+    assert.notStrictEqual(feature, undefined)
     let textDocument = TextDocument.create(getUri('empty'), 'e', 1, '')
     let provider = feature.getProvider(textDocument)
     let res = await provider.diagnostics.provideDiagnostics(textDocument, '', CancellationToken.None)
-    expect(called).toBe(true)
-    expect(res).toEqual({ kind: 'full', items: [] })
-    await helper.waitValue(() => {
+    assert.strictEqual(called, true)
+    assert.deepStrictEqual(res, { kind: 'full', items: [] })
+    await shared.waitValue(() => {
       return callHandle
     }, true)
     middleware.handleDiagnostics = undefined
@@ -438,7 +432,7 @@ describe('DiagnosticFeature', () => {
     await client.stop()
   })
 
-  it('should use provideWorkspaceDiagnostics middleware', async () => {
+  it('should use provideWorkspaceDiagnostics middleware', async t => {
     let called = false
     let client = await createServer(false, true, {
       provideWorkspaceDiagnostics: (resultIds, token, resultReporter, next) => {
@@ -446,15 +440,15 @@ describe('DiagnosticFeature', () => {
         return next(resultIds, token, resultReporter)
       }
     })
-    expect(called).toBe(true)
-    await helper.waitValue(async () => {
+    assert.strictEqual(called, true)
+    await shared.waitValue(async () => {
       let count = await client.sendRequest('getWorkspaceCount') as number
       return count > 1
     }, true)
     await client.stop()
   })
 
-  it('should receive partial result', async () => {
+  it('should receive partial result', async t => {
     let client = await createServer(false, true, {}, opt => {
       opt.diagnosticPullOptions = {
         workspace: false
@@ -467,11 +461,11 @@ describe('DiagnosticFeature', () => {
     await provider.diagnostics.provideWorkspaceDiagnostics([{ uri: 'uri', value: '1' }], CancellationToken.None, chunk => {
       n++
     })
-    expect(n).toBe(4)
+    assert.strictEqual(n, 4)
     await client.stop()
   })
 
-  it('should fire refresh event', async () => {
+  it('should fire refresh event', async t => {
     let client = await createServer(true, false, {})
     let feature = client.getFeature(DocumentDiagnosticRequest.method)
     let textDocument = TextDocument.create(getUri('1'), 'e', 1, '')
@@ -481,7 +475,7 @@ describe('DiagnosticFeature', () => {
       called = true
     })
     await client.sendNotification('fireRefresh')
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return called
     }, true)
     await client.stop()

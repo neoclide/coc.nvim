@@ -1,5 +1,5 @@
-import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, Disposable, InlayHint, InlayHintKind, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { getCurrentPlugin } from '../../attach'
+import * as shared from '../sharedUtil'
 import commands from '../../commands'
 import InlayHintHandler from '../../handler/inlayHint/index'
 import languages from '../../languages'
@@ -7,26 +7,24 @@ import { InlayHintWithProvider, isInlayHint, isValidInlayHint, sameHint } from '
 import { disposeAll } from '../../util'
 import { CancellationError } from '../../util/errors'
 import workspace from '../../workspace'
-import helper, { createTmpFile } from '../helper'
+import { Neovim } from '@chemzqm/neovim'
+import { CancellationToken, CancellationTokenSource, Disposable, InlayHint, InlayHintKind, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { afterEach, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+
 
 let nvim: Neovim
 let handler: InlayHintHandler
 let disposables: Disposable[] = []
 let ns: number
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-  handler = helper.plugin.getHandler().inlayHintHandler
+before(async () => {
+  nvim = workspace.nvim
+  handler = getCurrentPlugin().getHandler().inlayHintHandler
   ns = await nvim.createNamespace('coc-inlayHint')
-})
-
-afterAll(async () => {
-  await helper.shutdown()
 })
 
 afterEach(async () => {
   disposeAll(disposables)
-  await helper.reset()
 })
 
 async function registerProvider(content: string): Promise<Disposable> {
@@ -46,7 +44,7 @@ async function registerProvider(content: string): Promise<Disposable> {
       return hints
     }
   })
-  await helper.wait(20)
+  await shared.wait(20)
   await doc.buffer.setLines(content.split(/\n/), { start: 0, end: -1 })
   await doc.synchronize()
   return disposable
@@ -65,33 +63,35 @@ async function waitRefresh(bufnr: number) {
   })
 }
 
+afterEach(editorReset)
+
 describe('InlayHint', () => {
   describe('utils', () => {
-    it('should check same hint', () => {
+    it('should check same hint', t => {
       let hint = InlayHint.create(Position.create(0, 0), 'foo')
-      expect(sameHint(hint, InlayHint.create(Position.create(0, 0), 'bar'))).toBe(false)
-      expect(sameHint(hint, InlayHint.create(Position.create(0, 0), [{ value: 'foo' }]))).toBe(true)
+      assert.strictEqual(sameHint(hint, InlayHint.create(Position.create(0, 0), 'bar')), false)
+      assert.strictEqual(sameHint(hint, InlayHint.create(Position.create(0, 0), [{ value: 'foo' }])), true)
     })
 
-    it('should check valid hint', () => {
+    it('should check valid hint', t => {
       let hint = InlayHint.create(Position.create(0, 0), 'foo')
-      expect(isValidInlayHint(hint, Range.create(0, 0, 1, 0))).toBe(true)
-      expect(isValidInlayHint(InlayHint.create(Position.create(0, 0), ''), Range.create(0, 0, 1, 0))).toBe(false)
-      expect(isValidInlayHint(InlayHint.create(Position.create(3, 0), 'foo'), Range.create(0, 0, 1, 0))).toBe(false)
-      expect(isValidInlayHint({ label: 'f' } as any, Range.create(0, 0, 1, 0))).toBe(false)
+      assert.strictEqual(isValidInlayHint(hint, Range.create(0, 0, 1, 0)), true)
+      assert.strictEqual(isValidInlayHint(InlayHint.create(Position.create(0, 0), ''), Range.create(0, 0, 1, 0)), false)
+      assert.strictEqual(isValidInlayHint(InlayHint.create(Position.create(3, 0), 'foo'), Range.create(0, 0, 1, 0)), false)
+      assert.strictEqual(isValidInlayHint({ label: 'f' } as any, Range.create(0, 0, 1, 0)), false)
     })
 
-    it('should check inlayHint instance', async () => {
-      expect(isInlayHint(null)).toBe(false)
+    it('should check inlayHint instance', async t => {
+      assert.strictEqual(isInlayHint(null), false)
       let position = Position.create(0, 0)
-      expect(isInlayHint({ position, label: null })).toBe(false)
-      expect(isInlayHint({ position, label: [{ value: '' }] })).toBe(true)
+      assert.strictEqual(isInlayHint({ position, label: null }), false)
+      assert.strictEqual(isInlayHint({ position, label: [{ value: '' }] }), true)
     })
   })
 
   describe('provideInlayHints', () => {
     // not fail like VSCode
-    it('should not throw when failed', async () => {
+    it('should not throw when failed', async t => {
       disposables.push(languages.registerInlayHintsProvider([{ language: '*' }], {
         provideInlayHints: () => {
           return Promise.reject(new Error('Test failure'))
@@ -102,7 +102,7 @@ describe('InlayHint', () => {
       await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 1, 0), tokenSource.token)
     })
 
-    it('should merge provider results', async () => {
+    it('should merge provider results', async t => {
       disposables.push(languages.registerInlayHintsProvider([{ language: '*' }], {
         provideInlayHints: () => {
           return [InlayHint.create(Position.create(0, 0), 'foo')]
@@ -121,14 +121,14 @@ describe('InlayHint', () => {
           return null
         }
       }))
-      await helper.wait(20)
+      await shared.wait(20)
       let doc = await workspace.document
       let tokenSource = new CancellationTokenSource()
       let res = await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 3, 0), tokenSource.token)
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
 
-    it('should not throw when provider return null', async () => {
+    it('should not throw when provider return null', async t => {
       disposables.push(languages.registerInlayHintsProvider([{ language: '*' }], {
         provideInlayHints: () => {
           throw new CancellationError()
@@ -140,7 +140,7 @@ describe('InlayHint', () => {
       await item.renderRange([0, 1], CancellationToken.Cancelled)
     })
 
-    it('should resolve inlay hint', async () => {
+    it('should resolve inlay hint', async t => {
       disposables.push(languages.registerInlayHintsProvider([{ language: '*' }], {
         provideInlayHints: () => {
           return [InlayHint.create(Position.create(0, 0), 'foo')]
@@ -150,17 +150,17 @@ describe('InlayHint', () => {
           return hint
         }
       }))
-      await helper.wait(20)
+      await shared.wait(20)
       let doc = await workspace.document
       let tokenSource = new CancellationTokenSource()
       let res = await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 1, 0), tokenSource.token)
       let resolved = await languages.resolveInlayHint(res[0], tokenSource.token)
-      expect(resolved.tooltip).toBe('tooltip')
+      assert.strictEqual(resolved.tooltip, 'tooltip')
       resolved = await languages.resolveInlayHint(resolved, tokenSource.token)
-      expect(resolved.tooltip).toBe('tooltip')
+      assert.strictEqual(resolved.tooltip, 'tooltip')
     })
 
-    it('should not resolve when cancelled', async () => {
+    it('should not resolve when cancelled', async t => {
       disposables.push(languages.registerInlayHintsProvider([{ language: '*' }], {
         provideInlayHints: () => {
           return [InlayHint.create(Position.create(0, 0), 'foo')]
@@ -177,35 +177,35 @@ describe('InlayHint', () => {
           })
         }
       }))
-      await helper.wait(20)
+      await shared.wait(20)
       let doc = await workspace.document
       let tokenSource = new CancellationTokenSource()
       let res = await languages.provideInlayHints(doc.textDocument, Range.create(0, 0, 1, 0), tokenSource.token)
       let p = languages.resolveInlayHint(res[0], tokenSource.token)
       tokenSource.cancel()
       let resolved = await p
-      expect(resolved.tooltip).toBeUndefined()
+      assert.strictEqual(resolved.tooltip, undefined)
     })
   })
 
   describe('env & options', () => {
-    it('should not enabled when disabled by configuration', async () => {
-      helper.updateConfiguration('inlayHint.filetypes', [], disposables)
+    it('should not enabled when disabled by configuration', async t => {
+      shared.updateConfiguration('inlayHint.filetypes', [], disposables)
       let doc = await workspace.document
       let item = handler.getItem(doc.bufnr)
       item.clearVirtualText()
-      expect(item.enabled).toBe(false)
-      helper.updateConfiguration('inlayHint.filetypes', ['dos'], disposables)
-      doc = await helper.createDocument()
+      assert.strictEqual(item.enabled, false)
+      shared.updateConfiguration('inlayHint.filetypes', ['dos'], disposables)
+      doc = await shared.createDocument()
       item = handler.getItem(doc.bufnr)
-      expect(item.enabled).toBe(false)
+      assert.strictEqual(item.enabled, false)
     })
   })
 
   describe('configuration', () => {
-    it('should refresh on insert mode', async () => {
-      helper.updateConfiguration('inlayHint.refreshOnInsertMode', true, disposables)
-      let doc = await helper.createDocument()
+    it('should refresh on insert mode', async t => {
+      shared.updateConfiguration('inlayHint.refreshOnInsertMode', true, disposables)
+      let doc = await shared.createDocument()
       let disposable = await registerProvider('foo\nbar')
       disposables.push(disposable)
       await nvim.input('i')
@@ -213,48 +213,48 @@ describe('InlayHint', () => {
       await waitRefresh(doc.bufnr)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
       let obj = markers[0][3].virt_text
-      expect(obj).toEqual([['baz', 'CocInlayHintType']])
-      expect(markers[1][3].virt_text).toEqual([['foo', 'CocInlayHintParameter']])
+      assert.deepStrictEqual(obj, [['baz', 'CocInlayHintType']])
+      assert.deepStrictEqual(markers[1][3].virt_text, [['foo', 'CocInlayHintParameter']])
     })
 
-    it('should disable parameter inlayHint', async () => {
-      helper.updateConfiguration('inlayHint.enableParameter', false, disposables)
-      let doc = await helper.createDocument()
+    it('should disable parameter inlayHint', async t => {
+      shared.updateConfiguration('inlayHint.enableParameter', false, disposables)
+      let doc = await shared.createDocument()
       let disposable = await registerProvider('foo\nbar')
       disposables.push(disposable)
       await waitRefresh(doc.bufnr)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(1)
+      assert.strictEqual(markers.length, 1)
     })
 
-    it('should enable & disable inlayHint', async () => {
-      let doc = await helper.createDocument()
+    it('should enable & disable inlayHint', async t => {
+      let doc = await shared.createDocument()
       let disposable = await registerProvider('foo\nbar')
       disposables.push(disposable)
       await waitRefresh(doc.bufnr)
-      helper.updateConfiguration('inlayHint.enable', false)
+      shared.updateConfiguration('inlayHint.enable', false)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(0)
-      helper.updateConfiguration('inlayHint.enable', true)
+      assert.strictEqual(markers.length, 0)
+      shared.updateConfiguration('inlayHint.enable', true)
     })
 
-    it('should change position to eol', async () => {
-      helper.updateConfiguration('inlayHint.position', 'eol', disposables)
-      let doc = await helper.createDocument()
+    it('should change position to eol', async t => {
+      shared.updateConfiguration('inlayHint.position', 'eol', disposables)
+      let doc = await shared.createDocument()
       let disposable = await registerProvider('foo\nbar')
       disposables.push(disposable)
       await waitRefresh(doc.bufnr)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(2)
+      assert.strictEqual(markers.length, 2)
       for (const m of markers) {
         let detail = m[3]
-        expect(detail['virt_text_pos']).toBe('eol')
+        assert.strictEqual(detail['virt_text_pos'], 'eol')
       }
     })
 
-    it('should truncate hint label when exceeding maximumLength', async () => {
-      helper.updateConfiguration('inlayHint.maximumLength', 13, disposables)
-      let doc = await helper.createDocument()
+    it('should truncate hint label when exceeding maximumLength', async t => {
+      shared.updateConfiguration('inlayHint.maximumLength', 13, disposables)
+      let doc = await shared.createDocument()
       let disposable = languages.registerInlayHintsProvider([{ language: '*' }], {
         provideInlayHints: () => {
           return [
@@ -268,16 +268,16 @@ describe('InlayHint', () => {
       await doc.synchronize()
       await waitRefresh(doc.bufnr)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(2)
+      assert.strictEqual(markers.length, 2)
       let first = markers[0][3].virt_text
-      expect(first).toEqual([['firstLabel', 'CocInlayHintType']])
+      assert.deepStrictEqual(first, [['firstLabel', 'CocInlayHintType']])
       let second = markers[1][3].virt_text
-      expect(second).toEqual([['sec…', 'CocInlayHintType']])
+      assert.deepStrictEqual(second, [['sec…', 'CocInlayHintType']])
     })
 
-    it('should not truncate hint label when maximumLength is 0', async () => {
-      helper.updateConfiguration('inlayHint.maximumLength', 0, disposables)
-      let doc = await helper.createDocument()
+    it('should not truncate hint label when maximumLength is 0', async t => {
+      shared.updateConfiguration('inlayHint.maximumLength', 0, disposables)
+      let doc = await shared.createDocument()
       let disposable = languages.registerInlayHintsProvider([{ language: '*' }], {
         provideInlayHints: () => {
           return [
@@ -291,62 +291,62 @@ describe('InlayHint', () => {
       await doc.synchronize()
       await waitRefresh(doc.bufnr)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(2)
+      assert.strictEqual(markers.length, 2)
       let first = markers[0][3].virt_text
-      expect(first).toEqual([['firstLabel', 'CocInlayHintType']])
+      assert.deepStrictEqual(first, [['firstLabel', 'CocInlayHintType']])
       let second = markers[1][3].virt_text
-      expect(second).toEqual([['secondLabel', 'CocInlayHintType']])
+      assert.deepStrictEqual(second, [['secondLabel', 'CocInlayHintType']])
     })
   })
 
   describe('inlayHint setState', () => {
-    it('should not throw when buffer not exists', async () => {
+    it('should not throw when buffer not exists', async t => {
       handler.setState('toggle', 9)
       await commands.executeCommand('document.toggleInlayHint', 9)
     })
 
-    it('should show message when inlayHint not supported', async () => {
+    it('should show message when inlayHint not supported', async t => {
       let doc = await workspace.document
       handler.setState('toggle', doc.bufnr)
-      let cmdline = await helper.getCmdline()
-      expect(cmdline).toMatch(/not\sfound/)
+      let cmdline = await shared.getCmdline()
+      assert.match(cmdline, /not\sfound/)
     })
 
-    it('should show message when not enabled', async () => {
-      helper.updateConfiguration('inlayHint.filetypes', [], disposables)
-      let doc = await helper.createDocument()
+    it('should show message when not enabled', async t => {
+      shared.updateConfiguration('inlayHint.filetypes', [], disposables)
+      let doc = await shared.createDocument()
       let disposable = await registerProvider('')
       disposables.push(disposable)
       handler.setState('toggle', doc.bufnr)
-      let cmdline = await helper.getCmdline()
-      expect(cmdline).toMatch(/not\senabled/)
+      let cmdline = await shared.getCmdline()
+      assert.match(cmdline, /not\senabled/)
     })
 
-    it('should toggle inlayHints', async () => {
-      let doc = await helper.createDocument()
+    it('should toggle inlayHints', async t => {
+      let doc = await shared.createDocument()
       let disposable = await registerProvider('foo\nbar')
       disposables.push(disposable)
       handler.setState('toggle', doc.bufnr)
       handler.setState('toggle', doc.bufnr)
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
         return markers.length
       }, 2)
     })
 
-    it('should enable & disable inlayHint', async () => {
-      let doc = await helper.createDocument()
+    it('should enable & disable inlayHint', async t => {
+      let doc = await shared.createDocument()
       let disposable = await registerProvider('foo\nbar')
       disposables.push(disposable)
       await commands.executeCommand('document.disableInlayHint')
       await commands.executeCommand('document.enableInlayHint')
       let item = handler.getItem(doc.bufnr)
-      expect(item.enabled).toBe(true)
+      assert.strictEqual(item.enabled, true)
     })
   })
 
   describe('render()', () => {
-    it('should refresh on vim mode', async () => {
+    it('should refresh on vim mode', async t => {
       let doc = await workspace.document
       await nvim.setLine('foo bar')
       let item = handler.getItem(doc.bufnr)
@@ -365,13 +365,13 @@ describe('InlayHint', () => {
         paddingRight: true
       }
       item.setVirtualText(r, [hint, paddingHint])
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
         return markers.length
       }, 2)
     })
 
-    it('should not refresh when languageId not match', async () => {
+    it('should not refresh when languageId not match', async t => {
       let doc = await workspace.document
       disposables.push(languages.registerInlayHintsProvider([{ language: 'javascript' }], {
         provideInlayHints: () => {
@@ -381,12 +381,12 @@ describe('InlayHint', () => {
       }))
       await nvim.setLine('foo')
       await doc.synchronize()
-      await helper.wait(30)
+      await shared.wait(30)
       let markers = await doc.buffer.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(0)
+      assert.strictEqual(markers.length, 0)
     })
 
-    it('should refresh on text change', async () => {
+    it('should refresh on text change', async t => {
       let buf = await nvim.buffer
       let disposable = await registerProvider('foo')
       disposables.push(disposable)
@@ -394,43 +394,43 @@ describe('InlayHint', () => {
       await buf.setLines(['a', 'b', 'c'], { start: 0, end: -1 })
       await waitRefresh(buf.id)
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(3)
+      assert.strictEqual(markers.length, 3)
       let item = handler.getItem(buf.id)
       await item.render()
-      expect(item.current.length).toBe(3)
+      assert.strictEqual(item.current.length, 3)
     })
 
-    it('should refresh on insert leave', async () => {
-      let doc = await helper.createDocument()
+    it('should refresh on insert leave', async t => {
+      let doc = await shared.createDocument()
       let buf = doc.buffer
       let disposable = await registerProvider('foo')
       disposables.push(disposable)
       await nvim.input('i')
-      await helper.wait(20)
+      await shared.wait(20)
       await buf.setLines(['a', 'b', 'c'], { start: 0, end: -1 })
-      await helper.wait(30)
+      await shared.wait(30)
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(0)
+      assert.strictEqual(markers.length, 0)
       await nvim.input('<esc>')
       await waitRefresh(doc.bufnr)
       markers = await buf.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(3)
+      assert.strictEqual(markers.length, 3)
     })
 
-    it('should refresh on provider dispose', async () => {
+    it('should refresh on provider dispose', async t => {
       let buf = await nvim.buffer
       let disposable = await registerProvider('foo bar')
       await waitRefresh(buf.id)
       disposable.dispose()
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBe(0)
+      assert.strictEqual(markers.length, 0)
       let item = handler.getItem(buf.id)
-      expect(item.current.length).toBe(0)
+      assert.strictEqual(item.current.length, 0)
       await item.render()
-      expect(item.current.length).toBe(0)
+      assert.strictEqual(item.current.length, 0)
     })
 
-    it('should refresh on scroll', async () => {
+    it('should refresh on scroll', async t => {
       let arr = new Array(workspace.env.lines * 5)
       let content = arr.fill('foo').join('\n')
       let buf = await nvim.buffer
@@ -448,10 +448,10 @@ describe('InlayHint', () => {
       await waitRefresh(buf.id)
       await nvim.command('normal! G')
       markers = await buf.getExtMarks(ns, 0, -1, { details: true })
-      expect(markers.length).toBeGreaterThan(len)
+      assert.ok(markers.length > len)
     })
 
-    it('should cancel previous render', async () => {
+    it('should cancel previous render', async t => {
       let buf = await nvim.buffer
       let disposable = await registerProvider('foo')
       disposables.push(disposable)
@@ -459,10 +459,10 @@ describe('InlayHint', () => {
       let item = handler.getItem(buf.id)
       await item.render()
       await item.render()
-      expect(item.current.length).toBe(1)
+      assert.strictEqual(item.current.length, 1)
     })
 
-    it('should resend request on CancellationError', async () => {
+    it('should resend request on CancellationError', async t => {
       let called = 0
       let disposable = languages.registerInlayHintsProvider([{ language: 'vim' }], {
         provideInlayHints: () => {
@@ -474,11 +474,11 @@ describe('InlayHint', () => {
         }
       })
       disposables.push(disposable)
-      await helper.wait(20)
-      let filepath = await createTmpFile('a\n\b\nc\n', disposables)
-      await helper.createDocument(filepath)
+      await shared.wait(20)
+      let filepath = await shared.createTmpFile('a\n\b\nc\n', disposables)
+      await shared.createDocument(filepath)
       await nvim.command('setfiletype vim')
-      await helper.waitValue(() => called, 2)
+      await shared.waitValue(() => called, 2)
     })
   })
 })

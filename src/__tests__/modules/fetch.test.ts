@@ -1,5 +1,8 @@
+import workspace from '../../workspace'
+import * as shared from '../sharedUtil'
 import fs from 'fs'
 import http, { Server } from 'http'
+import net from 'net'
 import os from 'os'
 import path from 'path'
 import semver from 'semver'
@@ -8,17 +11,18 @@ import { promisify } from 'util'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import download, { getEtag, getExtname } from '../../model/download'
 import fetch, { getAgent, getDataType, getRequestModule, getSystemProxyURI, getText, request, resolveRequestOptions, toPort, toURL } from '../../model/fetch'
-import helper, { getPort } from '../helper'
+import { after, afterEach, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 process.env.NO_PROXY = '*'
 let port: number
-beforeAll(async () => {
-  await helper.setup()
+let servers: Server[] = []
+let currentPort = 5000
+before(async () => {
   port = await createServer()
 })
 
-afterAll(async () => {
-  await helper.shutdown()
+after(async () => {
   for (let server of servers) {
     server.close()
   }
@@ -26,12 +30,11 @@ afterAll(async () => {
 })
 
 afterEach(() => {
-  helper.workspace.configurations.reset()
+  workspace.configurations.reset()
 })
 
-let servers: Server[] = []
 async function createServer(): Promise<number> {
-  let port = await getPort()
+  let port = await getFreePort()
   return await new Promise(resolve => {
     const server = http.createServer((req, res) => {
       if (req.url === '/bad_json') {
@@ -103,7 +106,7 @@ async function createServer(): Promise<number> {
         stream.pipe(res)
       }
       if (req.url.startsWith('/zip')) {
-        let zipfile = path.resolve(__dirname, '../test.zip')
+        let zipfile = path.resolve(import.meta.dirname, '../test.zip')
         if (req.url.indexOf('nolength=1') == -1) {
           let stat = fs.statSync(zipfile)
           res.setHeader('Content-Length', stat.size)
@@ -115,7 +118,7 @@ async function createServer(): Promise<number> {
         stream.pipe(res)
       }
       if (req.url === '/evil_zip') {
-        let zipfile = path.resolve(__dirname, '../evil.zip')
+        let zipfile = path.resolve(import.meta.dirname, '../evil.zip')
         let stat = fs.statSync(zipfile)
         res.setHeader('Content-Length', stat.size)
         res.setHeader('Content-Type', 'application/zip')
@@ -124,7 +127,7 @@ async function createServer(): Promise<number> {
         stream.pipe(res)
       }
       if (req.url === '/abs_zip') {
-        let zipfile = path.resolve(__dirname, '../abs.zip')
+        let zipfile = path.resolve(import.meta.dirname, '../abs.zip')
         let stat = fs.statSync(zipfile)
         res.setHeader('Content-Length', stat.size)
         res.setHeader('Content-Type', 'application/zip')
@@ -135,7 +138,7 @@ async function createServer(): Promise<number> {
       if (req.url === '/tgz') {
         res.setHeader('Content-Disposition', 'attachment; filename="file.tgz"')
         res.setHeader('Content-Type', 'application/octet-stream')
-        let tarfile = path.resolve(__dirname, '../test.tar.gz')
+        let tarfile = path.resolve(import.meta.dirname, '../test.tar.gz')
         let stat = fs.statSync(tarfile)
         res.setHeader('Content-Length', stat.size)
         res.writeHead(200)
@@ -151,135 +154,158 @@ async function createServer(): Promise<number> {
   })
 }
 
+async function getFreePort(): Promise<number> {
+  for (let i = 0; i < 100; i++) {
+    let port = currentPort
+    try {
+      return await new Promise((resolve, reject) => {
+        let server = net.createServer()
+        server.once('error', reject)
+        server.listen(port, () => {
+          server.once('close', () => {
+            currentPort = port + 1
+            resolve(port)
+          })
+          server.close()
+        })
+      })
+    } catch (e) {
+      currentPort = port + 1
+      if ((e as any).code !== 'EADDRINUSE') throw e
+    }
+  }
+  throw new Error('no free port found')
+}
+
 describe('utils', () => {
-  it('should getText', () => {
-    expect(getText({ x: 1 })).toBe('{"x":1}')
+  it('should getText', t => {
+    assert.strictEqual(getText({ x: 1 }), '{"x":1}')
   })
 
-  it('should getExtname', () => {
+  it('should getExtname', t => {
     let res = getExtname('attachment; x="y"')
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
   })
 
-  it('should getPort', async () => {
-    expect(toPort(80, 'http')).toBe(80)
-    expect(toPort('80', 'http')).toBe(80)
-    expect(toPort('x', 'http')).toBe(80)
-    expect(toPort('', 'https')).toBe(443)
+  it('should getPort', async t => {
+    assert.strictEqual(toPort(80, 'http'), 80)
+    assert.strictEqual(toPort('80', 'http'), 80)
+    assert.strictEqual(toPort('x', 'http'), 80)
+    assert.strictEqual(toPort('', 'https'), 443)
   })
 
-  it('should getEtag', () => {
-    expect(getEtag({})).toBeUndefined()
-    expect(getEtag({ etag: '"abc"' })).toBe('abc')
-    expect(getEtag({ etag: 'W/"abc"' })).toBe('abc')
-    expect(getEtag({ etag: 'Wabc"' })).toBeUndefined()
+  it('should getEtag', t => {
+    assert.strictEqual(getEtag({}), undefined)
+    assert.strictEqual(getEtag({ etag: '"abc"' }), 'abc')
+    assert.strictEqual(getEtag({ etag: 'W/"abc"' }), 'abc')
+    assert.strictEqual(getEtag({ etag: 'Wabc"' }), undefined)
   })
 
-  it('should get data type', () => {
-    expect(getDataType(null)).toBe('null')
-    expect(getDataType(undefined)).toBe('undefined')
-    expect(getDataType('s')).toBe('string')
+  it('should get data type', t => {
+    assert.strictEqual(getDataType(null), 'null')
+    assert.strictEqual(getDataType(undefined), 'undefined')
+    assert.strictEqual(getDataType('s'), 'string')
     let b = Buffer.from('abc', 'utf8')
-    expect(getDataType(b)).toBe('buffer')
-    expect(getDataType({})).toBe('object')
-    expect(getDataType(new Date())).toBe('unknown')
+    assert.strictEqual(getDataType(b), 'buffer')
+    assert.strictEqual(getDataType({}), 'object')
+    assert.strictEqual(getDataType(new Date()), 'unknown')
   })
 
-  it('should getRequestModule', () => {
+  it('should getRequestModule', t => {
     let url = toURL('https://www.baidu.com')
-    expect(getRequestModule(url)).toBeDefined()
+    assert.notStrictEqual(getRequestModule(url), undefined)
   })
 
-  it('should convert to URL', () => {
-    expect(() => { toURL('') }).toThrow()
-    expect(() => { toURL('file:///1') }).toThrow()
-    expect(() => { toURL(undefined) }).toThrow()
-    expect(toURL('https://www.baidu.com').toString()).toBe('https://www.baidu.com/')
+  it('should convert to URL', t => {
+    assert.throws(() => { toURL('') })
+    assert.throws(() => { toURL('file:///1') })
+    assert.throws(() => { toURL(undefined) })
+    assert.strictEqual(toURL('https://www.baidu.com').toString(), 'https://www.baidu.com/')
     let u = new URL('http://www.baidu.com')
-    expect(toURL(u)).toBe(u)
+    assert.strictEqual(toURL(u), u)
   })
 
-  it('should report valid proxy', () => {
+  it('should report valid proxy', t => {
     let agent = getAgent(new URL('http://google.com'), { proxy: 'domain.com:1234' })
-    expect(agent).toBe(null)
+    assert.strictEqual(agent, null)
 
     agent = getAgent(new URL('http://google.com'), { proxy: 'ftp://domain.com:1234' })
-    expect(agent).toBe(null)
+    assert.strictEqual(agent, null)
 
     agent = getAgent(new URL('http://google.com'), { proxy: '' })
-    expect(agent).toBe(null)
+    assert.strictEqual(agent, null)
 
     agent = getAgent(new URL('http://google.com'), { proxy: 'domain.com' })
-    expect(agent).toBe(null)
+    assert.strictEqual(agent, null)
 
     agent = getAgent(new URL('https://google.com'), { proxy: 'https://domain.com' })
     let proxy = (agent as any).proxy
-    expect(proxy.host).toBe('domain.com')
-    expect(proxy.protocol).toBe('https:')
-    expect((agent as any).connectOpts.port).toBe(443)
+    assert.strictEqual(proxy.host, 'domain.com')
+    assert.strictEqual(proxy.protocol, 'https:')
+    assert.strictEqual((agent as any).connectOpts.port, 443)
 
     agent = getAgent(new URL('http://google.com'), { proxy: 'http://domain.com', proxyStrictSSL: true })
     proxy = (agent as any).proxy
-    expect(proxy.host).toBe('domain.com')
-    expect(proxy.protocol).toBe('http:')
-    expect((agent as any).connectOpts.port).toBe(80)
+    assert.strictEqual(proxy.host, 'domain.com')
+    assert.strictEqual(proxy.protocol, 'http:')
+    assert.strictEqual((agent as any).connectOpts.port, 80)
 
     agent = getAgent(new URL('http://google.com'), { proxy: 'https://domain.com:1234' })
     proxy = (agent as any).proxy
-    expect(proxy.host).toBe('domain.com:1234')
-    expect(proxy.hostname).toBe('domain.com')
-    expect(proxy.port).toBe('1234')
-    expect((agent as any).connectOpts.port).toBe(1234)
+    assert.strictEqual(proxy.host, 'domain.com:1234')
+    assert.strictEqual(proxy.hostname, 'domain.com')
+    assert.strictEqual(proxy.port, '1234')
+    assert.strictEqual((agent as any).connectOpts.port, 1234)
 
     agent = getAgent(new URL('http://google.com'), { proxy: 'http://user:pass@domain.com:1234' })
     proxy = (agent as any).proxy
-    expect(proxy.host).toBe('domain.com:1234')
-    expect(proxy.hostname).toBe('domain.com')
-    expect(proxy.port).toBe('1234')
-    expect((agent as any).connectOpts.port).toBe(1234)
-    expect(proxy.username).toBe('user')
-    expect(proxy.password).toBe('pass')
+    assert.strictEqual(proxy.host, 'domain.com:1234')
+    assert.strictEqual(proxy.hostname, 'domain.com')
+    assert.strictEqual(proxy.port, '1234')
+    assert.strictEqual((agent as any).connectOpts.port, 1234)
+    assert.strictEqual(proxy.username, 'user')
+    assert.strictEqual(proxy.password, 'pass')
   })
 
-  it('should getAgent from proxy', () => {
+  it('should getAgent from proxy', t => {
     let agent = getAgent(new URL('http://google.com'), { proxy: 'http://user:@domain.com' })
     let proxy = (agent as any).proxy
-    expect(proxy.host).toBe('domain.com')
-    expect(proxy.username).toBe('user')
-    expect((agent as any).connectOpts.port).toBe(80)
+    assert.strictEqual(proxy.host, 'domain.com')
+    assert.strictEqual(proxy.username, 'user')
+    assert.strictEqual((agent as any).connectOpts.port, 80)
   })
 
-  it('should getSystemProxyURI', () => {
+  it('should getSystemProxyURI', t => {
     let url = new URL('http://www.example.com')
     let http_proxy = 'http://127.0.0.1:7070'
-    expect(getSystemProxyURI(url, { NO_PROXY: '*', HTTP_PROXY: http_proxy })).toBeNull()
-    expect(getSystemProxyURI(url, { no_proxy: '*', HTTP_PROXY: http_proxy })).toBeNull()
-    expect(getSystemProxyURI(new URL('http://www.example.com:80'), {
+    assert.strictEqual(getSystemProxyURI(url, { NO_PROXY: '*', HTTP_PROXY: http_proxy }), null)
+    assert.strictEqual(getSystemProxyURI(url, { no_proxy: '*', HTTP_PROXY: http_proxy }), null)
+    assert.strictEqual(getSystemProxyURI(new URL('http://www.example.com:80'), {
       NO_PROXY: 'xyz:33,example.com:80',
       HTTP_PROXY: http_proxy
-    })).toBeNull()
-    expect(getSystemProxyURI(url, {
+    }), null)
+    assert.strictEqual(getSystemProxyURI(url, {
       NO_PROXY: 'baidu.com,example.com',
       HTTP_PROXY: http_proxy
-    })).toBeNull()
-    expect(getSystemProxyURI(url, { HTTP_PROXY: http_proxy })).toBe(http_proxy)
-    expect(getSystemProxyURI(url, { http_proxy })).toBe(http_proxy)
-    expect(getSystemProxyURI(url, {})).toBe(null)
+    }), null)
+    assert.strictEqual(getSystemProxyURI(url, { HTTP_PROXY: http_proxy }), http_proxy)
+    assert.strictEqual(getSystemProxyURI(url, { http_proxy }), http_proxy)
+    assert.strictEqual(getSystemProxyURI(url, {}), null)
     url = new URL('https://www.example.com')
     let https_proxy = 'https://127.0.0.1:7070'
-    expect(getSystemProxyURI(url, { HTTPS_PROXY: https_proxy })).toBe(https_proxy)
-    expect(getSystemProxyURI(url, { https_proxy })).toBe(https_proxy)
-    expect(getSystemProxyURI(url, { HTTP_PROXY: http_proxy })).toBe(http_proxy)
-    expect(getSystemProxyURI(url, { http_proxy })).toBe(http_proxy)
-    expect(getSystemProxyURI(url, {})).toBe(null)
+    assert.strictEqual(getSystemProxyURI(url, { HTTPS_PROXY: https_proxy }), https_proxy)
+    assert.strictEqual(getSystemProxyURI(url, { https_proxy }), https_proxy)
+    assert.strictEqual(getSystemProxyURI(url, { HTTP_PROXY: http_proxy }), http_proxy)
+    assert.strictEqual(getSystemProxyURI(url, { http_proxy }), http_proxy)
+    assert.strictEqual(getSystemProxyURI(url, {}), null)
   })
 
-  it('should resolve request options #1', async () => {
+  it('should resolve request options #1', async t => {
     let file = path.join(os.tmpdir(), `${crypto.randomUUID()}/ca`)
     fs.mkdirSync(path.dirname(file))
     fs.writeFileSync(file, 'ca', 'utf8')
-    helper.updateConfiguration('http.proxyAuthorization', 'authorization')
-    helper.updateConfiguration('http.proxyCA', file)
+    shared.updateConfiguration('http.proxyAuthorization', 'authorization')
+    shared.updateConfiguration('http.proxyCA', file)
     let url = new URL('http://www.example.com:7070')
     let res = resolveRequestOptions(url, {
       query: { x: 1 },
@@ -293,99 +319,99 @@ describe('utils', () => {
       data: { foo: '1' },
       buffer: true,
     })
-    expect(res.path).toBe('/?x=1')
-    expect(Buffer.isBuffer(res.ca)).toBe(true)
+    assert.strictEqual(res.path, '/?x=1')
+    assert.strictEqual(Buffer.isBuffer(res.ca), true)
   })
 
-  it('should resolve request options #2', async () => {
+  it('should resolve request options #2', async t => {
     let url = new URL('https://abc:123@www.example.com')
     let res = resolveRequestOptions(url, {
       user: 'user',
       data: 'data'
     })
-    expect(res.port).toBe(443)
-    expect(res.path).toBe('/')
-    expect(res.auth).toBe('abc:123')
+    assert.strictEqual(res.port, 443)
+    assert.strictEqual(res.path, '/')
+    assert.strictEqual(res.auth, 'abc:123')
   })
 })
 
 describe('fetch', () => {
 
-  it('should fetch json', async () => {
+  it('should fetch json', async t => {
     let res = await fetch(`http://127.0.0.1:${port}/json`, {
       method: 'POST',
       data: 'data'
     })
-    expect(res).toEqual({ result: 'succeed' })
+    assert.deepStrictEqual(res, { result: 'succeed' })
     res = await fetch(`http://127.0.0.1:${port}/json`, { buffer: true })
-    expect(Buffer.isBuffer(res)).toBe(true)
+    assert.strictEqual(Buffer.isBuffer(res), true)
     let fn = async () => {
       await fetch(`http://127.0.0.1:${port}/bad_json`)
     }
-    await expect(fn()).rejects.toThrow(Error)
+    await assert.rejects(fn(), Error)
   })
 
-  it('decodes quoted and trailing-parameter charsets and rejects unknown ones', async () => {
+  it('decodes quoted and trailing-parameter charsets and rejects unknown ones', async t => {
     let uncaught: Error[] = []
     let onUncaught = (err: Error): void => {
       uncaught.push(err)
     }
     process.on('uncaughtException', onUncaught)
     try {
-      expect(await fetch(`http://127.0.0.1:${port}/quoted_charset`)).toBe('你好')
-      expect(await fetch(`http://127.0.0.1:${port}/extra_charset`)).toBe('你好')
-      expect(await fetch(`http://127.0.0.1:${port}/quoted_json`)).toEqual({ text: '你好' })
-      expect(await fetch(`http://127.0.0.1:${port}/latin_charset`)).toBe('\u00e4k')
+      assert.strictEqual(await fetch(`http://127.0.0.1:${port}/quoted_charset`), '你好')
+      assert.strictEqual(await fetch(`http://127.0.0.1:${port}/extra_charset`), '你好')
+      assert.deepStrictEqual(await fetch(`http://127.0.0.1:${port}/quoted_json`), { text: '你好' })
+      assert.strictEqual(await fetch(`http://127.0.0.1:${port}/latin_charset`), '\u00e4k')
       let fn = async () => {
         await fetch(`http://127.0.0.1:${port}/unknown_charset`)
       }
-      await expect(fn()).rejects.toThrow(/charset/i)
+      await assert.rejects(fn(), /charset/i)
     } finally {
       process.off('uncaughtException', onUncaught)
     }
-    expect(uncaught).toEqual([])
+    assert.deepStrictEqual(uncaught, [])
   })
 
-  it('should catch error on reject or abnormal response', async () => {
+  it('should catch error on reject or abnormal response', async t => {
     let fn = async () => {
       await fetch(`http://127.0.0.1:${port}/reject`)
     }
-    await expect(fn()).rejects.toThrow()
+    await assert.rejects(fn(), )
   })
 
-  it('should catch abnormal close', async () => {
+  it('should catch abnormal close', async t => {
     let version = semver.parse(process.version)
     if (version.major >= 16) {
       let fn = async () => {
         await fetch(`http://127.0.0.1:${port}/close`)
       }
-      await expect(fn()).rejects.toThrow()
+      await assert.rejects(fn(), )
       fn = async () => {
         await download(`http://127.0.0.1:${port}/close`, { dest: os.tmpdir() })
       }
-      await expect(fn()).rejects.toThrow()
+      await assert.rejects(fn(), )
     }
   })
 
-  it('should throw on 404 response', async () => {
+  it('should throw on 404 response', async t => {
     let fn = async () => {
       await fetch(`http://127.0.0.1:${port}/404`)
     }
-    await expect(fn()).rejects.toThrow(Error)
+    await assert.rejects(fn(), Error)
   })
 
-  it('should catch proxy error', async () => {
+  it('should catch proxy error', async t => {
     delete process.env.NO_PROXY
     process.env.HTTP_PROXY = `http://127.0.0.1`
     let fn = async () => {
       await fetch(`http://127.0.0.1:${port}/json`)
     }
-    await expect(fn()).rejects.toThrow()
+    await assert.rejects(fn(), )
     delete process.env.HTTP_PROXY
   })
 
-  it('should throw for ECONNRESET error', async () => {
-    await expect(async () => {
+  it('should throw for ECONNRESET error', async t => {
+    await assert.rejects(async () => {
       let obj: any = {}
       let url = new URL(`http://127.0.0.1:${port}/text`)
       let opts = resolveRequestOptions(url, {})
@@ -394,24 +420,24 @@ describe('fetch', () => {
       err.code = 'ECONNRESET'
       obj.req.destroy(err)
       await p
-    }).rejects.toThrow(/ECONNRESET/)
+    }, /ECONNRESET/)
   })
 
-  it('should fetch text', async () => {
+  it('should fetch text', async t => {
     let res = await fetch(`http://127.0.0.1:${port}/text`)
-    expect(res).toBe('text')
+    assert.strictEqual(res, 'text')
     let fn = async () => {
-      let port = await getPort()
+      let port = await getFreePort()
       res = await fetch(`http://127.0.0.1:${port}/not_exists`, { timeout: 2000 })
     }
-    await expect(fn()).rejects.toThrow()
+    await assert.rejects(fn(), )
   })
 
-  it('should throw on timeout', async () => {
+  it('should throw on timeout', async t => {
     let fn = async () => {
       await fetch(`http://127.0.0.1:${port}/slow`, { timeout: 50 })
     }
-    await expect(fn()).rejects.toThrow(Error)
+    await assert.rejects(fn(), Error)
     let url = new URL(`http://127.0.0.1:${port}/slow`)
     let opts = {
       method: 'GET',
@@ -430,24 +456,24 @@ describe('fetch', () => {
     fn = async () => {
       await request(url, undefined, opts)
     }
-    await expect(fn()).rejects.toThrow(Error)
+    await assert.rejects(fn(), Error)
     fn = async () => {
       await download(url, Object.assign(opts, { dest: os.tmpdir() }))
     }
-    await expect(fn()).rejects.toThrow(Error)
+    await assert.rejects(fn(), Error)
 
     opts.agent.destroy()
   })
 
-  it('should cancel by CancellationToken', async () => {
+  it('should cancel by CancellationToken', async t => {
     let fn = async () => {
       let tokenSource = new CancellationTokenSource()
       let p = fetch(`http://127.0.0.1:${port}/slow`, { timeout: 50 }, tokenSource.token)
-      await helper.wait(20)
+      await shared.wait(20)
       tokenSource.cancel()
       await p
     }
-    await expect(fn()).rejects.toThrow(Error)
+    await assert.rejects(fn(), Error)
   })
 })
 
@@ -455,7 +481,7 @@ describe('download', () => {
   let binary_file: string
   let tempdir = path.join(os.tmpdir(), crypto.randomUUID())
 
-  beforeAll(async () => {
+  before(async () => {
     binary_file = path.join(os.tmpdir(), 'binary_file')
     if (!fs.existsSync(binary_file)) {
       let data = Buffer.alloc(100 * 1024, 0)
@@ -464,91 +490,91 @@ describe('download', () => {
     // create binary files
   })
 
-  it('should throw for bad option', async () => {
+  it('should throw for bad option', async t => {
     let url = 'https://127.0.0.1'
     let fn = async () => {
       await download(url, { dest: 'a/b' })
     }
-    await expect(fn()).rejects.toThrow(Error)
+    await assert.rejects(fn(), Error)
     fn = async () => {
-      await download(url, { dest: __filename })
+      await download(url, { dest: import.meta.filename })
     }
-    await expect(fn()).rejects.toThrow(/not directory/)
+    await assert.rejects(fn(), /not directory/)
   })
 
-  it('should throw on ECONNRESET', async () => {
+  it('should throw on ECONNRESET', async t => {
     let obj: any = {}
     let p = download(`http://127.0.0.1:${port}/binary`, { dest: tempdir }, undefined, obj)
     let err: any = new Error('ECONNRESET')
     err.code = 'ECONNRESET'
-    await expect(async () => {
+    await assert.rejects(async () => {
       obj.req.destroy(err)
       await p
-    }).rejects.toThrow(Error)
+    }, Error)
   })
 
-  it('should throw when unable to extract', async () => {
+  it('should throw when unable to extract', async t => {
     let url = `http://127.0.0.1:${port}/text`
     let fn = async () => {
       await download(url, { dest: tempdir, extract: true })
     }
-    await expect(fn()).rejects.toThrow(/extract method/)
+    await assert.rejects(fn(), /extract method/)
   })
 
-  it('should throw for bad response', async () => {
+  it('should throw for bad response', async t => {
     let fn = async () => {
       await download(`http://127.0.0.1:${port}/404`, { dest: tempdir })
     }
-    await expect(fn()).rejects.toThrow(Error)
+    await assert.rejects(fn(), Error)
     fn = async () => {
       await download(`http://127.0.0.1:${port}/reject`, { dest: tempdir })
     }
-    await expect(fn()).rejects.toThrow()
+    await assert.rejects(fn(), )
     fn = async () => {
-      let port = await getPort()
+      let port = await getFreePort()
       await download(`http://127.0.0.1:${port}/not_exists`, { dest: tempdir, timeout: 2000 })
     }
-    await expect(fn()).rejects.toThrow()
+    await assert.rejects(fn(), )
   })
 
-  it('should throw on timeout', async () => {
+  it('should throw on timeout', async t => {
     let fn = async () => {
       await download(`http://127.0.0.1:${port}/slow`, { dest: tempdir, timeout: 50 })
     }
-    await expect(fn()).rejects.toThrow()
+    await assert.rejects(fn(), )
   })
 
-  it('should download binary file', async () => {
+  it('should download binary file', async t => {
     let url = `http://127.0.0.1:${port}/binary`
     let called = false
     let res = await download(url, {
       etagAlgorithm: 'md5',
       dest: tempdir, onProgress: p => {
-        expect(typeof p).toBe('string')
+        assert.strictEqual(typeof p, 'string')
         called = true
       }
     })
-    expect(called).toBe(true)
+    assert.strictEqual(called, true)
     let exists = fs.existsSync(res)
-    expect(exists).toBe(true)
+    assert.strictEqual(exists, true)
   })
 
-  it('should throw when etag check failed', async () => {
+  it('should throw when etag check failed', async t => {
     let url = `http://127.0.0.1:${port}/binary`
     let called = false
     let fn = async () => {
       await download(url, {
         etagAlgorithm: 'sha256',
         dest: tempdir, onProgress: p => {
-          expect(typeof p).toBe('string')
+          assert.strictEqual(typeof p, 'string')
           called = true
         }
       })
     }
-    await expect(fn()).rejects.toThrow(/Etag check failed/)
+    await assert.rejects(fn(), /Etag check failed/)
   })
 
-  it('should download zip file', async () => {
+  it('should download zip file', async t => {
     let url = `http://127.0.0.1:${port}/zip`
     let res = await download(url, {
       dest: tempdir,
@@ -556,38 +582,38 @@ describe('download', () => {
     })
     let file = path.join(tempdir, 'log.txt')
     let exists = fs.existsSync(file)
-    expect(exists).toBe(true)
+    assert.strictEqual(exists, true)
     res = await download(url + '?nolength=1', {
       dest: tempdir,
       extract: true
     })
     exists = fs.existsSync(file)
-    expect(exists).toBe(true)
+    assert.strictEqual(exists, true)
   })
 
-  it('should not extract zip file outside dest', async () => {
+  it('should not extract zip file outside dest', async t => {
     let dest = path.join(tempdir, 'evil')
     let url = `http://127.0.0.1:${port}/evil_zip`
     await download(url, {
       dest,
       extract: true
     })
-    expect(fs.existsSync(path.join(tempdir, 'evil.txt'))).toBe(false)
-    expect(fs.existsSync(path.join(dest, 'evil.txt'))).toBe(true)
+    assert.strictEqual(fs.existsSync(path.join(tempdir, 'evil.txt')), false)
+    assert.strictEqual(fs.existsSync(path.join(dest, 'evil.txt')), true)
   })
 
-  it('should extract zip with absolute entry paths to dest', async () => {
+  it('should extract zip with absolute entry paths to dest', async t => {
     let dest = path.join(tempdir, 'abs')
     let url = `http://127.0.0.1:${port}/abs_zip`
     await download(url, {
       dest,
       extract: true
     })
-    expect(fs.existsSync(path.join(dest, 'log.txt'))).toBe(true)
-    expect(fs.existsSync(path.join(dest, 'abs', 'evil.txt'))).toBe(true)
+    assert.strictEqual(fs.existsSync(path.join(dest, 'log.txt')), true)
+    assert.strictEqual(fs.existsSync(path.join(dest, 'abs', 'evil.txt')), true)
   })
 
-  it('should download tgz', async () => {
+  it('should download tgz', async t => {
     let url = `http://127.0.0.1:${port}/tgz`
     let opts = {
       dest: tempdir,
@@ -598,30 +624,30 @@ describe('download', () => {
     let res = await download(url, opts)
     let file = path.join(res, 'test.js')
     let exists = fs.existsSync(file)
-    expect(exists).toBe(true)
+    assert.strictEqual(exists, true)
     opts.strip = undefined
     res = await download(url, opts)
-    expect(res).toBeDefined()
+    assert.notStrictEqual(res, undefined)
   })
 
-  it('should cancel download by CancellationToken', async () => {
+  it('should cancel download by CancellationToken', async t => {
     let fn = async () => {
       let tokenSource = new CancellationTokenSource()
       let p = download(`http://127.0.0.1:${port}/slow`, { dest: tempdir }, tokenSource.token)
-      await helper.wait(20)
+      await shared.wait(20)
       tokenSource.cancel()
       await p
     }
-    await expect(fn()).rejects.toThrow(Error)
+    await assert.rejects(fn(), Error)
   })
 
-  it('should throw on agent error', async () => {
+  it('should throw on agent error', async t => {
     delete process.env.NO_PROXY
     process.env.HTTP_PROXY = `http://127.0.0.1`
     let fn = async () => {
       await download(`http://127.0.0.1:${port}/json`, { dest: tempdir })
     }
-    await expect(fn()).rejects.toThrow(/using proxy/)
+    await assert.rejects(fn(), /using proxy/)
     delete process.env.HTTP_PROXY
     process.env.NO_PROXY = '*'
     fn = async () => {
@@ -630,6 +656,6 @@ describe('download', () => {
       await p
       agent.destroy()
     }
-    await expect(fn()).rejects.toThrow(/timeout/)
+    await assert.rejects(fn(), /timeout/)
   })
 })

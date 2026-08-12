@@ -1,3 +1,5 @@
+import { afterEach, beforeEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import Memos from '../../model/memos'
 import os from 'os'
 import path from 'path'
@@ -21,30 +23,30 @@ describe('Memos', () => {
     let memo = memos.createMemento('x')
     await memo.update('foo.bar', 'memo')
     let res = memo.get<string>('foo.bar')
-    expect(res).toBe('memo')
+    assert.strictEqual(res, 'memo')
     await memo.update('foo.bar', undefined)
     res = memo.get<string>('foo.bar')
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
   })
 
   it('should get value for key if it does not exist', async () => {
     let memo = memos.createMemento('y')
     let res = memo.get<any>('xyz')
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
   })
 
   it('should use defaultValue when it does not exist', async () => {
     let memo = memos.createMemento('y')
     let res = memo.get<any>('f.o.o', 'default')
-    expect(res).toBe('default')
+    assert.strictEqual(res, 'default')
   })
 
   it('should update multiple values', async () => {
     let memo = memos.createMemento('x')
     await memo.update('foo', 'x')
     await memo.update('bar', 'y')
-    expect(memo.get<string>('foo')).toBe('x')
-    expect(memo.get<string>('bar')).toBe('y')
+    assert.strictEqual(memo.get<string>('foo'), 'x')
+    assert.strictEqual(memo.get<string>('bar'), 'y')
   })
 
   it('should merge content', async () => {
@@ -53,7 +55,7 @@ describe('Memos', () => {
     writeJson(oldPath, { old: { release: true } })
     memos.merge(oldPath)
     let obj = loadJson(filepath) as any
-    expect(obj.old.release).toBe(true)
-    expect(fs.existsSync(oldPath)).toBe(false)
+    assert.strictEqual(obj.old.release, true)
+    assert.strictEqual(fs.existsSync(oldPath), false)
   })
 })

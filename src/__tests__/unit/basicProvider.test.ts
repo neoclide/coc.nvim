@@ -4,7 +4,9 @@ import { TreeItemCollapsibleState } from '../../tree'
 import { HistoryInput } from '../../tree/filter'
 import BasicDataProvider, { TreeNode } from '../../tree/BasicDataProvider'
 import { disposeAll } from '../../util'
-import { createNode, createNodes, CustomNode, NodeDef } from '../helper'
+import { createNode, createNodes, CustomNode, NodeDef } from './testUtils'
+import { afterEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 let disposables: Disposable[] = []
 
@@ -53,13 +55,13 @@ describe('HistoryInput()', () => {
     let h = new HistoryInput()
     h.add('a')
     h.add('b')
-    expect(h.next('')).toBe('b')
-    expect(h.next('a')).toBe('b')
-    expect(h.next('b')).toBe('a')
-    expect(h.toJSON()).toBe(`[b,a]`)
-    expect(h.previous('')).toBe('a')
-    expect(h.previous('a')).toBe('b')
-    expect(h.previous('b')).toBe('a')
+    assert.strictEqual(h.next(''), 'b')
+    assert.strictEqual(h.next('a'), 'b')
+    assert.strictEqual(h.next('b'), 'a')
+    assert.strictEqual(h.toJSON(), `[b,a]`)
+    assert.strictEqual(h.previous(''), 'a')
+    assert.strictEqual(h.previous('a'), 'b')
+    assert.strictEqual(h.previous('b'), 'a')
   })
 })
 
@@ -74,8 +76,8 @@ describe('BasicDataProvider', () => {
       })
       disposables.push(provider)
       let res = await provider.getChildren()
-      expect(res.length).toBe(3)
-      expect(res.map(o => o.label)).toEqual(['a', 'b', 'g'])
+      assert.strictEqual(res.length, 3)
+      assert.deepStrictEqual(res.map(o => o.label), ['a', 'b', 'g'])
     })
 
     it('should throw when result is not array', async () => {
@@ -85,8 +87,8 @@ describe('BasicDataProvider', () => {
         }
       })
       disposables.push(provider)
-      await expect(provider.getChildren()).rejects.toThrow(Error)
-      expect(provider.getLevel(undefined)).toBe(0)
+      await assert.rejects(provider.getChildren(), Error)
+      assert.strictEqual(provider.getLevel(undefined), 0)
     })
 
     it('should get children from child node', async () => {
@@ -98,8 +100,8 @@ describe('BasicDataProvider', () => {
       disposables.push(provider)
       let res = await provider.getChildren()
       let nodes = await provider.getChildren(res[0])
-      expect(nodes.length).toBe(2)
-      expect(nodes.map(o => o.label)).toEqual(['c', 'd'])
+      assert.strictEqual(nodes.length, 2)
+      assert.deepStrictEqual(nodes.map(o => o.label), ['c', 'd'])
     })
 
     it('should throw when provideData throws', async () => {
@@ -115,7 +117,7 @@ describe('BasicDataProvider', () => {
       } catch (e) {
         err = e
       }
-      expect(err).toBeDefined()
+      assert.notStrictEqual(err, undefined)
     })
   })
 
@@ -129,10 +131,10 @@ describe('BasicDataProvider', () => {
       disposables.push(provider)
       let res = await provider.getChildren()
       let item = provider.getTreeItem(res[0])
-      expect(item).toBeDefined()
-      expect(item.collapsibleState).toBe(TreeItemCollapsibleState.Collapsed)
+      assert.notStrictEqual(item, undefined)
+      assert.strictEqual(item.collapsibleState, TreeItemCollapsibleState.Collapsed)
       item = provider.getTreeItem(res[2])
-      expect(item.collapsibleState).toBe(TreeItemCollapsibleState.None)
+      assert.strictEqual(item.collapsibleState, TreeItemCollapsibleState.None)
     })
 
     it('should respect expandLevel option', async () => {
@@ -149,16 +151,16 @@ describe('BasicDataProvider', () => {
       disposables.push(provider)
       let res = await provider.getChildren()
       let item = provider.getTreeItem(res[0])
-      expect(item).toBeDefined()
-      expect(item.collapsibleState).toBe(TreeItemCollapsibleState.Expanded)
+      assert.notStrictEqual(item, undefined)
+      assert.strictEqual(item.collapsibleState, TreeItemCollapsibleState.Expanded)
       item = provider.getTreeItem(res[0].children[0])
-      expect(item.collapsibleState).toBe(TreeItemCollapsibleState.Collapsed)
+      assert.strictEqual(item.collapsibleState, TreeItemCollapsibleState.Collapsed)
       let n = 0
       provider.iterate(res[0], undefined, 0, () => {
         n++
         return true
       })
-      expect(n).toBe(5)
+      assert.strictEqual(n, 5)
     })
 
     it('should include highlights', async () => {
@@ -170,8 +172,8 @@ describe('BasicDataProvider', () => {
       disposables.push(provider)
       let res = await provider.getChildren()
       let item = provider.getTreeItem(res[0])
-      expect(item).toBeDefined()
-      expect(item.tooltip).toBe('tip')
+      assert.notStrictEqual(item, undefined)
+      assert.strictEqual(item.tooltip, 'tip')
     })
 
     it('should use icon from node', async () => {
@@ -188,9 +190,9 @@ describe('BasicDataProvider', () => {
       disposables.push(provider)
       let res = await provider.getChildren()
       let item = provider.getTreeItem(res[0])
-      expect(item).toBeDefined()
-      expect(item.icon).toBeDefined()
-      expect(item.icon).toEqual({
+      assert.notStrictEqual(item, undefined)
+      assert.notStrictEqual(item.icon, undefined)
+      assert.deepStrictEqual(item.icon, {
         text: 'i',
         hlGroup: 'Function'
       })
@@ -215,8 +217,8 @@ describe('BasicDataProvider', () => {
       disposables.push(provider)
       let res = await provider.getChildren()
       let item = provider.getTreeItem(res[0])
-      expect(item).toBeDefined()
-      expect(item.icon).toEqual({
+      assert.notStrictEqual(item, undefined)
+      assert.deepStrictEqual(item.icon, {
         text: 'f',
         hlGroup: 'Function'
       })
@@ -233,7 +235,7 @@ describe('BasicDataProvider', () => {
       })
       disposables.push(provider)
       let res = provider.getParent(node)
-      expect(res).toBeUndefined()
+      assert.strictEqual(res, undefined)
     })
 
     it('should get parent node', async () => {
@@ -250,8 +252,8 @@ describe('BasicDataProvider', () => {
       disposables.push(provider)
       await provider.getChildren()
       let res = provider.getParent(node)
-      expect(res).toBeDefined()
-      expect(res.label).toBe('c')
+      assert.notStrictEqual(res, undefined)
+      assert.strictEqual(res.label, 'c')
       // console.log(provider.labels.join('\n'))
     })
   })
@@ -277,8 +279,8 @@ describe('BasicDataProvider', () => {
       let source = new CancellationTokenSource()
       let item = provider.getTreeItem(node)
       let resolved = await provider.resolveTreeItem(item, node, source.token)
-      expect(resolved.tooltip).toBe('tip')
-      expect(resolved.command.command).toBe('test command')
+      assert.strictEqual(resolved.tooltip, 'tip')
+      assert.strictEqual(resolved.command.command, 'test command')
     })
 
     it('should register command invoke click', async () => {
@@ -297,11 +299,11 @@ describe('BasicDataProvider', () => {
       let source = new CancellationTokenSource()
       let item = provider.getTreeItem(node)
       let resolved = await provider.resolveTreeItem(item, node, source.token)
-      expect(resolved.command).toBeDefined()
-      expect(resolved.command.command).toMatch('invoke')
+      assert.notStrictEqual(resolved.command, undefined)
+      assert.match(resolved.command.command, new RegExp('invoke'))
       await commandsManager.execute(resolved.command)
-      expect(called).toBeDefined()
-      expect(called).toBe(node)
+      assert.notStrictEqual(called, undefined)
+      assert.strictEqual(called, node)
     })
   })
 
@@ -322,7 +324,7 @@ describe('BasicDataProvider', () => {
       await provider.getChildren()
       let called = false
       provider.onDidChangeTreeData(node => {
-        expect(node).toBe(b)
+        assert.strictEqual(node, b)
         called = true
       })
       let newDefs: NodeDef[] = [
@@ -331,12 +333,12 @@ describe('BasicDataProvider', () => {
       ]
       let curr = provider.update(createNodes(newDefs))
       let labels = createLabels(curr)
-      expect(labels).toEqual([
+      assert.deepStrictEqual(labels, [
         'a', ' b', '  c', '  d', 'b', ' f'
       ])
-      expect(called).toBe(true)
-      expect(b.children).toBeDefined()
-      expect(b.children.length).toBe(2)
+      assert.strictEqual(called, true)
+      assert.notStrictEqual(b.children, undefined)
+      assert.strictEqual(b.children.length, 2)
     })
 
     it('should remove children with event', async () => {
@@ -355,7 +357,7 @@ describe('BasicDataProvider', () => {
       await provider.getChildren()
       let called = false
       provider.onDidChangeTreeData(node => {
-        expect(node).toBe(b)
+        assert.strictEqual(node, b)
         called = true
       })
       let newDefs: NodeDef[] = [
@@ -364,11 +366,11 @@ describe('BasicDataProvider', () => {
       ]
       let curr = provider.update(createNodes(newDefs))
       let labels = createLabels(curr)
-      expect(labels).toEqual([
+      assert.deepStrictEqual(labels, [
         'a', ' b', 'e', ' f'
       ])
-      expect(called).toBe(true)
-      expect(b.children).toBeUndefined()
+      assert.strictEqual(called, true)
+      assert.strictEqual(b.children, undefined)
     })
 
     it('should not fire event for children when parent have changed', async () => {
@@ -385,7 +387,7 @@ describe('BasicDataProvider', () => {
       await provider.getChildren()
       let called = 0
       provider.onDidChangeTreeData(node => {
-        expect(node).toBeUndefined()
+        assert.strictEqual(node, undefined)
         called += 1
       })
       let newDefs: NodeDef[] = [
@@ -393,9 +395,9 @@ describe('BasicDataProvider', () => {
         ['e', [['f']]]
       ]
       let curr = provider.update(createNodes(newDefs))
-      expect(called).toBe(1)
+      assert.strictEqual(called, 1)
       let labels = createLabels(curr)
-      expect(labels).toEqual([
+      assert.deepStrictEqual(labels, [
         'a', ' b', '  c', '  d', '  g', 'e', ' f'
       ])
     })
@@ -422,11 +424,11 @@ describe('BasicDataProvider', () => {
         ['e', [['f', [['g']]]]]
       ]
       let curr = provider.update(createNodes(newDefs))
-      expect(called.length).toBe(2)
-      expect(called[0].label).toBe('b')
-      expect(called[1].label).toBe('f')
+      assert.strictEqual(called.length, 2)
+      assert.strictEqual(called[0].label, 'b')
+      assert.strictEqual(called[1].label, 'f')
       let labels = createLabels(curr)
-      expect(labels).toEqual([
+      assert.deepStrictEqual(labels, [
         'a', ' b', '  c', '  d', 'e', ' f', '  g'
       ])
     })
@@ -452,9 +454,9 @@ describe('BasicDataProvider', () => {
       Object.assign(b, { x: 1, y: 2 })
       let curr = provider.update(newNodes)
       let node = curr[0].children[0]
-      expect(node).toBeDefined()
-      expect(node.x).toBe(1)
-      expect(node.y).toBe(2)
+      assert.notStrictEqual(node, undefined)
+      assert.strictEqual(node.x, 1)
+      assert.strictEqual(node.y, 2)
     })
 
     it('should keep references and have new data sequence', async () => {
@@ -483,14 +485,14 @@ describe('BasicDataProvider', () => {
         ['e', [['f', [['j']]], ['i']]]
       ])
       let curr = provider.update(newNodes)
-      expect(curr).toBe(nodes)
-      expect(keeps[0]).toBe(findNode('a', curr))
-      expect(keeps[1]).toBe(findNode('b', curr))
-      expect(keeps[2]).toBe(findNode('c', curr))
-      expect(keeps[3]).toBe(findNode('e', curr))
-      expect(keeps[4]).toBe(findNode('f', curr))
+      assert.strictEqual(curr, nodes)
+      assert.strictEqual(keeps[0], findNode('a', curr))
+      assert.strictEqual(keeps[1], findNode('b', curr))
+      assert.strictEqual(keeps[2], findNode('c', curr))
+      assert.strictEqual(keeps[3], findNode('e', curr))
+      assert.strictEqual(keeps[4], findNode('f', curr))
       let labels = createLabels(curr)
-      expect(labels).toEqual([
+      assert.deepStrictEqual(labels, [
         'a', ' c', '  d', '  h', ' b', 'e', ' f', '  j', ' i'
       ])
     })
@@ -513,9 +515,9 @@ describe('BasicDataProvider', () => {
         createNode('a', [], 'z'),
       ]
       let curr = provider.update(newNodes)
-      expect(curr.length).toBe(2)
-      expect(curr[0].key).toBe('x')
-      expect(curr[1].key).toBe('z')
+      assert.strictEqual(curr.length, 2)
+      assert.strictEqual(curr[0].key, 'x')
+      assert.strictEqual(curr[1].key, 'z')
     })
 
     it('should reset data', async () => {
@@ -533,7 +535,7 @@ describe('BasicDataProvider', () => {
         createNode('a', [], 'x'),
       ]
       let curr = provider.update(newNodes, true)
-      expect(curr === nodes).toBe(false)
+      assert.strictEqual(curr === nodes, false)
     })
   })
 
@@ -549,7 +551,7 @@ describe('BasicDataProvider', () => {
         }
       })
       provider.dispose()
-      expect(called).toBe(true)
+      assert.strictEqual(called, true)
     })
   })
 })

@@ -3,6 +3,8 @@ import os from 'os'
 import path from 'path'
 import { createLogger, emptyFile, getTimestamp, logger, resolveLogFilepath } from '../../logger/index'
 import { DEFAULT_LOG_LEVEL, FileLogger, format, LogLevel, stringifyLogLevel, textToLogLevel, toThreeDigits, toTwoDigits } from '../../logger/log'
+import { afterEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 let filepath: string
 afterEach(() => {
@@ -11,36 +13,36 @@ afterEach(() => {
 
 describe('FileLogger', () => {
   it('should have DEFAULT_LOG_LEVEL', () => {
-    expect(DEFAULT_LOG_LEVEL).toBeDefined()
-    expect(logger).toBeDefined()
+    assert.notStrictEqual(DEFAULT_LOG_LEVEL, undefined)
+    assert.notStrictEqual(logger, undefined)
   })
 
   it('should get LogLevel', () => {
-    expect(stringifyLogLevel('' as any)).toBe('')
+    assert.strictEqual(stringifyLogLevel('' as any), '')
   })
 
   it('should getTimestamp', () => {
     let res = getTimestamp(new Date())
-    expect(res).toBeDefined()
+    assert.notStrictEqual(res, undefined)
   })
 
   it('should convert digits', () => {
-    expect(toTwoDigits(1)).toBe('01')
-    expect(toTwoDigits(11)).toBe('11')
-    expect(toThreeDigits(1)).toBe('001')
-    expect(toThreeDigits(10)).toBe('010')
-    expect(toThreeDigits(100)).toBe('100')
+    assert.strictEqual(toTwoDigits(1), '01')
+    assert.strictEqual(toTwoDigits(11), '11')
+    assert.strictEqual(toThreeDigits(1), '001')
+    assert.strictEqual(toThreeDigits(10), '010')
+    assert.strictEqual(toThreeDigits(100), '100')
   })
 
   it('should get level from text', () => {
-    expect(textToLogLevel('trace')).toBe(LogLevel.Trace)
-    expect(textToLogLevel('debug')).toBe(LogLevel.Debug)
-    expect(textToLogLevel('info')).toBe(LogLevel.Info)
-    expect(textToLogLevel('error')).toBe(LogLevel.Error)
-    expect(textToLogLevel('warning')).toBe(LogLevel.Warning)
-    expect(textToLogLevel('warn')).toBe(LogLevel.Warning)
-    expect(textToLogLevel('off')).toBe(LogLevel.Off)
-    expect(textToLogLevel('')).toBe(LogLevel.Info)
+    assert.strictEqual(textToLogLevel('trace'), LogLevel.Trace)
+    assert.strictEqual(textToLogLevel('debug'), LogLevel.Debug)
+    assert.strictEqual(textToLogLevel('info'), LogLevel.Info)
+    assert.strictEqual(textToLogLevel('error'), LogLevel.Error)
+    assert.strictEqual(textToLogLevel('warning'), LogLevel.Warning)
+    assert.strictEqual(textToLogLevel('warn'), LogLevel.Warning)
+    assert.strictEqual(textToLogLevel('off'), LogLevel.Off)
+    assert.strictEqual(textToLogLevel(''), LogLevel.Info)
   })
 
   it('should format', () => {
@@ -51,9 +53,9 @@ describe('FileLogger', () => {
     } as any
     obj.z.parent = obj
     let res = format([obj], 2, true, false)
-    expect(res).toBeDefined()
+    assert.notStrictEqual(res, undefined)
     res = format([obj])
-    expect(res).toBeDefined()
+    assert.notStrictEqual(res, undefined)
   })
 
   it('should create logger', async () => {
@@ -76,30 +78,28 @@ describe('FileLogger', () => {
     await logger.flush()
     let content = fs.readFileSync(filepath, 'utf8')
     let lines = content.split(/\n/)
-    expect(lines.length).toBe(8)
-    expect(logger.category).toBeDefined()
-    expect(logger.getLevel()).toBeDefined()
+    assert.strictEqual(lines.length, 8)
+    assert.notStrictEqual(logger.category, undefined)
+    assert.notStrictEqual(logger.getLevel(), undefined)
   })
 
-  it('should switch to console', () => {
+  it('should switch to console', t => {
     filepath = path.join(os.tmpdir(), crypto.randomUUID())
     let fileLogger = new FileLogger(filepath, LogLevel.Trace, {})
     let logger = fileLogger.createLogger('scope')
     fileLogger.switchConsole()
-    let fn = vi.fn()
-    let spy = vi.spyOn(console, 'error').mockImplementation(() => {
+    let fn = t.mock.fn()
+    t.mock.method(console, 'error', () => {
       fn()
     })
     logger.error('error')
-    spy.mockRestore()
-    expect(fn).toHaveBeenCalled()
-    fn = vi.fn()
-    spy = vi.spyOn(console, 'log').mockImplementation(() => {
+    assert.ok(fn.mock.callCount() > 0)
+    fn = t.mock.fn()
+    t.mock.method(console, 'log', () => {
       fn()
     })
     logger.info('info')
-    spy.mockRestore()
-    expect(fn).toHaveBeenCalled()
+    assert.ok(fn.mock.callCount() > 0)
   })
 
   it('should enable color', async () => {
@@ -111,7 +111,7 @@ describe('FileLogger', () => {
     logger.info('msg', 1, true, { foo: 'bar' })
     await logger.flush()
     let content = fs.readFileSync(filepath, 'utf8')
-    expect(content.indexOf('\x33')).toBeGreaterThan(-1)
+    assert.ok(content.indexOf('\x33') > -1)
   })
 
   it('should change level', () => {
@@ -139,7 +139,7 @@ describe('FileLogger', () => {
     logger.fatal('fatal')
     logger.mark('mark')
     await logger.flush()
-    expect(fs.existsSync(filepath)).toBe(false)
+    assert.strictEqual(fs.existsSync(filepath), false)
   })
 
   it('should work without formatter', async () => {
@@ -152,62 +152,59 @@ describe('FileLogger', () => {
     await logger.flush()
     let content = fs.readFileSync(filepath, 'utf8')
     let lines = content.split(/\n/)
-    expect(lines.length).toBe(2)
+    assert.strictEqual(lines.length, 2)
   })
 
-  it('should use backup file', async () => {
+  it('should use backup file', async t => {
     filepath = path.join(os.tmpdir(), crypto.randomUUID())
     let fileLogger = new FileLogger(filepath, LogLevel.Trace, {
       userFormatters: true
     })
     let logger = fileLogger.createLogger('scope')
-    let spy = vi.spyOn(fileLogger, 'shouldBackup').mockImplementation(() => {
+    t.mock.method(fileLogger, 'shouldBackup', () => {
       return true
     })
     for (let i = 0; i < 6; i++) {
       logger.log(1)
     }
     await logger.flush()
-    spy.mockRestore()
     let newFile = filepath + `_1`
-    expect(fs.existsSync(newFile)).toBe(true)
+    assert.strictEqual(fs.existsSync(newFile), true)
   })
 
-  it('should not throw on error', async () => {
+  it('should not throw on error', async t => {
     filepath = path.join(os.tmpdir(), crypto.randomUUID())
     let fileLogger = new FileLogger(filepath, LogLevel.Trace, {
       userFormatters: false
     })
     let logger = fileLogger.createLogger('scope')
-    let fn = vi.fn()
-    let s = vi.spyOn(console, 'error').mockImplementation(() => {
+    let fn = t.mock.fn()
+    t.mock.method(console, 'error', () => {
       fn()
     })
-    let spy = vi.spyOn(fileLogger, 'shouldBackup').mockImplementation(() => {
+    t.mock.method(fileLogger, 'shouldBackup', () => {
       throw new Error('my error')
     })
     logger.log('msg\n')
     await logger.flush()
-    expect(fn).toHaveBeenCalled()
-    s.mockRestore()
-    spy.mockRestore()
+    assert.ok(fn.mock.callCount() > 0)
   })
 
   it('should create default logger', () => {
-    expect(createLogger()).toBeDefined()
+    assert.notStrictEqual(createLogger(), undefined)
   })
 
   it('should resolveLogFilepath from env', () => {
     let filepath = '/tmp/log'
     process.env.NVIM_COC_LOG_FILE = filepath
-    expect(resolveLogFilepath()).toBe(filepath)
+    assert.strictEqual(resolveLogFilepath(), filepath)
     process.env.NVIM_COC_LOG_FILE = ''
     process.env.XDG_RUNTIME_DIR = os.tmpdir()
-    expect(resolveLogFilepath()).toBeDefined()
+    assert.notStrictEqual(resolveLogFilepath(), undefined)
     process.env.XDG_RUNTIME_DIR = '/dir_not_exists'
-    expect(resolveLogFilepath()).toBeDefined()
+    assert.notStrictEqual(resolveLogFilepath(), undefined)
     process.env.XDG_RUNTIME_DIR = ''
-    expect(resolveLogFilepath()).toBeDefined()
+    assert.notStrictEqual(resolveLogFilepath(), undefined)
   })
 
   it('should empty file', async () => {
@@ -216,6 +213,6 @@ describe('FileLogger', () => {
     fs.writeFileSync(filepath, 'data', 'utf8')
     emptyFile(filepath)
     let content = fs.readFileSync(filepath, 'utf8')
-    expect(content.trim().length).toBe(0)
+    assert.strictEqual(content.trim().length, 0)
   })
 })

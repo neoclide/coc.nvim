@@ -1,3 +1,4 @@
+import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
@@ -10,31 +11,31 @@ import TreeView from '../../tree/TreeView'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import window from '../../window'
-import helper, { createNodes, NodeDef } from '../helper'
+import { createNodes } from '../unit/testUtils'
+import type { NodeDef } from '../unit/testUtils'
+import { afterEach, before, beforeEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
 let treeView: TreeView<TreeNode>
 let provider: BasicDataProvider<TreeNode>
 let nodes: TreeNode[]
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-})
-
-afterAll(async () => {
-  await helper.shutdown()
+before(async () => {
+  nvim = workspace.nvim
 })
 
 beforeEach(async () => {
-  await helper.createDocument()
+  await shared.createDocument()
 })
 
 afterEach(async () => {
   if (provider) provider.dispose()
   if (treeView) treeView.dispose()
   disposeAll(disposables)
-  await helper.reset()
+  // Disposal must complete before the outer suite resets the editor for the
+  // next test: treeView.dispose() bwipeout's its (unlisted) buffer via
+  // notification, while reset's %bwipeout! skips unlisted buffers.
 })
 
 function createNode(label: string, children?: TreeNode[], key?: string, tooltip?: string): TreeNode {
@@ -63,13 +64,10 @@ function updateData(defs: NodeDef[], reset = false) {
   provider.update(nodes, reset)
 }
 
-function makeUpdateUIThrowError() {
-  let spy = vi.spyOn(treeView as any, 'updateUI').mockImplementation(() => {
+function makeUpdateUIThrowError(t: any) {
+  t.mock.method(treeView as any, 'updateUI', () => {
     throw new Error('Test error')
   })
-  disposables.push(Disposable.create(() => {
-    spy.mockRestore()
-  }))
 }
 
 let defaultDef: NodeDef[] = [
@@ -79,65 +77,67 @@ let defaultDef: NodeDef[] = [
 ]
 
 async function checkLines(arr: string[]): Promise<void> {
-  await helper.waitValue(async () => {
+  await shared.waitValue(async () => {
     return await nvim.call('getline', [1, '$'])
   }, arr)
 }
 
+afterEach(editorReset)
+
 describe('TreeView', () => {
   describe('TreeItem()', () => {
-    it('should create TreeItem from resourceUri', async () => {
+    it('should create TreeItem from resourceUri', async t => {
       let item = new TreeItem(URI.file('/foo/bar.ts'))
-      expect(item.resourceUri).toBeDefined()
-      expect(item.label).toBe('bar.ts')
-      expect(item.label).toBeDefined()
+      assert.notStrictEqual(item.resourceUri, undefined)
+      assert.strictEqual(item.label, 'bar.ts')
+      assert.notStrictEqual(item.label, undefined)
     })
 
-    it('should get item label', async () => {
+    it('should get item label', async t => {
       let item = new TreeItem({ label: 'foo' }, TreeItemCollapsibleState.None)
-      expect(getItemLabel(item)).toBe('foo')
+      assert.strictEqual(getItemLabel(item), 'foo')
     })
   })
 
   describe('show()', () => {
-    it('should show with title', async () => {
+    it('should show with title', async t => {
       createTreeView(defaultDef)
-      expect(treeView).toBeDefined()
-      expect(treeView.visible).toBe(false)
-      expect(await treeView.checkLines()).toBe(false)
+      assert.notStrictEqual(treeView, undefined)
+      assert.strictEqual(treeView.visible, false)
+      assert.strictEqual(await treeView.checkLines(), false)
       await treeView.show()
       let visible = treeView.visible
-      expect(visible).toBe(true)
+      assert.strictEqual(visible, true)
       await checkLines(['test', '+ a', '+ b', '  g'])
       treeView.registerLocalKeymap('n', undefined, () => {})
       let called = false
       treeView.registerLocalKeymap('n', 'p', () => {
         called = true
       }, false)
-      await helper.wait(30)
+      await shared.wait(30)
       await nvim.input('p')
-      await helper.waitValue(() => called, true)
+      await shared.waitValue(() => called, true)
     })
 
-    it('should not show when visible', async () => {
+    it('should not show when visible', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       let windowId = treeView.windowId
       await treeView.show()
-      expect(treeView.windowId).toBe(windowId)
+      assert.strictEqual(treeView.windowId, windowId)
     })
 
-    it('should reuse window', async () => {
+    it('should reuse window', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       let windowId = treeView.windowId
       provider.dispose()
       createTreeView(defaultDef)
       await treeView.show()
-      expect(treeView.windowId).toBe(windowId)
+      assert.strictEqual(treeView.windowId, windowId)
     })
 
-    it('should render item icon', async () => {
+    it('should render item icon', async t => {
       createTreeView(defaultDef)
       nodes[0].icon = { text: 'i', hlGroup: 'Title' }
       nodes[1].icon = { text: 'i', hlGroup: 'Title' }
@@ -148,7 +148,7 @@ describe('TreeView', () => {
   })
 
   describe('configuration', () => {
-    it('should change open close icon', async () => {
+    it('should change open close icon', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       let { configurations } = workspace
@@ -169,14 +169,14 @@ describe('TreeView', () => {
         }, 2000)
         let disposable = treeView.onDidChangeVisibility(e => {
           clearTimeout(timer)
-          expect(e.visible).toBe(visible)
+          assert.strictEqual(e.visible, visible)
           disposable.dispose()
           resolve(undefined)
         })
       })
     }
 
-    it('should emit visibility change event', async () => {
+    it('should emit visibility change event', async t => {
       createTreeView(defaultDef)
       let p = waitVisibilityEvent(true)
       await treeView.show()
@@ -193,7 +193,7 @@ describe('TreeView', () => {
       await p
     })
 
-    it('should dispose on tab close', async () => {
+    it('should dispose on tab close', async t => {
       await nvim.command('tabe')
       await nvim.command('tabe')
       createTreeView(defaultDef)
@@ -203,12 +203,12 @@ describe('TreeView', () => {
       await nvim.command('close')
       await nvim.command('normal! 1gt')
       await nvim.command('tabonly')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return treeView.valid
       }, false)
     })
 
-    it('should registerLocalKeymap before shown', async () => {
+    it('should registerLocalKeymap before shown', async t => {
       createTreeView(defaultDef)
       let called = false
       treeView.registerLocalKeymap('n', 'p', () => {
@@ -217,14 +217,14 @@ describe('TreeView', () => {
       await treeView.show()
       await events.race(['TextChanged'], 50)
       await nvim.input('p')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return called
       }, true)
     })
   })
 
   describe('public properties', () => {
-    it('should change title', async () => {
+    it('should change title', async t => {
       createTreeView(defaultDef)
       treeView.title = 'foo'
       await treeView.show()
@@ -236,7 +236,7 @@ describe('TreeView', () => {
       await events.race(['TextChanged'], 50)
     })
 
-    it('should change description', async () => {
+    it('should change description', async t => {
       createTreeView(defaultDef)
       treeView.description = 'desc'
       await treeView.show()
@@ -249,7 +249,7 @@ describe('TreeView', () => {
       await checkLines(['test', '+ a', '+ b', '  g'])
     })
 
-    it('should change message', async () => {
+    it('should change message', async t => {
       createTreeView(defaultDef)
       treeView.message = 'hello'
       await treeView.show()
@@ -264,20 +264,20 @@ describe('TreeView', () => {
   })
 
   describe('options', () => {
-    it('should disable winfixwidth', async () => {
+    it('should disable winfixwidth', async t => {
       createTreeView(defaultDef, { winfixwidth: false })
       await treeView.show()
       let res = await nvim.eval('&winfixwidth')
-      expect(res).toBe(0)
+      assert.strictEqual(res, 0)
     })
 
-    it('should disable leaf indent', async () => {
+    it('should disable leaf indent', async t => {
       createTreeView(defaultDef, { disableLeafIndent: true })
       await treeView.show()
       await checkLines(['test', '+ a', '+ b', 'g'])
     })
 
-    it('should should adjust window width', async () => {
+    it('should should adjust window width', async t => {
       let def: NodeDef[] = [
         ['a', [['c'], ['d']]],
         ['very long line']
@@ -285,11 +285,11 @@ describe('TreeView', () => {
       createTreeView(def, { autoWidth: true })
       await treeView.show('belowright 10vs')
       let width = await nvim.call('winwidth', [0])
-      expect(width).toBeGreaterThan(10)
-      expect(treeView.targetWinId).toBeDefined()
+      assert.ok(Number(width) > 10)
+      assert.notStrictEqual(treeView.targetWinId, undefined)
     })
 
-    it('should support many selection', async () => {
+    it('should support many selection', async t => {
       createTreeView(defaultDef, { canSelectMany: true })
       await treeView.show()
       let selection: TreeNode[]
@@ -298,27 +298,27 @@ describe('TreeView', () => {
       })
       await nvim.command('exe 1')
       await nvim.input('<space>')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.command('exe 2')
       await nvim.input('<space>')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return selection?.length
       }, 1)
       await nvim.command('exe 3')
       await nvim.input('<space>')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return selection?.length
       }, 2)
       await nvim.input('<space>')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return selection.length
       }, 1)
       let buf = await nvim.buffer
       let res = await nvim.call('sign_getplaced', [buf.id, { group: 'CocTree' }])
       let signs = res[0].signs
-      expect(treeView.selection.length).toBe(1)
-      expect(signs.length).toBe(1)
-      expect(signs[0]).toEqual({
+      assert.strictEqual(treeView.selection.length, 1)
+      assert.strictEqual(signs.length, 1)
+      assert.deepStrictEqual(signs[0], {
         lnum: 2,
         id: 3001,
         name: 'CocTreeSelected',
@@ -335,18 +335,18 @@ describe('TreeView', () => {
       return res[0].signs.length
     }
 
-    it('should jump back by <C-o>', async () => {
+    it('should jump back by <C-o>', async t => {
       let winid = await nvim.call('win_getid')
       createTreeView(defaultDef)
       await treeView.show()
-      await helper.wait(30)
+      await shared.wait(30)
       await nvim.input('<C-o>')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return nvim.call('win_getid', [])
       }, winid)
     })
 
-    it('should toggle selection by <space>', async () => {
+    it('should toggle selection by <space>', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       let selection: TreeNode[]
@@ -355,22 +355,22 @@ describe('TreeView', () => {
       })
       await nvim.command('exe 1')
       await nvim.input('<space>')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.command('exe 2')
       await nvim.input('<space>')
-      await helper.waitValue(() => selection.length, 1)
+      await shared.waitValue(() => selection?.length, 1)
       await nvim.command('exe 3')
       await nvim.input('<space>')
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         return await getSingns()
       }, 1)
       await nvim.input('<space>')
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         return await getSingns()
       }, 0)
     })
 
-    it('should reset signs after expand & collapse', async () => {
+    it('should reset signs after expand & collapse', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       await nvim.command('exe 2')
@@ -385,31 +385,31 @@ describe('TreeView', () => {
       ])
       await nvim.command('exe 3')
       await nvim.input('<space>')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return getSingns()
       }, 1)
       await nvim.command('exe 2')
       await nvim.input('t')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return getSingns()
       }, 0)
       await nvim.input('t')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return getSingns()
       }, 1)
     })
 
-    it('should close tree view by close key', async () => {
-      helper.updateConfiguration('tree.key.close', 'c')
+    it('should close tree view by close key', async t => {
+      shared.updateConfiguration('tree.key.close', 'c')
       createTreeView(defaultDef)
       await treeView.show()
-      await helper.wait(30)
-      expect(treeView.visible).toBe(true)
+      await shared.wait(30)
+      assert.strictEqual(treeView.visible, true)
       await nvim.input('c')
-      await helper.waitValue(() => treeView.visible, false)
+      await shared.waitValue(() => treeView.visible, false)
     })
 
-    it('should invoke command by <cr>', async () => {
+    it('should invoke command by <cr>', async t => {
       let node: TreeNode
       createTreeView(defaultDef, {}, {
         handleClick: n => {
@@ -419,13 +419,13 @@ describe('TreeView', () => {
       await treeView.show()
       await treeView.invokeCommand(undefined)
       await nvim.input('<cr>')
-      await helper.waitValue(() => node, undefined)
+      await shared.waitValue(() => node, undefined)
       await nvim.command('exe 2')
       await nvim.input('<cr>')
-      await helper.waitValue(() => node && node.label, 'a')
+      await shared.waitValue(() => node && node.label, 'a')
     })
 
-    it('should not throw when resolve command cancelled', async () => {
+    it('should not throw when resolve command cancelled', async t => {
       let node: TreeNode
       let cancelled = false
       createTreeView(defaultDef, {}, {
@@ -451,28 +451,27 @@ describe('TreeView', () => {
       })
       await treeView.show()
       await nvim.command('exe 2')
-      let spy = vi.spyOn(console, 'error').mockImplementation(() => {
+      let spy = t.mock.method(console, 'error', () => {
         // noop
       })
       await nvim.input('<cr>')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.command('exe 1')
-      await helper.waitValue(() => cancelled, true)
-      spy.mockRestore()
-      expect(node).toBeUndefined()
+      await shared.waitValue(() => cancelled, true)
+      assert.strictEqual(node, undefined)
     })
 
-    it('should toggle expand by t', async () => {
+    it('should toggle expand by t', async t => {
       createTreeView(defaultDef)
       let c = nodes[0].children[0]
       c.children = [createNode('h')]
       await treeView.show()
       await nvim.command('exe 1')
       await nvim.input('t')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.command('exe 3')
       await nvim.input('t')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.command('exe 2')
       await nvim.input('t')
       await checkLines([
@@ -485,7 +484,7 @@ describe('TreeView', () => {
       ])
     })
 
-    it('should should collapse parent node by t', async () => {
+    it('should should collapse parent node by t', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       await nvim.command('exe 2')
@@ -508,18 +507,18 @@ describe('TreeView', () => {
       ])
     })
 
-    it('should collapse all nodes by M', async () => {
+    it('should collapse all nodes by M', async t => {
       createTreeView(defaultDef)
       let c = nodes[0].children[0]
       c.children = [createNode('h')]
       await treeView.show()
-      await helper.wait(50)
+      await shared.wait(50)
       await nvim.command('exe 2')
       await nvim.input('t')
-      await helper.wait(50)
+      await shared.wait(50)
       await nvim.command('exe 3')
       await nvim.input('t')
-      await helper.wait(50)
+      await shared.wait(50)
       await nvim.command('exe 6')
       await nvim.input('t')
       await checkLines([
@@ -541,15 +540,15 @@ describe('TreeView', () => {
         '  g',
       ])
       let res = await treeView.checkLines()
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
-    it('should toggle expand on open/close icon click', async () => {
+    it('should toggle expand on open/close icon click', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       await nvim.call('cursor', [1, 1])
       await nvim.input('<LeftRelease>')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.call('cursor', [2, 1])
       await nvim.input('<LeftRelease>')
       await checkLines([
@@ -568,10 +567,10 @@ describe('TreeView', () => {
         '  g',
       ])
       let res = await treeView.checkLines()
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
-    it('should invoke command on node click', async () => {
+    it('should invoke command on node click', async t => {
       let node: TreeNode
       createTreeView(defaultDef, {}, {
         handleClick: n => {
@@ -581,25 +580,25 @@ describe('TreeView', () => {
       await treeView.show()
       await nvim.call('cursor', [2, 3])
       await nvim.input('<LeftRelease>')
-      await helper.waitValue(() => node != null, true)
-      expect(node.label).toBe('a')
+      await shared.waitValue(() => node != null, true)
+      assert.strictEqual(node.label, 'a')
     })
   })
 
   describe('invokeActions', () => {
-    it('should show warning when resolveActions does not exist', async () => {
+    it('should show warning when resolveActions does not exist', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       await treeView.invokeActions(undefined)
       await nvim.call('cursor', [2, 3])
       await nvim.input('<tab>')
-      await helper.waitValue(async () => {
-        let cmdline = await helper.getCmdline()
+      await shared.waitValue(async () => {
+        let cmdline = await shared.getCmdline()
         return cmdline.includes('No actions')
       }, true)
     })
 
-    it('should show warning when resolveActions is empty', async () => {
+    it('should show warning when resolveActions is empty', async t => {
       createTreeView(defaultDef, {}, {
         resolveActions: () => {
           return []
@@ -608,13 +607,13 @@ describe('TreeView', () => {
       await treeView.show()
       await nvim.call('cursor', [2, 3])
       await nvim.input('<tab>')
-      await helper.waitValue(async () => {
-        let cmdline = await helper.getCmdline()
+      await shared.waitValue(async () => {
+        let cmdline = await shared.getCmdline()
         return cmdline.includes('No actions')
       }, true)
     })
 
-    it('should invoke selected action', async () => {
+    it('should invoke selected action', async t => {
       let args: any[]
       let called = false
       createTreeView(defaultDef, {}, {
@@ -631,23 +630,23 @@ describe('TreeView', () => {
       await treeView.show()
       await nvim.call('cursor', [2, 3])
       await nvim.input('<tab>')
-      await helper.waitPrompt()
+      await shared.waitPrompt()
       await nvim.input('<esc>')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('<tab>')
-      await helper.waitPrompt()
+      await shared.waitPrompt()
       await nvim.input('<cr>')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return called
       }, true)
-      expect(called).toBe(true)
-      expect(args[0].label).toBe('a')
-      expect(args[1].label).toBe('a')
+      assert.strictEqual(called, true)
+      assert.strictEqual(args[0].label, 'a')
+      assert.strictEqual(args[1].label, 'a')
     })
   })
 
   describe('events', () => {
-    it('should emit visibility change on buffer unload', async () => {
+    it('should emit visibility change on buffer unload', async t => {
       createTreeView(defaultDef)
       let visible
       treeView.onDidChangeVisibility(e => {
@@ -656,16 +655,13 @@ describe('TreeView', () => {
       await treeView.show()
       let buf = await nvim.buffer
       nvim.command(`bd! ${buf.id}`, true)
-      await helper.waitValue(() => visible, false)
+      await shared.waitValue(() => visible, false)
     })
 
-    it('should show tooltip on CursorHold', async () => {
-      let show = vi.fn()
-      let factory = { show, dispose: vi.fn() } as any
-      let spy = vi.spyOn(window, 'createFloatFactory').mockReturnValue(factory)
-      disposables.push(Disposable.create(() => {
-        spy.mockRestore()
-      }))
+    it('should show tooltip on CursorHold', async t => {
+      let show = t.mock.fn()
+      let factory = { show, dispose: t.mock.fn() } as any
+      t.mock.method(window, 'createFloatFactory', () => factory)
       createTreeView(defaultDef, {}, {
         resolveItem: (item, node) => {
           if (node.label == 'a') {
@@ -680,14 +676,14 @@ describe('TreeView', () => {
       await treeView.show()
       let bufnr = (treeView as any).bufnr as number
       await events.fire('CursorHold', [bufnr, [2, 1]])
-      expect(show).toHaveBeenCalledWith([{ filetype: 'txt', content: 'first' }])
+      assert.deepStrictEqual(show.mock.calls[0].arguments, [[{ filetype: 'txt', content: 'first' }]])
       await events.fire('CursorHold', [bufnr, [3, 1]])
-      expect(show).toHaveBeenLastCalledWith([{ filetype: 'markdown', content: '#title' }])
+      assert.deepStrictEqual(show.mock.calls[show.mock.calls.length - 1].arguments, [[{ filetype: 'markdown', content: '#title' }]])
     })
   })
 
   describe('data change', () => {
-    it('should ignore hidden node change', async () => {
+    it('should ignore hidden node change', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       let tick = await nvim.eval('b:changedtick')
@@ -696,12 +692,12 @@ describe('TreeView', () => {
         ['b', [['e'], ['f']]],
         ['g']
       ])
-      await helper.wait(20)
+      await shared.wait(20)
       let curr = await nvim.eval('b:changedtick')
-      expect(curr).toBe(tick)
+      assert.strictEqual(curr, tick)
     })
 
-    it('should render all nodes on root change', async () => {
+    it('should render all nodes on root change', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       updateData([
@@ -718,23 +714,23 @@ describe('TreeView', () => {
         '+ a',
       ])
       let res = await treeView.checkLines()
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
-    it('should keep node open state', async () => {
+    it('should keep node open state', async t => {
       createTreeView(defaultDef)
       let c = nodes[0].children[0]
       c.children = [createNode('h')]
       await treeView.show()
       await nvim.command('exe 2')
       await nvim.input('t')
-      await helper.wait(50)
+      await shared.wait(50)
       await nvim.command('exe 3')
       await nvim.input('t')
-      await helper.wait(50)
+      await shared.wait(50)
       await nvim.command('exe 6')
       await nvim.input('t')
-      await helper.wait(50)
+      await shared.wait(50)
       updateData([
         ['h'],
         ['g', [['i']]],
@@ -752,10 +748,10 @@ describe('TreeView', () => {
         '    j',
       ])
       let res = await treeView.checkLines()
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
-    it('should render changed nodes', async () => {
+    it('should render changed nodes', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       await nvim.command('exe 2')
@@ -775,10 +771,10 @@ describe('TreeView', () => {
         '  g',
       ])
       let res = await treeView.checkLines()
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
-    it('should error message on error', async () => {
+    it('should error message on error', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       await nvim.command('exe 2')
@@ -791,13 +787,13 @@ describe('TreeView', () => {
       updateData([['a']])
       await events.race(['TextChanged'])
       let line = await nvim.call('getline', [1])
-      expect(line).toMatch(msg)
-      await helper.waitValue(() => treeView.checkLines(), true)
+      assert.match(String(line), new RegExp(msg))
+      await shared.waitValue(() => treeView.checkLines(), true)
       let res = await treeView.checkLines()
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
-    it('should reset message when data exists', async () => {
+    it('should reset message when data exists', async t => {
       createTreeView([])
       let curr = []
       provider.getChildren = () => {
@@ -817,22 +813,22 @@ describe('TreeView', () => {
       ])
     })
 
-    it('should show error message on refresh error', async () => {
+    it('should show error message on refresh error', async t => {
       createTreeView(defaultDef)
       await treeView.show()
-      makeUpdateUIThrowError()
+      makeUpdateUIThrowError(t)
       updateData([
         ['a', [['h'], ['d']]],
         ['b', [['e'], ['f']]],
         ['g'],
       ])
-      await helper.waitValue(async () => {
-        let line = await helper.getCmdline()
+      await shared.waitValue(async () => {
+        let line = await shared.getCmdline()
         return line.includes('Error on tree refresh')
       }, true)
     })
 
-    it('should render deprecated node with deprecated highlight', async () => {
+    it('should render deprecated node with deprecated highlight', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       let defs: NodeDef[] = [
@@ -850,11 +846,11 @@ describe('TreeView', () => {
       let ns = await nvim.call('coc#highlight#create_namespace', ['tree'])
       let bufnr = await nvim.call('bufnr', ['%'])
       let markers = await nvim.call('nvim_buf_get_extmarks', [bufnr, ns, [1, 0], [1, -1], { details: true }]) as any[]
-      expect(markers.length > 0).toBe(true)
-      expect(markers[0][3]['hl_group']).toBe('CocDeprecatedHighlight')
+      assert.strictEqual(markers.length > 0, true)
+      assert.strictEqual(markers[0][3]['hl_group'], 'CocDeprecatedHighlight')
     })
 
-    it('should not throw when getTreeItem return undefined', async () => {
+    it('should not throw when getTreeItem return undefined', async t => {
       let provider: TreeDataProvider<any> = {
         getTreeItem: (): TreeItem => {
           return undefined
@@ -876,7 +872,7 @@ describe('TreeView', () => {
   })
 
   describe('focusItem()', () => {
-    it('should not throw when node not rendered', async () => {
+    it('should not throw when node not rendered', async t => {
       createTreeView(defaultDef)
       treeView.selectItem(undefined)
       treeView.focusItem(nodes[0])
@@ -888,17 +884,17 @@ describe('TreeView', () => {
       treeView.focusItem(undefined)
     })
 
-    it('should focus rendered node', async () => {
+    it('should focus rendered node', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       treeView.focusItem(nodes[1])
       let line = await nvim.call('getline', ['.'])
-      expect(line).toBe('+ b')
+      assert.strictEqual(line, '+ b')
     })
   })
 
   describe('reveal()', () => {
-    it('should throw error when getParent does not exist', async () => {
+    it('should throw error when getParent does not exist', async t => {
       createTreeView(defaultDef)
       provider.getParent = undefined
       await treeView.show()
@@ -908,10 +904,10 @@ describe('TreeView', () => {
       } catch (e) {
         err = e
       }
-      expect(err).toBeDefined()
+      assert.notStrictEqual(err, undefined)
     })
 
-    it('should select item', async () => {
+    it('should select item', async t => {
       createTreeView(defaultDef)
       let c = nodes[0].children[0]
       let h = createNode('h')
@@ -928,29 +924,29 @@ describe('TreeView', () => {
         '  g',
       ])
       let selection = treeView.selection
-      expect(selection.length).toBe(1)
-      expect(selection[0].label).toBe('h')
+      assert.strictEqual(selection.length, 1)
+      assert.strictEqual(selection[0].label, 'h')
       let line = await nvim.call('getline', ['.'])
-      expect(line).toMatch('h')
+      assert.match(String(line), new RegExp('h'))
     })
 
-    it('should not select item', async () => {
+    it('should not select item', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       await treeView.reveal(nodes[1], { select: false })
       let lnum = await nvim.call('line', ['.'])
-      expect(lnum).toBe(1)
+      assert.strictEqual(lnum, 1)
     })
 
-    it('should focus item', async () => {
+    it('should focus item', async t => {
       createTreeView(defaultDef)
       await treeView.show()
       await treeView.reveal(nodes[1], { focus: true })
       let line = await nvim.call('getline', ['.'])
-      expect(line).toMatch('b')
+      assert.match(String(line), new RegExp('b'))
     })
 
-    it('should expand item which single level', async () => {
+    it('should expand item which single level', async t => {
       createTreeView(defaultDef)
       let c = nodes[0].children[0]
       c.children = [createNode('h')]
@@ -966,7 +962,7 @@ describe('TreeView', () => {
       ])
     })
 
-    it('should expand item which 2 level', async () => {
+    it('should expand item which 2 level', async t => {
       createTreeView(defaultDef)
       let c = nodes[0].children[0]
       c.children = [createNode('h')]
@@ -994,29 +990,29 @@ describe('TreeView', () => {
       await treeView.show()
       let tick = await nvim.eval('b:changedtick') as number
       await nvim.input('f')
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         let c = await nvim.eval('b:changedtick') as number
         return c - tick > 1
       }, true)
     }
 
-    it('should start filter by input', async () => {
+    it('should start filter by input', async t => {
       await createFilterTreeView()
       await treeView.reveal(undefined)
       await checkLines([
         'test', ' ', '  a', '  c', '  d', '  b', '  e', '  f', '  g'
       ])
       await nvim.input('a')
-      await helper.waitFor('getline', [2], 'a ')
+      await shared.waitFor('getline', [2], 'a ')
     })
 
-    it('should not throw error on filter', async () => {
+    it('should not throw error on filter', async t => {
       await createFilterTreeView()
       let resolveUpdate: () => void
       let updated = new Promise<void>(resolve => {
         resolveUpdate = resolve
       })
-      let spy = vi.spyOn(treeView as any, 'getRenderedLine').mockImplementation(() => {
+      let spy = t.mock.method(treeView as any, 'getRenderedLine', () => {
         resolveUpdate()
         throw new Error('Error on updateUI')
       })
@@ -1024,83 +1020,82 @@ describe('TreeView', () => {
         await nvim.input('a')
         await updated
       } finally {
-        spy.mockRestore()
       }
     })
 
-    it('should add & remove Cursor highlight on window change', async () => {
+    it('should add & remove Cursor highlight on window change', async t => {
       let winid = await nvim.call('win_getid')
       let ns = await nvim.call('coc#highlight#create_namespace', ['tree'])
       await createFilterTreeView()
       let bufnr = await nvim.call('bufnr', ['%'])
       let markers = await nvim.call('nvim_buf_get_extmarks', [bufnr, ns, [1, 0], [1, -1], {}]) as [number, number, number][]
-      expect(markers[0]).toBeDefined()
+      assert.notStrictEqual(markers[0], undefined)
       await nvim.call('win_gotoid', [winid])
       markers = await nvim.call('nvim_buf_get_extmarks', [bufnr, ns, [1, 0], [1, -1], {}]) as [number, number, number][]
-      expect(markers.length).toBe(0)
+      assert.strictEqual(markers.length, 0)
       await nvim.command('wincmd p')
       markers = await nvim.call('nvim_buf_get_extmarks', [bufnr, ns, [1, 0], [1, -1], {}]) as [number, number, number][]
-      expect(markers.length).toBe(1)
+      assert.strictEqual(markers.length, 1)
     })
 
-    it('should filter new nodes on data change', async () => {
+    it('should filter new nodes on data change', async t => {
       await createFilterTreeView()
       await nvim.input('a')
-      await helper.waitFor('getline', [2], 'a ')
+      await shared.waitFor('getline', [2], 'a ')
       updateData([
         ['ab'],
         ['e'],
         ['fA']
       ])
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         return await nvim.call('getline', [1, '$'])
       }, ['test', 'a ', '  ab', '  fA',])
     })
 
-    it('should change selected item by <up> and <down>', async () => {
+    it('should change selected item by <up> and <down>', async t => {
       await createFilterTreeView()
       await nvim.input('a')
-      await helper.waitFor('getline', [2], 'a ')
+      await shared.waitFor('getline', [2], 'a ')
       updateData([
         ['ab'],
         ['fA']
       ])
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         return await nvim.call('getline', [1, '$'])
       }, ['test', 'a ', '  ab', '  fA'])
       await nvim.input('<down>')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         let curr = treeView.selection[0]
         return curr.label
       }, 'fA')
       await nvim.input('<down>')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         let curr = treeView.selection[0]
         return curr.label
       }, 'ab')
       await nvim.input('<up>')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         let curr = treeView.selection[0]
         return curr.label
       }, 'fA')
       await nvim.input('<up>')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         let curr = treeView.selection[0]
         return curr.label
       }, 'ab')
     })
 
-    it('should not throw with empty nodes', async () => {
+    it('should not throw with empty nodes', async t => {
       await createFilterTreeView()
       await nvim.input('ab')
       await checkLines(['test', 'ab '])
       await nvim.input('<up><down><cr>')
       await checkLines(['test', 'ab '])
       let curr = treeView.selection[0]
-      expect(curr).toBeUndefined()
+      assert.strictEqual(curr, undefined)
     })
 
-    it('should invoke command by <cr>', async () => {
+    it('should invoke command by <cr>', async t => {
       let node
       await createFilterTreeView({
         handleClick: n => {
@@ -1108,42 +1103,42 @@ describe('TreeView', () => {
         }
       })
       await nvim.input('<cr>')
-      await helper.waitValue(() => node != null, true)
+      await shared.waitValue(() => node != null, true)
       let curr = treeView.selection[0]
-      expect(curr).toBeDefined()
+      assert.notStrictEqual(curr, undefined)
     })
 
-    it('should keep state when press <cr> with empty selection', async () => {
+    it('should keep state when press <cr> with empty selection', async t => {
       await createFilterTreeView()
       await nvim.input('ab')
-      await helper.waitValue(async () => nvim.call('getline', [1, '$']), ['test', 'ab '])
+      await shared.waitValue(async () => nvim.call('getline', [1, '$']), ['test', 'ab '])
       await nvim.input('<cr>')
       await checkLines(['test', 'ab '])
     })
 
-    it('should delete last filter character by <bs>', async () => {
+    it('should delete last filter character by <bs>', async t => {
       await createFilterTreeView()
       await nvim.input('a')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('<bs>')
       await checkLines([
         'test', ' ', '  a', '  c', '  d', '  b', '  e', '  f', '  g'
       ])
     })
 
-    it('should clean filter character by <C-u>', async () => {
+    it('should clean filter character by <C-u>', async t => {
       await createFilterTreeView()
       await nvim.input('ab')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('<C-u>')
       await checkLines([
         'test', ' ', '  a', '  c', '  d', '  b', '  e', '  f', '  g'
       ])
     })
 
-    it('should cancel filter by <esc> and <C-o>', async () => {
+    it('should cancel filter by <esc> and <C-o>', async t => {
       await createFilterTreeView()
-      await helper.waitPrompt()
+      await shared.waitPrompt()
       await nvim.input('<esc>')
       await checkLines([
         'test',
@@ -1152,7 +1147,7 @@ describe('TreeView', () => {
         '  g',
       ])
       await nvim.input('f')
-      await helper.waitPrompt()
+      await shared.waitPrompt()
       await nvim.input('<C-o>')
       await checkLines([
         'test',
@@ -1162,33 +1157,33 @@ describe('TreeView', () => {
       ])
     })
 
-    it('should navigate input history by <C-n> and <C-p>', async () => {
+    it('should navigate input history by <C-n> and <C-p>', async t => {
       await createFilterTreeView()
       await nvim.input('a')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('<esc>')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('f')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('b')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('<C-o>')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('f')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('<C-n>')
       await checkLines(['test', 'b ', '  b',])
       await nvim.input('<C-p>')
       await checkLines(['test', 'a ', '  a',])
     })
 
-    it('should not throw on filter error', async () => {
+    it('should not throw on filter error', async t => {
       await createFilterTreeView()
       let resolveRedraw: () => void
       let redrawn = new Promise<void>(resolve => {
         resolveRedraw = resolve
       })
-      let spy = vi.spyOn(treeView as any, 'redraw').mockImplementation(() => {
+      let spy = t.mock.method(treeView as any, 'redraw', () => {
         resolveRedraw()
         throw new Error('test error')
       })
@@ -1196,7 +1191,6 @@ describe('TreeView', () => {
         await nvim.input('a')
         await redrawn
       } finally {
-        spy.mockRestore()
       }
     })
   })

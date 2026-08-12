@@ -1,62 +1,56 @@
+import workspace from '../../workspace'
+import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import events from '../../events'
 import FloatFactoryImpl from '../../model/floatFactory'
 import snippetManager from '../../snippets/manager'
 import { Documentation } from '../../types'
-import helper from '../helper'
+import { afterEach, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let floatFactory: FloatFactoryImpl
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
+before(async () => {
+  nvim = workspace.nvim
   floatFactory = new FloatFactoryImpl(nvim)
 })
 
-afterAll(async () => {
-  await helper.shutdown()
-  floatFactory.dispose()
-})
-
-afterEach(async () => {
-  floatFactory.close()
-  await helper.reset()
-})
+afterEach(editorReset)
 
 describe('FloatFactory', () => {
   describe('show()', () => {
-    it('should close after create window', async () => {
+    it('should close after create window', async t => {
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'f'
       }]
       let p = floatFactory.show(docs, { shadow: true, focusable: true, rounded: true, border: [1, 1, 1, 1] })
       floatFactory.close()
-      await helper.wait(20)
+      await shared.wait(20)
       let win = floatFactory.window
-      expect(win).toBeNull()
+      assert.strictEqual(win, null)
     })
 
-    it('should show window', async () => {
-      expect(floatFactory.window).toBe(null)
-      expect(floatFactory.buffer).toBe(null)
-      expect(floatFactory.bufnr).toBe(0)
+    it('should show window', async t => {
+      assert.strictEqual(floatFactory.window, null)
+      assert.strictEqual(floatFactory.buffer, null)
+      assert.strictEqual(floatFactory.bufnr, 0)
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'f'.repeat(81)
       }]
       await floatFactory.show(docs, { rounded: true })
-      expect(floatFactory.window).toBeDefined()
-      expect(floatFactory.buffer).toBeDefined()
+      assert.notStrictEqual(floatFactory.window, undefined)
+      assert.notStrictEqual(floatFactory.buffer, undefined)
       let buffer = floatFactory.buffer!
-      expect(await buffer.name).toBe(`coc-float://${buffer.id}`)
+      assert.strictEqual(await buffer.name, `coc-float://${buffer.id}`)
       let hasFloat = await nvim.call('coc#float#has_float')
-      expect(hasFloat).toBe(1)
+      assert.strictEqual(hasFloat, 1)
       await floatFactory.show([{ filetype: 'txt', content: '' }])
-      expect(floatFactory.window).toBe(null)
+      assert.strictEqual(floatFactory.window, null)
     })
 
-    it('should close when MenuPopupChanged', async () => {
+    it('should close when MenuPopupChanged', async t => {
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'f'.repeat(81)
@@ -78,33 +72,33 @@ describe('FloatFactory', () => {
       }
       await events.fire('MenuPopupChanged', [ev, 22])
       await events.fire('MenuPopupChanged', [ev, 20])
-      expect(floatFactory.window).toBeNull()
+      assert.strictEqual(floatFactory.window, null)
       floatFactory.close()
     })
 
-    it('should create fixed float window', async () => {
+    it('should create fixed float window', async t => {
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'foo'
       }]
       await floatFactory.show(docs, { position: 'fixed', focusable: true, bottom: 1, right: 1 })
       let res = await nvim.call('screenpos', [floatFactory.window.id, 1, 1]) as any
-      expect(res).toBeDefined()
-      expect(res.col > 150).toBe(true)
-      expect(res.row > 70).toBe(true)
+      assert.notStrictEqual(res, undefined)
+      assert.strictEqual(res.col > 150, true)
+      assert.strictEqual(res.row > 70, true)
       floatFactory.close()
     })
 
-    it('should create window', async () => {
+    it('should create window', async t => {
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'f'.repeat(81)
       }]
       await floatFactory.create(docs)
-      expect(floatFactory.window).toBeDefined()
+      assert.notStrictEqual(floatFactory.window, undefined)
     })
 
-    it('should catch error on create', async () => {
+    it('should catch error on create', async t => {
       let fn = floatFactory.unbind
       floatFactory.unbind = () => {
         throw new Error('bad')
@@ -115,12 +109,12 @@ describe('FloatFactory', () => {
       }]
       await floatFactory.show(docs)
       floatFactory.unbind = fn
-      let msg = await helper.getCmdline()
-      expect(msg).toMatch('bad')
+      let msg = await shared.getCmdline()
+      assert.match(msg, new RegExp('bad'))
     })
 
-    it('should show only one window', async () => {
-      await helper.edit()
+    it('should show only one window', async t => {
+      await shared.edit()
       await nvim.setLine('foo')
       let docs: Documentation[] = [{
         filetype: 'markdown',
@@ -136,24 +130,24 @@ describe('FloatFactory', () => {
         let isFloat = await win.getVar('float')
         if (isFloat) count++
       }
-      expect(count).toBe(1)
+      assert.strictEqual(count, 1)
     })
 
-    it('should close window when close called after create', async () => {
+    it('should close window when close called after create', async t => {
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'f'
       }]
       let p = floatFactory.show(docs)
-      await helper.wait(20)
+      await shared.wait(20)
       floatFactory.close()
       await p
       let activated = await floatFactory.activated()
-      expect(activated).toBe(false)
+      assert.strictEqual(activated, false)
     })
 
-    it('should not create on visual mode', async () => {
-      await helper.createDocument()
+    it('should not create on visual mode', async t => {
+      await shared.createDocument()
       await nvim.call('cursor', [1, 1])
       await nvim.setLine('foo')
       await nvim.command('normal! v$')
@@ -162,11 +156,11 @@ describe('FloatFactory', () => {
         content: 'f'
       }]
       await floatFactory.show(docs)
-      expect(floatFactory.window).toBe(null)
+      assert.strictEqual(floatFactory.window, null)
     })
 
-    it('should allow select mode', async () => {
-      await helper.createDocument()
+    it('should allow select mode', async t => {
+      await shared.createDocument()
       await snippetManager.insertSnippet('${1:foo}')
       let docs: Documentation[] = [{
         filetype: 'markdown',
@@ -174,27 +168,27 @@ describe('FloatFactory', () => {
       }]
       await floatFactory.show(docs)
       let { mode } = await nvim.mode
-      expect(mode).toBe('s')
+      assert.strictEqual(mode, 's')
       await nvim.input('<esc>')
     })
   })
 
   describe('checkRetrigger', () => {
-    it('should check retrigger', async () => {
-      expect(floatFactory.checkRetrigger(99)).toBe(false)
+    it('should check retrigger', async t => {
+      assert.strictEqual(floatFactory.checkRetrigger(99), false)
       let bufnr = await nvim.call('bufnr', ['%']) as number
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'f'
       }]
       await floatFactory.show(docs)
-      expect(floatFactory.checkRetrigger(99)).toBe(false)
-      expect(floatFactory.checkRetrigger(bufnr)).toBe(true)
+      assert.strictEqual(floatFactory.checkRetrigger(99), false)
+      assert.strictEqual(floatFactory.checkRetrigger(bufnr), true)
     })
   })
 
   describe('options', () => {
-    it('should config maxHeight and maxWidth', async () => {
+    it('should config maxHeight and maxWidth', async t => {
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'f'.repeat(80) + '\nbar',
@@ -204,14 +198,14 @@ describe('FloatFactory', () => {
         maxHeight: 1
       })
       let win = floatFactory.window
-      expect(win).toBeDefined()
+      assert.notStrictEqual(win, undefined)
       let width = await win.width
       let height = await win.height
-      expect(width).toBe(19)
-      expect(height).toBe(1)
+      assert.strictEqual(width, 19)
+      assert.strictEqual(height, 1)
     })
 
-    it('should set border, title, highlight, borderhighlight, cursorline', async () => {
+    it('should set border, title, highlight, borderhighlight, cursorline', async t => {
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'foo\nbar'
@@ -224,10 +218,10 @@ describe('FloatFactory', () => {
         cursorline: true
       })
       let activated = await floatFactory.activated()
-      expect(activated).toBe(true)
+      assert.strictEqual(activated, true)
     })
 
-    it('should respect prefer top', async () => {
+    it('should respect prefer top', async t => {
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'foo\nbar'
@@ -235,26 +229,26 @@ describe('FloatFactory', () => {
       await nvim.call('append', [1, ['', '', '']])
       await nvim.command('exe 4')
       await floatFactory.show(docs, { preferTop: true })
-      let win = await helper.getFloat()
-      expect(win).toBeDefined()
+      let win = await shared.getFloat()
+      assert.notStrictEqual(win, undefined)
       let pos = await nvim.call('nvim_win_get_position', [win.id])
-      expect(pos).toEqual([1, 0])
+      assert.deepStrictEqual(pos, [1, 0])
     })
   })
 
   describe('events', () => {
-    it('should hide on BufEnter', async () => {
-      await helper.edit()
+    it('should hide on BufEnter', async t => {
+      await shared.edit()
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'foo'
       }]
       await floatFactory.show(docs)
       await nvim.command(`edit foo`)
-      await helper.waitFor('coc#float#has_float', [], 0)
+      await shared.waitFor('coc#float#has_float', [], 0)
     })
 
-    it('should not hide when not moved', async () => {
+    it('should not hide when not moved', async t => {
       let bufnr = await nvim.call('bufnr', ['%']) as number
       let docs: Documentation[] = [{
         filetype: 'markdown',
@@ -264,8 +258,8 @@ describe('FloatFactory', () => {
       floatFactory._onCursorMoved(false, bufnr, [1, 1])
     })
 
-    it('should hide on CursorMoved', async () => {
-      let doc = await helper.createDocument()
+    it('should hide on CursorMoved', async t => {
+      let doc = await shared.createDocument()
       await nvim.input('i')
       await nvim.setLine('foo')
       let docs: Documentation[] = [{
@@ -273,13 +267,13 @@ describe('FloatFactory', () => {
         content: 'foo'
       }]
       await floatFactory.show(docs)
-      await helper.waitFloat()
+      await shared.waitFloat()
       floatFactory._onCursorMoved(true, doc.bufnr, [3, 3])
-      await helper.waitFor('coc#float#has_float', [], 0)
+      await shared.waitFor('coc#float#has_float', [], 0)
     })
 
-    it('should not hide when cursor position not changed', async () => {
-      await helper.edit()
+    it('should not hide when cursor position not changed', async t => {
+      await shared.edit()
       await nvim.setLine('foo')
       let cursor = await nvim.eval("[line('.'), col('.')]")
       let docs: Documentation[] = [{
@@ -289,21 +283,21 @@ describe('FloatFactory', () => {
       await floatFactory.show(docs)
       floatFactory._onCursorMoved(false, floatFactory.bufnr, [1, 1])
       await nvim.call('cursor', cursor)
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.call('cursor', cursor)
-      await helper.wait(20)
-      await helper.waitFor('coc#float#has_float', [], 1)
+      await shared.wait(20)
+      await shared.waitFor('coc#float#has_float', [], 1)
     })
 
-    it('should preserve float when autohide disable and not overlap with pum', async () => {
-      let doc = await helper.createDocument()
+    it('should preserve float when autohide disable and not overlap with pum', async t => {
+      let doc = await shared.createDocument()
       await doc.buffer.setLines(['foo', '', '', '', 'f'], { start: 0, end: -1, strictIndexing: false })
       await doc.synchronize()
       await nvim.call('cursor', [5, 1])
       await nvim.input('A')
-      await helper.waitFor('mode', [], 'i')
+      await shared.waitFor('mode', [], 'i')
       nvim.call('coc#start', [], true)
-      await helper.waitPopup()
+      await shared.waitPopup()
       let docs: Documentation[] = [{
         filetype: 'markdown',
         content: 'foo'
@@ -313,7 +307,7 @@ describe('FloatFactory', () => {
         autoHide: false
       })
       let activated = await floatFactory.activated()
-      expect(activated).toBe(true)
+      assert.strictEqual(activated, true)
     })
   })
 })

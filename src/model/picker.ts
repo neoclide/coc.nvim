@@ -210,8 +210,7 @@ export default class Picker {
     if (item.description) line = line + ` ${item.description}`
     nvim.call('setbufline', [this.bufnr, index + 1, line], true)
     let buf = nvim.createBuffer(this.bufnr)
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    buf.addHighlight({ hlGroup: 'Comment', line: index, srcId: 1, colStart: col, colEnd: -1 })
+    void buf.addHighlight({ hlGroup: 'Comment', line: index, srcId: 1, colStart: col, colEnd: -1 })
   }
 
   private addKeys(keys: string | string[], fn: (character: string) => void): void {

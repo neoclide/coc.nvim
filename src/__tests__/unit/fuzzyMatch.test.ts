@@ -1,10 +1,12 @@
 import { matchScoreWithPositions } from '../../completion/match'
 import { FuzzyMatch, matchSpansReverse, FuzzyWasi, initFuzzyWasm } from '../../model/fuzzyMatch'
 import { getCharCodes } from '../../util/fuzzy'
+import { before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 describe('FuzzyMatch', () => {
   let api: FuzzyWasi
-  beforeAll(async () => {
+  before(async () => {
     api = await initFuzzyWasm()
   })
 
@@ -16,7 +18,7 @@ describe('FuzzyMatch', () => {
       for (let item of arr) {
         res.push(item)
       }
-      expect(res).toEqual(results)
+      assert.deepStrictEqual(res, results)
     }
     verify('foobar', [0, 1, 3], [[0, 2], [3, 4]])
     verify('foobar', [0], [[0, 1]])
@@ -36,7 +38,7 @@ describe('FuzzyMatch', () => {
       for (let item of arr) {
         res.push(item)
       }
-      expect(res).toEqual(results)
+      assert.deepStrictEqual(res, results)
     }
     verify('foobar', [3, 1, 0], [[0, 2], [3, 4]])
     verify('foobar', [-1, 2, 3, 1, 0], [[0, 2], [3, 4]], 2)
@@ -53,23 +55,23 @@ describe('FuzzyMatch', () => {
   it('should createScoreFunction', async () => {
     let f = new FuzzyMatch(api)
     let fn = f.createScoreFunction('a', 0)
-    expect(fn).toBeDefined()
+    assert.notStrictEqual(fn, undefined)
     fn = f.createScoreFunction('a', 0, undefined, 'normal')
-    expect(fn).toBeDefined()
+    assert.notStrictEqual(fn, undefined)
     fn = f.createScoreFunction('a', 0, undefined, 'aggressive')
-    expect(fn).toBeDefined()
+    assert.notStrictEqual(fn, undefined)
     fn = f.createScoreFunction('a', 0, undefined, 'any')
-    expect(fn).toBeDefined()
+    assert.notStrictEqual(fn, undefined)
     let res = fn('asdf')
-    expect(res).toBeDefined()
-    expect(res[2]).toBe(0)
+    assert.notStrictEqual(res, undefined)
+    assert.strictEqual(res[2], 0)
     let spans: [number, number][] = []
     for (let span of f.matchScoreSpans('asdf', res)) {
       spans.push(span)
     }
-    expect(spans).toEqual([[0, 1]])
+    assert.deepStrictEqual(spans, [[0, 1]])
     res = fn('asdf')
-    expect(res).toBeDefined()
+    assert.notStrictEqual(res, undefined)
   })
 
   it('should throw when not set pattern', () => {
@@ -77,7 +79,7 @@ describe('FuzzyMatch', () => {
     let fn = () => {
       p.match('text')
     }
-    expect(fn).toThrow(Error)
+    assert.throws(fn, Error)
     p.free()
   })
 
@@ -85,9 +87,9 @@ describe('FuzzyMatch', () => {
     let p = new FuzzyMatch(undefined)
     p.setPattern('foo')
     let res = p.match('foobar')
-    expect(res).toBeDefined()
-    expect(res.score).toBeGreaterThan(0)
-    expect(Array.from(res.positions)).toEqual([0, 1, 2])
+    assert.notStrictEqual(res, undefined)
+    assert.ok(res.score > 0)
+    assert.deepStrictEqual(Array.from(res.positions), [0, 1, 2])
     p.free()
   })
 
@@ -95,26 +97,26 @@ describe('FuzzyMatch', () => {
     let p = new FuzzyMatch(undefined)
     p.setPattern('')
     let res = p.match('foo')
-    expect(res.score).toBe(100)
-    expect(res.positions.length).toBe(0)
+    assert.strictEqual(res.score, 100)
+    assert.strictEqual(res.positions.length, 0)
   })
 
   it('should fallback to JS scorer for highlights', () => {
     let p = new FuzzyMatch(undefined)
     p.setPattern('你好')
     let res = p.matchHighlights('你好世界', 'CocSearch')
-    expect(res).toBeDefined()
-    expect(res.score).toBeGreaterThan(0)
-    expect(res.highlights[0].hlGroup).toBe('CocSearch')
-    expect(res.highlights[0].span).toEqual([0, 6])
+    assert.notStrictEqual(res, undefined)
+    assert.ok(res.score > 0)
+    assert.strictEqual(res.highlights[0].hlGroup, 'CocSearch')
+    assert.deepStrictEqual(res.highlights[0].span, [0, 6])
     p.free()
   })
 
   it('should throw when not set pattern without wasm', () => {
     let p = new FuzzyMatch(undefined)
-    expect(() => {
+    assert.throws(() => {
       p.match('text')
-    }).toThrow(Error)
+    }, Error)
   })
 
   it('should slice pattern when necessary', () => {
@@ -122,24 +124,24 @@ describe('FuzzyMatch', () => {
     let p = new FuzzyMatch(api)
     p.setPattern(pat)
     let res = p.match('a'.repeat(260))
-    expect(res).toBeDefined()
-    expect(res.positions.length).toBe(256)
+    assert.notStrictEqual(res, undefined)
+    assert.strictEqual(res.positions.length, 256)
   })
 
   it('should match empty pattern', () => {
     let p = new FuzzyMatch(api)
     p.setPattern('')
     let res = p.match('foo')
-    expect(res.score).toBe(100)
-    expect(res.positions.length).toBe(0)
+    assert.strictEqual(res.score, 100)
+    assert.strictEqual(res.positions.length, 0)
   })
 
   it('should increase content size when necessary', () => {
     let p = new FuzzyMatch(api)
     p.setPattern('p')
     let res = p.match('b'.repeat(2100))
-    expect(res).toBeUndefined()
-    expect(p.getSizes()[0]).toBe(2101)
+    assert.strictEqual(res, undefined)
+    assert.strictEqual(p.getSizes()[0], 2101)
     p.free()
   })
 
@@ -147,8 +149,8 @@ describe('FuzzyMatch', () => {
     let p = new FuzzyMatch(api)
     p.setPattern('a')
     let res = p.match('b'.repeat(40960))
-    expect(res).toBeUndefined()
-    expect(p.getSizes()[0]).toBe(4097)
+    assert.strictEqual(res, undefined)
+    assert.strictEqual(p.getSizes()[0], 4097)
     p.free()
     p.free()
   })
@@ -157,47 +159,47 @@ describe('FuzzyMatch', () => {
     let p = new FuzzyMatch(api)
     p.setPattern('fb')
     let res = p.match('fooBar')
-    expect(res).toBeDefined()
-    expect(Array.from(res.positions)).toEqual([0, 3])
+    assert.notStrictEqual(res, undefined)
+    assert.deepStrictEqual(Array.from(res.positions), [0, 3])
     res = p.match('foaab')
-    expect(res).toBeDefined()
-    expect(Array.from(res.positions)).toEqual([0, 4])
+    assert.notStrictEqual(res, undefined)
+    assert.deepStrictEqual(Array.from(res.positions), [0, 4])
   })
 
   it('should fuzzy match multi byte', () => {
     let p = new FuzzyMatch(api)
     p.setPattern('f你好')
     let res = p.match('foo你好Bar')
-    expect(Array.from(res.positions)).toEqual([0, 3, 4])
+    assert.deepStrictEqual(Array.from(res.positions), [0, 3, 4])
   })
 
   it('should match highlights', () => {
     let p = new FuzzyMatch(api)
     p.setPattern('fb')
     let res = p.matchHighlights('fooBar', 'Text')
-    expect(res).toBeDefined()
-    expect(res.highlights).toEqual([
+    assert.notStrictEqual(res, undefined)
+    assert.deepStrictEqual(res.highlights, [
       { span: [0, 1], hlGroup: 'Text' },
       { span: [3, 4], hlGroup: 'Text' }
     ])
     p.setPattern('你')
     res = p.matchHighlights('吃了吗你', 'Text')
-    expect(res).toBeDefined()
-    expect(res.highlights).toEqual([
+    assert.notStrictEqual(res, undefined)
+    assert.deepStrictEqual(res.highlights, [
       { span: [9, 12], hlGroup: 'Text' }
     ])
     res = p.matchHighlights('abc', 'Text')
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
   })
 
   it('should support matchSeq', () => {
     let p = new FuzzyMatch(api)
     p.setPattern('foob')
     let res = p.match('fooBar')
-    expect(Array.from(res.positions)).toEqual([0, 1, 2, 3])
+    assert.deepStrictEqual(Array.from(res.positions), [0, 1, 2, 3])
     p.setPattern('f b', true)
     res = p.match('foo bar')
-    expect(Array.from(res.positions)).toEqual([0, 3, 4])
+    assert.deepStrictEqual(Array.from(res.positions), [0, 3, 4])
   })
 
   it('should better performance', () => {

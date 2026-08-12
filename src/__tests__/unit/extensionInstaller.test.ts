@@ -5,6 +5,8 @@ import { PassThrough } from 'stream'
 import child_process from 'child_process'
 import { getDependencies, getExtensionDependencies, Info, Installer, isNpmCommand, isYarn, registryUrl } from '../../extension/installer'
 import { remove } from '../../util/fs'
+import { afterEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 const rcfile = path.join(os.tmpdir(), '.npmrc')
 let tmpfolder: string
@@ -15,85 +17,84 @@ afterEach(() => {
 })
 
 describe('utils', () => {
-  it('should getDependencies & getExtensionDependencies', async () => {
-    expect(getDependencies({})).toEqual([])
-    expect(getDependencies({ dependencies: { 'coc.nvim': '0.0.1' } })).toEqual([])
-    expect(getExtensionDependencies({})).toEqual([])
-    expect(getExtensionDependencies({ extensionDependencies: ['extension-1', 'extension-1'] })).toEqual(['extension-1'])
+  it('should getDependencies & getExtensionDependencies', async t => {
+    assert.deepStrictEqual(getDependencies({}), [])
+    assert.deepStrictEqual(getDependencies({ dependencies: { 'coc.nvim': '0.0.1' } }), [])
+    assert.deepStrictEqual(getExtensionDependencies({}), [])
+    assert.deepStrictEqual(getExtensionDependencies({ extensionDependencies: ['extension-1', 'extension-1'] }), ['extension-1'])
   })
 
-  it('should check command is npm or yarn', async () => {
-    expect(isNpmCommand('npm')).toBe(true)
-    expect(isYarn('yarnpkg')).toBe(true)
+  it('should check command is npm or yarn', async t => {
+    assert.strictEqual(isNpmCommand('npm'), true)
+    assert.strictEqual(isYarn('yarnpkg'), true)
   })
 
-  it('should get registry url', async () => {
+  it('should get registry url', async t => {
     const getUrl = () => {
       return registryUrl(os.tmpdir())
     }
     fs.rmSync(rcfile, { force: true, recursive: true })
-    expect(getUrl().toString()).toBe('https://registry.npmjs.org/')
+    assert.strictEqual(getUrl().toString(), 'https://registry.npmjs.org/')
     fs.writeFileSync(rcfile, '', 'utf8')
-    expect(getUrl().toString()).toBe('https://registry.npmjs.org/')
+    assert.strictEqual(getUrl().toString(), 'https://registry.npmjs.org/')
     fs.writeFileSync(rcfile, 'coc.nvim:registry=https://example.org', 'utf8')
-    expect(getUrl().toString()).toBe('https://example.org/')
+    assert.strictEqual(getUrl().toString(), 'https://example.org/')
     fs.writeFileSync(rcfile, '#coc.nvim:registry=https://example.org', 'utf8')
-    expect(getUrl().toString()).toBe('https://registry.npmjs.org/')
+    assert.strictEqual(getUrl().toString(), 'https://registry.npmjs.org/')
     fs.writeFileSync(rcfile, 'coc.nvim:registry=example.org', 'utf8')
-    expect(getUrl().toString()).toBe('https://registry.npmjs.org/')
+    assert.strictEqual(getUrl().toString(), 'https://registry.npmjs.org/')
     fs.rmSync(rcfile, { force: true, recursive: true })
   })
 
-  it('should parse name & version', async () => {
+  it('should parse name & version', async t => {
     const getInfo = (def: string): { name?: string, version?: string } => {
-      let installer = new Installer(__dirname, 'npm', def)
+      let installer = new Installer(import.meta.dirname, 'npm', def)
       return installer.info
     }
-    expect(getInfo('https://github.com')).toEqual({ name: undefined, version: undefined })
-    expect(getInfo('@yaegassy/coc-intelephense')).toEqual({ name: '@yaegassy/coc-intelephense', version: undefined })
-    expect(getInfo('@yaegassy/coc-intelephense@1.0.0')).toEqual({ name: '@yaegassy/coc-intelephense', version: '1.0.0' })
-    expect(getInfo('foo@1.0.0')).toEqual({ name: 'foo', version: '1.0.0' })
+    assert.deepStrictEqual(getInfo('https://github.com'), { name: undefined, version: undefined })
+    assert.deepStrictEqual(getInfo('@yaegassy/coc-intelephense'), { name: '@yaegassy/coc-intelephense', version: undefined })
+    assert.deepStrictEqual(getInfo('@yaegassy/coc-intelephense@1.0.0'), { name: '@yaegassy/coc-intelephense', version: '1.0.0' })
+    assert.deepStrictEqual(getInfo('foo@1.0.0'), { name: 'foo', version: '1.0.0' })
   })
 })
 
 describe('Installer', () => {
   describe('fetch() & download()', () => {
-    it('should throw with invalid url', async () => {
-      let installer = new Installer(__dirname, 'npm', 'foo')
+    it('should throw with invalid url', async t => {
+      let installer = new Installer(import.meta.dirname, 'npm', 'foo')
       let fn = async () => {
         await installer.fetch('url')
       }
-      await expect(fn()).rejects.toThrow()
+      await assert.rejects(fn(), )
       fn = async () => {
         await installer.download('url', { dest: '' })
       }
-      await expect(fn()).rejects.toThrow()
+      await assert.rejects(fn(), )
     })
   })
 
   describe('getInfo()', () => {
-    it('should get install arguments', async () => {
-      let installer = new Installer(__dirname, 'npm', 'https://github.com/')
-      expect(installer.getInstallArguments('pnpm', 'https://github.com/')).toEqual({ env: 'development', args: ['install'] })
-      expect(installer.getInstallArguments('npm', '')).toEqual({ env: 'production', args: ['install', '--ignore-scripts', '--no-package-lock', '--omit=dev', '--legacy-peer-deps', '--no-global'] })
-      expect(installer.getInstallArguments('yarn', '')).toEqual({ env: 'production', args: ['install', '--ignore-scripts', '--no-lockfile', '--production', '--ignore-engines'] })
-      expect(installer.getInstallArguments('pnpm', '')).toEqual({ env: 'production', args: ['install', '--ignore-scripts', '--no-lockfile', '--production', '--config.strict-peer-dependencies=false'] })
+    it('should get install arguments', async t => {
+      let installer = new Installer(import.meta.dirname, 'npm', 'https://github.com/')
+      assert.deepStrictEqual(installer.getInstallArguments('pnpm', 'https://github.com/'), { env: 'development', args: ['install'] })
+      assert.deepStrictEqual(installer.getInstallArguments('npm', ''), { env: 'production', args: ['install', '--ignore-scripts', '--no-package-lock', '--omit=dev', '--legacy-peer-deps', '--no-global'] })
+      assert.deepStrictEqual(installer.getInstallArguments('yarn', ''), { env: 'production', args: ['install', '--ignore-scripts', '--no-lockfile', '--production', '--ignore-engines'] })
+      assert.deepStrictEqual(installer.getInstallArguments('pnpm', ''), { env: 'production', args: ['install', '--ignore-scripts', '--no-lockfile', '--production', '--config.strict-peer-dependencies=false'] })
     })
 
-    it('should getInfo from url', async () => {
-      let installer = new Installer(__dirname, 'npm', 'https://github.com/')
-      let spy = vi.spyOn(installer, 'getInfoFromUri').mockImplementation(() => {
+    it('should getInfo from url', async t => {
+      let installer = new Installer(import.meta.dirname, 'npm', 'https://github.com/')
+      let spy = t.mock.method(installer, 'getInfoFromUri', () => {
         return Promise.resolve({ name: 'vue-vscode-snippets', version: '1.0.0' })
       })
       let res = await installer.getInfo()
-      expect(res).toBeDefined()
-      spy.mockRestore()
+      assert.notStrictEqual(res, undefined)
     })
 
-    it('should use latest version', async () => {
-      let installer = new Installer(__dirname, 'npm', 'coc-omni')
-      let spy = vi.spyOn(installer, 'fetch').mockImplementation(url => {
-        expect(url.toString()).toMatch('coc-omni')
+    it('should use latest version', async t => {
+      let installer = new Installer(import.meta.dirname, 'npm', 'coc-omni')
+      let spy = t.mock.method(installer, 'fetch', url => {
+        assert.match(url.toString(), new RegExp('coc-omni'))
         return Promise.resolve(JSON.stringify({
           name: 'coc-omni',
           'dist-tags': { latest: '1.0.0' },
@@ -107,13 +108,12 @@ describe('Installer', () => {
         }))
       })
       let info = await installer.getInfo()
-      expect(info).toBeDefined()
-      spy.mockRestore()
+      assert.notStrictEqual(info, undefined)
     })
 
-    it('should throw when version not found', async () => {
-      let installer = new Installer(__dirname, 'npm', 'coc-omni@1.0.2')
-      let spy = vi.spyOn(installer, 'fetch').mockImplementation(() => {
+    it('should throw when version not found', async t => {
+      let installer = new Installer(import.meta.dirname, 'npm', 'coc-omni@1.0.2')
+      let spy = t.mock.method(installer, 'fetch', () => {
         return Promise.resolve(JSON.stringify({
           name: 'coc-omni',
           'dist-tags': { latest: '1.0.0' },
@@ -129,13 +129,12 @@ describe('Installer', () => {
       let fn = async () => {
         await installer.getInfo()
       }
-      await expect(fn()).rejects.toThrow(/doesn't exists/)
-      spy.mockRestore()
+      await assert.rejects(fn(), /doesn't exists/)
     })
 
-    it('should throw when not coc.nvim extension', async () => {
-      let installer = new Installer(__dirname, 'npm', 'coc-omni')
-      let spy = vi.spyOn(installer, 'fetch').mockImplementation(() => {
+    it('should throw when not coc.nvim extension', async t => {
+      let installer = new Installer(import.meta.dirname, 'npm', 'coc-omni')
+      let spy = t.mock.method(installer, 'fetch', () => {
         return Promise.resolve(JSON.stringify({
           name: 'coc-omni',
           'dist-tags': { latest: '1.0.0' },
@@ -150,89 +149,83 @@ describe('Installer', () => {
       let fn = async () => {
         await installer.getInfo()
       }
-      await expect(fn()).rejects.toThrow(/not a valid/)
-      spy.mockRestore()
+      await assert.rejects(fn(), /not a valid/)
     })
   })
 
   describe('getInfoFromUri()', () => {
-    it('should throw for url that not supported', async () => {
-      let installer = new Installer(__dirname, 'npm', 'https://example.com')
+    it('should throw for url that not supported', async t => {
+      let installer = new Installer(import.meta.dirname, 'npm', 'https://example.com')
       let fn = async () => {
         await installer.getInfoFromUri()
       }
-      await expect(fn()).rejects.toThrow(/not supported/)
+      await assert.rejects(fn(), /not supported/)
     })
 
-    it('should get info from url #1', async () => {
-      let installer = new Installer(__dirname, 'npm', 'https://github.com/sdras/vue-vscode-snippets')
-      let spy = vi.spyOn(installer, 'fetch').mockImplementation(() => {
+    it('should get info from url #1', async t => {
+      let installer = new Installer(import.meta.dirname, 'npm', 'https://github.com/sdras/vue-vscode-snippets')
+      let spy = t.mock.method(installer, 'fetch', () => {
         return Promise.resolve(JSON.stringify({ name: 'vue-vscode-snippets', version: '1.0.0' }))
       })
       let info = await installer.getInfoFromUri()
-      expect(info['dist.tarball']).toMatch(/master.tar.gz/)
-      spy.mockRestore()
+      assert.match(info['dist.tarball'], /master.tar.gz/)
     })
 
-    it('should get info from url #2', async () => {
-      let installer = new Installer(__dirname, 'npm', 'https://github.com/sdras/vue-vscode-snippets@main')
-      let spy = vi.spyOn(installer, 'fetch').mockImplementation(() => {
+    it('should get info from url #2', { timeout: 10000 }, async t => {
+      let installer = new Installer(import.meta.dirname, 'npm', 'https://github.com/sdras/vue-vscode-snippets@main')
+      let spy = t.mock.method(installer, 'fetch', () => {
         return Promise.resolve({ name: 'vue-vscode-snippets', version: '1.0.0', engines: { coc: '>=0.0.1' } })
       })
       let info = await installer.getInfoFromUri()
-      expect(info['dist.tarball']).toMatch(/main.tar.gz/)
-      expect(info['engines.coc']).toEqual('>=0.0.1')
-      spy.mockRestore()
-    }, 10000)
+      assert.match(info['dist.tarball'], /main.tar.gz/)
+      assert.deepStrictEqual(info['engines.coc'], '>=0.0.1')
+    })
   })
 
   describe('update()', () => {
-    it('should skip install & update for symbolic folder', async () => {
+    it('should skip install & update for symbolic folder', async t => {
       tmpfolder = path.join(os.tmpdir(), 'foo')
       fs.rmSync(tmpfolder, { recursive: true, force: true })
-      fs.symlinkSync(__dirname, tmpfolder, 'dir')
+      fs.symlinkSync(import.meta.dirname, tmpfolder, 'dir')
       let installer = new Installer(os.tmpdir(), 'npm', 'foo')
       let res = await installer.doInstall({ name: 'foo' })
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
       let val = await installer.update()
-      expect(val).toBeUndefined()
+      assert.strictEqual(val, undefined)
     })
 
-    it('should update from url', async () => {
+    it('should update from url', async t => {
       let url = 'https://github.com/sdras/vue-vscode-snippets@main'
-      let installer = new Installer(__dirname, 'npm', url)
-      let spy = vi.spyOn(installer, 'getInfo').mockImplementation(() => {
+      let installer = new Installer(import.meta.dirname, 'npm', url)
+      let spy = t.mock.method(installer, 'getInfo', () => {
         return Promise.resolve({ version: '1.0.0', name: 'vue-vscode-snippets' })
       })
-      let s = vi.spyOn(installer, 'doInstall').mockImplementation(() => {
+      let s = t.mock.method(installer, 'doInstall', () => {
         return Promise.resolve(true)
       })
       let res = await installer.update(url)
-      expect(res).toBeDefined()
-      spy.mockRestore()
-      s.mockRestore()
+      assert.notStrictEqual(res, undefined)
     })
 
-    it('should skip update when current version is latest', async () => {
+    it('should skip update when current version is latest', async t => {
       tmpfolder = path.join(os.tmpdir(), 'coc-pairs')
       let installer = new Installer(os.tmpdir(), 'npm', 'coc-pairs')
       let version = '1.0.0'
-      let spy = vi.spyOn(installer, 'getInfo').mockImplementation(() => {
+      let spy = t.mock.method(installer, 'getInfo', () => {
         return Promise.resolve({ version })
       })
       let info = await installer.getInfo()
       fs.mkdirSync(tmpfolder)
       fs.writeFileSync(path.join(tmpfolder, 'package.json'), `{"version": "${info.version}"}`, 'utf8')
       let res = await installer.update()
-      expect(res).toBeUndefined()
-      spy.mockRestore()
+      assert.strictEqual(res, undefined)
     })
 
-    it('should skip update when version not satisfies', async () => {
+    it('should skip update when version not satisfies', async t => {
       tmpfolder = path.join(os.tmpdir(), 'coc-pairs')
       let installer = new Installer(os.tmpdir(), 'npm', 'coc-pairs')
       let version = '2.0.0'
-      let spy = vi.spyOn(installer, 'getInfo').mockImplementation(() => {
+      let spy = t.mock.method(installer, 'getInfo', () => {
         return Promise.resolve({ version, 'engines.coc': '>=99.0.0' })
       })
       fs.mkdirSync(tmpfolder)
@@ -240,52 +233,47 @@ describe('Installer', () => {
       let fn = async () => {
         await installer.update()
       }
-      await expect(fn()).rejects.toThrow(Error)
-      spy.mockRestore()
+      await assert.rejects(fn(), Error)
     })
 
-    it('should return undefined when update not performed', async () => {
+    it('should return undefined when update not performed', async t => {
       tmpfolder = path.join(os.tmpdir(), 'coc-pairs')
       let installer = new Installer(os.tmpdir(), 'npm', 'coc-pairs')
       let version = '2.0.0'
-      let spy = vi.spyOn(installer, 'getInfo').mockImplementation(() => {
+      let spy = t.mock.method(installer, 'getInfo', () => {
         return Promise.resolve({ version })
       })
-      let s = vi.spyOn(installer, 'doInstall').mockImplementation(() => {
+      let s = t.mock.method(installer, 'doInstall', () => {
         return Promise.resolve(false)
       })
       fs.mkdirSync(tmpfolder)
       fs.writeFileSync(path.join(tmpfolder, 'package.json'), `{"version": "1.0.0"}`, 'utf8')
       let res = await installer.update()
-      expect(res).toBeUndefined()
-      spy.mockRestore()
-      s.mockRestore()
+      assert.strictEqual(res, undefined)
     })
 
-    it('should update extension', async () => {
+    it('should update extension', async t => {
       tmpfolder = path.join(os.tmpdir(), 'coc-pairs')
       let installer = new Installer(os.tmpdir(), 'npm', 'coc-pairs')
       let version = '2.0.0'
-      let spy = vi.spyOn(installer, 'getInfo').mockImplementation(() => {
+      let spy = t.mock.method(installer, 'getInfo', () => {
         return Promise.resolve({ version, name: 'coc-pairs' })
       })
-      let s = vi.spyOn(installer, 'doInstall').mockImplementation(() => {
+      let s = t.mock.method(installer, 'doInstall', () => {
         return Promise.resolve(true)
       })
       fs.mkdirSync(tmpfolder, { recursive: true })
       fs.writeFileSync(path.join(tmpfolder, 'package.json'), `{"version": "1.0.0"}`, 'utf8')
       let res = await installer.update()
-      expect(res).toBeDefined()
-      spy.mockRestore()
-      s.mockRestore()
+      assert.notStrictEqual(res, undefined)
       await remove(tmpfolder)
     })
   })
 
   describe('install()', () => {
-    it('should throw when version not match required', async () => {
-      let installer = new Installer(__dirname, 'npm', 'coc-omni')
-      let spy = vi.spyOn(installer, 'getInfo').mockImplementation(() => {
+    it('should throw when version not match required', async t => {
+      let installer = new Installer(import.meta.dirname, 'npm', 'coc-omni')
+      let spy = t.mock.method(installer, 'getInfo', () => {
         return Promise.resolve({
           name: 'coc-omni',
           version: '1.0.0',
@@ -296,13 +284,12 @@ describe('Installer', () => {
       let fn = async () => {
         await installer.install()
       }
-      await expect(fn()).rejects.toThrow(Error)
-      spy.mockRestore()
+      await assert.rejects(fn(), Error)
     })
 
-    it('should return install info', async () => {
-      let installer = new Installer(__dirname, 'npm', 'coc-omni')
-      let spy = vi.spyOn(installer, 'getInfo').mockImplementation(() => {
+    it('should return install info', async t => {
+      let installer = new Installer(import.meta.dirname, 'npm', 'coc-omni')
+      let spy = t.mock.method(installer, 'getInfo', () => {
         return Promise.resolve({
           name: 'coc-omni',
           version: '1.0.0',
@@ -310,21 +297,19 @@ describe('Installer', () => {
           'engines.coc': '>=0.0.1'
         })
       })
-      let s = vi.spyOn(installer, 'doInstall').mockImplementation(() => {
+      let s = t.mock.method(installer, 'doInstall', () => {
         return Promise.resolve(true)
       })
       let res = await installer.install()
-      expect(res.updated).toBe(true)
-      s.mockRestore()
-      spy.mockRestore()
+      assert.strictEqual(res.updated, true)
     })
 
-    it('should throw and remove folder when download failed', async () => {
+    it('should throw and remove folder when download failed', async t => {
       tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
       let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
       let folder: string
       let option: any
-      let spy = vi.spyOn(installer, 'download').mockImplementation((_url, opt) => {
+      let spy = t.mock.method(installer, 'download', (_url, opt) => {
         folder = opt.dest
         option = opt
         fs.mkdirSync(folder, { recursive: true })
@@ -334,37 +319,35 @@ describe('Installer', () => {
       let fn = async () => {
         await installer.doInstall(info)
       }
-      await expect(fn()).rejects.toThrow(Error)
-      expect(option.etagAlgorithm).toBe('md5')
+      await assert.rejects(fn(), Error)
+      assert.strictEqual(option.etagAlgorithm, 'md5')
       let exists = fs.existsSync(folder)
-      expect(exists).toBe(false)
-      spy.mockRestore()
+      assert.strictEqual(exists, false)
     })
 
-    it('should revert folder when download failed', async () => {
+    it('should revert folder when download failed', async t => {
       tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
       let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
       let f = path.join(tmpfolder, 'coc-omni')
       fs.mkdirSync(f, { recursive: true })
       fs.writeFileSync(path.join(f, 'package.json'), '{}', 'utf8')
-      let spy = vi.spyOn(installer, 'download').mockImplementation(() => {
+      let spy = t.mock.method(installer, 'download', () => {
         throw new Error('my error')
       })
       let info: Info = { name: 'coc-omni', version: '1.0.0', 'dist.tarball': 'tarball' }
       let fn = async () => {
         await installer.doInstall(info)
       }
-      await expect(fn()).rejects.toThrow(Error)
-      spy.mockRestore()
+      await assert.rejects(fn(), Error)
       let exist = fs.existsSync(path.join(f, 'package.json'))
-      expect(exist).toBe(true)
+      assert.strictEqual(exist, true)
     })
 
-    it('should install new extension', async () => {
+    it('should install new extension', async t => {
       tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
       let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
       let f = path.join(tmpfolder, 'coc-omni')
-      let spy = vi.spyOn(installer, 'download').mockImplementation((_url, option) => {
+      let spy = t.mock.method(installer, 'download', (_url, option) => {
         if (option.onProgress) {
           option.onProgress('10')
         }
@@ -375,19 +358,18 @@ describe('Installer', () => {
       })
       let info: Info = { name: 'coc-omni', version: '1.0.0', 'dist.tarball': 'tarball' }
       let res = await installer.doInstall(info)
-      spy.mockRestore()
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let exist = fs.existsSync(path.join(f, 'package.json'))
-      expect(exist).toBe(true)
+      assert.strictEqual(exist, true)
     })
 
-    it('should install new version', async () => {
+    it('should install new version', async t => {
       tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
       let installer = new Installer(tmpfolder, 'npm', 'coc-omni')
       let f = path.join(tmpfolder, 'coc-omni')
       fs.mkdirSync(f, { recursive: true })
       fs.writeFileSync(path.join(f, 'package.json'), '{}', 'utf8')
-      let spy = vi.spyOn(installer, 'download').mockImplementation((_url, option) => {
+      let spy = t.mock.method(installer, 'download', (_url, option) => {
         if (option.onProgress) {
           option.onProgress('10')
         }
@@ -398,14 +380,13 @@ describe('Installer', () => {
       })
       let info: Info = { name: 'coc-omni', version: '1.0.0', 'dist.tarball': 'tarball' }
       let res = await installer.doInstall(info)
-      spy.mockRestore()
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let exist = fs.existsSync(path.join(f, 'package.json'))
-      expect(exist).toBe(true)
+      assert.strictEqual(exist, true)
     })
 
-    it('should install dependencies', async () => {
-      let npm = path.resolve(__dirname, '../npm')
+    it('should install dependencies', async t => {
+      let npm = path.resolve(import.meta.dirname, '../npm')
       tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(tmpfolder)
       let installer = new Installer(tmpfolder, npm, 'coc-omni')
@@ -414,11 +395,11 @@ describe('Installer', () => {
         called = true
       })
       await installer.installDependencies(tmpfolder, ['a', 'b'])
-      expect(called).toBe(true)
+      assert.strictEqual(called, true)
     })
 
-    it('should not mutate process.env when installing dependencies', async () => {
-      let npm = path.resolve(__dirname, '../npm')
+    it('should not mutate process.env when installing dependencies', async t => {
+      let npm = path.resolve(import.meta.dirname, '../npm')
       tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(tmpfolder)
       let installer = new Installer(tmpfolder, npm, 'coc-omni')
@@ -434,38 +415,36 @@ describe('Installer', () => {
           return fakeChild
         }
       }
-      let spy = vi.spyOn(child_process, 'spawn').mockImplementation((_cmd, _args, opts: any) => {
+      let spy = t.mock.method(child_process, 'spawn', (_cmd, _args, opts: any) => {
         spawnedEnv = opts.env
         return fakeChild
       })
       await installer.installDependencies(tmpfolder, ['a', 'b'])
-      spy.mockRestore()
-      expect(spawnedEnv?.NODE_ENV).toBe('production')
-      expect(process.env.NODE_ENV).toBe(envBefore)
+      assert.strictEqual(spawnedEnv?.NODE_ENV, 'production')
+      assert.strictEqual(process.env.NODE_ENV, envBefore)
     })
 
-    it('should reject on install error', async () => {
-      let npm = path.resolve(__dirname, '../npm')
+    it('should reject on install error', async t => {
+      let npm = path.resolve(import.meta.dirname, '../npm')
       tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(tmpfolder)
       let installer = new Installer(tmpfolder, npm, 'coc-omni')
-      let spy = vi.spyOn(installer, 'getInstallArguments').mockImplementation(() => {
+      let spy = t.mock.method(installer, 'getInstallArguments', () => {
         return { env: 'production', args: ['--error'] }
       })
       let fn = async () => {
         await installer.installDependencies(tmpfolder, ['a', 'b'])
       }
-      await expect(fn()).rejects.toThrow(Error)
-      spy.mockRestore()
+      await assert.rejects(fn(), Error)
     })
 
-    it('should install extension dependencies', async () => {
-      let getInfoSpy = vi.spyOn(Installer.prototype, 'getInfo').mockImplementation(async function() {
+    it('should install extension dependencies', { timeout: 10000 }, async t => {
+      let getInfoSpy = t.mock.method(Installer.prototype, 'getInfo', async function() {
         // @ts-expect-error this
         const name = this.info.name
         return { name, version: '1.0.0', 'dist.tarball': `https://example.com/${name}.tgz` }
       })
-      let downloadSpy = vi.spyOn(Installer.prototype, 'download').mockImplementation(async function(url, options) {
+      let downloadSpy = t.mock.method(Installer.prototype, 'download', async function(url, options) {
         fs.mkdirSync(options.dest, { recursive: true })
         let name = path.basename(url, '.tgz')
         let pkg = {
@@ -481,21 +460,19 @@ describe('Installer', () => {
       let installer = new Installer(tmpfolder, 'npm', 'coc-extension-with-dependencies@1.0.0')
       await installer.install()
 
-      expect(fs.existsSync(path.join(tmpfolder, 'coc-extension-with-dependencies'))).toBe(true)
-      expect(fs.existsSync(path.join(tmpfolder, 'coc-dependency-1'))).toBe(true)
-      expect(fs.existsSync(path.join(tmpfolder, 'coc-dependency-2'))).toBe(true)
+      assert.strictEqual(fs.existsSync(path.join(tmpfolder, 'coc-extension-with-dependencies')), true)
+      assert.strictEqual(fs.existsSync(path.join(tmpfolder, 'coc-dependency-1')), true)
+      assert.strictEqual(fs.existsSync(path.join(tmpfolder, 'coc-dependency-2')), true)
 
-      getInfoSpy.mockRestore()
-      downloadSpy.mockRestore()
-    }, 10000)
+    })
 
-    it('should not leave main extension installed when extension dependency fails', async () => {
-      let getInfoSpy = vi.spyOn(Installer.prototype, 'getInfo').mockImplementation(async function() {
+    it('should not leave main extension installed when extension dependency fails', async t => {
+      let getInfoSpy = t.mock.method(Installer.prototype, 'getInfo', async function() {
         // @ts-expect-error this
         const name = this.info.name
         return { name, version: '1.0.0', 'dist.tarball': `https://example.com/${name}.tgz` }
       })
-      let downloadSpy = vi.spyOn(Installer.prototype, 'download').mockImplementation(async function(url, options) {
+      let downloadSpy = t.mock.method(Installer.prototype, 'download', async function(url, options) {
         let name = path.basename(url, '.tgz')
         if (name === 'coc-bad-dependency') {
           throw new Error('download failed')
@@ -512,20 +489,18 @@ describe('Installer', () => {
 
       tmpfolder = path.join(os.tmpdir(), 'coc-test-fail')
       let installer = new Installer(tmpfolder, 'npm', 'coc-main-with-bad-dep@1.0.0')
-      await expect(installer.install()).rejects.toThrow()
-      expect(fs.existsSync(path.join(tmpfolder, 'coc-main-with-bad-dep'))).toBe(false)
+      await assert.rejects(installer.install(), )
+      assert.strictEqual(fs.existsSync(path.join(tmpfolder, 'coc-main-with-bad-dep')), false)
 
-      getInfoSpy.mockRestore()
-      downloadSpy.mockRestore()
     })
 
-    it('should skip shared dependency without misleading circular message', async () => {
-      let getInfoSpy = vi.spyOn(Installer.prototype, 'getInfo').mockImplementation(async function() {
+    it('should skip shared dependency without misleading circular message', async t => {
+      let getInfoSpy = t.mock.method(Installer.prototype, 'getInfo', async function() {
         // @ts-expect-error this
         const name = this.info.name
         return { name, version: '1.0.0', 'dist.tarball': `https://example.com/${name}.tgz` }
       })
-      let downloadSpy = vi.spyOn(Installer.prototype, 'download').mockImplementation(async function(url, options) {
+      let downloadSpy = t.mock.method(Installer.prototype, 'download', async function(url, options) {
         let name = path.basename(url, '.tgz')
         fs.mkdirSync(options.dest, { recursive: true })
         let pkg: any = {
@@ -548,15 +523,13 @@ describe('Installer', () => {
         messages.push(msg)
       })
       await installer.install()
-      expect(fs.existsSync(path.join(tmpfolder, 'coc-main-shared'))).toBe(true)
-      expect(fs.existsSync(path.join(tmpfolder, 'coc-dep-a'))).toBe(true)
-      expect(fs.existsSync(path.join(tmpfolder, 'coc-dep-b'))).toBe(true)
-      expect(fs.existsSync(path.join(tmpfolder, 'coc-shared'))).toBe(true)
-      expect(messages.some(m => m.includes('Skipping dependency: coc-shared'))).toBe(true)
-      expect(messages.some(m => m.includes('Skipping circular dependency'))).toBe(false)
+      assert.strictEqual(fs.existsSync(path.join(tmpfolder, 'coc-main-shared')), true)
+      assert.strictEqual(fs.existsSync(path.join(tmpfolder, 'coc-dep-a')), true)
+      assert.strictEqual(fs.existsSync(path.join(tmpfolder, 'coc-dep-b')), true)
+      assert.strictEqual(fs.existsSync(path.join(tmpfolder, 'coc-shared')), true)
+      assert.strictEqual(messages.some(m => m.includes('Skipping dependency: coc-shared')), true)
+      assert.strictEqual(messages.some(m => m.includes('Skipping circular dependency')), false)
 
-      getInfoSpy.mockRestore()
-      downloadSpy.mockRestore()
     })
   })
 })

@@ -1,26 +1,22 @@
+import workspace from '../../workspace'
+import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import Picker, { toPickerItems } from '../../model/picker'
 import { QuickPickItem } from '../../types'
-import helper from '../helper'
+import { afterEach, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let picker: Picker
-
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
+before(async () => {
+  nvim = workspace.nvim
 })
 
-afterAll(async () => {
-  await helper.shutdown()
-})
-
-afterEach(async () => {
+afterEach(() => {
   if (picker) picker.dispose()
   picker = undefined
-  await helper.reset()
 })
 
 async function inputChar(ch: string): Promise<void> {
@@ -29,41 +25,41 @@ async function inputChar(ch: string): Promise<void> {
 
 const items: QuickPickItem[] = [{ label: 'foo' }, { label: 'bar' }]
 describe('util', () => {
-  it('should convert picker items', () => {
-    expect(toPickerItems([{ label: 'foo' }])).toEqual([{ label: 'foo' }])
-    expect(toPickerItems(['foo'])).toEqual([{ label: 'foo' }])
+  it('should convert picker items', t => {
+    assert.deepStrictEqual(toPickerItems([{ label: 'foo' }]), [{ label: 'foo' }])
+    assert.deepStrictEqual(toPickerItems(['foo']), [{ label: 'foo' }])
   })
 })
 
 describe('Picker create', () => {
-  it('should show dialog with buttons', async () => {
+  it('should show dialog with buttons', async t => {
     picker = new Picker(nvim, { title: 'title', items: items.concat([{ label: 'three', picked: true }]) })
     let winid = await picker.show({ pickerButtons: true })
-    expect(winid).toBeDefined()
+    assert.notStrictEqual(winid, undefined)
     let id = await nvim.call('coc#float#get_related', [winid, 'buttons'])
-    expect(id).toBeGreaterThan(0)
+    assert.ok(Number(id) > 0)
     let res = await nvim.call('sign_getplaced', [picker.buffer.id, { group: 'PopUpCocDialog' }])
-    expect(res[0].signs).toBeDefined()
-    expect(res[0].signs[0].name).toBe('CocCurrentLine')
+    assert.notStrictEqual(res[0].signs, undefined)
+    assert.strictEqual(res[0].signs[0].name, 'CocCurrentLine')
   })
 
-  it('should cancel dialog when cancellation token requested', async () => {
+  it('should cancel dialog when cancellation token requested', async t => {
     let tokenSource = new CancellationTokenSource()
     picker = new Picker(nvim, { title: 'title', items }, tokenSource.token)
     let winid = await picker.show({ pickerButtons: true, pickerButtonShortcut: true })
-    expect(winid).toBeDefined()
+    assert.notStrictEqual(winid, undefined)
     tokenSource.cancel()
     let win = nvim.createWindow(winid)
-    await helper.waitValue(async () => {
+    await shared.waitValue(async () => {
       return await win.valid
     }, false)
   })
 
-  it('should cancel dialog without window', async () => {
+  it('should cancel dialog without window', async t => {
     let tokenSource = new CancellationTokenSource()
     picker = new Picker(nvim, { title: 'title', items }, tokenSource.token)
-    expect(picker.buffer).toBeUndefined()
-    expect(picker.currIndex).toBe(0)
+    assert.strictEqual(picker.buffer, undefined)
+    assert.strictEqual(picker.currIndex, 0)
     await picker.onInputChar('picker', 'i')
     picker.changeLine(-1)
     tokenSource.cancel()
@@ -71,53 +67,53 @@ describe('Picker create', () => {
 })
 
 describe('Picker key mappings', () => {
-  it('should toggle selection mouse click bracket', async () => {
+  it('should toggle selection mouse click bracket', async t => {
     picker = new Picker(nvim, { title: 'title', items })
     let winid = await picker.show()
     await nvim.setVar('mouse_position', [winid, 1, 1])
     await nvim.input('<LeftRelease>')
     let buf = picker.buffer
-    await helper.waitValue(async () => (await buf.getLines({ start: 0, end: 1, strictIndexing: false }))[0].startsWith('[x]'), true)
+    await shared.waitValue(async () => (await buf.getLines({ start: 0, end: 1, strictIndexing: false }))[0].startsWith('[x]'), true)
     let lines = await buf.getLines({ start: 0, end: 1, strictIndexing: false })
-    expect(lines[0]).toMatch(/^\[x\]/)
+    assert.match(lines[0], /^\[x\]/)
     await inputChar('<LeftRelease>')
     await events.fire('FloatBtnClick', [picker.bufnr, 0])
   })
 
-  it('should change current line on mouse click label', async () => {
+  it('should change current line on mouse click label', async t => {
     picker = new Picker(nvim, { title: 'title', items })
     let winid = await picker.show()
     await nvim.setVar('mouse_position', [winid, 2, 4])
     await nvim.input('<LeftRelease>')
     let buf = picker.buffer
-    await helper.waitValue(async () => {
+    await shared.waitValue(async () => {
       let res = await nvim.call('sign_getplaced', [buf.id, { group: 'PopUpCocDialog' }])
       return res[0]?.signs?.length > 0
     }, true)
     let res = await nvim.call('sign_getplaced', [buf.id, { group: 'PopUpCocDialog' }])
-    expect(res[0].signs).toBeDefined()
-    expect(res[0].signs[0].name).toBe('CocCurrentLine')
+    assert.notStrictEqual(res[0].signs, undefined)
+    assert.strictEqual(res[0].signs[0].name, 'CocCurrentLine')
     await events.fire('FloatBtnClick', [picker.bufnr, 1])
   })
 
-  it('should cancel by <esc>', async () => {
-    await helper.createDocument()
+  it('should cancel by <esc>', async t => {
+    await shared.createDocument()
     picker = new Picker(nvim, { title: 'title', items })
     let winid = await picker.show({ pickerButtons: true })
-    expect(winid).toBeDefined()
-    let fn = vi.fn()
+    assert.notStrictEqual(winid, undefined)
+    let fn = t.mock.fn()
     picker.onDidClose(fn)
     await picker.onInputChar('picker', '<esc>')
-    expect(fn).toHaveBeenCalledTimes(1)
+    assert.strictEqual(fn.mock.calls.length, 1)
   })
 
-  it('should confirm by <CR>', async () => {
-    await helper.createDocument()
+  it('should confirm by <CR>', async t => {
+    await shared.createDocument()
     let item: QuickPickItem = { label: 'item', description: 'description' }
     picker = new Picker(nvim, { title: 'title', items: [item].concat(items) })
     let winid = await picker.show({ pickerButtons: true })
-    expect(winid).toBeDefined()
-    let fn = vi.fn()
+    assert.notStrictEqual(winid, undefined)
+    let fn = t.mock.fn()
     picker.onDidClose(fn)
     await picker.onInputChar('picker', ' ')
     await picker.onInputChar('picker', ' ')
@@ -125,38 +121,38 @@ describe('Picker key mappings', () => {
     await picker.onInputChar('picker', ' ')
     await events.fire('FloatBtnClick', [picker.bufnr + 1, 0])
     await events.fire('FloatBtnClick', [picker.bufnr, 0])
-    expect(fn).toHaveBeenCalledTimes(1)
+    assert.strictEqual(fn.mock.calls.length, 1)
   })
 
-  it('should move cursor by j, k, g & G', async () => {
-    await helper.createDocument()
+  it('should move cursor by j, k, g & G', async t => {
+    await shared.createDocument()
     picker = new Picker(nvim, { title: 'title', items })
     function getSigns(): Promise<any> {
       return nvim.call('sign_getplaced', [picker.buffer.id, { group: 'PopUpCocDialog' }])
     }
     let winid = await picker.show({ pickerButtons: true })
-    await helper.waitFloat()
-    expect(winid).toBeDefined()
+    await shared.waitFloat()
+    assert.notStrictEqual(winid, undefined)
     await nvim.input('j')
-    await helper.waitValue(async () => (await getSigns())[0]?.signs?.[0]?.lnum, 2)
+    await shared.waitValue(async () => (await getSigns())[0]?.signs?.[0]?.lnum, 2)
     let res = await getSigns()
-    expect(res[0].signs[0].lnum).toBe(2)
+    assert.strictEqual(res[0].signs[0].lnum, 2)
     await nvim.input('k')
-    await helper.waitValue(async () => (await getSigns())[0]?.signs?.[0]?.lnum, 1)
+    await shared.waitValue(async () => (await getSigns())[0]?.signs?.[0]?.lnum, 1)
     res = await getSigns()
-    expect(res[0].signs[0].lnum).toBe(1)
+    assert.strictEqual(res[0].signs[0].lnum, 1)
     await nvim.input('G')
-    await helper.waitValue(async () => (await getSigns())[0]?.signs?.[0]?.lnum, 2)
+    await shared.waitValue(async () => (await getSigns())[0]?.signs?.[0]?.lnum, 2)
     res = await getSigns()
-    expect(res[0].signs[0].lnum).toBe(2)
+    assert.strictEqual(res[0].signs[0].lnum, 2)
     await nvim.input('g')
-    await helper.waitValue(async () => (await getSigns())[0]?.signs?.[0]?.lnum, 1)
+    await shared.waitValue(async () => (await getSigns())[0]?.signs?.[0]?.lnum, 1)
     res = await getSigns()
-    expect(res[0].signs[0].lnum).toBe(1)
+    assert.strictEqual(res[0].signs[0].lnum, 1)
   })
 
-  it('should toggle selection by <space>', async () => {
-    await helper.createDocument()
+  it('should toggle selection by <space>', async t => {
+    await shared.createDocument()
     picker = new Picker(nvim, { title: 'title', items })
     let winid = await picker.show({
       maxWidth: 60,
@@ -166,18 +162,18 @@ describe('Picker key mappings', () => {
       confirmKey: 'r',
       pickerButtons: true
     })
-    await helper.waitFloat()
-    expect(winid).toBeDefined()
-    let fn = vi.fn()
+    await shared.waitFloat()
+    assert.notStrictEqual(winid, undefined)
+    let fn = t.mock.fn()
     picker.onDidClose(fn)
     await inputChar(' ')
     let lines = await nvim.call('getbufline', [picker.buffer.id, 1])
-    expect(lines[0]).toMatch('[x]')
+    assert.match(lines[0], new RegExp('\\[x\\]'))
     await inputChar('r')
   })
 
-  it('should scroll forward & backward', async () => {
-    await helper.createDocument()
+  it('should scroll forward & backward', async t => {
+    await shared.createDocument()
     let items = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'].map(s => {
       return { label: s }
     })
@@ -187,26 +183,26 @@ describe('Picker key mappings', () => {
       event = ev
     })
     let winid = await picker.show({ maxHeight: 3 })
-    expect(winid).toBeDefined()
+    assert.notStrictEqual(winid, undefined)
     await picker.onInputChar('picker', '<C-f>')
     let info = await nvim.call('getwininfo', [winid])
-    expect(info[0]).toBeDefined()
+    assert.notStrictEqual(info[0], undefined)
     await picker.onInputChar('picker', '<C-b>')
     info = await nvim.call('getwininfo', [winid])
-    expect(info[0]).toBeDefined()
+    assert.notStrictEqual(info[0], undefined)
     await inputChar('<cr>')
-    expect(event).toBeUndefined()
+    assert.strictEqual(event, undefined)
   })
 
-  it('should fire selected items on cr', async () => {
+  it('should fire selected items on cr', async t => {
     picker = new Picker(nvim, { title: 'title', items: items.concat([{ label: 'three', picked: true }]) })
     let event
     picker.onDidClose(e => {
       event = e
     })
     let winid = await picker.show({ pickerButtons: true })
-    expect(winid).toBeDefined()
+    assert.notStrictEqual(winid, undefined)
     await inputChar('<cr>')
-    expect(event).toEqual([2])
+    assert.deepStrictEqual(event, [2])
   })
 })

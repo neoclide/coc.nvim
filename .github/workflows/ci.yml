@@ -23,10 +23,10 @@ jobs:
           - neovim: "nightly"
             vim: "nightly"
         node:
-          - "20"
+          - "24"
         include:
           # only enable coverage on the fastest job
-          - node: "20"
+          - node: "24"
             ENABLE_CODE_COVERAGE: true
 
     env:
@@ -81,7 +81,7 @@ jobs:
           VIM_COMMAND: ${{ steps.vim.outputs.executable }}
           NVIM_COMMAND: ${{ steps.nvim.outputs.executable }}
         run: |
-          ./node_modules/.bin/vitest run --coverage --maxWorkers=2
+          npm run test:coverage
 
       - name: Codecov
         uses: codecov/codecov-action@v6

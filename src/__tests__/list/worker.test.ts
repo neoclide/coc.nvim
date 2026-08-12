@@ -1,23 +1,22 @@
+import workspace from '../../workspace'
+import * as shared from '../sharedUtil'
 'use strict'
-import { Neovim } from '@chemzqm/neovim'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import Prompt from '../../list/prompt'
 import { IList, ListOptions } from '../../list/types'
 import Worker from '../../list/worker'
-import helper from '../helper'
+import { Neovim } from '@chemzqm/neovim'
+import type WorkerType from '../../list/worker'
+import { before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+
 
 let nvim: Neovim
 
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
+before(async () => {
+  nvim = workspace.nvim
 })
 
-afterAll(async () => {
-  await helper.shutdown()
-})
-
-function createWorker(loadItems: IList['loadItems']): Worker {
+function createWorker(loadItems: IList['loadItems']): WorkerType {
   let prompt = new Prompt(nvim)
   let options: ListOptions = {
     position: 'bottom',
@@ -43,14 +42,14 @@ function createWorker(loadItems: IList['loadItems']): Worker {
 }
 
 describe('list worker', () => {
-  it('resets loading and token when loadItems rejects', async () => {
+  it('resets loading and token when loadItems rejects', async t => {
     let worker = createWorker(() => Promise.reject(new Error('boom')))
-    await expect(worker.loadItems({} as any)).rejects.toThrow('boom')
-    expect(worker.isLoading).toBe(false)
-    expect((worker as any).tokenSource).toBeNull()
+    await assert.rejects(worker.loadItems({} as any), new RegExp('boom'))
+    assert.strictEqual(worker.isLoading, false)
+    assert.strictEqual((worker as any).tokenSource, null)
   })
 
-  it('a stale cancelled request cannot clobber the state of a newer request', async () => {
+  it('a stale cancelled request cannot clobber the state of a newer request', async t => {
     let calls = 0
     let resolveFirst: (v: any) => void = () => {}
     let worker = createWorker(() => {
@@ -64,11 +63,11 @@ describe('list worker', () => {
     })
     let first = worker.loadItems({} as any)
     worker.stop()
-    await expect(worker.loadItems({} as any)).rejects.toThrow('second boom')
-    expect(worker.isLoading).toBe(false)
+    await assert.rejects(worker.loadItems({} as any), new RegExp('second boom'))
+    assert.strictEqual(worker.isLoading, false)
     resolveFirst([{ label: 'x' }])
     await first
-    expect(worker.isLoading).toBe(false)
-    expect(calls).toBe(2)
+    assert.strictEqual(worker.isLoading, false)
+    assert.strictEqual(calls, 2)
   })
 })

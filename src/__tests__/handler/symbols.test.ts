@@ -1,5 +1,5 @@
-import { Buffer, Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Disposable, Range, SymbolInformation, SymbolKind } from 'vscode-languageserver-protocol'
+import { getCurrentPlugin } from '../../attach'
+import * as shared from '../sharedUtil'
 import events from '../../events'
 import Symbols from '../../handler/symbols/index'
 import languages from '../../languages'
@@ -7,17 +7,20 @@ import { asDocumentSymbolTree } from '../../provider/documentSymbolManager'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
-import helper from '../helper'
+import { Buffer, Neovim } from '@chemzqm/neovim'
+import { CancellationToken, Disposable, Range, SymbolInformation, SymbolKind } from 'vscode-languageserver-protocol'
 import Parser from './parser'
+import { afterEach, before, beforeEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+
 
 let nvim: Neovim
 let symbols: Symbols
 let disposables: Disposable[] = []
 
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-  symbols = helper.plugin.getHandler().symbols
+before(async () => {
+  nvim = workspace.nvim
+  symbols = getCurrentPlugin().getHandler().symbols
 })
 
 beforeEach(() => {
@@ -31,28 +34,25 @@ beforeEach(() => {
   }))
 })
 
-afterAll(async () => {
-  await helper.shutdown()
-})
-
 afterEach(async () => {
   disposeAll(disposables)
   disposables = []
-  await helper.reset()
 })
 
 describe('Parser', () => {
-  it('should parse content', async () => {
+  it('should parse content', async t => {
     let code = `class myClass {
       fun1() { }
     }`
     let parser = new Parser(code)
     let res = parser.parse()
-    expect(res.length).toBeGreaterThan(0)
+    assert.ok(res.length > 0)
   })
 })
 
 describe('symbols handler', () => {
+  afterEach(editorReset)
+
 
   async function createBuffer(code: string): Promise<Buffer> {
     let doc = await workspace.document
@@ -63,31 +63,31 @@ describe('symbols handler', () => {
   }
 
   describe('configuration', () => {
-    it('should get configuration', async () => {
+    it('should get configuration', async t => {
       let bufnr = await nvim.call('bufnr', ['%']) as number
       let functionUpdate = symbols.autoUpdate(bufnr)
-      expect(functionUpdate).toBe(false)
-      helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', true)
+      assert.strictEqual(functionUpdate, false)
+      shared.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', true)
       functionUpdate = symbols.autoUpdate(bufnr)
-      expect(functionUpdate).toBe(true)
+      assert.strictEqual(functionUpdate, true)
     })
 
-    it('should update symbols automatically', async () => {
-      helper.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', true)
+    it('should update symbols automatically', async t => {
+      shared.updateConfiguration('coc.preferences.currentFunctionSymbolAutoUpdate', true)
       let code = `class myClass {
       fun1() {
       }
     }`
       let buf = await createBuffer(code)
       await events.fire('CursorMoved', [buf.id, [2, 8]])
-      await helper.waitFor('eval', ['get(b:,"coc_current_function","")'], 'fun1')
+      await shared.waitFor('eval', ['get(b:,"coc_current_function","")'], 'fun1')
       await events.fire('CursorMoved', [buf.id, [1, 8]])
-      await helper.waitFor('eval', ['get(b:,"coc_current_function","")'], 'myClass')
+      await shared.waitFor('eval', ['get(b:,"coc_current_function","")'], 'myClass')
     })
   })
 
   describe('documentSymbols', () => {
-    it('should create document symbol tree', () => {
+    it('should create document symbol tree', t => {
       let uri = 'lsp:/1'
       let symbols = [
         SymbolInformation.create('root', SymbolKind.Function, Range.create(0, 0, 0, 10), uri),
@@ -95,29 +95,29 @@ describe('symbols handler', () => {
         SymbolInformation.create('child', SymbolKind.Function, Range.create(0, 0, 0, 10), uri, 'root'),
       ]
       let res = asDocumentSymbolTree(symbols)
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
 
-    it('should get empty metadata when provider not found', async () => {
+    it('should get empty metadata when provider not found', async t => {
       disposeAll(disposables)
       let doc = await workspace.document
       let res = languages.getDocumentSymbolMetadata(doc.textDocument)
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
       let symbols = await languages.getDocumentSymbol(doc.textDocument, CancellationToken.None)
-      expect(symbols).toBeNull()
+      assert.strictEqual(symbols, null)
     })
 
-    it('should get symbols of current buffer', async () => {
+    it('should get symbols of current buffer', async t => {
       let code = `class detail {
       fun1() { }
     }`
       await createBuffer(code)
-      let res = await helper.plugin.cocAction('documentSymbols')
-      expect(res.length).toBe(2)
-      expect(res[1].detail).toBeDefined()
+      let res = await getCurrentPlugin().cocAction('documentSymbols')
+      assert.strictEqual(res.length, 2)
+      assert.notStrictEqual(res[1].detail, undefined)
     })
 
-    it('should get current function symbols', async () => {
+    it('should get current function symbols', async t => {
       let code = `class myClass {
       fun1() {
       }
@@ -127,28 +127,28 @@ describe('symbols handler', () => {
     `
       await createBuffer(code)
       await nvim.call('cursor', [3, 0])
-      let res = await helper.doAction('getCurrentFunctionSymbol')
-      expect(res).toBe('fun1')
+      let res = await shared.doAction('getCurrentFunctionSymbol')
+      assert.strictEqual(res, 'fun1')
       await nvim.command('normal! G')
-      res = await helper.doAction('getCurrentFunctionSymbol')
-      expect(res).toBe('')
+      res = await shared.doAction('getCurrentFunctionSymbol')
+      assert.strictEqual(res, '')
     })
 
-    it('should reset coc_current_function when symbols do not exist', async () => {
+    it('should reset coc_current_function when symbols do not exist', async t => {
       let code = `class myClass {
       fun1() {
       }
     }`
       await createBuffer(code)
       await nvim.call('cursor', [3, 0])
-      let res = await helper.doAction('getCurrentFunctionSymbol')
-      expect(res).toBe('fun1')
+      let res = await shared.doAction('getCurrentFunctionSymbol')
+      assert.strictEqual(res, 'fun1')
       await nvim.command('normal! ggdG')
       res = await symbols.getCurrentFunctionSymbol()
-      expect(res).toBe('')
+      assert.strictEqual(res, '')
     })
 
-    it('should support SymbolInformation', async () => {
+    it('should support SymbolInformation', async t => {
       disposables.push(languages.registerDocumentSymbolProvider(['*'], {
         provideDocumentSymbols: doc => {
           let s = SymbolInformation.create('root', SymbolKind.Function, Range.create(0, 0, 0, 10), doc.uri)
@@ -160,46 +160,46 @@ describe('symbols handler', () => {
           ]
         }
       }, { label: 'test' }))
-      await helper.createDocument()
+      await shared.createDocument()
       let res = await symbols.getDocumentSymbols()
-      expect(res.length).toBe(3)
-      expect(res[0].text).toBe('root')
+      assert.strictEqual(res.length, 3)
+      assert.strictEqual(res[0].text, 'root')
       await nvim.command('edit +setl\\ buftype=nofile b')
       res = await symbols.getDocumentSymbols()
-      expect(res).toBeUndefined()
+      assert.strictEqual(res, undefined)
     })
   })
 
   describe('selectSymbolRange', () => {
-    it('should show warning when no symbols exist', async () => {
+    it('should show warning when no symbols exist', async t => {
       disposables.push(languages.registerDocumentSymbolProvider(['*'], {
         provideDocumentSymbols: () => {
           return []
         }
       }))
-      await helper.createDocument()
+      await shared.createDocument()
       await nvim.call('cursor', [3, 0])
       await symbols.selectSymbolRange(false, '', ['Function'])
-      let msg = await helper.getCmdline()
-      expect(msg).toMatch(/No symbols found/)
+      let msg = await shared.getCmdline()
+      assert.match(msg, /No symbols found/)
     })
 
-    it('should select symbol range at cursor position', async () => {
+    it('should select symbol range at cursor position', async t => {
       let code = `class myClass {
       fun1() {
       }
     }`
       await createBuffer(code)
       await nvim.call('cursor', [3, 0])
-      await helper.doAction('selectSymbolRange', false, '', ['Function', 'Method'])
+      await shared.doAction('selectSymbolRange', false, '', ['Function', 'Method'])
       let mode = await nvim.mode
-      expect(mode.mode).toBe('v')
+      assert.strictEqual(mode.mode, 'v')
       await nvim.input('<esc>')
       let res = await window.getSelectedRange('v')
-      expect(res).toEqual({ start: { line: 1, character: 6 }, end: { line: 2, character: 6 } })
+      assert.deepStrictEqual(res, { start: { line: 1, character: 6 }, end: { line: 2, character: 6 } })
     })
 
-    it('should select inner range', async () => {
+    it('should select inner range', async t => {
       let code = `class myClass {
       fun1() {
         let foo;
@@ -209,28 +209,28 @@ describe('symbols handler', () => {
       await nvim.call('cursor', [3, 3])
       await symbols.selectSymbolRange(true, '', ['Method'])
       let mode = await nvim.mode
-      expect(mode.mode).toBe('v')
+      assert.strictEqual(mode.mode, 'v')
       await nvim.input('<esc>')
       let res = await window.getSelectedRange('v')
-      expect(res).toEqual({
+      assert.deepStrictEqual(res, {
         start: { line: 2, character: 8 }, end: { line: 2, character: 16 }
       })
     })
 
-    it('should reset visualmode when selection not found', async () => {
+    it('should reset visualmode when selection not found', async t => {
       let code = `class myClass {}`
       await createBuffer(code)
       await nvim.call('cursor', [1, 1])
       await nvim.command('normal! gg0v$')
       let mode = await nvim.mode
-      expect(mode.mode).toBe('v')
+      assert.strictEqual(mode.mode, 'v')
       await nvim.input('<esc>')
       await symbols.selectSymbolRange(true, 'v', ['Method'])
       mode = await nvim.mode
-      expect(mode.mode).toBe('v')
+      assert.strictEqual(mode.mode, 'v')
     })
 
-    it('should select symbol range from select range', async () => {
+    it('should select symbol range from select range', async t => {
       let code = `class myClass {
       fun1() {
       }
@@ -239,18 +239,18 @@ describe('symbols handler', () => {
       await nvim.call('cursor', [2, 8])
       await nvim.command('normal! viw')
       await nvim.input('<esc>')
-      await helper.doAction('selectSymbolRange', false, 'v', ['Class'])
+      await shared.doAction('selectSymbolRange', false, 'v', ['Class'])
       let mode = await nvim.mode
-      expect(mode.mode).toBe('v')
+      assert.strictEqual(mode.mode, 'v')
       let doc = workspace.getDocument(buf.id)
       await nvim.input('<esc>')
       let res = await window.getSelectedRange('v')
-      expect(res).toEqual({ start: { line: 0, character: 0 }, end: { line: 3, character: 4 } })
+      assert.deepStrictEqual(res, { start: { line: 0, character: 0 }, end: { line: 3, character: 4 } })
     })
   })
 
   describe('cancel', () => {
-    it('should cancel symbols request on insert', async () => {
+    it('should cancel symbols request on insert', async t => {
       let cancelled = false
       disposables.push(languages.registerDocumentSymbolProvider([{ language: 'text' }], {
         provideDocumentSymbols: (_doc, token) => {
@@ -266,18 +266,18 @@ describe('symbols handler', () => {
           })
         }
       }))
-      let doc = await helper.createDocument('t.txt')
+      let doc = await shared.createDocument('t.txt')
       let p = symbols.getDocumentSymbols(doc.bufnr)
       setTimeout(async () => {
         await nvim.input('i')
       }, 500)
       await p
-      expect(cancelled).toBe(true)
+      assert.strictEqual(cancelled, true)
     })
   })
 
   describe('workspaceSymbols', () => {
-    it('should get workspace symbols', async () => {
+    it('should get workspace symbols', async t => {
       disposables.push(languages.registerWorkspaceSymbolProvider({
         provideWorkspaceSymbols: (_query, _token) => {
           return [SymbolInformation.create('far', SymbolKind.Class, Range.create(0, 0, 0, 0), '')]
@@ -295,20 +295,20 @@ describe('symbols handler', () => {
         }
       }))
       let res = await symbols.getWorkspaceSymbols('a')
-      expect(res.length).toBe(1)
-      let resolved = await helper.doAction('resolveWorkspaceSymbol', res[0])
-      expect(resolved?.location?.uri).toBe('test:///foo')
+      assert.strictEqual(res.length, 1)
+      let resolved = await shared.doAction('resolveWorkspaceSymbol', res[0])
+      assert.strictEqual(resolved?.location?.uri, 'test:///foo')
     })
 
-    it('should return symbol when resolve failed', async () => {
+    it('should return symbol when resolve failed', async t => {
       disposables.push(languages.registerWorkspaceSymbolProvider({
         provideWorkspaceSymbols: (_query, _token) => {
           return [SymbolInformation.create('far', SymbolKind.Class, Range.create(0, 0, 0, 0), '')]
         }
       }))
-      let res = await helper.doAction('getWorkspaceSymbols')
+      let res = await shared.doAction('getWorkspaceSymbols')
       let resolved = await symbols.resolveWorkspaceSymbol(res[0])
-      expect(resolved).toBeDefined()
+      assert.notStrictEqual(resolved, undefined)
     })
   })
 })

@@ -1,10 +1,4 @@
-import bser from 'bser'
-import fs from 'fs'
-import net from 'net'
-import os from 'os'
-import path from 'path'
-import { Disposable } from 'vscode-languageserver-protocol'
-import { URI } from 'vscode-uri'
+import * as shared from '../sharedUtil'
 import Configurations from '../../configuration/index'
 import { FileSystemWatcher, FileSystemWatcherManager } from '../../core/fileSystemWatcher'
 import Watchman, { FileChangeItem } from '../../core/watchman'
@@ -13,17 +7,28 @@ import RelativePattern from '../../model/relativePattern'
 import { GlobPattern } from '../../types'
 import { disposeAll } from '../../util'
 import { remove } from '../../util/fs'
-import helper from '../helper'
+import bser from 'bser'
+import fs from 'fs'
+import net from 'net'
+import os from 'os'
+import path from 'path'
+import { Disposable } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
+import type ConfigurationsType from '../../configuration/index'
+import type WorkspaceFolderControllerType from '../../core/workspaceFolder'
+import { after, afterEach, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+
 
 let server: net.Server
 let client: net.Socket
-const cwd = path.resolve(__dirname, '../../..')
+const cwd = path.resolve(import.meta.dirname, '../../..')
 const sockPath = path.join(os.tmpdir(), `watchman-fake-${crypto.randomUUID()}`)
 process.env.WATCHMAN_SOCK = sockPath
 
-let workspaceFolder: WorkspaceFolderController
+let workspaceFolder: WorkspaceFolderControllerType
 let watcherManager: FileSystemWatcherManager
-let configurations: Configurations
+let configurations: ConfigurationsType
 let disposables: Disposable[] = []
 
 function wait(ms: number): Promise<any> {
@@ -60,17 +65,14 @@ function sendSubscription(uid: string, root: string, files: FileChangeItem[]): v
 let capabilities: any
 let watchResponse: any
 let defaultConfig = { watchmanPath: null, enable: true, ignoredFolders: [] }
-beforeAll(async () => {
-  await helper.setup()
-})
 
-beforeAll(() => new Promise<void>(done => {
+before(() => new Promise<void>(done => {
   let userConfigFile = path.join(process.env.COC_VIMCONFIG, 'coc-settings.json')
   configurations = new Configurations(userConfigFile, undefined)
   workspaceFolder = new WorkspaceFolderController(configurations)
   watcherManager = new FileSystemWatcherManager(workspaceFolder, defaultConfig)
   Object.assign(watcherManager, { disabled: false })
-  watcherManager.attach(helper.createNullChannel())
+  watcherManager.attach(shared.createNullChannel())
   // create a mock sever for watchman
   server = net.createServer(c => {
     client = c
@@ -115,23 +117,22 @@ afterEach(async () => {
 })
 
 describe('FileSystemWatcherManager.disabled', () => {
-  it('should stay disabled under test environment even when enable is true', () => {
+  it('should stay disabled under test environment even when enable is true', t => {
     let manager = new FileSystemWatcherManager(workspaceFolder, { watchmanPath: null, enable: true, ignoredFolders: [] })
-    expect(manager.disabled).toBe(true)
+    assert.strictEqual(manager.disabled, true)
     manager = new FileSystemWatcherManager(workspaceFolder, { watchmanPath: null, enable: false, ignoredFolders: [] })
-    expect(manager.disabled).toBe(true)
+    assert.strictEqual(manager.disabled, true)
   })
 })
 
-afterAll(async () => {
-  await helper.shutdown()
+after(async () => {
   watcherManager.dispose()
   server.close()
   await remove(sockPath)
 })
 
 describe('watchman', () => {
-  it('should not throw error when not watching', async () => {
+  it('should not throw error when not watching', async t => {
     let client = new Watchman(null)
     disposables.push(client)
     let disposable = client.subscribe('**/*', () => {})
@@ -139,29 +140,29 @@ describe('watchman', () => {
     client.dispose()
   })
 
-  it('should checkCapability', async () => {
+  it('should checkCapability', async t => {
     let client = new Watchman(null)
     let res = await client.checkCapability()
-    expect(res).toBe(true)
+    assert.strictEqual(res, true)
     capabilities = { relative_root: false }
     res = await client.checkCapability()
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
     client.dispose()
   })
 
-  it('should watchProject', async () => {
+  it('should watchProject', async t => {
     let client = new Watchman(null)
     disposables.push(client)
-    let res = await client.watchProject(__dirname)
-    expect(res).toBe(true)
+    let res = await client.watchProject(import.meta.dirname)
+    assert.strictEqual(res, true)
     client.dispose()
   })
 
-  it('should unsubscribe', async () => {
+  it('should unsubscribe', async t => {
     let client = new Watchman(null)
     disposables.push(client)
     await client.watchProject(cwd)
-    let fn = vi.fn()
+    let fn = t.mock.fn()
     let disposable = client.subscribe(`${cwd}/*`, fn)
     disposable.dispose()
     client.dispose()
@@ -170,8 +171,8 @@ describe('watchman', () => {
 
 describe('Watchman#subscribe', () => {
 
-  it('should subscribe file change', async () => {
-    let client = new Watchman(null, helper.createNullChannel())
+  it('should subscribe file change', async t => {
+    let client = new Watchman(null, shared.createNullChannel())
     disposables.push(client)
     await client.watchProject(cwd)
     let called = false
@@ -180,34 +181,34 @@ describe('Watchman#subscribe', () => {
     })
     let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
     sendSubscription(client.subscription, cwd, changes)
-    await helper.waitValue(() => called, true)
-    expect(called).toBe(true)
+    await shared.waitValue(() => called, true)
+    assert.strictEqual(called, true)
     disposable.dispose()
     client.dispose()
   })
 
-  it('should subscribe with relative_path', async () => {
-    let client = new Watchman(null, helper.createNullChannel())
+  it('should subscribe with relative_path', async t => {
+    let client = new Watchman(null, shared.createNullChannel())
     watchResponse = { watch: cwd, relative_path: 'foo' }
     await client.watchProject(cwd)
-    let fn = vi.fn()
+    let fn = t.mock.fn()
     let disposable = client.subscribe(`${cwd}/*`, fn)
     let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
     sendSubscription(client.subscription, cwd, changes)
     await wait(30)
-    expect(fn).toHaveBeenCalled()
-    let call = fn.mock.calls[0][0]
+    assert.ok(fn.mock.callCount() > 0)
+    let call = fn.mock.calls[0].arguments[0]
     disposable.dispose()
-    expect(call.root).toBe(path.join(cwd, 'foo'))
+    assert.strictEqual(call.root, path.join(cwd, 'foo'))
     client.dispose()
   })
 
-  it('should not subscribe invalid response', async () => {
-    let c = new Watchman(null, helper.createNullChannel())
+  it('should not subscribe invalid response', async t => {
+    let c = new Watchman(null, shared.createNullChannel())
     disposables.push(c)
     watchResponse = { watch: cwd, relative_path: 'foo' }
     await c.watchProject(cwd)
-    let fn = vi.fn()
+    let fn = t.mock.fn()
     c.subscribe(`${cwd}/*`, fn)
     let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
     sendSubscription('uuid', cwd, changes)
@@ -219,25 +220,25 @@ describe('Watchman#subscribe', () => {
       root: cwd
     }))
     await wait(20)
-    expect(fn).toHaveBeenCalledTimes(0)
+    assert.strictEqual(fn.mock.callCount(), 0)
   })
 })
 
 describe('Watchman#createClient', () => {
-  it('should not create client when capabilities not match', async () => {
+  it('should not create client when capabilities not match', async t => {
     capabilities = { relative_root: false }
-    await expect(Watchman.createClient(null, cwd)).rejects.toThrow(Error)
+    await assert.rejects(Watchman.createClient(null, cwd), Error)
   })
 
-  it('should not create when watch failed', async () => {
+  it('should not create when watch failed', async t => {
     watchResponse = {}
-    await expect(Watchman.createClient(null, cwd)).rejects.toThrow(Error)
+    await assert.rejects(Watchman.createClient(null, cwd), Error)
   })
 
-  it('should create client', async () => {
+  it('should create client', async t => {
     let client = await Watchman.createClient(null, cwd)
     disposables.push(client)
-    expect(client).toBeDefined()
+    assert.notStrictEqual(client, undefined)
   })
 })
 
@@ -254,38 +255,38 @@ describe('fileSystemWatcher', () => {
     return watcher
   }
 
-  beforeAll(async () => {
+  before(async () => {
     workspaceFolder.addWorkspaceFolder(cwd, true)
     await watcherManager.waitClient(cwd)
   })
 
-  it('should use relative pattern #1', async () => {
+  it('should use relative pattern #1', async t => {
     let folder = workspaceFolder.workspaceFolders[0]
-    expect(folder).toBeDefined()
+    assert.notStrictEqual(folder, undefined)
     let pattern = new RelativePattern(folder, '**/*')
     let watcher = await createWatcher(pattern, false, true, true)
-    let fn = vi.fn()
+    let fn = t.mock.fn()
     watcher.onDidCreate(fn)
     let changes: FileChangeItem[] = [createFileChange(`a`)]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.waitValue(() => fn.mock.calls.length, 1)
-    expect(fn).toHaveBeenCalled()
+    await shared.waitValue(() => fn.mock.calls.length, 1)
+    assert.ok(fn.mock.callCount() > 0)
   })
 
-  it('should use relative pattern #2', async () => {
+  it('should use relative pattern #2', async t => {
     let called = false
-    let pattern = new RelativePattern(__dirname, '**/*')
+    let pattern = new RelativePattern(import.meta.dirname, '**/*')
     let watcher = await createWatcher(pattern, false, true, true)
     watcher.onDidCreate(() => {
       called = true
     })
     let changes: FileChangeItem[] = [createFileChange(`a`)]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.wait(30)
-    expect(called).toBe(false)
+    await shared.wait(30)
+    assert.strictEqual(called, false)
   })
 
-  it('should use relative pattern #3', async () => {
+  it('should use relative pattern #3', async t => {
     let called = false
     let root = path.join(process.cwd(), 'not_exists')
     let pattern = new RelativePattern(root, '**/*')
@@ -293,14 +294,14 @@ describe('fileSystemWatcher', () => {
     watcher.onDidCreate(() => {
       called = true
     })
-    await helper.wait(20)
+    await shared.wait(20)
     let changes: FileChangeItem[] = [createFileChange(`a`)]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.wait(20)
-    expect(called).toBe(false)
+    await shared.wait(20)
+    assert.strictEqual(called, false)
   })
 
-  it('should watch for file create', async () => {
+  it('should watch for file create', async t => {
     let watcher = await createWatcher('**/*', false, true, true)
     let called = false
     watcher.onDidCreate(() => {
@@ -308,12 +309,12 @@ describe('fileSystemWatcher', () => {
     })
     let changes: FileChangeItem[] = [createFileChange(`a`)]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return called
     }, true)
   })
 
-  it('should watch for file delete', async () => {
+  it('should watch for file delete', async t => {
     let watcher = await createWatcher('**/*', true, true, false)
     let called = false
     watcher.onDidDelete(() => {
@@ -321,12 +322,12 @@ describe('fileSystemWatcher', () => {
     })
     let changes: FileChangeItem[] = [createFileChange(`a`, false, false)]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return called
     }, true)
   })
 
-  it('should watch for file change', async () => {
+  it('should watch for file change', async t => {
     let watcher = await createWatcher('**/*', false, false, false)
     let called = false
     watcher.onDidChange(() => {
@@ -334,29 +335,29 @@ describe('fileSystemWatcher', () => {
     })
     let changes: FileChangeItem[] = [createFileChange(`a`, false, true)]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return called
     }, true)
   })
 
-  it('should watch for file rename', async () => {
+  it('should watch for file rename', async t => {
     let watcher = await createWatcher('**/*', false, false, false)
     let called = false
     watcher.onDidRename(() => {
       called = true
     })
-    await helper.wait(50)
+    await shared.wait(50)
     let changes: FileChangeItem[] = [
       createFileChange(`a`, false, false),
       createFileChange(`b`, true, true),
     ]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return called
     }, true)
   })
 
-  it('should not watch for events', async () => {
+  it('should not watch for events', async t => {
     let watcher = await createWatcher('**/*', true, true, true)
     let called = false
     let onChange = () => { called = true }
@@ -369,11 +370,11 @@ describe('fileSystemWatcher', () => {
       createFileChange(`c`, false, true),
     ]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.wait(20)
-    expect(called).toBe(false)
+    await shared.wait(20)
+    assert.strictEqual(called, false)
   })
 
-  it('should watch for folder rename', async () => {
+  it('should watch for folder rename', async t => {
     let watcher = await createWatcher('**/*')
     let newFiles: string[] = []
     let count = 0
@@ -390,48 +391,48 @@ describe('fileSystemWatcher', () => {
       createFileChange(`b/2`, true, true, 2),
     ]
     sendSubscription(watcher.subscribe, cwd, changes)
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return count
     }, 2)
   })
 
-  it('should watch for new folder', async () => {
+  it('should watch for new folder', async t => {
     let watcher = await createWatcher('**/*')
-    expect(watcher).toBeDefined()
-    workspaceFolder.renameWorkspaceFolder(cwd, __dirname)
+    assert.notStrictEqual(watcher, undefined)
+    workspaceFolder.renameWorkspaceFolder(cwd, import.meta.dirname)
     let uri: URI
     watcher.onDidCreate(e => {
       uri = e
     })
-    await watcherManager.waitClient(__dirname)
+    await watcherManager.waitClient(import.meta.dirname)
     let changes: FileChangeItem[] = [createFileChange(`a`)]
-    sendSubscription(watcher.subscribe, __dirname, changes)
-    await helper.waitValue(() => {
+    sendSubscription(watcher.subscribe, import.meta.dirname, changes)
+    await shared.waitValue(() => {
       return uri?.fsPath
-    }, path.join(__dirname, 'a'))
+    }, path.join(import.meta.dirname, 'a'))
   })
 })
 
 describe('create FileSystemWatcherManager', () => {
-  it('should attach to existing workspace folder', async () => {
+  it('should attach to existing workspace folder', async t => {
     let workspaceFolder = new WorkspaceFolderController(configurations)
     workspaceFolder.addWorkspaceFolder(cwd, false)
     let watcherManager = new FileSystemWatcherManager(workspaceFolder, { ...defaultConfig, enable: false })
     watcherManager.disabled = false
-    watcherManager.attach(helper.createNullChannel())
+    watcherManager.attach(shared.createNullChannel())
     await watcherManager.createClient(cwd)
     await watcherManager.waitClient(cwd)
     watcherManager.dispose()
   })
 
-  it('should get watchman path', async () => {
+  it('should get watchman path', async t => {
     let watcherManager = new FileSystemWatcherManager(workspaceFolder, { ...defaultConfig, watchmanPath: 'invalid_command' })
     process.env.WATCHMAN_SOCK = ''
-    await expect(() => watcherManager.getWatchmanPath()).rejects.toThrow(Error)
+    await assert.rejects(() => watcherManager.getWatchmanPath(), Error)
     process.env.WATCHMAN_SOCK = sockPath
   })
 
-  it('should settle concurrent waitClient when create fails', async () => {
+  it('should settle concurrent waitClient when create fails', async t => {
     let watcherManager = new FileSystemWatcherManager(workspaceFolder, { ...defaultConfig, watchmanPath: 'invalid_command' })
     Object.assign(watcherManager, { disabled: false })
     process.env.WATCHMAN_SOCK = ''
@@ -444,77 +445,69 @@ describe('create FileSystemWatcherManager', () => {
           throw new Error('waitClient did not settle after failed create')
         })
       ])
-      expect(results).toEqual([false, false])
+      assert.deepStrictEqual(results, [false, false])
     } finally {
       process.env.WATCHMAN_SOCK = sockPath
     }
   })
 
-  it('disposes a client whose creation completes after the folder was removed', async () => {
+  it('disposes a client whose creation completes after the folder was removed', async t => {
     let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-race-'))
     let folderControl = new WorkspaceFolderController(configurations)
     folderControl.addWorkspaceFolder(root, false)
     let watcherManager = new FileSystemWatcherManager(folderControl, { ...defaultConfig, enable: true, ignoredFolders: [] })
     watcherManager.disabled = false
     let resolveClient: (c: any) => void = () => {}
-    let createSpy = vi.spyOn(Watchman, 'createClient').mockImplementation(() => new Promise(resolve => {
+    let createSpy = t.mock.method(Watchman, 'createClient', () => new Promise(resolve => {
       resolveClient = resolve
     }))
-    let fakeClient = { dispose: vi.fn() }
+    let fakeClient = { dispose: t.mock.fn() }
     let created = 0
     watcherManager.onDidCreateClient(() => created++)
-    try {
-      watcherManager.attach(helper.createNullChannel())
-      let pending = watcherManager.createClient(root)
-      // Wait until the pending creation has actually reached the stubbed
-      // Watchman.createClient call before removing the folder.
-      await helper.waitValue(() => createSpy.mock.calls.length, 1)
-      folderControl.removeWorkspaceFolder(root)
-      resolveClient(fakeClient)
-      await pending
-      expect(fakeClient.dispose).toHaveBeenCalled()
-      expect((watcherManager as any).clientsMap.size).toBe(0)
-      expect(created).toBe(0)
-    } finally {
-      createSpy.mockRestore()
-      watcherManager.dispose()
-      fs.rmSync(root, { recursive: true, force: true })
-    }
+    watcherManager.attach(shared.createNullChannel())
+    let pending = watcherManager.createClient(root)
+    // Wait until the pending creation has actually reached the stubbed
+    // Watchman.createClient call before removing the folder.
+    await shared.waitValue(() => createSpy.mock.calls.length, 1)
+    folderControl.removeWorkspaceFolder(root)
+    resolveClient(fakeClient)
+    await pending
+    assert.ok(fakeClient.dispose.mock.callCount() > 0)
+    assert.strictEqual((watcherManager as any).clientsMap.size, 0)
+    assert.strictEqual(created, 0)
+    watcherManager.dispose()
+    fs.rmSync(root, { recursive: true, force: true })
   })
 
-  it('disposes a client whose creation completes after manager dispose', async () => {
+  it('disposes a client whose creation completes after manager dispose', async t => {
     let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-race-'))
     let folderControl = new WorkspaceFolderController(configurations)
     folderControl.addWorkspaceFolder(root, false)
     let watcherManager = new FileSystemWatcherManager(folderControl, { ...defaultConfig, enable: true, ignoredFolders: [] })
     watcherManager.disabled = false
     let resolveClient: (c: any) => void = () => {}
-    let createSpy = vi.spyOn(Watchman, 'createClient').mockImplementation(() => new Promise(resolve => {
+    let createSpy = t.mock.method(Watchman, 'createClient', () => new Promise(resolve => {
       resolveClient = resolve
     }))
-    let fakeClient = { dispose: vi.fn() }
+    let fakeClient = { dispose: t.mock.fn() }
     let created = 0
     watcherManager.onDidCreateClient(() => created++)
-    try {
-      watcherManager.attach(helper.createNullChannel())
-      let pending = watcherManager.createClient(root)
-      await helper.waitValue(() => createSpy.mock.calls.length, 1)
-      watcherManager.dispose()
-      resolveClient(fakeClient)
-      await pending
-      expect(fakeClient.dispose).toHaveBeenCalled()
-      expect((watcherManager as any).clientsMap.size).toBe(0)
-      expect(created).toBe(0)
-    } finally {
-      createSpy.mockRestore()
-      watcherManager.dispose()
-      fs.rmSync(root, { recursive: true, force: true })
-    }
+    watcherManager.attach(shared.createNullChannel())
+    let pending = watcherManager.createClient(root)
+    await shared.waitValue(() => createSpy.mock.calls.length, 1)
+    watcherManager.dispose()
+    resolveClient(fakeClient)
+    await pending
+    assert.ok(fakeClient.dispose.mock.callCount() > 0)
+    assert.strictEqual((watcherManager as any).clientsMap.size, 0)
+    assert.strictEqual(created, 0)
+    watcherManager.dispose()
+    fs.rmSync(root, { recursive: true, force: true })
   })
 })
 
 describe('FileSystemWatcher dispose', () => {
-  it('releases every event emitter including delete and listen', () => {
+  it('releases every event emitter including delete and listen', t => {
     let watcher = new FileSystemWatcher('**/*', false, false, false)
     let calls: Record<string, number> = { create: 0, change: 0, delete: 0, rename: 0, listen: 0 }
     watcher.onDidCreate(() => calls.create++)
@@ -525,7 +518,7 @@ describe('FileSystemWatcher dispose', () => {
     let w = watcher as any
     watcher.dispose()
     for (let name of ['_onDidCreate', '_onDidChange', '_onDidDelete', '_onDidRename', '_onDidListen']) {
-      expect(w[name]._callbacks).toBeUndefined()
+      assert.strictEqual(w[name]._callbacks, undefined)
     }
     // simulating underlying changes after dispose must not call anything
     w._onDidCreate.fire(URI.file('/x'))
@@ -533,6 +526,6 @@ describe('FileSystemWatcher dispose', () => {
     w._onDidDelete.fire(URI.file('/x'))
     w._onDidRename.fire({ oldUri: URI.file('/a'), newUri: URI.file('/b') })
     w._onDidListen.fire()
-    expect(calls).toEqual({ create: 0, change: 0, delete: 0, rename: 0, listen: 0 })
+    assert.deepStrictEqual(calls, { create: 0, change: 0, delete: 0, rename: 0, listen: 0 })
   })
 })

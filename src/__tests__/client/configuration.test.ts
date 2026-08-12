@@ -1,13 +1,16 @@
+import * as shared from '../sharedUtil'
 import path from 'path'
 import { DidChangeConfigurationNotification, DocumentSelector } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import { SyncConfigurationFeature } from '../../language-client/configuration'
 import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from '../../language-client/index'
 import workspace from '../../workspace'
-import helper from '../helper'
+import { after, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+
 
 function createClient(section: string | string[] | undefined, middleware: Middleware = {}, opts: Partial<LanguageClientOptions> = {}): LanguageClient {
-  const serverModule = path.join(__dirname, './server/configServer.js')
+  const serverModule = path.join(import.meta.dirname, './server/configServer.js')
   const serverOptions: ServerOptions = {
     run: { module: serverModule, transport: TransportKind.ipc },
     debug: { module: serverModule, transport: TransportKind.ipc, options: { execArgv: ['--nolazy', '--inspect=6014'] } }
@@ -27,26 +30,19 @@ function createClient(section: string | string[] | undefined, middleware: Middle
   return result
 }
 
-beforeAll(async () => {
-  await helper.setup()
-})
-
-afterAll(async () => {
-  await helper.shutdown()
-})
 
 describe('pull configuration feature', () => {
   let client: LanguageClient
-  beforeAll(async () => {
+  before(async () => {
     client = createClient(undefined)
     await client.start()
   })
 
-  afterAll(async () => {
+  after(async () => {
     await client.stop()
   })
 
-  it('should request all configuration', async () => {
+  it('should request all configuration', async t => {
     let config: any
     client.middleware.workspace = client.middleware.workspace ?? {}
     client.middleware.workspace.configuration = (params, token, next) => {
@@ -54,13 +50,13 @@ describe('pull configuration feature', () => {
       return config
     }
     await client.sendNotification('pull0')
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return config != null
     }, true)
-    expect(config[0].http).toBeDefined()
+    assert.notStrictEqual(config[0].http, undefined)
   })
 
-  it('should request configurations with sections', async () => {
+  it('should request configurations with sections', async t => {
     let config: any
     client.middleware.workspace = client.middleware.workspace ?? {}
     client.middleware.workspace.configuration = (params, token, next) => {
@@ -68,17 +64,17 @@ describe('pull configuration feature', () => {
       return config
     }
     await client.sendNotification('pull1')
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return config?.length
     }, 3)
-    expect(config[1]).toBeNull()
-    expect(config[0].proxy).toBeDefined()
-    expect(config[2]).toBeNull()
+    assert.strictEqual(config[1], null)
+    assert.notStrictEqual(config[0].proxy, undefined)
+    assert.strictEqual(config[2], null)
   })
 })
 
 describe('publish configuration feature', () => {
-  it('should send configuration for languageserver', async () => {
+  it('should send configuration for languageserver', async t => {
     let client: LanguageClient
     client = createClient('languageserver.cpp.settings')
     let changed
@@ -86,15 +82,15 @@ describe('publish configuration feature', () => {
       changed = params
     })
     await client.start()
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return changed != null
     }, true)
-    expect(changed).toEqual({ settings: {} })
+    assert.deepStrictEqual(changed, { settings: {} })
     await client.stop()
   })
 
-  it('should get configuration from workspace folder', async () => {
-    let folder = path.resolve(__dirname, '../sample')
+  it('should get configuration from workspace folder', async t => {
+    let folder = path.resolve(import.meta.dirname, '../sample')
     workspace.workspaceFolderControl.addWorkspaceFolder(folder, false)
     let configFilePath = path.join(folder, '.vim/coc-settings.json')
     workspace.configurations.addFolderFile(configFilePath, false, folder)
@@ -106,17 +102,17 @@ describe('publish configuration feature', () => {
       changed = params
     })
     await client.start()
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return changed != null
     }, true)
-    expect(changed.settings.coc.preferences.rootPath).toBe('./src')
+    assert.strictEqual(changed.settings.coc.preferences.rootPath, './src')
     workspace.workspaceFolderControl.removeWorkspaceFolder(folder)
     let feature = client.getFeature(DidChangeConfigurationNotification.method)
     feature.dispose()
     await client.stop()
   })
 
-  it('should send configuration for specific sections', async () => {
+  it('should send configuration for specific sections', async t => {
     let client: LanguageClient
     let called = false
     client = createClient(['coc.preferences', 'npm', 'unknown'], {
@@ -132,23 +128,23 @@ describe('publish configuration feature', () => {
       changed = params
     })
     await client.start()
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return called
     }, true)
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return changed != null
     }, true)
-    expect(changed.settings.coc).toBeDefined()
-    expect(changed.settings.npm).toBeDefined()
+    assert.notStrictEqual(changed.settings.coc, undefined)
+    assert.notStrictEqual(changed.settings.npm, undefined)
     let { configurations } = workspace
     configurations.updateMemoryConfig({ 'npm.binPath': 'cnpm' })
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return changed.settings.npm?.binPath
     }, 'cnpm')
     await client.stop()
   })
 
-  it('should catch reject error', async () => {
+  it('should catch reject error', async t => {
     let client: LanguageClient
     let called = false
     client = createClient(['cpp'], {
@@ -163,13 +159,13 @@ describe('publish configuration feature', () => {
       changed = params
     })
     await client.start()
-    await helper.wait(50)
-    expect(called).toBe(false)
+    await shared.wait(50)
+    assert.strictEqual(called, false)
     void client.stop()
     await client.stop()
   })
 
-  it('should send null settings', async () => {
+  it('should send null settings', async t => {
     let client: LanguageClient
     client = createClient(['cpp'], {
       workspace: {
@@ -183,14 +179,14 @@ describe('publish configuration feature', () => {
       changed = params
     })
     await client.start()
-    await helper.waitValue(() => changed != null, true)
-    expect(changed).toEqual({ settings: null })
+    await shared.waitValue(() => changed != null, true)
+    assert.deepStrictEqual(changed, { settings: null })
     await client.stop()
   })
 
-  it('should extractSettingsInformation', async () => {
+  it('should extractSettingsInformation', async t => {
     let res = SyncConfigurationFeature.extractSettingsInformation(['http.proxy', 'http.proxyCA'])
-    expect(res.http).toBeDefined()
-    expect(res.http.proxy).toBeDefined()
+    assert.notStrictEqual(res.http, undefined)
+    assert.notStrictEqual(res.http.proxy, undefined)
   })
 })

@@ -149,8 +149,7 @@ export default class Search {
             nvim.pauseNotification()
             if (files == 0) {
               buf.setLines(['No match found'], { start: 1, end: 2, strictIndexing: false }, true)
-              // eslint-disable-next-line @typescript-eslint/no-floating-promises
-              buf.addHighlight({ line: 1, srcId: -1, colEnd: -1, colStart: 0, hlGroup: 'Error' })
+              void buf.addHighlight({ line: 1, srcId: -1, colEnd: -1, colStart: 0, hlGroup: 'Error' })
               buf.setOption('modified', false, true)
             } else {
               let highlighter = new Highlighter()

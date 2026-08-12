@@ -22,11 +22,17 @@ const semVer = semver.parse(VERSION)
 let pendingNotifications: [string, any[]][] = []
 const NO_ERROR_REQUEST = ['doAutocmd', 'CocAutocmd']
 
+let currentPlugin: Plugin
+
+export function getCurrentPlugin(): Plugin {
+  return currentPlugin
+}
+
 export default (opts: Attach, requestApi = false): Plugin => {
   const nvim: Neovim = attach(opts, createLogger('node-client'), requestApi)
   nvim.setVar('coc_process_pid', process.pid, true)
   nvim.setClientInfo('coc', { major: semVer.major, minor: semVer.minor, patch: semVer.patch }, 'remote', {}, {})
-  const plugin = new Plugin(nvim)
+  const plugin = currentPlugin = new Plugin(nvim)
   let disposable = events.on('ready', () => {
     disposable.dispose()
     for (let [method, args] of pendingNotifications) {

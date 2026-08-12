@@ -1,4 +1,6 @@
+import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
+import cp from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -10,93 +12,90 @@ import events from '../../events'
 import { disposeAll } from '../../util'
 import * as processes from '../../util/processes'
 import workspace, { Workspace } from '../../workspace'
-import helper, { createTmpFile } from '../helper'
+import { afterEach, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
 let tmpFolder = path.join(os.tmpdir(), `coc-${process.pid}`)
 
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
+before(async () => {
+  nvim = workspace.nvim
   if (!fs.existsSync(tmpFolder)) fs.mkdirSync(tmpFolder)
 })
 
-afterAll(async () => {
-  await helper.shutdown()
-})
-
 afterEach(async () => {
-  await helper.reset()
   disposeAll(disposables)
   disposables = []
 })
 
+afterEach(editorReset)
+
 describe('workspace properties', () => {
-  it('should have initialized', async () => {
+  it('should have initialized', async t => {
     let { nvim, uri, insertMode, workspaceFolder, cwd, documents, textDocuments } = workspace
-    expect(insertMode).toBe(false)
-    expect(nvim).toBeTruthy()
-    expect(documents.length).toBe(1)
-    expect(textDocuments.length).toBe(1)
-    expect(cwd).toBe(process.cwd())
+    assert.strictEqual(insertMode, false)
+    assert.ok(nvim)
+    assert.strictEqual(documents.length, 1)
+    assert.strictEqual(textDocuments.length, 1)
+    assert.strictEqual(cwd, process.cwd())
     let floatSupported = workspace.floatSupported
-    expect(floatSupported).toBe(true)
+    assert.strictEqual(floatSupported, true)
     let { pluginRoot } = workspace
-    expect(typeof pluginRoot).toBe('string')
+    assert.strictEqual(typeof pluginRoot, 'string')
     let { isVim, isNvim } = workspace
-    expect(isVim).toBe(false)
-    expect(isNvim).toBe(true)
-    expect(uri).toBeDefined()
-    expect(workspaceFolder).toBeUndefined()
+    assert.strictEqual(isVim, false)
+    assert.strictEqual(isNvim, true)
+    assert.notStrictEqual(uri, undefined)
+    assert.strictEqual(workspaceFolder, undefined)
     let watchmanPath = workspace.getWatchmanPath()
-    expect(watchmanPath == null || typeof watchmanPath === 'string').toBe(true)
+    assert.strictEqual(watchmanPath == null || typeof watchmanPath === 'string', true)
     let folder = workspace.getWorkspaceFolder(URI.parse('lsp:/1'))
-    expect(folder).toBeUndefined()
-    let rootPath = await helper.doAction('currentWorkspacePath')
-    expect(rootPath).toBe(process.cwd())
+    assert.strictEqual(folder, undefined)
+    let rootPath = await shared.doAction('currentWorkspacePath')
+    assert.strictEqual(rootPath, process.cwd())
   })
 
-  it('should get filetyps', async () => {
-    await helper.edit('f.js')
+  it('should get filetyps', async t => {
+    await shared.edit('f.js')
     let filetypes = workspace.filetypes
-    expect(filetypes.has('javascript')).toBe(true)
+    assert.strictEqual(filetypes.has('javascript'), true)
     let languageIds = workspace.languageIds
-    expect(languageIds.has('javascript')).toBe(true)
+    assert.strictEqual(languageIds.has('javascript'), true)
   })
 
-  it('should get display width', () => {
-    expect(workspace.getDisplayWidth('a')).toBe(1)
+  it('should get display width', t => {
+    assert.strictEqual(workspace.getDisplayWidth('a'), 1)
   })
 
-  it('should fallback to text length when strWidth not ready', () => {
+  it('should fallback to text length when strWidth not ready', t => {
     let strWidth = workspace['strWidth']
     workspace['strWidth'] = undefined
     try {
-      expect(workspace.getDisplayWidth('foo')).toBe(3)
-      expect(workspace.getDisplayWidth('嘻嘻')).toBe(2)
+      assert.strictEqual(workspace.getDisplayWidth('foo'), 3)
+      assert.strictEqual(workspace.getDisplayWidth('嘻嘻'), 2)
     } finally {
       workspace['strWidth'] = strWidth
     }
   })
 
-  it('should get channelNames', async () => {
+  it('should get channelNames', async t => {
     let names = workspace.channelNames
-    expect(Array.isArray(names)).toBe(true)
+    assert.strictEqual(Array.isArray(names), true)
   })
 
-  it('should work with deprecated method', async () => {
+  it('should work with deprecated method', async t => {
     await nvim.setLine('foo')
     await workspace['moveTo'](Position.create(0, 1))
     let col = await nvim.call('col', ['.'])
-    expect(col).toBe(2)
+    assert.strictEqual(col, 2)
   })
 })
 
 describe('workspace methods', () => {
-  it('should call vim method', async () => {
+  it('should call vim method', async t => {
     let res = await workspace.callAsync('bufnr', ['%'])
-    expect(typeof res).toBe('number')
+    assert.strictEqual(typeof res, 'number')
     let obj: any = workspace.env
     obj.isVim = true
     disposables.push({
@@ -105,49 +104,49 @@ describe('workspace methods', () => {
       }
     })
     res = await workspace.callAsync('bufnr', ['%'])
-    expect(typeof res).toBe('number')
+    assert.strictEqual(typeof res, 'number')
   })
 
-  it('should get the document', async () => {
+  it('should get the document', async t => {
     let doc = await workspace.document
     let buf = await nvim.buffer
-    expect(doc.buffer.equals(buf)).toBeTruthy()
+    assert.ok(doc.buffer.equals(buf))
     doc = workspace.getDocument(doc.uri)
-    expect(doc.buffer.equals(buf)).toBeTruthy()
+    assert.ok(doc.buffer.equals(buf))
   })
 
-  it('should get uri', async () => {
+  it('should get uri', async t => {
     let doc = await workspace.document
-    expect(workspace.getUri(doc.bufnr, undefined)).toBeDefined()
-    expect(workspace.getUri(999, null)).toBeNull()
-    expect(workspace.getUri(999)).toBe('')
+    assert.notStrictEqual(workspace.getUri(doc.bufnr, undefined), undefined)
+    assert.strictEqual(workspace.getUri(999, null), null)
+    assert.strictEqual(workspace.getUri(999), '')
   })
 
-  it('should fixWin32unixPrefix', async () => {
-    expect(workspace.fixWin32unixFilepath('/foo')).toBe('/foo')
+  it('should fixWin32unixPrefix', async t => {
+    assert.strictEqual(workspace.fixWin32unixFilepath('/foo'), '/foo')
   })
 
-  it('should get attached document', async () => {
+  it('should get attached document', async t => {
     let fn = () => {
       workspace.getAttachedDocument('file://not_exists')
     }
-    expect(fn).toThrow(Error)
+    assert.throws(fn, Error)
     await nvim.command(`edit +setl\\ buftype=nofile [tree]`)
     let doc = await workspace.document
-    expect(doc.attached).toBe(false)
+    assert.strictEqual(doc.attached, false)
     fn = () => {
       workspace.getAttachedDocument(doc.bufnr)
     }
-    expect(fn).toThrow(Error)
+    assert.throws(fn, Error)
   })
 
-  it('should get format options of without bufnr', async () => {
+  it('should get format options of without bufnr', async t => {
     let opts = await workspace.getFormatOptions()
-    expect(opts.insertSpaces).toBe(true)
-    expect(opts.tabSize).toBe(2)
+    assert.strictEqual(opts.insertSpaces, true)
+    assert.strictEqual(opts.tabSize, 2)
   })
 
-  it('should get format options of current buffer', async () => {
+  it('should get format options of current buffer', async t => {
     let buf = await nvim.buffer
     await buf.setVar('coc_trim_trailing_whitespace', 1)
     await buf.setVar('coc_trim_final_newlines', 1)
@@ -155,7 +154,7 @@ describe('workspace methods', () => {
     await buf.setOption('expandtab', false)
     let doc = workspace.getDocument(buf.id)
     let opts = await workspace.getFormatOptions(doc.uri)
-    expect(opts).toEqual({
+    assert.deepStrictEqual(opts, {
       tabSize: 8,
       insertSpaces: false,
       insertFinalNewline: true,
@@ -164,39 +163,39 @@ describe('workspace methods', () => {
     })
   })
 
-  it('should check document', async () => {
+  it('should check document', async t => {
     let doc = await workspace.document
-    expect(workspace.hasDocument(doc.uri)).toBe(true)
-    expect(workspace.hasDocument(doc.uri, doc.version)).toBe(true)
-    expect(workspace.hasDocument(doc.uri, doc.version - 1)).toBe(false)
+    assert.strictEqual(workspace.hasDocument(doc.uri), true)
+    assert.strictEqual(workspace.hasDocument(doc.uri, doc.version), true)
+    assert.strictEqual(workspace.hasDocument(doc.uri, doc.version - 1), false)
   })
 
-  it('should get format options when uri does not exist', async () => {
+  it('should get format options when uri does not exist', async t => {
     let uri = URI.file('/tmp/foo').toString()
     let opts = await workspace.getFormatOptions(uri)
-    expect(opts.insertSpaces).toBe(true)
-    expect(opts.tabSize).toBe(2)
+    assert.strictEqual(opts.insertSpaces, true)
+    assert.strictEqual(opts.tabSize, 2)
   })
 
-  it('should create file watcher', async () => {
+  it('should create file watcher', async t => {
     let watcher = workspace.createFileSystemWatcher('**/*.ts')
-    expect(watcher).toBeDefined()
+    assert.notStrictEqual(watcher, undefined)
   })
 
-  it('should get quickfix item from Location', async () => {
-    let filepath = await createTmpFile('quickfix')
+  it('should get quickfix item from Location', async t => {
+    let filepath = await shared.createTmpFile('quickfix')
     let uri = URI.file(filepath).toString()
     let p = Position.create(0, 0)
     let loc = Location.create(uri, Range.create(p, p))
     let item = await workspace.getQuickfixItem(loc)
-    expect(item.filename).toBe(filepath)
-    expect(item.text).toBe('quickfix')
+    assert.strictEqual(item.filename, filepath)
+    assert.strictEqual(item.text, 'quickfix')
   })
 
-  it('should get quickfix list from Locations', async () => {
-    let filepathA = await createTmpFile('fileA:1\nfileA:2\nfileA:3')
+  it('should get quickfix list from Locations', async t => {
+    let filepathA = await shared.createTmpFile('fileA:1\nfileA:2\nfileA:3')
     let uriA = URI.file(filepathA).toString()
-    let filepathB = await createTmpFile('fileB:1\nfileB:2\nfileB:3')
+    let filepathB = await shared.createTmpFile('fileB:1\nfileB:2\nfileB:3')
     let uriB = URI.file(filepathB).toString()
     let p1 = Position.create(0, 0)
     let p2 = Position.create(1, 0)
@@ -206,127 +205,133 @@ describe('workspace methods', () => {
     locations.push(Location.create(uriB, Range.create(p1, p1)))
     locations.push(Location.create(uriB, Range.create(p2, p2)))
     let items = await workspace.getQuickfixList(locations)
-    expect(items[0].filename).toBe(filepathA)
-    expect(items[0].text).toBe('fileA:1')
-    expect(items[1].filename).toBe(filepathA)
-    expect(items[1].text).toBe('fileA:2')
-    expect(items[2].filename).toBe(filepathB)
-    expect(items[2].text).toBe('fileB:1')
-    expect(items[3].filename).toBe(filepathB)
-    expect(items[3].text).toBe('fileB:2')
+    assert.strictEqual(items[0].filename, filepathA)
+    assert.strictEqual(items[0].text, 'fileA:1')
+    assert.strictEqual(items[1].filename, filepathA)
+    assert.strictEqual(items[1].text, 'fileA:2')
+    assert.strictEqual(items[2].filename, filepathB)
+    assert.strictEqual(items[2].text, 'fileB:1')
+    assert.strictEqual(items[3].filename, filepathB)
+    assert.strictEqual(items[3].text, 'fileB:2')
   })
 
-  it('should get line of document', async () => {
+  it('should get line of document', async t => {
     let doc = await workspace.document
     await nvim.setLine('abc')
     let line = await workspace.getLine(doc.uri, 0)
-    expect(line).toBe('abc')
+    assert.strictEqual(line, 'abc')
   })
 
-  it('should get line of file', async () => {
-    let filepath = await createTmpFile('quickfix')
+  it('should get line of file', async t => {
+    let filepath = await shared.createTmpFile('quickfix')
     let uri = URI.file(filepath).toString()
     let line = await workspace.getLine(uri, 0)
-    expect(line).toBe('quickfix')
+    assert.strictEqual(line, 'quickfix')
   })
 
-  it('should read content from buffer', async () => {
+  it('should read content from buffer', async t => {
     let doc = await workspace.document
     await doc.applyEdits([{ range: Range.create(0, 0, 0, 0), newText: 'foo' }])
     let line = await workspace.readFile(doc.uri)
-    expect(line).toBe('foo\n')
+    assert.strictEqual(line, 'foo\n')
   })
 
-  it('should read content from file', async () => {
-    let filepath = await createTmpFile('content')
+  it('should read content from file', async t => {
+    let filepath = await shared.createTmpFile('content')
     let content = await workspace.readFile(URI.file(filepath).toString())
-    expect(content).toBe(content)
+    assert.strictEqual(content, content)
   })
 
-  it('should expand filepath', async () => {
+  it('should expand filepath', async t => {
     let home = os.homedir()
     let res = workspace.expand('~/$NODE_ENV/')
-    expect(res.startsWith(home)).toBeTruthy()
-    expect(res).toContain(process.env.NODE_ENV)
+    assert.ok(res.startsWith(home))
+    assert.ok(res.includes(process.env.NODE_ENV))
 
     res = workspace.expand('$HOME/$NODE_ENV/')
-    expect(res.startsWith(home)).toBeTruthy()
-    expect(res).toContain(process.env.NODE_ENV)
+    assert.ok(res.startsWith(home))
+    assert.ok(res.includes(process.env.NODE_ENV))
   })
 
-  it('should expand variables', async () => {
-    expect(workspace.expand('${workspace}/foo')).toBe(`${workspace.root}/foo`)
-    expect(workspace.expand('${env:NODE_ENV}')).toBe(process.env.NODE_ENV)
-    expect(workspace.expand('${cwd}')).toBe(workspace.cwd)
+  it('should expand variables', async t => {
+    assert.strictEqual(workspace.expand('${workspace}/foo'), `${workspace.root}/foo`)
+    assert.strictEqual(workspace.expand('${env:NODE_ENV}'), process.env.NODE_ENV)
+    assert.strictEqual(workspace.expand('${cwd}'), workspace.cwd)
     let folder = path.basename(workspace.root)
-    expect(workspace.expand('${workspaceFolderBasename}')).toBe(folder)
-    await helper.edit('bar.ts')
-    expect(workspace.expand('${file}')).toContain('bar')
-    expect(workspace.expand('${fileDirname}')).toBe(path.dirname(__dirname))
-    expect(workspace.expand('${fileExtname}')).toBe('.ts')
-    expect(workspace.expand('${fileBasename}')).toBe('bar.ts')
-    expect(workspace.expand('${fileBasenameNoExtension}')).toBe('bar')
+    assert.strictEqual(workspace.expand('${workspaceFolderBasename}'), folder)
+    // The old compiled runner created docs relative to the helper's
+    // import.meta.dirname (tests root); keep the same anchor with the source-tree
+    // import.meta.dirname so ${fileDirname} matches path.dirname(import.meta.dirname).
+    await shared.edit(path.join(path.dirname(import.meta.dirname), 'bar.ts'))
+    assert.ok(workspace.expand('${file}').includes('bar'))
+    assert.strictEqual(workspace.expand('${fileDirname}'), path.dirname(import.meta.dirname))
+    assert.strictEqual(workspace.expand('${fileExtname}'), '.ts')
+    assert.strictEqual(workspace.expand('${fileBasename}'), 'bar.ts')
+    assert.strictEqual(workspace.expand('${fileBasenameNoExtension}'), 'bar')
   })
 
-  it('should run command', async () => {
-    let res = await workspace.runCommand('ls', __dirname, 1000)
-    expect(res).toMatch('workspace')
+  it('should run command', async t => {
+    let res = await workspace.runCommand('ls', import.meta.dirname, 1000)
+    assert.match(res, new RegExp('workspace'))
     res = await workspace.runCommand('ls')
-    expect(res).toBeDefined()
+    assert.notStrictEqual(res, undefined)
   })
 
-  it('should export deprecated properties', async () => {
-    expect(workspace.completeOpt).toBeDefined()
-    expect(workspace.createNameSpace('name')).toBeDefined()
-    expect(Workspace).toBeDefined()
-    expect(workspace['onDidOpenTerminal']).toBeDefined()
-    expect(workspace['onDidCloseTerminal']).toBeDefined()
-    let spy = vi.spyOn(workspace.nvim, 'call').mockImplementation(() => {
-      return null
+  it('should export deprecated properties', async t => {
+    assert.notStrictEqual(workspace.completeOpt, undefined)
+    assert.notStrictEqual(workspace.createNameSpace('name'), undefined)
+    assert.notStrictEqual(Workspace, undefined)
+    assert.notStrictEqual(workspace['onDidOpenTerminal'], undefined)
+    assert.notStrictEqual(workspace['onDidCloseTerminal'], undefined)
+    t.mock.method(workspace.nvim, 'call', () => {
+      return Promise.resolve(null)
     })
     workspace.checkVersion(0)
-    spy.mockRestore()
   })
 
-  it('should resolve module path if exists', async () => {
+  it('should resolve module path if exists', async t => {
     // Mock the npm/yarn global folder lookup to avoid spawning child
     // processes, the resolve logic itself stays untouched.
     let folder = path.join(tmpFolder, 'npm-root')
     fs.mkdirSync(path.join(folder, 'bytes'), { recursive: true })
     fs.writeFileSync(path.join(folder, 'bytes', 'package.json'), '', 'utf8')
-    let spy = vi.spyOn(processes, 'runCommand').mockResolvedValue(folder)
+    // runCommand's ESM export is a frozen bundle binding; mock the
+    // child_process.exec seam it spawns through instead.
+    t.mock.method(cp, 'exec', (_cmd: string, _opts: any, cb: any) => {
+      cb(null, Buffer.from(folder + '\n'), Buffer.alloc(0))
+    })
     let res = await workspace.resolveModule('bytes')
     res = await workspace.resolveModule('bytes')
-    expect(res).toBeTruthy()
-    spy.mockRestore()
+    assert.ok(res)
   })
 
-  it('should not resolve module if it does not exist', async () => {
+  it('should not resolve module if it does not exist', async t => {
     let folder = path.join(tmpFolder, 'npm-root')
-    let spy = vi.spyOn(processes, 'runCommand').mockResolvedValue(folder)
+    t.mock.method(cp, 'exec', (_cmd: string, _opts: any, cb: any) => {
+      cb(null, Buffer.from(folder + '\n'), Buffer.alloc(0))
+    })
     let res = await workspace.resolveModule('foo')
     res = await workspace.resolveModule('foo')
-    expect(res).toBeFalsy()
-    spy.mockRestore()
+    assert.ok(!res)
   })
 
-  it('should return match score for document', async () => {
-    let doc = await helper.createDocument('tmp.xml')
-    expect(workspace.match(['xml'], doc.textDocument)).toBe(10)
-    expect(workspace.match(['wxml'], doc.textDocument)).toBe(0)
-    expect(workspace.match([{ language: 'xml' }], doc.textDocument)).toBe(10)
-    expect(workspace.match([{ language: 'wxml' }], doc.textDocument)).toBe(0)
-    expect(workspace.match([{ pattern: '**/*.xml' }], doc.textDocument)).toBe(5)
-    expect(workspace.match([{ pattern: '**/*.html' }], doc.textDocument)).toBe(0)
-    expect(workspace.match([{ scheme: 'file' }], doc.textDocument)).toBe(5)
-    expect(workspace.match([{ scheme: 'term' }], doc.textDocument)).toBe(0)
-    expect(workspace.match([{ language: 'xml' }, { scheme: 'file' }], doc.textDocument)).toBe(10)
-    expect(workspace.match([{ language: 'xml', scheme: 'file', pattern: '**/*.xml' }], doc.textDocument)).toBe(10)
+  it('should return match score for document', async t => {
+    let doc = await shared.createDocument('tmp.xml')
+    assert.strictEqual(workspace.match(['xml'], doc.textDocument), 10)
+    assert.strictEqual(workspace.match(['wxml'], doc.textDocument), 0)
+    assert.strictEqual(workspace.match([{ language: 'xml' }], doc.textDocument), 10)
+    assert.strictEqual(workspace.match([{ language: 'wxml' }], doc.textDocument), 0)
+    assert.strictEqual(workspace.match([{ pattern: '**/*.xml' }], doc.textDocument), 5)
+    assert.strictEqual(workspace.match([{ pattern: '**/*.html' }], doc.textDocument), 0)
+    assert.strictEqual(workspace.match([{ scheme: 'file' }], doc.textDocument), 5)
+    assert.strictEqual(workspace.match([{ scheme: 'term' }], doc.textDocument), 0)
+    assert.strictEqual(workspace.match([{ language: 'xml' }, { scheme: 'file' }], doc.textDocument), 10)
+    assert.strictEqual(workspace.match([{ language: 'xml', scheme: 'file', pattern: '**/*.xml' }], doc.textDocument), 10)
   })
 
-  it('should handle will save event', async () => {
+  it('should handle will save event', async t => {
     async function doRename() {
-      let fsPath = await createTmpFile('foo', disposables)
+      let fsPath = await shared.createTmpFile('foo', disposables)
       let newPath = path.join(path.dirname(fsPath), 'new_file')
       disposables.push(Disposable.create(() => {
         if (fs.existsSync(newPath)) fs.unlinkSync(newPath)
@@ -346,69 +351,71 @@ describe('workspace methods', () => {
     })
     await doRename()
     disposable.dispose()
-    expect(called).toBe(true)
+    assert.strictEqual(called, true)
     called = false
     disposable = workspace.onWillRenameFiles(e => {
       called = true
       e.waitUntil(Promise.resolve({ changes: {} }))
     })
     await doRename()
-    expect(called).toBe(true)
+    assert.strictEqual(called, true)
     disposable.dispose()
   })
 
-  it('should getWatchConfig', async () => {
-    helper.updateConfiguration('fileSystemWatch.enable', null, disposables)
-    helper.updateConfiguration('fileSystemWatch.watchmanPath', '~/bin/watchman', disposables)
-    helper.updateConfiguration('fileSystemWatch.ignoredFolders', ['~'], disposables)
+  it('should getWatchConfig', async t => {
+    shared.updateConfiguration('fileSystemWatch.enable', null, disposables)
+    shared.updateConfiguration('fileSystemWatch.watchmanPath', '~/bin/watchman', disposables)
+    shared.updateConfiguration('fileSystemWatch.ignoredFolders', ['~'], disposables)
     let config = workspace.getWatchConfig()
-    expect(config.enable).toBe(false)
-    expect(typeof config.watchmanPath).toBe('string')
-    expect(config.ignoredFolders).toEqual([os.homedir()])
+    assert.strictEqual(config.enable, false)
+    assert.strictEqual(typeof config.watchmanPath, 'string')
+    assert.deepStrictEqual(config.ignoredFolders, [os.homedir()])
   })
 })
 
 describe('workspace utility', () => {
-  it('should create database', async () => {
+  it('should create database', async t => {
     let filpath = path.join(process.env.COC_DATA_HOME, 'test.json')
     if (fs.existsSync(filpath)) {
       fs.unlinkSync(filpath)
     }
     let db = workspace.createDatabase('test')
     let res = db.exists('xyz')
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
     db.destroy()
   })
 
-  it('should get current state', async () => {
-    let buf = await helper.edit()
+  it('should get current state', async t => {
+    let buf = await shared.edit()
     await buf.setLines(['foo', 'bar'], { start: 0, end: -1, strictIndexing: false })
     await nvim.call('cursor', [2, 2])
     let doc = workspace.getDocument(buf.id)
     let state = await workspace.getCurrentState()
-    expect(doc.uri).toBe(state.document.uri)
-    expect(state.position).toEqual({ line: 1, character: 1 })
+    assert.strictEqual(doc.uri, state.document.uri)
+    assert.deepStrictEqual(state.position, { line: 1, character: 1 })
   })
 
-  it('should findUp to tsconfig.json from current file', async () => {
-    await helper.edit(path.join(__dirname, 'edit'))
+  it('should findUp to tsconfig.json from current file', async t => {
+    await shared.edit(path.join(import.meta.dirname, 'edit'))
     let filepath = await workspace.findUp('tsconfig.json')
-    expect(filepath).toMatch('tsconfig.json')
+    assert.match(filepath, new RegExp('tsconfig\\.json'))
   })
 
-  it('should findUp from current file', async () => {
-    await helper.edit('foo')
+  it('should findUp from current file', async t => {
+    // The runner's nvim cwd now lives in the OS temp tree; anchor the file
+    // under the repo root so findUp reaches the repository's tsconfig.json.
+    await shared.edit(path.join(process.cwd(), 'foo'))
     let filepath = await workspace.findUp('tsconfig.json')
-    expect(filepath).toMatch('tsconfig.json')
+    assert.match(filepath, new RegExp('tsconfig\\.json'))
   })
 
-  it('should not findUp from file in other directory', async () => {
+  it('should not findUp from file in other directory', async t => {
     await nvim.command(`edit ${path.join(os.tmpdir(), crypto.randomUUID())}`)
     let filepath = await workspace.findUp('tsconfig.json')
-    expect(filepath).toBeNull()
+    assert.strictEqual(filepath, null)
   })
 
-  it('should register autocmd', async () => {
+  it('should register autocmd', async t => {
     let event: any
     let eventCount = 0
     let disposables = []
@@ -423,15 +430,15 @@ describe('workspace utility', () => {
     }, disposables)
     await nvim.setLine('foo')
     await nvim.command('normal! yy')
-    await helper.waitValue(() => eventCount, 1)
-    expect(event.regtype).toBe('V')
-    expect(event.operator).toBe('y')
-    expect(event.regcontents).toEqual(['foo'])
-    expect(eventCount).toBe(1)
+    await shared.waitValue(() => eventCount, 1)
+    assert.strictEqual(event.regtype, 'V')
+    assert.strictEqual(event.operator, 'y')
+    assert.deepStrictEqual(event.regcontents, ['foo'])
+    assert.strictEqual(eventCount, 1)
     disposables.forEach(d => d.dispose())
   })
 
-  it('should register keymap', async () => {
+  it('should register keymap', async t => {
     let n = 0
     let fn = () => {
       n++
@@ -439,16 +446,16 @@ describe('workspace utility', () => {
     await nvim.command('nmap go <Plug>(coc-echo)')
     let disposable = workspace.registerKeymap(['n', 'v'], 'echo', fn, { sync: true })
     let { mode } = await nvim.mode
-    expect(mode).toBe('n')
+    assert.strictEqual(mode, 'n')
     await nvim.call('feedkeys', ['go', 'i'])
-    await helper.waitValue(() => n, 1)
+    await shared.waitValue(() => n, 1)
     disposable.dispose()
     await nvim.call('feedkeys', ['go', 'i'])
-    await helper.wait(20)
-    expect(n).toBe(1)
+    await shared.wait(20)
+    assert.strictEqual(n, 1)
   })
 
-  it('should register expr keymap', async () => {
+  it('should register expr keymap', async t => {
     let called = false
     let fn = () => {
       called = true
@@ -456,30 +463,30 @@ describe('workspace utility', () => {
     }
     await nvim.input('i')
     let { mode } = await nvim.mode
-    expect(mode).toBe('i')
+    assert.strictEqual(mode, 'i')
     let disposable = workspace.registerExprKeymap('i', '"', fn)
-    await helper.wait(30)
+    await shared.wait(30)
     await nvim.call('feedkeys', ['"', 't'])
-    await helper.waitValue(() => called, true)
-    expect(called).toBe(true)
+    await shared.waitValue(() => called, true)
+    assert.strictEqual(called, true)
     let line = await nvim.line
-    expect(line).toBe('""')
+    assert.strictEqual(line, '""')
     disposable.dispose()
   })
 
-  it('should register buffer expr keymap', async () => {
+  it('should register buffer expr keymap', async t => {
     let fn = () => '""'
     await nvim.input('i')
     let disposable = workspace.registerExprKeymap('i', '"', fn, true, false)
-    await helper.wait(30)
+    await shared.wait(30)
     await nvim.call('feedkeys', ['"', 't'])
-    await helper.waitFor('getline', ['.'], '""')
+    await shared.waitFor('getline', ['.'], '""')
     let line = await nvim.line
-    expect(line).toBe('""')
+    assert.strictEqual(line, '""')
     disposable.dispose()
   })
 
-  it('should resolve dynamic insert keymaps against current state', async () => {
+  it('should resolve dynamic insert keymaps against current state', async t => {
     let state = (value: [string, [number, number]]): [string, number] => {
       return [value[0], value[1][1]]
     }
@@ -501,7 +508,7 @@ describe('workspace utility', () => {
       let [line, index] = state(value)
       return [{ text: line.slice(0, index).endsWith('a') ? '[]' : 'stale' }, ...move('<Left>')]
     }, option))
-    await helper.waitValue(async () => {
+    await shared.waitValue(async () => {
       let output = await nvim.exec('imap (', true)
       return output.includes('coc#_insert_keymap')
     }, true)
@@ -512,102 +519,102 @@ describe('workspace utility', () => {
         await nvim.command('enew!')
         await nvim.setLine('seed')
         await nvim.command("normal O('')")
-        await helper.waitValue(async () => await nvim.getLine(), "('')")
+        await shared.waitValue(async () => await nvim.getLine(), "('')")
         outputs.push(await nvim.getLine())
       }
-      expect([...new Set(outputs)]).toEqual(["('')"])
+      assert.deepStrictEqual([...new Set(outputs)], ["('')"])
       await nvim.command('enew!')
       await nvim.command('normal Oa[')
-      await helper.waitValue(async () => await nvim.getLine(), 'a[]')
+      await shared.waitValue(async () => await nvim.getLine(), 'a[]')
       let local = workspace.registerInsertKeymap(']', () => [{ text: '[]' }, { key: '<Left>' }], { buffer: true })
       mappings.push(local)
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         let rhs = await nvim.call('maparg', [']', 'i']) as string
         return rhs.includes('coc#_insert_keymap')
       }, true)
       await nvim.command('normal O]')
-      expect(await nvim.getLine()).toBe('[]')
+      assert.strictEqual(await nvim.getLine(), '[]')
     } finally {
       disposeAll(mappings)
       await nvim.eval('1')
     }
   })
 
-  it('should check nvim version', async () => {
-    expect(workspace.has('patch-7.4.248')).toBe(false)
-    expect(workspace.has('nvim-0.5.0')).toBe(true)
-    expect(workspace.has('nvim-9.0.0')).toBe(false)
+  it('should check nvim version', async t => {
+    assert.strictEqual(workspace.has('patch-7.4.248'), false)
+    assert.strictEqual(workspace.has('nvim-0.5.0'), true)
+    assert.strictEqual(workspace.has('nvim-9.0.0'), false)
   })
 
-  it('should registerLocalKeymap by old API', async () => {
+  it('should registerLocalKeymap by old API', async t => {
     let called = false
     let fn = workspace.registerLocalKeymap.bind(workspace) as any
     let disposable = fn('n', 'n', () => { called = true })
     await nvim.call('feedkeys', ['n', 't'])
-    await helper.waitValue(() => called, true)
+    await shared.waitValue(() => called, true)
     disposable.dispose()
     let res = await nvim.exec('nmap n', true)
-    expect(res).toMatch('No mapping found')
+    assert.match(res, new RegExp('No mapping found'))
   })
 })
 
 describe('workspace events', () => {
 
-  it('should listen to fileType change', async () => {
-    let buf = await helper.edit()
+  it('should listen to fileType change', async t => {
+    let buf = await shared.edit()
     await nvim.command('setf xml')
-    await helper.waitValue(() => workspace.getDocument(buf.id)?.filetype, 'xml')
+    await shared.waitValue(() => workspace.getDocument(buf.id)?.filetype, 'xml')
     let doc = workspace.getDocument(buf.id)
-    expect(doc.filetype).toBe('xml')
+    assert.strictEqual(doc.filetype, 'xml')
   })
 
-  it('should fire onDidOpenTextDocument', async () => {
-    let fn = vi.fn()
+  it('should fire onDidOpenTextDocument', async t => {
+    let fn = t.mock.fn()
     workspace.onDidOpenTextDocument(fn, null, disposables)
-    await helper.edit()
-    await helper.waitValue(() => fn.mock.calls.length, 1)
-    expect(fn).toHaveBeenCalledTimes(1)
+    await shared.edit()
+    await shared.waitValue(() => fn.mock.calls.length, 1)
+    assert.strictEqual(fn.mock.calls.length, 1)
   })
 
-  it('should fire onDidChangeTextDocument', async () => {
-    let fn = vi.fn()
-    await helper.edit()
+  it('should fire onDidChangeTextDocument', async t => {
+    let fn = t.mock.fn()
+    await shared.edit()
     workspace.onDidChangeTextDocument(fn, null, disposables)
     await nvim.setLine('foo')
     let doc = await workspace.document
     doc.forceSync()
-    await helper.wait(20)
-    expect(fn).toHaveBeenCalledTimes(1)
+    await shared.wait(20)
+    assert.strictEqual(fn.mock.calls.length, 1)
   })
 
-  it('should fire onDidChangeConfiguration', async () => {
-    let fn = vi.fn()
+  it('should fire onDidChangeConfiguration', async t => {
+    let fn = t.mock.fn()
     let disposable = workspace.onDidChangeConfiguration(e => {
       disposable.dispose()
-      expect(e.affectsConfiguration('tsserver')).toBe(true)
-      expect(e.affectsConfiguration('tslint')).toBe(false)
+      assert.strictEqual(e.affectsConfiguration('tsserver'), true)
+      assert.strictEqual(e.affectsConfiguration('tslint'), false)
       fn()
     })
     let config = workspace.getConfiguration('tsserver')
     await config.update('enable', false)
-    expect(fn).toHaveBeenCalledTimes(1)
+    assert.strictEqual(fn.mock.calls.length, 1)
     await config.update('enable', undefined)
   })
 
-  it('should resolve json schema', async () => {
-    expect(workspace.resolveJSONSchema(userSettingsSchemaId)).toBeDefined()
+  it('should resolve json schema', async t => {
+    assert.notStrictEqual(workspace.resolveJSONSchema(userSettingsSchemaId), undefined)
   })
 
-  it('should get empty configuration for none exists section', () => {
+  it('should get empty configuration for none exists section', t => {
     let config = workspace.getConfiguration('notexists')
     let keys = Object.keys(config)
-    expect(keys.length).toBe(0)
+    assert.strictEqual(keys.length, 0)
   })
 
-  it('should fire onWillSaveUntil', async () => {
+  it('should fire onWillSaveUntil', async t => {
     let doc = await workspace.document
     let filepath = URI.parse(doc.uri).fsPath
-    let fn = vi.fn()
+    let fn = t.mock.fn()
     let disposable = workspace.onWillSaveTextDocument(event => {
       let promise = new Promise<TextEdit[]>(resolve => {
         fn()
@@ -622,18 +629,18 @@ describe('workspace events', () => {
     await nvim.setLine('bar')
     await doc.synchronize()
     await events.fire('BufWritePre', [doc.bufnr, doc.bufname])
-    await helper.waitValue(() => doc.getDocumentContent().startsWith('foobar'), true)
+    await shared.waitValue(() => doc.getDocumentContent().startsWith('foobar'), true)
     let content = doc.getDocumentContent()
-    expect(content.startsWith('foobar')).toBe(true)
+    assert.strictEqual(content.startsWith('foobar'), true)
     disposable.dispose()
-    expect(fn).toHaveBeenCalledTimes(1)
+    assert.strictEqual(fn.mock.calls.length, 1)
     if (fs.existsSync(filepath)) {
       fs.unlinkSync(filepath)
     }
   })
 
-  it('should not work for async waitUntil', async () => {
-    let doc = await helper.createDocument()
+  it('should not work for async waitUntil', async t => {
+    let doc = await shared.createDocument()
     let filepath = URI.parse(doc.uri).fsPath
     let disposable = workspace.onWillSaveTextDocument(event => {
       setTimeout(() => {
@@ -646,20 +653,25 @@ describe('workspace events', () => {
     })
     await nvim.setLine('bar')
     await doc.synchronize()
-    await nvim.command('wa')
+    // The async waitUntil intentionally makes coc echo an error, which
+    // aborts the BufWritePre RPC chain. Fire the write as a notification so
+    // the expected error does not surface as a request error on this test
+    // (and does not leak into the next test's BufWritePre).
+    await nvim.command('wa', true)
+    await shared.waitValue(() => doc.getDocumentContent().includes('bar'), true)
     let content = doc.getDocumentContent()
-    expect(content).toMatch('bar')
+    assert.match(content, new RegExp('bar'))
     // Wait for the async waitUntil timer to fire while vim is idle, otherwise
     // the error echo could abort a BufWritePre request of the next test.
-    await helper.wait(50)
+    await shared.wait(50)
     disposable.dispose()
     if (fs.existsSync(filepath)) {
       fs.unlinkSync(filepath)
     }
   })
 
-  it('should only use first returned textEdits', async () => {
-    let doc = await helper.createDocument()
+  it('should only use first returned textEdits', async t => {
+    let doc = await shared.createDocument()
     let filepath = URI.parse(doc.uri).fsPath
     disposables.push(Disposable.create(() => {
       if (fs.existsSync(filepath)) {
@@ -696,25 +708,25 @@ describe('workspace events', () => {
     await nvim.setLine('bar')
     await doc.synchronize()
     await nvim.command('wa')
-    await helper.waitValue(() => doc.getDocumentContent().includes('foo'), true)
+    await shared.waitValue(() => doc.getDocumentContent().includes('foo'), true)
     let content = doc.getDocumentContent()
-    expect(content).toMatch('foo')
+    assert.match(content, new RegExp('foo'))
   })
 
-  it('should attach & detach', async () => {
-    let buf = await helper.edit()
+  it('should attach & detach', async t => {
+    let buf = await shared.edit()
     await nvim.command('CocDisable')
     let doc = workspace.getDocument(buf.id)
-    expect(doc).toBeUndefined()
+    assert.strictEqual(doc, undefined)
     await nvim.command('CocEnable')
     doc = workspace.getDocument(buf.id)
-    expect(doc.bufnr).toBe(buf.id)
+    assert.strictEqual(doc.bufnr, buf.id)
   })
 })
 
 describe('workspace registerBufferSync', () => {
-  it('should register', async () => {
-    await helper.createDocument()
+  it('should register', async t => {
+    await shared.createDocument()
     let created = 0
     let deleted = 0
     let changed = 0
@@ -730,15 +742,15 @@ describe('workspace registerBufferSync', () => {
       }
     })
     disposables.push(disposable)
-    let doc = await helper.createDocument()
-    expect(created).toBe(2)
+    let doc = await shared.createDocument()
+    assert.strictEqual(created, 2)
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
-    expect(changed).toBe(1)
+    assert.strictEqual(changed, 1)
     await nvim.command('bd!')
-    expect(deleted).toBe(1)
+    assert.strictEqual(deleted, 1)
   })
 
-  it('should invoke onTextChange', async () => {
+  it('should invoke onTextChange', async t => {
     let called = 0
     disposables.push(workspace.registerBufferSync(() => {
       return {
@@ -749,9 +761,9 @@ describe('workspace registerBufferSync', () => {
         }
       }
     }))
-    let doc = await helper.createDocument()
+    let doc = await shared.createDocument()
     await nvim.setLine('foo')
     await doc.synchronize()
-    expect(called).toBe(1)
+    assert.strictEqual(called, 1)
   })
 })

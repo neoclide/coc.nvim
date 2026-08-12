@@ -35,7 +35,8 @@ import { Sequence } from '../../util/sequence'
 import * as strings from '../../util/string'
 import * as textedits from '../../util/textedit'
 import { createTiming } from '../../util/timing'
-import helper from '../helper'
+import { waitValue } from './testUtils'
+import { after, before, describe, it, test } from 'node:test'
 
 function createTextDocument(lines: string[]): LinesTextDocument {
   return new LinesTextDocument('file://a', 'txt', 1, lines, 1, true)
@@ -46,7 +47,7 @@ function toEdit(sl, sc, el, ec, text): TextEdit {
 }
 
 let logfile = path.join(os.tmpdir(), 'log_test.js')
-beforeAll(() => {
+before(() => {
   let code = `const {wait, nvim} = require('coc.nvim')
 console.log('log')
 console.debug('debug')
@@ -59,12 +60,12 @@ module.exports = () => {
   fs.writeFileSync(logfile, code, 'utf8')
 })
 
-afterAll(() => {
+after(() => {
   fs.unlinkSync(logfile)
 })
 
 describe('factory', () => {
-  afterAll(() => {
+  after(() => {
     global.__TEST__ = true
   })
 
@@ -79,8 +80,8 @@ describe('factory', () => {
     mark: () => {}
   }
 
-  it('should create logger', () => {
-    let fn = vi.fn()
+  it('should create logger', t => {
+    let fn = t.mock.fn()
     const sandbox = factory.createSandbox(logfile, {
       log: () => {
         fn()
@@ -110,12 +111,12 @@ console.debug('debug')
 console.info('info')
 console.error('error')
 console.warn('warn')`, sandbox)
-    expect(fn).toHaveBeenCalled()
+    assert.ok(fn.mock.callCount() > 0)
   })
 
   it('should create console', () => {
     let res = factory.createConsole({ x: 1 }, {} as any)
-    expect(res).toEqual({ x: 1 })
+    assert.deepStrictEqual(res, { x: 1 })
     let called = false
     let val = 1
     res = factory.createConsole({
@@ -131,32 +132,32 @@ console.warn('warn')`, sandbox)
     } as any)
       ; (res as any).custom()
       ; (res as Console).warn()
-    expect(val).toBe(1)
-    expect(called).toBe(true)
+    assert.strictEqual(val, 1)
+    assert.strictEqual(called, true)
   })
 
   it('should copy properties', () => {
     let obj = factory.copyGlobalProperties({} as any, global)
-    expect(typeof obj['fetch']).toBe('function')
+    assert.strictEqual(typeof obj['fetch'], 'function')
   })
 
   it('should not throw process.chdir', () => {
     const sandbox = factory.createSandbox(logfile, emptyLogger)
     let res = vm.runInContext(`process.chdir()`, sandbox)
-    expect(res).toBeUndefined()
+    assert.strictEqual(res, undefined)
   })
 
   it('should throw with umask', () => {
     const sandbox = factory.createSandbox(logfile, emptyLogger)
     let res = vm.runInContext(`process.umask()`, sandbox)
-    expect(typeof res).toBe('number')
+    assert.strictEqual(typeof res, 'number')
     let err
     try {
       res = vm.runInContext(`process.umask(18)`, sandbox)
     } catch (e) {
       err = e
     }
-    expect(err).toBeDefined()
+    assert.notStrictEqual(err, undefined)
   })
 
   it('should throw with process.exit', () => {
@@ -167,18 +168,18 @@ console.warn('warn')`, sandbox)
     } catch (e) {
       err = e
     }
-    expect(err).toBeDefined()
+    assert.notStrictEqual(err, undefined)
   })
 
   it('should get module prototype', () => {
     const Module = require('module')
-    expect(factory.getProtoWithCompile(Module as any)).toBeDefined()
+    assert.notStrictEqual(factory.getProtoWithCompile(Module as any), undefined)
     function fn() {}
-    expect(() => {
+    assert.throws(() => {
       factory.getProtoWithCompile(fn)
-    }).toThrow(Error)
+    }, Error)
     fn.prototype._compile = () => {}
-    expect(factory.getProtoWithCompile(fn)).toBeDefined()
+    assert.notStrictEqual(factory.getProtoWithCompile(fn), undefined)
   })
 
   it('should clear the cache', () => {
@@ -191,25 +192,27 @@ console.warn('warn')`, sandbox)
     fs.writeFileSync(filename, 'module.exports = {y: 1}', 'utf8')
     sandbox = factory.createSandbox(filename, emptyLogger, 'hook')
     exports = sandbox.require(filename)
-    expect(exports).toEqual({ y: 1 })
+    // sandbox.require returns a VM-realm object whose prototype differs;
+    // deepEqual (like Vitest toEqual) ignores prototypes.
+    assert.deepEqual(exports, { y: 1 })
     fs.rmSync(filename, { force: true })
   })
 })
 
 describe('platform', () => {
   it('should get platform', () => {
-    expect(platform.getPlatform({ platform: 'win32' } as any)).toBe(platform.Platform.Windows)
-    expect(platform.getPlatform({ platform: 'darwin' } as any)).toBe(platform.Platform.Mac)
-    expect(platform.getPlatform({ platform: 'linux' } as any)).toBe(platform.Platform.Linux)
-    expect(platform.getPlatform({ platform: 'unknown' } as any)).toBe(platform.Platform.Unknown)
+    assert.strictEqual(platform.getPlatform({ platform: 'win32' } as any), platform.Platform.Windows)
+    assert.strictEqual(platform.getPlatform({ platform: 'darwin' } as any), platform.Platform.Mac)
+    assert.strictEqual(platform.getPlatform({ platform: 'linux' } as any), platform.Platform.Linux)
+    assert.strictEqual(platform.getPlatform({ platform: 'unknown' } as any), platform.Platform.Unknown)
   })
 
   it('should check platform', () => {
-    expect(platform.isWeb).toBeDefined()
-    expect(platform.isLinux).toBeDefined()
-    expect(platform.isNative).toBeDefined()
-    expect(platform.isWindows).toBeDefined()
-    expect(platform.isMacintosh).toBeDefined()
+    assert.notStrictEqual(platform.isWeb, undefined)
+    assert.notStrictEqual(platform.isLinux, undefined)
+    assert.notStrictEqual(platform.isNative, undefined)
+    assert.notStrictEqual(platform.isWindows, undefined)
+    assert.notStrictEqual(platform.isMacintosh, undefined)
   })
 })
 
@@ -228,7 +231,7 @@ describe('textedit', () => {
   test('getChangedPosition', () => {
     const assertPosition = (start, edit, arr) => {
       let res = textedits.getChangedPosition(start, edit)
-      expect(res).toEqual(Position.create(arr[0], arr[1]))
+      assert.deepStrictEqual(res, Position.create(arr[0], arr[1]))
     }
     let pos = Position.create(0, 0)
     assertPosition(pos, TextEdit.insert(pos, 'abc'), [0, 3])
@@ -250,7 +253,7 @@ describe('textedit', () => {
       TextEdit.replace(Range.create(2, 1, 3, 0), ''),
       TextEdit.replace(Range.create(10, 1, 12, 0), 'foo'),
     ]
-    expect(textedits.getChangedLineCount(pos, edits)).toBe(-2)
+    assert.strictEqual(textedits.getChangedLineCount(pos, edits), -2)
   })
 
   test('getPosition()', () => {
@@ -260,8 +263,8 @@ describe('textedit', () => {
       let lines = text.split('\n')
       let res = textedits.getPosition(pos, edit)
       let resWithLines = textedits.getPosition(pos, edit, lines)
-      expect(res).toEqual(val)
-      expect(resWithLines).toEqual(res)
+      assert.deepStrictEqual(res, val)
+      assert.deepStrictEqual(resWithLines, res)
     }
     assertChange(0, 1, 1, 0, 'abc', Position.create(0, 7))
     assertChange(0, 1, 1, 1, 'abc', Position.create(0, 6))
@@ -274,7 +277,7 @@ describe('textedit', () => {
     const assertLine = (rl, rc, el, ec, text, val: number): void => {
       let edit = TextEdit.replace(Range.create(rl, rc, el, ec), text)
       let res = textedits.getStartLine(edit)
-      expect(res).toBe(val)
+      assert.strictEqual(res, val)
     }
     assertLine(0, 0, 0, 0, 'abc\n', -1)
     assertLine(1, 0, 1, 0, 'd\n', 0)
@@ -284,7 +287,7 @@ describe('textedit', () => {
   test('getPositionFromEdits()', () => {
     const assertEdits = (pos, edits, exp: [number, number]) => {
       let res = textedits.getPositionFromEdits(pos, edits)
-      expect(res).toEqual(Position.create(exp[0], exp[1]))
+      assert.deepStrictEqual(res, Position.create(exp[0], exp[1]))
     }
     let pos = Position.create(5, 1)
     let edits: TextEdit[] = [
@@ -299,21 +302,21 @@ describe('textedit', () => {
 
   it('should check empty workspaceEdit', () => {
     let workspaceEdit: WorkspaceEdit = createEdit('untitled:/1')
-    expect(textedits.emptyWorkspaceEdit(workspaceEdit)).toBe(false)
-    expect(textedits.emptyWorkspaceEdit({ documentChanges: [] })).toBe(true)
+    assert.strictEqual(textedits.emptyWorkspaceEdit(workspaceEdit), false)
+    assert.strictEqual(textedits.emptyWorkspaceEdit({ documentChanges: [] }), true)
   })
 
   it('should get ranges', async () => {
     let ranges = textedits.getRangesFromEdit('test:/1', {})
-    expect(ranges).toBeUndefined()
+    assert.strictEqual(ranges, undefined)
     let edit: WorkspaceEdit = { changes: { 'test:/2': [TextEdit.insert(Position.create(0, 0), ' ')] } }
     ranges = textedits.getRangesFromEdit('test:/1', edit)
-    expect(ranges).toBeUndefined()
+    assert.strictEqual(ranges, undefined)
     ranges = textedits.getRangesFromEdit('test:/2', edit)
-    expect(ranges).toBeDefined()
+    assert.notStrictEqual(ranges, undefined)
     edit = { documentChanges: [TextDocumentEdit.create({ uri: 'test:/1', version: null }, [TextEdit.insert(Position.create(0, 0), ' ')])] }
     ranges = textedits.getRangesFromEdit('test:/1', edit)
-    expect(ranges).toBeDefined()
+    assert.notStrictEqual(ranges, undefined)
   })
 
   it('should get all annotation ids for confirm', () => {
@@ -341,7 +344,7 @@ describe('textedit', () => {
     annotations[ids[1]] = { label: '1', needsConfirmation: true }
     annotations[ids[2]] = { label: '2', needsConfirmation: true }
     let res = textedits.getConfirmAnnotations(changes, annotations)
-    expect(res.length).toBe(3)
+    assert.strictEqual(res.length, 3)
   })
 
   it('should create filtered changes', () => {
@@ -365,8 +368,8 @@ describe('textedit', () => {
       uri: 'test:///3',
     })
     let res = textedits.createFilteredChanges(changes, [ids[0], ids[2]])
-    expect(res.length).toBe(2)
-    expect(res).toEqual([{
+    assert.strictEqual(res.length, 2)
+    assert.deepStrictEqual(res, [{
       textDocument: {
         uri: "test:///1",
         version: null
@@ -385,7 +388,7 @@ describe('textedit', () => {
       uri: "test:///3"
     }])
     res = textedits.createFilteredChanges(changes, ids)
-    expect(res.length).toBe(1)
+    assert.strictEqual(res.length, 1)
   })
 
   it('should check edit is denied', () => {
@@ -394,44 +397,44 @@ describe('textedit', () => {
       AnnotatedTextEdit.insert(Position.create(0, 0), 'foo', ids[0]),
       AnnotatedTextEdit.insert(Position.create(1, 0), 'bar', ids[1]),
     ]
-    expect(textedits.isDeniedEdit(edits[0], [ids[0]])).toBe(true)
-    expect(textedits.isDeniedEdit(edits[1], [ids[0]])).toBe(false)
+    assert.strictEqual(textedits.isDeniedEdit(edits[0], [ids[0]]), true)
+    assert.strictEqual(textedits.isDeniedEdit(edits[1], [ids[0]]), false)
   })
 
   it('should check empty TextEdit', () => {
-    expect(textedits.emptyTextEdit(TextEdit.insert(Position.create(0, 0), ''))).toBe(true)
-    expect(textedits.emptyTextEdit(TextEdit.insert(Position.create(0, 0), 'a'))).toBe(false)
+    assert.strictEqual(textedits.emptyTextEdit(TextEdit.insert(Position.create(0, 0), '')), true)
+    assert.strictEqual(textedits.emptyTextEdit(TextEdit.insert(Position.create(0, 0), 'a')), false)
   })
 
   it('should get well formed edit', () => {
     let r = Range.create(1, 0, 0, 0)
     let edit: TextEdit = { range: r, newText: 'foo' }
     let res = textedits.getWellformedEdit(edit)
-    expect(res.range).toEqual(Range.create(0, 0, 1, 0))
+    assert.deepStrictEqual(res.range, Range.create(0, 0, 1, 0))
     r = Range.create(0, 0, 1, 0)
     edit = { range: r, newText: 'foo' }
     res = textedits.getWellformedEdit(edit)
-    expect(res.range).toBe(r)
+    assert.strictEqual(res.range, r)
   })
 
   it('should check line count change', () => {
     let r = Range.create(0, 0, 0, 5)
     let edit: TextEdit = { range: r, newText: 'foo' }
-    expect(textedits.lineCountChange(edit)).toBe(0)
+    assert.strictEqual(textedits.lineCountChange(edit), 0)
     edit = { range: Range.create(0, 0, 1, 0), newText: 'foo' }
-    expect(textedits.lineCountChange(edit)).toBe(-1)
+    assert.strictEqual(textedits.lineCountChange(edit), -1)
   })
 
   it('should filter and sort textedits', () => {
     let doc = createTextDocument(['foo'])
-    expect(textedits.filterSortEdits(doc, [TextEdit.insert(Position.create(0, 0), 'a\r\nb')])).toEqual([
+    assert.deepStrictEqual(textedits.filterSortEdits(doc, [TextEdit.insert(Position.create(0, 0), 'a\r\nb')]), [
       TextEdit.insert(Position.create(0, 0), 'a\nb')
     ])
-    expect(textedits.filterSortEdits(doc, [TextEdit.replace(Range.create(0, 0, 0, 3), 'foo')])).toEqual([])
-    expect(textedits.filterSortEdits(doc, [
+    assert.deepStrictEqual(textedits.filterSortEdits(doc, [TextEdit.replace(Range.create(0, 0, 0, 3), 'foo')]), [])
+    assert.deepStrictEqual(textedits.filterSortEdits(doc, [
       TextEdit.insert(Position.create(0, 1), 'b'),
       TextEdit.insert(Position.create(0, 0), 'a'),
-    ])).toEqual([
+    ]), [
       TextEdit.insert(Position.create(0, 0), 'a'),
       TextEdit.insert(Position.create(0, 1), 'b'),
     ])
@@ -441,53 +444,45 @@ describe('textedit', () => {
     let doc = createTextDocument(['foo'])
     let range = Range.create(0, 0, 0, 5)
     let res = textedits.filterSortEdits(doc, [TextEdit.replace(range, 'bar')])
-    expect(res[0].range).toEqual(Range.create(0, 0, 0, 3))
+    assert.deepStrictEqual(res[0].range, Range.create(0, 0, 0, 3))
   })
 
   it('should get range text', async () => {
     {
       let text = textedits.getRangeText([''], Range.create(0, 0, 0, 0))
-      expect(text).toBe('')
+      assert.strictEqual(text, '')
     }
     {
       let lines = ['foo', 'aabb', 'bar']
       let text = textedits.getRangeText(lines, Range.create(0, 1, 2, 1))
-      expect(text).toBe('oo\naabb\nb')
+      assert.strictEqual(text, 'oo\naabb\nb')
     }
   })
 
   it('should reduceTextEdit', () => {
     let e: TextEdit
     e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo')
-    expect(textedits.reduceTextEdit(e, '')).toEqual(e)
+    assert.deepStrictEqual(textedits.reduceTextEdit(e, ''), e)
     e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo\nbar')
-    expect(textedits.reduceTextEdit(e, 'bar')).toEqual(
-      TextEdit.replace(Range.create(0, 0, 0, 0), 'foo\n')
-    )
+    assert.deepStrictEqual(textedits.reduceTextEdit(e, 'bar'), TextEdit.replace(Range.create(0, 0, 0, 0), 'foo\n'))
     e = TextEdit.replace(Range.create(0, 0, 0, 3), 'foo\nbar')
-    expect(textedits.reduceTextEdit(e, 'foo')).toEqual(
-      TextEdit.replace(Range.create(0, 3, 0, 3), '\nbar')
-    )
+    assert.deepStrictEqual(textedits.reduceTextEdit(e, 'foo'), TextEdit.replace(Range.create(0, 3, 0, 3), '\nbar'))
     e = TextEdit.replace(Range.create(0, 0, 0, 3), 'def')
-    expect(textedits.reduceTextEdit(e, 'daf')).toEqual(
-      TextEdit.replace(Range.create(0, 1, 0, 2), 'e')
-    )
+    assert.deepStrictEqual(textedits.reduceTextEdit(e, 'daf'), TextEdit.replace(Range.create(0, 1, 0, 2), 'e'))
     e = TextEdit.replace(Range.create(2, 0, 3, 0), 'ascii ascii bar\n')
-    expect(textedits.reduceTextEdit(e, 'xyz ascii bar\n')).toEqual(
-      TextEdit.replace(Range.create(2, 0, 2, 3), 'ascii')
-    )
+    assert.deepStrictEqual(textedits.reduceTextEdit(e, 'xyz ascii bar\n'), TextEdit.replace(Range.create(2, 0, 2, 3), 'ascii'))
   })
 
   it('should get revert edit', async () => {
     {
       let res = textedits.getRevertEdit(['aa'], ['aa'], 0)
-      expect(res).toBeUndefined()
+      assert.strictEqual(res, undefined)
     } {
       let res = textedits.getRevertEdit(['foo', 'bar'], ['foo 1', 'bar 2'], 0)
-      expect(res).toEqual(TextEdit.replace(Range.create(0, 0, 2, 0), 'foo\nbar\n'))
+      assert.deepStrictEqual(res, TextEdit.replace(Range.create(0, 0, 2, 0), 'foo\nbar\n'))
     } {
       let res = textedits.getRevertEdit(['foo', 'bar'], ['foo', 'bar', 'after'], 2)
-      expect(res).toEqual(TextEdit.replace(Range.create(2, 0, 3, 0), ''))
+      assert.deepStrictEqual(res, TextEdit.replace(Range.create(2, 0, 3, 0), ''))
     }
   })
 
@@ -495,53 +490,53 @@ describe('textedit', () => {
     let edits = [toEdit(0, 0, 0, 0, 'foo'), toEdit(0, 1, 0, 1, 'bar')]
     let lines = ['ab']
     let res = textedits.mergeTextEdits(edits, lines, ['fooabarb'])
-    expect(res).toEqual(toEdit(0, 0, 0, 1, 'fooabar'))
+    assert.deepStrictEqual(res, toEdit(0, 0, 0, 1, 'fooabar'))
   })
 
   it('should merge textedits #2', () => {
     let edits = [toEdit(0, 0, 1, 0, 'foo\n')]
     let lines = ['bar']
     let res = textedits.mergeTextEdits(edits, lines, ['foo'])
-    expect(res).toEqual(toEdit(0, 0, 1, 0, 'foo\n'))
+    assert.deepStrictEqual(res, toEdit(0, 0, 1, 0, 'foo\n'))
   })
 
   it('should merge textedits #3', () => {
     let edits = [toEdit(0, 0, 0, 1, 'd'), toEdit(1, 0, 1, 1, 'e'), toEdit(2, 0, 3, 0, 'f\n')]
     let lines = ['a', 'b', 'c']
     let res = textedits.mergeTextEdits(edits, lines, ['d', 'e', 'f'])
-    expect(res).toEqual(toEdit(0, 0, 3, 0, 'd\ne\nf\n'))
+    assert.deepStrictEqual(res, toEdit(0, 0, 3, 0, 'd\ne\nf\n'))
   })
 
   it('should convert to text changes', () => {
-    expect(textedits.validEdit(TextEdit.insert(Position.create(0, 0), 'abc'))).toBe(false)
-    expect(textedits.validEdit(TextEdit.insert(Position.create(0, 1), 'abc\n'))).toBe(false)
-    expect(textedits.toTextChanges(['foo'], [])).toEqual([])
-    expect(textedits.toTextChanges(['foo'], [TextEdit.insert(Position.create(3, 1), '')])).toEqual([])
-    expect(textedits.toTextChanges(['foo'], [TextEdit.insert(Position.create(1, 1), '')])).toEqual([])
-    expect(textedits.toTextChanges(['foo'], [TextEdit.insert(Position.create(1, 0), 'bar\n')])).toEqual([[['', 'bar'], 0, 3, 0, 3]])
-    expect(textedits.toTextChanges(['foo'], [TextEdit.replace(Range.create(0, 0, 1, 0), 'bar\n')])).toEqual([[['bar'], 0, 0, 0, 3]])
+    assert.strictEqual(textedits.validEdit(TextEdit.insert(Position.create(0, 0), 'abc')), false)
+    assert.strictEqual(textedits.validEdit(TextEdit.insert(Position.create(0, 1), 'abc\n')), false)
+    assert.deepStrictEqual(textedits.toTextChanges(['foo'], []), [])
+    assert.deepStrictEqual(textedits.toTextChanges(['foo'], [TextEdit.insert(Position.create(3, 1), '')]), [])
+    assert.deepStrictEqual(textedits.toTextChanges(['foo'], [TextEdit.insert(Position.create(1, 1), '')]), [])
+    assert.deepStrictEqual(textedits.toTextChanges(['foo'], [TextEdit.insert(Position.create(1, 0), 'bar\n')]), [[['', 'bar'], 0, 3, 0, 3]])
+    assert.deepStrictEqual(textedits.toTextChanges(['foo'], [TextEdit.replace(Range.create(0, 0, 1, 0), 'bar\n')]), [[['bar'], 0, 0, 0, 3]])
   })
 })
 
 describe('Registry', () => {
   it('should add to registry', () => {
     Registry.add('key', {})
-    expect(Registry.knows('key')).toBe(true)
-    expect(Registry.as('key')).toEqual({})
-    expect(Registry.as('not_exists')).toBeNull()
+    assert.strictEqual(Registry.knows('key'), true)
+    assert.deepStrictEqual(Registry.as('key'), {})
+    assert.strictEqual(Registry.as('not_exists'), null)
   })
 
   it('should get jsonRegistry', () => {
     let r = Registry.as<IJSONContributionRegistry>(Extensions.JSONContribution)
-    expect(r).toBeDefined()
+    assert.notStrictEqual(r, undefined)
     r.registerSchema('uri', {} as any)
     let res = r.getSchemaContributions()
-    expect(res.schemas.uri).toBeDefined()
+    assert.notStrictEqual(res.schemas.uri, undefined)
   })
 
   it('should convertProperties', () => {
-    expect(convertProperties(undefined)).toEqual({})
-    expect(convertProperties({ key: { type: 'number' } }, ConfigurationScope.RESOURCE)).toEqual({
+    assert.deepStrictEqual(convertProperties(undefined), {})
+    assert.deepStrictEqual(convertProperties({ key: { type: 'number' } }, ConfigurationScope.RESOURCE), {
       key: { scope: ConfigurationScope.RESOURCE, type: 'number' }
     })
     let properties = {
@@ -573,50 +568,50 @@ describe('Registry', () => {
       },
     }
     let res = convertProperties(properties)
-    expect(res.foo).toBeDefined()
-    expect(res.format.scope).toBe(ConfigurationScope.WINDOW)
-    expect(res.bar.scope).toBe(ConfigurationScope.LANGUAGE_OVERRIDABLE)
-    expect(res.resource.scope).toBe(ConfigurationScope.RESOURCE)
-    expect(res.window.scope).toBe(ConfigurationScope.WINDOW)
-    expect(res['coc.source.name'].scope).toBe(ConfigurationScope.APPLICATION)
-    expect(res['list.source.name'].scope).toBe(ConfigurationScope.APPLICATION)
+    assert.notStrictEqual(res.foo, undefined)
+    assert.strictEqual(res.format.scope, ConfigurationScope.WINDOW)
+    assert.strictEqual(res.bar.scope, ConfigurationScope.LANGUAGE_OVERRIDABLE)
+    assert.strictEqual(res.resource.scope, ConfigurationScope.RESOURCE)
+    assert.strictEqual(res.window.scope, ConfigurationScope.WINDOW)
+    assert.strictEqual(res['coc.source.name'].scope, ConfigurationScope.APPLICATION)
+    assert.strictEqual(res['list.source.name'].scope, ConfigurationScope.APPLICATION)
   })
 
   it('should parse extension name', () => {
     let parseSource = extension.parseExtensionName
-    expect(parseSource(``)).toBeUndefined()
-    expect(parseSource(`a)`, 0)).toBe('coc.nvim')
-    expect(parseSource(`a`, 0)).toBe('coc.nvim')
+    assert.strictEqual(parseSource(``), undefined)
+    assert.strictEqual(parseSource(`a)`, 0), 'coc.nvim')
+    assert.strictEqual(parseSource(`a`, 0), 'coc.nvim')
     let registry = Registry.as<extension.IExtensionRegistry>(extension.Extensions.ExtensionContribution)
     let filepath = path.join(os.tmpdir(), 'single')
     registry.registerExtension('single', { name: 'single', directory: os.tmpdir(), filepath })
-    expect(parseSource(`\n\n${filepath}:1:1`)).toBe('single')
+    assert.strictEqual(parseSource(`\n\n${filepath}:1:1`), 'single')
     // expect(parseSource(`\n\n${filepath.slice(0, -3)}:1:1`)).toBeUndefined()
-    expect(parseSource(`\n\n/a/b:1:1`)).toBe('coc.nvim')
+    assert.strictEqual(parseSource(`\n\n/a/b:1:1`), 'coc.nvim')
     let dir = fs.realpathSync(os.tmpdir())
-    expect(parseSource(`\n\n${path.join(dir, 'foo')}:1:1`)).toBe('single')
+    assert.strictEqual(parseSource(`\n\n${path.join(dir, 'foo')}:1:1`), 'single')
     let lines = [
       `at FormatRangeManager.addProvider (${pluginRoot}/src/provider/manager.ts:28:55`,
       `at FormatRangeManager.register (${pluginRoot}/formatRangeManager.ts:17:17)`,
       `at PrettierEditService.registerDocumentFormatEditorProviders (${filepath}:253:17)`
     ]
     let res = parseSource(`\n\n${lines.join('\n')}`, 2)
-    expect(res).toBe('single')
+    assert.strictEqual(res, 'single')
     registry.unregistExtension('single')
   })
 
   it('should check rootPattern and commands', () => {
-    expect(extension.validRootPattern({} as any)).toBe(false)
-    expect(extension.validCommandContribution({} as any)).toBe(false)
+    assert.strictEqual(extension.validRootPattern({} as any), false)
+    assert.strictEqual(extension.validCommandContribution({} as any), false)
   })
 
   it('should get properties', () => {
     let properties = extension.getProperties({})
-    expect(properties).toEqual({})
+    assert.deepStrictEqual(properties, {})
     properties = extension.getProperties({ properties: { x: 1 } })
-    expect(properties).toEqual({ x: 1 })
+    assert.deepStrictEqual(properties, { x: 1 })
     properties = extension.getProperties([{ properties: { x: 1 } }, { properties: { y: 2 } }])
-    expect(properties).toEqual({ x: 1, y: 2 })
+    assert.deepStrictEqual(properties, { x: 1, y: 2 })
   })
 
   it('should get onCommands and commands', () => {
@@ -627,10 +622,10 @@ describe('Registry', () => {
       onCommands: ['a', 'b', 'cmd', undefined],
       commands: [{ command: 'cmd', title: 'title' }]
     })
-    expect(registry.commands.length).toBeGreaterThan(0)
-    expect(registry.onCommands.length).toBeGreaterThan(0)
-    expect(registry.getCommandTitle('cmd')).toBe('title')
-    expect(registry.getCommandTitle('not_exists')).toBeUndefined()
+    assert.ok(registry.commands.length > 0)
+    assert.ok(registry.onCommands.length > 0)
+    assert.strictEqual(registry.getCommandTitle('cmd'), 'title')
+    assert.strictEqual(registry.getCommandTitle('not_exists'), undefined)
     registry.unregistExtension('single')
   })
 
@@ -641,53 +636,53 @@ describe('Registry', () => {
       directory: os.tmpdir(),
       rootPatterns: [{ filetype: 'vim', patterns: ['.foo', '.bar', undefined] }]
     })
-    expect(registry.getRootPatternsByFiletype('vim')).toEqual(['.foo', '.bar'])
-    expect(registry.getRootPatternsByFiletype('ts')).toEqual([])
+    assert.deepStrictEqual(registry.getRootPatternsByFiletype('vim'), ['.foo', '.bar'])
+    assert.deepStrictEqual(registry.getRootPatternsByFiletype('ts'), [])
     registry.unregistExtension('single')
   })
 })
 
 describe('errors', () => {
   it('should return errors', () => {
-    expect(errors.directoryNotExists('dir').message).toMatch('dir')
-    expect(errors.illegalArgument('name') instanceof Error).toBe(true)
-    expect(errors.illegalArgument() instanceof Error).toBe(true)
-    expect(errors.shouldNotAsync('method') instanceof Error).toBe(true)
+    assert.match(errors.directoryNotExists('dir').message, new RegExp('dir'))
+    assert.strictEqual(errors.illegalArgument('name') instanceof Error, true)
+    assert.strictEqual(errors.illegalArgument() instanceof Error, true)
+    assert.strictEqual(errors.shouldNotAsync('method') instanceof Error, true)
     errors.onUnexpectedError(new errors.CancellationError())
-    expect(() => {
+    assert.throws(() => {
       errors.onUnexpectedError(new Error('my error'))
-    }).toThrow()
-    expect(() => {
+    })
+    assert.throws(() => {
       errors.onUnexpectedError('error')
-    }).toThrow()
+    })
     errors.assert(true)
-    expect(() => {
+    assert.throws(() => {
       errors.assert(false)
-    }).toThrow()
+    })
   })
 
   it('should check CancellationError', () => {
     let err = new Error('Canceled')
     err.name = 'Canceled'
-    expect(errors.isCancellationError(err)).toBe(true)
-    expect(errors.shouldIgnore(err)).toBe(true)
+    assert.strictEqual(errors.isCancellationError(err), true)
+    assert.strictEqual(errors.shouldIgnore(err), true)
   })
 
   it('should check shouldIgnore', async () => {
-    expect(errors.shouldIgnore(new errors.CancellationError())).toBe(true)
+    assert.strictEqual(errors.shouldIgnore(new errors.CancellationError()), true)
     let err = new Error('transport disconnected')
-    expect(errors.shouldIgnore(err)).toBe(true)
+    assert.strictEqual(errors.shouldIgnore(err), true)
   })
 })
 
 describe('numbers', () => {
   it('should work with numbers', () => {
-    expect(numbers.toNumber(undefined, 5)).toBe(5)
-    expect(numbers.toNumber(undefined)).toBe(0)
-    expect(numbers.toNumber(1, 5)).toBe(1)
-    expect(numbers.clamp(1, 1, 3)).toBe(1)
-    expect(numbers.clamp(5, 1, 3)).toBe(3)
-    expect(numbers.rot(6, 5)).toBe(1)
+    assert.strictEqual(numbers.toNumber(undefined, 5), 5)
+    assert.strictEqual(numbers.toNumber(undefined), 0)
+    assert.strictEqual(numbers.toNumber(1, 5), 1)
+    assert.strictEqual(numbers.clamp(1, 1, 3), 1)
+    assert.strictEqual(numbers.clamp(5, 1, 3), 3)
+    assert.strictEqual(numbers.rot(6, 5), 1)
   })
 })
 
@@ -695,26 +690,26 @@ describe('strings', () => {
   it('should get byte indexes', () => {
     let bytes = strings.bytes
     let fn = bytes('abcde')
-    expect(fn(0)).toBe(0)
-    expect(fn(1)).toBe(1)
-    expect(fn(8)).toBe(5)
+    assert.strictEqual(fn(0), 0)
+    assert.strictEqual(fn(1), 1)
+    assert.strictEqual(fn(8), 5)
     fn = bytes('你ab好')
-    expect(fn(0)).toBe(0)
-    expect(fn(1)).toBe(3)
-    expect(fn(2)).toBe(4)
+    assert.strictEqual(fn(0), 0)
+    assert.strictEqual(fn(1), 3)
+    assert.strictEqual(fn(2), 4)
     fn = bytes('abcdefghi', 3)
-    expect(fn(5)).toBe(3)
+    assert.strictEqual(fn(5), 3)
     fn = bytes('😘😘')
-    expect(fn(2)).toBe(4)
-    expect(fn(4)).toBe(8)
+    assert.strictEqual(fn(2), 4)
+    assert.strictEqual(fn(4), 8)
     fn = bytes(String.fromCharCode(0xdc02) + 'ab')
-    expect(fn(2)).toBe(4)
+    assert.strictEqual(fn(2), 4)
   })
 
   it('should get byte index from utf16 index', () => {
     let testIndex = (text: string, index: number) => {
       let res = Buffer.byteLength(text.slice(0, index))
-      expect(strings.byteIndex(text, index)).toBe(res)
+      assert.strictEqual(strings.byteIndex(text, index), res)
     }
     testIndex('abc', 2)
     testIndex('汉字abc', 2)
@@ -725,44 +720,44 @@ describe('strings', () => {
   })
 
   it('should get byte length', () => {
-    expect(strings.byteLength('a')).toBe(1)
-    expect(strings.byteLength('你')).toBe(3)
-    expect(strings.byteLength('a😘b')).toBe(6)
-    expect(strings.byteLength('a😘b', 1)).toBe(5)
-    expect(strings.byteLength('a😘b', 3)).toBe(1)
+    assert.strictEqual(strings.byteLength('a'), 1)
+    assert.strictEqual(strings.byteLength('你'), 3)
+    assert.strictEqual(strings.byteLength('a😘b'), 6)
+    assert.strictEqual(strings.byteLength('a😘b', 1), 5)
+    assert.strictEqual(strings.byteLength('a😘b', 3), 1)
   })
 
   it('should get character index from byte index', () => {
-    expect(strings.characterIndex('ab', 0)).toBe(0)
-    expect(strings.characterIndex('abc', 1)).toBe(1)
-    expect(strings.characterIndex('ab', 99)).toBe(2)
-    expect(strings.characterIndex('abc', 1)).toBe(1)
-    expect(strings.characterIndex('ôbc', 2)).toBe(1)
-    expect(strings.characterIndex('ô你c', 2)).toBe(1)
-    expect(strings.characterIndex('你c', 3)).toBe(1)
-    expect(strings.characterIndex('😘def', 4)).toBe(2)
-    expect(strings.characterIndex('\ude18def', 3)).toBe(1)
-    expect(strings.utf8_code2len(65537)).toBe(4)
+    assert.strictEqual(strings.characterIndex('ab', 0), 0)
+    assert.strictEqual(strings.characterIndex('abc', 1), 1)
+    assert.strictEqual(strings.characterIndex('ab', 99), 2)
+    assert.strictEqual(strings.characterIndex('abc', 1), 1)
+    assert.strictEqual(strings.characterIndex('ôbc', 2), 1)
+    assert.strictEqual(strings.characterIndex('ô你c', 2), 1)
+    assert.strictEqual(strings.characterIndex('你c', 3), 1)
+    assert.strictEqual(strings.characterIndex('😘def', 4), 2)
+    assert.strictEqual(strings.characterIndex('\ude18def', 3), 1)
+    assert.strictEqual(strings.utf8_code2len(65537), 4)
   })
 
   it('should slice content by bytes', () => {
-    expect(strings.byteSlice('你', 0, 1)).toBe('你')
-    expect(strings.byteSlice('你', 0, 3)).toBe('你')
-    expect(strings.byteSlice('abc你', 3, 6)).toBe('你')
-    expect(strings.byteSlice('foo', 1)).toBe('oo')
+    assert.strictEqual(strings.byteSlice('你', 0, 1), '你')
+    assert.strictEqual(strings.byteSlice('你', 0, 3), '你')
+    assert.strictEqual(strings.byteSlice('abc你', 3, 6), '你')
+    assert.strictEqual(strings.byteSlice('foo', 1), 'oo')
   })
 
   it('should get case', () => {
-    expect(strings.getCase('a'.charCodeAt(0))).toBe(1)
-    expect(strings.getCase('A'.charCodeAt(0))).toBe(2)
-    expect(strings.getCase('#'.charCodeAt(0))).toBe(0)
+    assert.strictEqual(strings.getCase('a'.charCodeAt(0)), 1)
+    assert.strictEqual(strings.getCase('A'.charCodeAt(0)), 2)
+    assert.strictEqual(strings.getCase('#'.charCodeAt(0)), 0)
   })
 
   it('should get next word code', () => {
     function assertNext(text: string, index: number, res: [number, string] | undefined): void {
       let arr = res === undefined ? undefined : [res[0], res[1].charCodeAt(0)]
       let result = strings.getNextWord(fuzzy.getCharCodes(text), index)
-      expect(result).toEqual(arr)
+      assert.deepStrictEqual(result, arr)
     }
     assertNext('abc', 0, [0, 'a'])
     assertNext('abc', 1, undefined)
@@ -770,177 +765,177 @@ describe('strings', () => {
   })
 
   it('should get character indexes', () => {
-    expect(strings.getCharIndexes('abaca', 'a')).toEqual([0, 2, 4])
-    expect(strings.getCharIndexes('abd', 'f')).toEqual([])
+    assert.deepStrictEqual(strings.getCharIndexes('abaca', 'a'), [0, 2, 4])
+    assert.deepStrictEqual(strings.getCharIndexes('abd', 'f'), [])
   })
 
   it('should convert to lines', () => {
-    expect(strings.contentToLines('foo', false)).toEqual(['foo'])
-    expect(strings.contentToLines('foo\n', true)).toEqual(['foo'])
+    assert.deepStrictEqual(strings.contentToLines('foo', false), ['foo'])
+    assert.deepStrictEqual(strings.contentToLines('foo\n', true), ['foo'])
   })
 
   it('should get smartcaseIndex', () => {
-    expect(strings.smartcaseIndex('a', 'A')).toBe(0)
-    expect(strings.smartcaseIndex('a', 'a')).toBe(0)
-    expect(strings.smartcaseIndex('ab', 'a')).toBe(-1)
-    expect(strings.smartcaseIndex('', 'a')).toBe(0)
-    expect(strings.smartcaseIndex('ab', 'xaB')).toBe(1)
-    expect(strings.smartcaseIndex('aA', 'aaA')).toBe(1)
-    expect(strings.smartcaseIndex('aB', 'aaA')).toBe(-1)
-    expect(strings.smartcaseIndex('AA', 'aaA')).toBe(-1)
-    expect(strings.smartcaseIndex('aA', 'axdefA')).toBe(-1)
-    expect(strings.smartcaseIndex('abC', 'aaBDefabC')).toBe(6)
+    assert.strictEqual(strings.smartcaseIndex('a', 'A'), 0)
+    assert.strictEqual(strings.smartcaseIndex('a', 'a'), 0)
+    assert.strictEqual(strings.smartcaseIndex('ab', 'a'), -1)
+    assert.strictEqual(strings.smartcaseIndex('', 'a'), 0)
+    assert.strictEqual(strings.smartcaseIndex('ab', 'xaB'), 1)
+    assert.strictEqual(strings.smartcaseIndex('aA', 'aaA'), 1)
+    assert.strictEqual(strings.smartcaseIndex('aB', 'aaA'), -1)
+    assert.strictEqual(strings.smartcaseIndex('AA', 'aaA'), -1)
+    assert.strictEqual(strings.smartcaseIndex('aA', 'axdefA'), -1)
+    assert.strictEqual(strings.smartcaseIndex('abC', 'aaBDefabC'), 6)
   })
 
   it('should convert to integer', () => {
-    expect(strings.toErrorText('a')).toBe('a')
-    expect(strings.toInteger('a')).toBeUndefined()
-    expect(strings.toInteger('1')).toBe(1)
+    assert.strictEqual(strings.toErrorText('a'), 'a')
+    assert.strictEqual(strings.toInteger('a'), undefined)
+    assert.strictEqual(strings.toInteger('1'), 1)
   })
 
   it('should check highlight character', () => {
-    expect(strings.isHighlightGroupCharCode('1'.charCodeAt(0))).toBe(true)
-    expect(strings.isHighlightGroupCharCode('9'.charCodeAt(0))).toBe(true)
-    expect(strings.isHighlightGroupCharCode('a'.charCodeAt(0))).toBe(true)
-    expect(strings.isHighlightGroupCharCode('z'.charCodeAt(0))).toBe(true)
-    expect(strings.isHighlightGroupCharCode('A'.charCodeAt(0))).toBe(true)
-    expect(strings.isHighlightGroupCharCode('Z'.charCodeAt(0))).toBe(true)
-    expect(strings.isHighlightGroupCharCode('.'.charCodeAt(0))).toBe(true)
-    expect(strings.isHighlightGroupCharCode('_'.charCodeAt(0))).toBe(true)
-    expect(strings.isHighlightGroupCharCode('@'.charCodeAt(0))).toBe(true)
-    expect(strings.isHighlightGroupCharCode(' '.charCodeAt(0))).toBe(false)
+    assert.strictEqual(strings.isHighlightGroupCharCode('1'.charCodeAt(0)), true)
+    assert.strictEqual(strings.isHighlightGroupCharCode('9'.charCodeAt(0)), true)
+    assert.strictEqual(strings.isHighlightGroupCharCode('a'.charCodeAt(0)), true)
+    assert.strictEqual(strings.isHighlightGroupCharCode('z'.charCodeAt(0)), true)
+    assert.strictEqual(strings.isHighlightGroupCharCode('A'.charCodeAt(0)), true)
+    assert.strictEqual(strings.isHighlightGroupCharCode('Z'.charCodeAt(0)), true)
+    assert.strictEqual(strings.isHighlightGroupCharCode('.'.charCodeAt(0)), true)
+    assert.strictEqual(strings.isHighlightGroupCharCode('_'.charCodeAt(0)), true)
+    assert.strictEqual(strings.isHighlightGroupCharCode('@'.charCodeAt(0)), true)
+    assert.strictEqual(strings.isHighlightGroupCharCode(' '.charCodeAt(0)), false)
   })
 
   it('should convert to text', () => {
-    expect(strings.toText(undefined)).toBe('')
-    expect(strings.toText(null)).toBe('')
-    expect(strings.toText(3)).toBe('3')
+    assert.strictEqual(strings.toText(undefined), '')
+    assert.strictEqual(strings.toText(null), '')
+    assert.strictEqual(strings.toText(3), '3')
   })
 
   it('should check isEmojiImprecise', () => {
-    expect(strings.isEmojiImprecise(999)).toBe(false)
-    expect(strings.isEmojiImprecise(0x1F1E7)).toBe(true)
-    expect(strings.isEmojiImprecise(8987)).toBe(true)
-    expect(strings.isEmojiImprecise(128764)).toBe(true)
-    expect(strings.isEmojiImprecise(129008)).toBe(true)
-    expect(strings.isEmojiImprecise(129782)).toBe(true)
-    expect(strings.isEmojiImprecise(129535)).toBe(true)
+    assert.strictEqual(strings.isEmojiImprecise(999), false)
+    assert.strictEqual(strings.isEmojiImprecise(0x1F1E7), true)
+    assert.strictEqual(strings.isEmojiImprecise(8987), true)
+    assert.strictEqual(strings.isEmojiImprecise(128764), true)
+    assert.strictEqual(strings.isEmojiImprecise(129008), true)
+    assert.strictEqual(strings.isEmojiImprecise(129782), true)
+    assert.strictEqual(strings.isEmojiImprecise(129535), true)
   })
 
   it('should get parts', () => {
     let res = strings.rangeParts('foo bar', Range.create(0, 0, 0, 4))
-    expect(res).toEqual(['', 'bar'])
+    assert.deepStrictEqual(res, ['', 'bar'])
     res = strings.rangeParts('foo\nbar', Range.create(0, 1, 1, 1))
-    expect(res).toEqual(['f', 'ar'])
+    assert.deepStrictEqual(res, ['f', 'ar'])
     res = strings.rangeParts('x\nfoo\nbar\ny', Range.create(0, 1, 2, 3))
-    expect(res).toEqual(['x', '\ny'])
+    assert.deepStrictEqual(res, ['x', '\ny'])
     res = strings.rangeParts('foo\nbar\nx', Range.create(1, 0, 1, 1))
-    expect(res).toEqual(['foo\n', 'ar\nx'])
+    assert.deepStrictEqual(res, ['foo\n', 'ar\nx'])
     res = strings.rangeParts('x\nfoo\nbar\ny', Range.create(0, 1, 1, 0))
-    expect(res).toEqual(['x', 'foo\nbar\ny'])
+    assert.deepStrictEqual(res, ['x', 'foo\nbar\ny'])
   })
 
   it('should equalsIgnoreCase', () => {
-    expect(strings.equalsIgnoreCase('', '')).toBe(true)
-    expect(!strings.equalsIgnoreCase('', '1')).toBe(true)
-    expect(!strings.equalsIgnoreCase('1', '')).toBe(true)
-    expect(strings.equalsIgnoreCase('a', 'a')).toBe(true)
-    expect(strings.equalsIgnoreCase('abc', 'Abc')).toBe(true)
-    expect(strings.equalsIgnoreCase('abc', 'ABC')).toBe(true)
-    expect(strings.equalsIgnoreCase('Höhenmeter', 'HÖhenmeter')).toBe(true)
-    expect(strings.equalsIgnoreCase('ÖL', 'Öl')).toBe(true)
+    assert.strictEqual(strings.equalsIgnoreCase('', ''), true)
+    assert.strictEqual(!strings.equalsIgnoreCase('', '1'), true)
+    assert.strictEqual(!strings.equalsIgnoreCase('1', ''), true)
+    assert.strictEqual(strings.equalsIgnoreCase('a', 'a'), true)
+    assert.strictEqual(strings.equalsIgnoreCase('abc', 'Abc'), true)
+    assert.strictEqual(strings.equalsIgnoreCase('abc', 'ABC'), true)
+    assert.strictEqual(strings.equalsIgnoreCase('Höhenmeter', 'HÖhenmeter'), true)
+    assert.strictEqual(strings.equalsIgnoreCase('ÖL', 'Öl'), true)
   })
 
   it('should doEqualsIgnoreCase', () => {
-    expect(strings.doEqualsIgnoreCase('a', undefined)).toBe(false)
-    expect(strings.doEqualsIgnoreCase('a', 'b')).toBe(false)
-    expect(strings.doEqualsIgnoreCase('你', '的')).toBe(false)
+    assert.strictEqual(strings.doEqualsIgnoreCase('a', undefined), false)
+    assert.strictEqual(strings.doEqualsIgnoreCase('a', 'b'), false)
+    assert.strictEqual(strings.doEqualsIgnoreCase('你', '的'), false)
   })
 
   it('should find index', () => {
-    expect(strings.indexOf('a,b,c', ',', 2)).toBe(3)
-    expect(strings.indexOf('a,b,c', ',', 1)).toBe(1)
-    expect(strings.indexOf('a,b,c', 't')).toBe(-1)
+    assert.strictEqual(strings.indexOf('a,b,c', ',', 2), 3)
+    assert.strictEqual(strings.indexOf('a,b,c', ',', 1), 1)
+    assert.strictEqual(strings.indexOf('a,b,c', 't'), -1)
   })
 
   it('should upperFirst', () => {
-    expect(strings.upperFirst('')).toBe('')
-    expect(strings.upperFirst('abC')).toBe('AbC')
-    expect(strings.upperFirst(undefined)).toBe('')
+    assert.strictEqual(strings.upperFirst(''), '')
+    assert.strictEqual(strings.upperFirst('abC'), 'AbC')
+    assert.strictEqual(strings.upperFirst(undefined), '')
   })
 
   it('should getUnicodeClass', () => {
-    expect(strings.getUnicodeClass(null)).toBe('other')
-    expect(strings.getUnicodeClass('')).toBe('other')
-    expect(strings.getUnicodeClass('\0')).toBe('other')
-    expect(strings.getUnicodeClass('\x1b')).toBe('punctuation')
-    expect(strings.getUnicodeClass('，')).toBe('punctuation')
-    expect(strings.getUnicodeClass('你')).toBe('cjkideograph')
-    expect(strings.getUnicodeClass('😘')).toBe('other')
-    expect(strings.getUnicodeClass('a')).toBe('word')
+    assert.strictEqual(strings.getUnicodeClass(null), 'other')
+    assert.strictEqual(strings.getUnicodeClass(''), 'other')
+    assert.strictEqual(strings.getUnicodeClass('\0'), 'other')
+    assert.strictEqual(strings.getUnicodeClass('\x1b'), 'punctuation')
+    assert.strictEqual(strings.getUnicodeClass('，'), 'punctuation')
+    assert.strictEqual(strings.getUnicodeClass('你'), 'cjkideograph')
+    assert.strictEqual(strings.getUnicodeClass('😘'), 'other')
+    assert.strictEqual(strings.getUnicodeClass('a'), 'word')
   })
 })
 
 describe('getSymbolKind()', () => {
   it('should get symbol kind', () => {
     for (let i = 1; i <= 27; i++) {
-      expect(getSymbolKind(i as SymbolKind)).toBeDefined()
+      assert.notStrictEqual(getSymbolKind(i as SymbolKind), undefined)
     }
   })
 })
 
 describe('Is', () => {
   it('should url', () => {
-    expect(Is.isUrl('')).toBe(false)
-    expect(Is.isUrl(undefined)).toBe(false)
-    expect(Is.isUrl('file:1')).toBe(true)
+    assert.strictEqual(Is.isUrl(''), false)
+    assert.strictEqual(Is.isUrl(undefined), false)
+    assert.strictEqual(Is.isUrl('file:1'), true)
   })
 
   it('should check insert replace edit', () => {
-    expect(Is.isEditRange(null)).toBe(false)
+    assert.strictEqual(Is.isEditRange(null), false)
     let r = Range.create(0, 0, 0, 1)
-    expect(Is.isEditRange(r)).toBe(true)
-    expect(Is.isEditRange({ insert: r, replace: r })).toBe(true)
+    assert.strictEqual(Is.isEditRange(r), true)
+    assert.strictEqual(Is.isEditRange({ insert: r, replace: r }), true)
   })
 
   it('should check command', () => {
-    expect(Is.isCommand(undefined)).toBe(false)
-    expect(Is.isCommand({})).toBe(false)
-    expect(Is.isCommand({ title: '', command: '' })).toBe(false)
-    expect(Is.isCommand({ title: 'title', command: 'cmd' })).toBe(true)
+    assert.strictEqual(Is.isCommand(undefined), false)
+    assert.strictEqual(Is.isCommand({}), false)
+    assert.strictEqual(Is.isCommand({ title: '', command: '' }), false)
+    assert.strictEqual(Is.isCommand({ title: 'title', command: 'cmd' }), true)
   })
 
   it('should check array', () => {
-    expect(Is.array(false)).toBe(false)
+    assert.strictEqual(Is.array(false), false)
   })
 
   it('should check empty object', () => {
-    expect(Is.emptyObject(false)).toBe(false)
-    expect(Is.emptyObject({})).toBe(true)
-    expect(Is.emptyObject({ x: 1 })).toBe(false)
+    assert.strictEqual(Is.emptyObject(false), false)
+    assert.strictEqual(Is.emptyObject({}), true)
+    assert.strictEqual(Is.emptyObject({ x: 1 }), false)
   })
 
   it('should check typed array', () => {
     let arr = new Array(10)
     arr.fill(1)
-    expect(Is.typedArray<Uint32Array>(arr, v => {
+    assert.strictEqual(Is.typedArray<Uint32Array>(arr, v => {
       return v >= 0
-    })).toBe(true)
+    }), true)
   })
 })
 
 describe('lodash', () => {
   it('should set defaults', () => {
     let res = lodash.defaults({ a: 1 }, { b: 2 }, { a: 3 }, null)
-    expect(res).toEqual({ a: 1, b: 2 })
+    assert.deepStrictEqual(res, { a: 1, b: 2 })
     res = lodash.defaults({}, { constructor: 'fn' })
-    expect(res.constructor).toBe('fn')
+    assert.strictEqual(res.constructor, 'fn')
   })
 })
 
 describe('color', () => {
   it('should check dark color', () => {
-    expect(color.isDark(Color.create(0.03, 0.01, 0.01, 0))).toBe(true)
+    assert.strictEqual(color.isDark(Color.create(0.03, 0.01, 0.01, 0)), true)
   })
 })
 
@@ -948,9 +943,9 @@ describe('parseAnsiHighlights', () => {
   function testColorHighlight(highlight: string, hlGroup: string, markdown = true) {
     let text = `${style[highlight].open}text${style[highlight].close}`
     let res = parseAnsiHighlights(text, markdown)
-    expect(res.highlights.length).toBeGreaterThan(0)
+    assert.ok(res.highlights.length > 0)
     let o = res.highlights.find(o => o.hlGroup == hlGroup)
-    expect(o).toBeDefined()
+    assert.notStrictEqual(o, undefined)
   }
 
   it('should parse foreground color', () => {
@@ -964,39 +959,39 @@ describe('parseAnsiHighlights', () => {
   it('should parse background color', () => {
     let text = `${style.bgRed.open}text${style.bgRed.close}`
     let res = parseAnsiHighlights(text, false)
-    expect(res.highlights.length).toBeGreaterThan(0)
-    expect(res.highlights[0].hlGroup).toBe('CocListBgRed')
+    assert.ok(res.highlights.length > 0)
+    assert.strictEqual(res.highlights[0].hlGroup, 'CocListBgRed')
     text = '\u001b[33m\u001b[mnormal'
     res = parseAnsiHighlights(text, false)
-    expect(res.highlights.length).toBe(0)
+    assert.strictEqual(res.highlights.length, 0)
   })
 
   it('should parse foreground and background', () => {
     let text = `${style.bgRed.open}${style.blue.open}text${style.blue.close}${style.bgRed.close}`
     let res = parseAnsiHighlights(text, true)
-    expect(res.highlights.length).toBeGreaterThan(0)
-    expect(res.highlights[0].hlGroup).toBe('CocListBlueRed')
+    assert.ok(res.highlights.length > 0)
+    assert.strictEqual(res.highlights[0].hlGroup, 'CocListBlueRed')
   })
 
   it('should erase char', () => {
     let text = `foo\u0008bar`
     let res = parseAnsiHighlights(text, true)
-    expect(res.line).toBe('fobar')
+    assert.strictEqual(res.line, 'fobar')
     text = `${style.bgRed.open}foo${style.bgRed.close}\u0008bar`
     res = parseAnsiHighlights(text, true)
-    expect(res.line).toBe('fobar')
+    assert.strictEqual(res.line, 'fobar')
     text = `${style.bgRed.open}f${style.bgRed.close}\u0008bar`
     res = parseAnsiHighlights(text, true)
-    expect(res.line).toBe('bar')
+    assert.strictEqual(res.line, 'bar')
   })
 
   it('should not throw for bad control character', () => {
     let text = '\x1bafoo'
     let res = parseAnsiHighlights(text)
-    expect(res.line).toBeDefined()
+    assert.notStrictEqual(res.line, undefined)
     text = '\x1b[33;44mabc\x1b[33,44m'
     res = parseAnsiHighlights(text)
-    expect(res.line).toBe('abc')
+    assert.strictEqual(res.line, 'abc')
   })
 })
 
@@ -1053,8 +1048,8 @@ describe('Arrays', () => {
   })
 
   it('findIndex()', () => {
-    expect(arrays.findIndex([1, 2, 3, 4], 3, 1)).toBe(2)
-    expect(arrays.findIndex([1, 2, 3, 4], 3)).toBe(2)
+    assert.strictEqual(arrays.findIndex([1, 2, 3, 4], 3, 1), 2)
+    assert.strictEqual(arrays.findIndex([1, 2, 3, 4], 3), 2)
   })
 
   it('group()', () => {
@@ -1082,10 +1077,10 @@ describe('Arrays', () => {
   })
 
   it('addSortedArray()', () => {
-    expect(arrays.addSortedArray('a', ['d', 'e'])).toEqual(['a', 'd', 'e'])
-    expect(arrays.addSortedArray('f', ['d', 'e'])).toEqual(['d', 'e', 'f'])
-    expect(arrays.addSortedArray('d', ['d', 'e'])).toEqual(['d', 'e'])
-    expect(arrays.addSortedArray('e', ['d', 'f'])).toEqual(['d', 'e', 'f'])
+    assert.deepStrictEqual(arrays.addSortedArray('a', ['d', 'e']), ['a', 'd', 'e'])
+    assert.deepStrictEqual(arrays.addSortedArray('f', ['d', 'e']), ['d', 'e', 'f'])
+    assert.deepStrictEqual(arrays.addSortedArray('d', ['d', 'e']), ['d', 'e'])
+    assert.deepStrictEqual(arrays.addSortedArray('e', ['d', 'f']), ['d', 'e', 'f'])
   })
 })
 
@@ -1096,21 +1091,21 @@ describe('Position', () => {
 
   test('samePosition', () => {
     let pos = Position.create(0, 0)
-    expect(positions.samePosition(pos, Position.create(0, 0))).toBe(true)
+    assert.strictEqual(positions.samePosition(pos, Position.create(0, 0)), true)
   })
 
   test('adjacentPosition', () => {
     let pos = Position.create(0, 0)
-    expect(positions.adjacentPosition(pos, Range.create(0, 0, 0, 1))).toBe(true)
-    expect(positions.adjacentPosition(pos, Range.create(1, 0, 1, 1))).toBe(false)
+    assert.strictEqual(positions.adjacentPosition(pos, Range.create(0, 0, 0, 1)), true)
+    assert.strictEqual(positions.adjacentPosition(pos, Range.create(1, 0, 1, 1)), false)
     pos = Position.create(1, 1)
-    expect(positions.adjacentPosition(pos, Range.create(1, 0, 1, 1))).toBe(true)
+    assert.strictEqual(positions.adjacentPosition(pos, Range.create(1, 0, 1, 1)), true)
   })
 
   test('equalsRange', () => {
     let r = Range.create(0, 0, 0, 1)
-    expect(positions.equalsRange(r, r)).toBe(true)
-    expect(positions.equalsRange(r, Range.create(0, 1, 0, 1))).toBe(false)
+    assert.strictEqual(positions.equalsRange(r, r), true)
+    assert.strictEqual(positions.equalsRange(r, Range.create(0, 1, 0, 1)), false)
   })
 
   test('compareRangesUsingStarts', () => {
@@ -1119,74 +1114,74 @@ describe('Position', () => {
     const r = (a, b, c, d) => {
       return Range.create(a, b, c, d)
     }
-    expect(positions.compareRangesUsingStarts(range, range)).toBe(0)
-    expect(positions.compareRangesUsingStarts(r(1, 1, 1, 1), range)).toBeLessThan(0)
-    expect(positions.compareRangesUsingStarts(r(3, 3, 3, 4), range)).toBeGreaterThan(0)
-    expect(positions.compareRangesUsingStarts(r(4, 0, 4, 1), range)).toBeGreaterThan(0)
-    expect(positions.compareRangesUsingStarts(r(3, 3, 4, 1), range)).toBeGreaterThan(0)
+    assert.strictEqual(positions.compareRangesUsingStarts(range, range), 0)
+    assert.ok(positions.compareRangesUsingStarts(r(1, 1, 1, 1), range) < 0)
+    assert.ok(positions.compareRangesUsingStarts(r(3, 3, 3, 4), range) > 0)
+    assert.ok(positions.compareRangesUsingStarts(r(4, 0, 4, 1), range) > 0)
+    assert.ok(positions.compareRangesUsingStarts(r(3, 3, 4, 1), range) > 0)
   })
 
   test('adjustRangePosition', () => {
     let pos = Position.create(3, 3)
-    expect(positions.adjustRangePosition(Range.create(0, 0, 1, 0), pos)).toEqual(Range.create(3, 3, 4, 0))
+    assert.deepStrictEqual(positions.adjustRangePosition(Range.create(0, 0, 1, 0), pos), Range.create(3, 3, 4, 0))
   })
 
   test('rangeInRange', () => {
     let pos = Position.create(0, 0)
     let r = Range.create(pos, pos)
-    expect(positions.rangeInRange(r, r)).toBe(true)
-    expect(positions.rangeInRange(r, Range.create(addPosition(pos, 1, 0), pos))).toBe(false)
-    expect(positions.rangeInRange(Range.create(0, 1, 0, 1), Range.create(0, 0, 0, 1))).toBe(true)
+    assert.strictEqual(positions.rangeInRange(r, r), true)
+    assert.strictEqual(positions.rangeInRange(r, Range.create(addPosition(pos, 1, 0), pos)), false)
+    assert.strictEqual(positions.rangeInRange(Range.create(0, 1, 0, 1), Range.create(0, 0, 0, 1)), true)
   })
 
   test('rangeOverlap', () => {
     let r = Range.create(0, 0, 0, 0)
-    expect(positions.rangeOverlap(r, Range.create(0, 0, 0, 0))).toBe(false)
-    expect(positions.rangeOverlap(Range.create(0, 0, 0, 10), Range.create(0, 1, 0, 2))).toBe(true)
-    expect(positions.rangeOverlap(Range.create(0, 0, 0, 1), Range.create(0, 1, 0, 2))).toBe(false)
-    expect(positions.rangeOverlap(Range.create(0, 1, 0, 2), Range.create(0, 0, 0, 1))).toBe(false)
-    expect(positions.rangeOverlap(Range.create(0, 0, 0, 1), Range.create(0, 2, 0, 3))).toBe(false)
+    assert.strictEqual(positions.rangeOverlap(r, Range.create(0, 0, 0, 0)), false)
+    assert.strictEqual(positions.rangeOverlap(Range.create(0, 0, 0, 10), Range.create(0, 1, 0, 2)), true)
+    assert.strictEqual(positions.rangeOverlap(Range.create(0, 0, 0, 1), Range.create(0, 1, 0, 2)), false)
+    assert.strictEqual(positions.rangeOverlap(Range.create(0, 1, 0, 2), Range.create(0, 0, 0, 1)), false)
+    assert.strictEqual(positions.rangeOverlap(Range.create(0, 0, 0, 1), Range.create(0, 2, 0, 3)), false)
   })
 
   test('rangeAdjacent', () => {
     let r = Range.create(1, 1, 1, 2)
-    expect(positions.rangeAdjacent(r, Range.create(0, 0, 0, 0))).toBe(false)
-    expect(positions.rangeAdjacent(r, Range.create(1, 1, 1, 3))).toBe(false)
-    expect(positions.rangeAdjacent(r, Range.create(0, 0, 1, 1))).toBe(true)
-    expect(positions.rangeAdjacent(r, Range.create(1, 2, 1, 4))).toBe(true)
+    assert.strictEqual(positions.rangeAdjacent(r, Range.create(0, 0, 0, 0)), false)
+    assert.strictEqual(positions.rangeAdjacent(r, Range.create(1, 1, 1, 3)), false)
+    assert.strictEqual(positions.rangeAdjacent(r, Range.create(0, 0, 1, 1)), true)
+    assert.strictEqual(positions.rangeAdjacent(r, Range.create(1, 2, 1, 4)), true)
   })
 
   test('positionInRange', () => {
     let pos = Position.create(0, 0)
     let r = Range.create(pos, pos)
-    expect(positions.positionInRange(pos, r)).toBe(0)
+    assert.strictEqual(positions.positionInRange(pos, r), 0)
     pos = Position.create(0, 1)
     r = Range.create(0, 0, 0, 3)
-    expect(positions.positionInRange(pos, r)).toBe(0)
+    assert.strictEqual(positions.positionInRange(pos, r), 0)
   })
 
   test('comparePosition', () => {
     let pos = Position.create(0, 0)
-    expect(positions.comparePosition(pos, pos)).toBe(0)
+    assert.strictEqual(positions.comparePosition(pos, pos), 0)
   })
 
   test('should get start end position by content', () => {
-    expect(positions.getEnd(Position.create(0, 0), 'foo')).toEqual({ line: 0, character: 3 })
-    expect(positions.getEnd(Position.create(0, 1), 'foo\nbar')).toEqual({ line: 1, character: 3 })
+    assert.deepStrictEqual(positions.getEnd(Position.create(0, 0), 'foo'), { line: 0, character: 3 })
+    assert.deepStrictEqual(positions.getEnd(Position.create(0, 1), 'foo\nbar'), { line: 1, character: 3 })
   })
 
   test('isSingleLine', () => {
     let pos = Position.create(0, 0)
     let r = Range.create(pos, pos)
-    expect(positions.isSingleLine(r)).toBe(true)
+    assert.strictEqual(positions.isSingleLine(r), true)
   })
 
   test('toValidRange', () => {
-    expect(positions.toValidRange(Range.create(1, 0, 0, 1))).toEqual(Range.create(0, 1, 1, 0))
-    expect(positions.toValidRange({
+    assert.deepStrictEqual(positions.toValidRange(Range.create(1, 0, 0, 1)), Range.create(0, 1, 1, 0))
+    assert.deepStrictEqual(positions.toValidRange({
       start: { line: -1, character: -1 },
       end: { line: -1, character: -1 },
-    })).toEqual(Range.create(0, 0, 0, 0))
+    }), Range.create(0, 0, 0, 0))
   })
 
 })
@@ -1203,43 +1198,42 @@ describe('utility', () => {
 
   it('should wait with token', async () => {
     let res = await waitWithToken(1, CancellationToken.None)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
     let tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     let p = waitWithToken(200, token)
     await wait(20)
     tokenSource.cancel()
     res = await p
-    expect(res).toBe(true)
+    assert.strictEqual(res, true)
     res = await waitWithToken(10, CancellationToken.Cancelled)
-    expect(res).toBe(true)
+    assert.strictEqual(res, true)
     res = await waitWithToken(0, CancellationToken.None)
-    expect(res).toBe(true)
+    assert.strictEqual(res, true)
   })
 
   it('should check executable', () => {
     let res = executable('command_not_exists')
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
   })
 
-  it('should check isRunning', () => {
-    expect(isRunning(process.pid)).toBe(true)
-    let spy = vi.spyOn(process, 'kill').mockImplementation(() => {
+  it('should check isRunning', t => {
+    assert.strictEqual(isRunning(process.pid), true)
+    t.mock.method(process, 'kill', () => {
       let e = new Error() as any
       e.code = 'EPERM'
       throw e
     })
-    expect(isRunning(process.pid)).toBe(true)
-    spy.mockRestore()
+    assert.strictEqual(isRunning(process.pid), true)
   })
 
   it('should run command on windows', async () => {
     await runCommand('echo 1')
-    await runCommand('echo 1', { cwd: __dirname }, 1, true)
+    await runCommand('echo 1', { cwd: import.meta.dirname }, 1, true)
   })
 
   it('should run command with timeout', async () => {
-    await expect(runCommand('sleep 2', { cwd: __dirname }, 0.01)).rejects.toThrow(errors.CancellationError)
+    await assert.rejects(runCommand('sleep 2', { cwd: import.meta.dirname }, 0.01), errors.CancellationError)
   })
 
   it('should run command with Cancellation token', async () => {
@@ -1248,22 +1242,22 @@ describe('utility', () => {
     setTimeout(() => {
       tokenSource.cancel()
     }, 20)
-    await expect(runCommand('sleep 2', { cwd: __dirname, encoding: 'unknown' }, token)).rejects.toThrow(errors.CancellationError)
+    await assert.rejects(runCommand('sleep 2', { cwd: import.meta.dirname, encoding: 'unknown' }, token), errors.CancellationError)
   })
 
   it('should run command with encoding support', async () => {
-    let res = await runCommand('echo "\\xc4\\xe3\\x0a"', { cwd: __dirname, encoding: 'cp936' }, 1, true)
-    expect(res.length).toBeGreaterThan(0)
+    let res = await runCommand('echo "\\xc4\\xe3\\x0a"', { cwd: import.meta.dirname, encoding: 'cp936' }, 1, true)
+    assert.ok(res.length > 0)
   })
 
   it('should throw on command error', async () => {
-    await expect(runCommand('command_not_exists', { cwd: __dirname })).rejects.toThrow(Error)
+    await assert.rejects(runCommand('command_not_exists', { cwd: import.meta.dirname }), Error)
   })
 
-  it('should resolve concurrent with empty task', async () => {
-    let fn = vi.fn()
+  it('should resolve concurrent with empty task', async t => {
+    let fn = t.mock.fn()
     await concurrent([], fn, 3)
-    expect(fn).toHaveBeenCalledTimes(0)
+    assert.strictEqual(fn.mock.callCount(), 0)
   })
 
   it('should run concurrent', async () => {
@@ -1280,8 +1274,8 @@ describe('utility', () => {
     let ts = Date.now()
     await concurrent(arr, fn, 3)
     let dt = Date.now() - ts
-    expect(dt).toBeGreaterThanOrEqual(100)
-    expect(res).toEqual([3, 4, 5, 6, 8])
+    assert.ok(dt >= 100)
+    assert.deepStrictEqual(res, [3, 4, 5, 6, 8])
   })
 
   it('should delay function #1', () => {
@@ -1292,7 +1286,7 @@ describe('utility', () => {
     let delied = delay(fn, 50)
     delied()
     delied(100)
-    expect(times).toBe(0)
+    assert.strictEqual(times, 0)
     delied.clear()
   })
 
@@ -1304,8 +1298,8 @@ describe('utility', () => {
     let delied = delay(fn, 50)
     delied(100)
     delied(10)
-    await helper.waitValue(() => times, 1)
-    expect(times).toBe(1)
+    await waitValue(() => times, 1)
+    assert.strictEqual(times, 1)
   })
 })
 
@@ -1313,54 +1307,54 @@ describe('fuzzy match test', () => {
   it('should be fuzzy match', () => {
     let needle = 'aBc'
     let codes = fuzzy.getCharCodes(needle)
-    expect(fuzzy.fuzzyMatch(codes, 'abc')).toBeFalsy()
-    expect(fuzzy.fuzzyMatch(codes, 'ab')).toBeFalsy()
-    expect(fuzzy.fuzzyMatch(codes, 'addbdd')).toBeFalsy()
-    expect(fuzzy.fuzzyMatch(codes, 'abbbBc')).toBeTruthy()
-    expect(fuzzy.fuzzyMatch(codes, 'daBc')).toBeTruthy()
-    expect(fuzzy.fuzzyMatch(codes, 'ABCz')).toBeTruthy()
-    expect(fuzzy.fuzzyMatch(codes, 'axy')).toBeFalsy()
+    assert.ok(!fuzzy.fuzzyMatch(codes, 'abc'))
+    assert.ok(!fuzzy.fuzzyMatch(codes, 'ab'))
+    assert.ok(!fuzzy.fuzzyMatch(codes, 'addbdd'))
+    assert.ok(fuzzy.fuzzyMatch(codes, 'abbbBc'))
+    assert.ok(fuzzy.fuzzyMatch(codes, 'daBc'))
+    assert.ok(fuzzy.fuzzyMatch(codes, 'ABCz'))
+    assert.ok(!fuzzy.fuzzyMatch(codes, 'axy'))
   })
 
   it('should be fuzzy for character', () => {
-    expect(fuzzy.fuzzyChar('a', 'a')).toBeTruthy()
-    expect(fuzzy.fuzzyChar('a', 'A')).toBeTruthy()
-    expect(fuzzy.fuzzyChar('z', 'z')).toBeTruthy()
-    expect(fuzzy.fuzzyChar('z', 'Z')).toBeTruthy()
-    expect(fuzzy.fuzzyChar('A', 'a')).toBeFalsy()
-    expect(fuzzy.fuzzyChar('A', 'A')).toBeTruthy()
-    expect(fuzzy.fuzzyChar('Z', 'z')).toBeFalsy()
-    expect(fuzzy.fuzzyChar('Z', 'Z')).toBeTruthy()
-    expect(fuzzy.fuzzyChar('Z', 'z', true)).toBeTruthy()
-    expect(fuzzy.fuzzyChar('i', 'İ')).toBeTruthy()
-    expect(fuzzy.fuzzyChar('a', 'İ')).toBeFalsy()
-    expect(fuzzy.fuzzyChar('i', 'İ', true)).toBeTruthy()
-    expect(fuzzy.fuzzyChar('İ', 'i')).toBeFalsy()
-    expect(fuzzy.fuzzyChar('İ', 'i', true)).toBeTruthy()
-    expect(fuzzy.fuzzyChar('Ᾰ', 'ᾰ', true)).toBeTruthy()
-    expect(fuzzy.fuzzyChar('ᾰ', 'Ᾰ')).toBeTruthy()
+    assert.ok(fuzzy.fuzzyChar('a', 'a'))
+    assert.ok(fuzzy.fuzzyChar('a', 'A'))
+    assert.ok(fuzzy.fuzzyChar('z', 'z'))
+    assert.ok(fuzzy.fuzzyChar('z', 'Z'))
+    assert.ok(!fuzzy.fuzzyChar('A', 'a'))
+    assert.ok(fuzzy.fuzzyChar('A', 'A'))
+    assert.ok(!fuzzy.fuzzyChar('Z', 'z'))
+    assert.ok(fuzzy.fuzzyChar('Z', 'Z'))
+    assert.ok(fuzzy.fuzzyChar('Z', 'z', true))
+    assert.ok(fuzzy.fuzzyChar('i', 'İ'))
+    assert.ok(!fuzzy.fuzzyChar('a', 'İ'))
+    assert.ok(fuzzy.fuzzyChar('i', 'İ', true))
+    assert.ok(!fuzzy.fuzzyChar('İ', 'i'))
+    assert.ok(fuzzy.fuzzyChar('İ', 'i', true))
+    assert.ok(fuzzy.fuzzyChar('Ᾰ', 'ᾰ', true))
+    assert.ok(fuzzy.fuzzyChar('ᾰ', 'Ᾰ'))
   })
 })
 
 describe('object test', () => {
   it('mixin should recursive', () => {
     let res = objects.mixin({ a: { b: 1 } }, { a: { c: 2 }, d: 3 })
-    expect(res.a.b).toBe(1)
-    expect(res.a.c).toBe(2)
-    expect(res.d).toBe(3)
+    assert.strictEqual(res.a.b, 1)
+    assert.strictEqual(res.a.c, 2)
+    assert.strictEqual(res.d, 3)
     res = objects.mixin({}, true)
-    expect(res).toEqual({})
+    assert.deepStrictEqual(res, {})
     res = objects.mixin({ x: 1 }, { x: 2 }, false)
-    expect(res).toEqual({ x: 1 })
+    assert.deepStrictEqual(res, { x: 1 })
     res = objects.mixin(Date, {})
-    expect(res).toEqual({})
+    assert.deepStrictEqual(res, {})
     res = objects.mixin({ x: 3, y: new Date() }, { y: 4 }, true)
-    expect(res).toEqual({ x: 3, y: 4 })
+    assert.deepStrictEqual(res, { x: 3, y: 4 })
   })
 
   it('should deep clone', () => {
     let re = new RegExp('a', 'g')
-    expect(objects.deepClone(re)).toBe(re)
+    assert.strictEqual(objects.deepClone(re), re)
   })
 
   it('should change to readonly', () => {
@@ -1369,7 +1363,7 @@ describe('object test', () => {
     let fn = () => {
       res.x = 3
     }
-    expect(fn).toThrow()
+    assert.throws(fn)
   })
 
   it('should not deep freeze', () => {
@@ -1378,20 +1372,20 @@ describe('object test', () => {
   })
 
   it('should check equals', () => {
-    expect(objects.equals(false, 1)).toBe(false)
-    expect(objects.equals([1], {})).toBe(false)
-    expect(objects.equals([1, 2], [1, 3])).toBe(false)
+    assert.strictEqual(objects.equals(false, 1), false)
+    assert.strictEqual(objects.equals([1], {}), false)
+    assert.strictEqual(objects.equals([1, 2], [1, 3]), false)
   })
 
   it('should check empty object', () => {
-    expect(objects.isEmpty({})).toBe(true)
-    expect(objects.isEmpty([])).toBe(true)
-    expect(objects.isEmpty(null)).toBe(true)
-    expect(objects.isEmpty({ x: 1 })).toBe(false)
+    assert.strictEqual(objects.isEmpty({}), true)
+    assert.strictEqual(objects.isEmpty([]), true)
+    assert.strictEqual(objects.isEmpty(null), true)
+    assert.strictEqual(objects.isEmpty({ x: 1 }), false)
   })
 
   it('should omit null and undefined properties', () => {
-    expect(objects.omitNullUndefined({ a: 1, b: null, c: undefined, d: "text" })).toEqual({ a: 1, d: 'text' })
+    assert.deepStrictEqual(objects.omitNullUndefined({ a: 1, b: null, c: undefined, d: "text" }), { a: 1, d: 'text' })
   })
 
   it('should deepIterate', () => {
@@ -1413,7 +1407,7 @@ describe('object test', () => {
         vals.push(obj[key])
       }
     })
-    expect(vals).toEqual(['#1', '#2', '#3'])
+    assert.deepStrictEqual(vals, ['#1', '#2', '#3'])
   })
 })
 
@@ -1421,7 +1415,7 @@ describe('ansiparse', () => {
   it('ansiparse #1', () => {
     let str = '\u001b[33mText\u001b[mnormal'
     let res = ansiparse(str)
-    expect(res).toEqual([{
+    assert.deepStrictEqual(res, [{
       foreground: 'yellow', text: 'Text'
     }, {
       text: 'normal'
@@ -1431,7 +1425,7 @@ describe('ansiparse', () => {
   it('ansiparse #2', () => {
     let str = '\u001b[33m\u001b[mText'
     let res = ansiparse(str)
-    expect(res).toEqual([
+    assert.deepStrictEqual(res, [
       { foreground: 'yellow', text: '' },
       { text: 'Text' }])
   })
@@ -1439,7 +1433,7 @@ describe('ansiparse', () => {
   it('ansiparse #3', () => {
     let str = 'this.\u001b[0m\u001b[31m\u001b[1mhistory\u001b[0m.add()'
     let res = ansiparse(str)
-    expect(res[1]).toEqual({
+    assert.deepStrictEqual(res[1], {
       foreground: 'red',
       bold: true, text: 'history'
     })
@@ -1452,7 +1446,7 @@ describe('Mutex', () => {
     let fn = () => new Promise<void>(resolve => {
       if (lastTs) {
         let dt = Date.now() - lastTs
-        expect(dt).toBeGreaterThanOrEqual(2)
+        assert.ok(dt >= 2)
       }
       lastTs = Date.now()
       setTimeout(() => {
@@ -1477,9 +1471,9 @@ describe('Mutex', () => {
     })
     let mutex = new Mutex()
     await mutex.use(fn)
-    await helper.wait(20)
+    await wait(20)
     await mutex.use(fn)
-    expect(count).toBe(2)
+    assert.strictEqual(count, 2)
   })
 
   it('should release on reject', async () => {
@@ -1492,8 +1486,8 @@ describe('Mutex', () => {
     } catch (e) {
       err = e
     }
-    expect(err).toBeDefined()
-    expect(mutex.busy).toBe(false)
+    assert.notStrictEqual(err, undefined)
+    assert.strictEqual(mutex.busy, false)
   })
 })
 
@@ -1502,35 +1496,35 @@ describe('Sequence', () => {
     let s = new Sequence()
     let res: number[] = []
     s.run(async () => {
-      await helper.wait(20)
+      await wait(20)
       res.push(0)
     })
     s.run(async () => {
-      await helper.wait(20)
+      await wait(20)
       res.push(1)
     })
     s.run(async () => {
-      await helper.wait(20)
+      await wait(20)
       res.push(2)
     })
     await s.waitFinish()
-    expect(res).toEqual([0, 1, 2])
+    assert.deepStrictEqual(res, [0, 1, 2])
   })
 
   it('should cancel sequence', async () => {
     let s = new Sequence()
     let res: number[] = []
     s.run(async () => {
-      await helper.wait(20)
+      await wait(20)
       res.push(0)
     })
     s.run(async () => {
-      await helper.wait(20)
+      await wait(20)
       res.push(1)
     })
     s.cancel()
     await s.waitFinish()
-    expect(res).toEqual([])
+    assert.deepStrictEqual(res, [])
   })
 })
 
@@ -1539,43 +1533,40 @@ describe('terminate', () => {
     let cwd = process.cwd()
     let child = spawn('sleep', ['3'], { cwd, detached: true })
     let res = terminate(child, cwd)
-    expect(res).toBe(true)
-    await helper.waitValue(() => {
+    assert.strictEqual(res, true)
+    await waitValue(() => {
       return child.connected
     }, false)
     terminate(child, cwd)
     terminate({ killed: true } as any, cwd)
   })
 
-  it('should terminate on other platform', () => {
+  it('should terminate on other platform', t => {
     let child = spawn('ls', [], { detached: true })
     let res = terminate(child, process.cwd(), platform.Platform.Windows)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
     res = terminate(child, undefined, platform.Platform.Windows)
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
     res = terminate(child, process.cwd(), platform.Platform.Unknown)
-    expect(res).toBe(true)
-    let spy: any = vi.spyOn(cp, 'execFileSync').mockImplementation(() => {
+    assert.strictEqual(res, true)
+    t.mock.method(cp, 'execFileSync', () => {
       return undefined
     })
     child = spawn('ls', [], { detached: true })
     res = terminate(child, process.cwd(), platform.Platform.Windows)
-    expect(res).toBe(true)
-    spy.mockRestore()
-    spy = vi.spyOn(cp, 'spawnSync').mockImplementation(() => {
+    assert.strictEqual(res, true)
+    t.mock.method(cp, 'spawnSync', () => {
       throw new Error('bad')
     })
     child = spawn('ls', [], { detached: true })
     res = terminate(child, process.cwd(), platform.Platform.Linux)
-    expect(res).toBe(false)
-    spy.mockRestore()
-    spy = vi.spyOn(cp, 'spawnSync').mockImplementation(() => {
+    assert.strictEqual(res, false)
+    t.mock.method(cp, 'spawnSync', () => {
       return { error: new Error('bad') } as any
     })
     child = spawn('ls', [], { detached: true })
     res = terminate(child, process.cwd(), platform.Platform.Linux)
-    expect(res).toBe(false)
-    spy.mockRestore()
+    assert.strictEqual(res, false)
   })
 })
 
@@ -1588,74 +1579,74 @@ describe('diff', () => {
 
     it('should consider new line insert on insert mode', async () => {
       let res = diff.getTextEdit(['abc', ''], ['abc', '', ''], Position.create(1, 0), true)
-      expect(res).toEqual(toEdit(0, 3, 0, 3, '\n'))
+      assert.deepStrictEqual(res, toEdit(0, 3, 0, 3, '\n'))
     })
 
     it('should get textedit without cursor', () => {
       let res = diff.getTextEdit(['a', 'b'], ['a', 'b'])
-      expect(res).toBeUndefined()
+      assert.strictEqual(res, undefined)
       res = diff.getTextEdit(['a', 'b'], ['a', 'b'], Position.create(0, 0))
-      expect(res).toBeUndefined()
+      assert.strictEqual(res, undefined)
       res = diff.getTextEdit(['a', 'b'], ['a', 'b', 'c'])
-      expect(res).toEqual(toEdit(2, 0, 2, 0, 'c\n'))
+      assert.deepStrictEqual(res, toEdit(2, 0, 2, 0, 'c\n'))
       res = diff.getTextEdit(['a', 'b', 'c'], ['a'])
-      expect(res).toEqual(toEdit(1, 0, 3, 0, ''))
+      assert.deepStrictEqual(res, toEdit(1, 0, 3, 0, ''))
       res = diff.getTextEdit(['a', 'b'], ['a', 'd'])
-      expect(res).toEqual(toEdit(1, 0, 1, 1, 'd'))
+      assert.deepStrictEqual(res, toEdit(1, 0, 1, 1, 'd'))
       res = diff.getTextEdit(['a', 'b'], ['a', 'd', 'e'])
-      expect(res).toEqual(toEdit(1, 0, 1, 1, 'd\ne'))
+      assert.deepStrictEqual(res, toEdit(1, 0, 1, 1, 'd\ne'))
       res = diff.getTextEdit(['a', 'b', 'e'], ['a', 'd', 'e'])
-      expect(res).toEqual(toEdit(1, 0, 1, 1, 'd'))
+      assert.deepStrictEqual(res, toEdit(1, 0, 1, 1, 'd'))
       res = diff.getTextEdit(['a', 'b', 'e'], ['e'])
-      expect(res).toEqual(toEdit(0, 0, 2, 0, ''))
+      assert.deepStrictEqual(res, toEdit(0, 0, 2, 0, ''))
       res = diff.getTextEdit(['a', 'b', 'e'], ['d', 'c', 'a', 'b', 'e'])
-      expect(res).toEqual(toEdit(0, 0, 0, 0, 'd\nc\n'))
+      assert.deepStrictEqual(res, toEdit(0, 0, 0, 0, 'd\nc\n'))
       res = diff.getTextEdit(['a', 'b'], ['a', 'b', ''])
-      expect(res).toEqual(toEdit(2, 0, 2, 0, '\n'))
+      assert.deepStrictEqual(res, toEdit(2, 0, 2, 0, '\n'))
       res = diff.getTextEdit(['a', 'b'], ['a', 'b', '', ''])
-      expect(res).toEqual(toEdit(2, 0, 2, 0, '\n\n'))
+      assert.deepStrictEqual(res, toEdit(2, 0, 2, 0, '\n\n'))
     })
 
     it('should reduceTextEdit', () => {
       let res = diff.reduceReplaceEdit(TextEdit.replace(Range.create(0, 0, 3, 1), 'abd'), 'a\nb\nc\nd', Position.create(0, 1))
-      expect(res).toEqual(TextEdit.replace(Range.create(0, 1, 3, 0), 'b'))
+      assert.deepStrictEqual(res, TextEdit.replace(Range.create(0, 1, 3, 0), 'b'))
       res = diff.reduceReplaceEdit(TextEdit.replace(Range.create(3, 1, 3, 9), ' '.repeat(5)), ' '.repeat(8), Position.create(3, 3))
-      expect(res).toEqual(TextEdit.replace(Range.create(3, 3, 3, 6), ''))
+      assert.deepStrictEqual(res, TextEdit.replace(Range.create(3, 3, 3, 6), ''))
       res = diff.reduceReplaceEdit(TextEdit.replace(Range.create(3, 1, 3, 4), ' '.repeat(5)), ' '.repeat(3), Position.create(3, 3))
-      expect(res).toEqual(TextEdit.replace(Range.create(3, 1, 3, 1), '  '))
+      assert.deepStrictEqual(res, TextEdit.replace(Range.create(3, 1, 3, 1), '  '))
       res = diff.reduceReplaceEdit(TextEdit.replace(Range.create(3, 1, 3, 4), 'x'.repeat(5)), ' '.repeat(3), Position.create(3, 3))
-      expect(res).toEqual(TextEdit.replace(Range.create(3, 1, 3, 4), 'x'.repeat(5)))
+      assert.deepStrictEqual(res, TextEdit.replace(Range.create(3, 1, 3, 4), 'x'.repeat(5)))
       res = diff.reduceReplaceEdit(TextEdit.replace(Range.create(1, 0, 2, 0), 'd\n'), 'b\n')
-      expect(res).toEqual(TextEdit.replace(Range.create(1, 0, 1, 1), 'd'))
+      assert.deepStrictEqual(res, TextEdit.replace(Range.create(1, 0, 1, 1), 'd'))
     })
 
     it('should get textedit for single line change', () => {
       let res = diff.getTextEdit(['foo', 'c'], ['', 'c'], Position.create(0, 0), false)
-      expect(res).toEqual(toEdit(0, 0, 0, 3, ''))
+      assert.deepStrictEqual(res, toEdit(0, 0, 0, 3, ''))
       res = diff.getTextEdit([''], ['foo'], Position.create(0, 0), false)
-      expect(res).toEqual(toEdit(0, 0, 0, 0, 'foo'))
+      assert.deepStrictEqual(res, toEdit(0, 0, 0, 0, 'foo'))
       res = diff.getTextEdit(['foo bar'], ['foo r'], Position.create(0, 4), false)
-      expect(res).toEqual(toEdit(0, 4, 0, 6, ''))
+      assert.deepStrictEqual(res, toEdit(0, 4, 0, 6, ''))
       res = diff.getTextEdit(['f'], ['foo f'], Position.create(0, 0), false)
-      expect(res).toEqual(toEdit(0, 0, 0, 0, 'foo '))
+      assert.deepStrictEqual(res, toEdit(0, 0, 0, 0, 'foo '))
       res = diff.getTextEdit([' foo '], [' bar '], Position.create(0, 0), false)
-      expect(res).toEqual(toEdit(0, 1, 0, 4, 'bar'))
+      assert.deepStrictEqual(res, toEdit(0, 1, 0, 4, 'bar'))
       res = diff.getTextEdit(['foo'], ['bar'], Position.create(0, 0), true)
-      expect(res).toEqual(toEdit(0, 0, 0, 3, 'bar'))
+      assert.deepStrictEqual(res, toEdit(0, 0, 0, 3, 'bar'))
       res = diff.getTextEdit(['aa'], ['aaaa'], Position.create(0, 1), true)
-      expect(res).toEqual(toEdit(0, 0, 0, 0, 'aa'))
+      assert.deepStrictEqual(res, toEdit(0, 0, 0, 0, 'aa'))
     })
 
     it('should diff changed lines', () => {
       let res = diffLines('a\n', 'b\n')
-      expect(res).toEqual({ start: 0, end: 1, replacement: ['b'] })
+      assert.deepStrictEqual(res, { start: 0, end: 1, replacement: ['b'] })
       res = diff.diffLines(['a', 'b'], ['c', 'd', 'a', 'b'], -1)
-      expect(res).toEqual({ start: 0, end: 0, replacement: ['c', 'd'] })
+      assert.deepStrictEqual(res, { start: 0, end: 0, replacement: ['c', 'd'] })
     })
 
     it('should diff added lines', () => {
       let res = diffLines('a\n', 'a\nb\n')
-      expect(res).toEqual({
+      assert.deepStrictEqual(res, {
         start: 1,
         end: 1,
         replacement: ['b']
@@ -1664,7 +1655,7 @@ describe('diff', () => {
 
     it('should diff remove lines', () => {
       let res = diffLines('a\n\n', 'a\n')
-      expect(res).toEqual({
+      assert.deepStrictEqual(res, {
         start: 1,
         end: 2,
         replacement: []
@@ -1673,7 +1664,7 @@ describe('diff', () => {
 
     it('should diff remove multiple lines', () => {
       let res = diffLines('a\n\n\n', 'a\n')
-      expect(res).toEqual({
+      assert.deepStrictEqual(res, {
         start: 1,
         end: 3,
         replacement: []
@@ -1682,7 +1673,7 @@ describe('diff', () => {
 
     it('should diff removed line', () => {
       let res = diffLines('a\n\n\nb', 'a\n\nb')
-      expect(res).toEqual({
+      assert.deepStrictEqual(res, {
         start: 2,
         end: 3,
         replacement: []
@@ -1691,7 +1682,7 @@ describe('diff', () => {
 
     it('should reduce changed lines', () => {
       let res = diff.diffLines(['a', 'b', 'c'], ['a', 'b', 'c', 'd'], 0)
-      expect(res).toEqual({
+      assert.deepStrictEqual(res, {
         start: 3,
         end: 3,
         replacement: ['d']
@@ -1701,127 +1692,111 @@ describe('diff', () => {
 
   describe('get common prefix & suffix', () => {
     it('should getCommonPrefixLen', () => {
-      expect(diff.getCommonPrefixLen('aa', 'abc', 0)).toBe(0)
-      expect(diff.getCommonPrefixLen(' '.repeat(5), ' '.repeat(10), 4)).toBe(4)
-      expect(diff.getCommonPrefixLen('xy', 'dy', 2)).toBe(0)
+      assert.strictEqual(diff.getCommonPrefixLen('aa', 'abc', 0), 0)
+      assert.strictEqual(diff.getCommonPrefixLen(' '.repeat(5), ' '.repeat(10), 4), 4)
+      assert.strictEqual(diff.getCommonPrefixLen('xy', 'dy', 2), 0)
     })
 
     it('should getCommonSuffixLen', () => {
-      expect(diff.getCommonSuffixLen('aa', 'aa', 0)).toBe(0)
-      expect(diff.getCommonSuffixLen('aa', 'ab', 2)).toBe(0)
-      expect(diff.getCommonSuffixLen(' '.repeat(3), ' '.repeat(5), 2)).toBe(2)
+      assert.strictEqual(diff.getCommonSuffixLen('aa', 'aa', 0), 0)
+      assert.strictEqual(diff.getCommonSuffixLen('aa', 'ab', 2), 0)
+      assert.strictEqual(diff.getCommonSuffixLen(' '.repeat(3), ' '.repeat(5), 2), 2)
     })
   })
 
   describe('patch line', () => {
     it('should patch line', () => {
       let res = diff.patchLine('foo', 'bar foo bar')
-      expect(res.length).toBe(7)
-      expect(res).toBe('    foo')
+      assert.strictEqual(res.length, 7)
+      assert.strictEqual(res, '    foo')
       res = diff.patchLine('foo', 'foo')
-      expect(res).toBe('foo')
+      assert.strictEqual(res, 'foo')
       res = diff.patchLine('foo', 'oo')
-      expect(res).toBe('oo')
+      assert.strictEqual(res, 'oo')
     })
   })
 
-  function mockElapsedTime(): ReturnType<typeof vi.spyOn> {
+  function mockElapsedTime(t: any): any {
     let now = 0
-    return vi.spyOn(Date, 'now').mockImplementation(() => {
+    return t.mock.method(Date, 'now', () => {
       now += 20
       return now
     })
   }
 
   describe('async', () => {
-    it('should do filter', async () => {
+    it('should do filter', async t => {
       await filter([], () => true, () => {})
       await filter([{ label: 'a' }, { label: 'b' }, { label: 'c' }], v => {
         return { code: v.label.charCodeAt(0) }
       }, (items, done) => {
-        expect(items.length).toBe(3)
-        expect(done).toBe(true)
+        assert.strictEqual(items.length, 3)
+        assert.strictEqual(done, true)
       })
       let n = 0
       let res: string[] = []
       let finished: boolean
-      let spy = mockElapsedTime()
-      try {
-        await filter<string>(['a', 'b', 'c'], () => true, (items, done) => {
-          n++
-          res.push(...items)
-          finished = done
-        })
-      } finally {
-        spy.mockRestore()
-      }
-      expect(n).toBe(3)
-      expect(res).toEqual(['a', 'b', 'c'])
-      expect(finished).toEqual(true)
+      mockElapsedTime(t)
+      await filter<string>(['a', 'b', 'c'], () => true, (items, done) => {
+        n++
+        res.push(...items)
+        finished = done
+      })
+      assert.strictEqual(n, 3)
+      assert.deepStrictEqual(res, ['a', 'b', 'c'])
+      assert.deepStrictEqual(finished, true)
     })
 
-    it('should cancel filter when possible', async () => {
+    it('should cancel filter when possible', async t => {
       let tokenSource = new CancellationTokenSource()
       let token = tokenSource.token
       process.nextTick(() => {
         tokenSource.cancel()
       })
-      let spy = mockElapsedTime()
-      try {
-        await filter([1, 2, 3], () => true, (_, done) => {
-          expect(done).toBeFalsy()
-        }, token)
-      } finally {
-        spy.mockRestore()
-      }
+      mockElapsedTime(t)
+      await filter([1, 2, 3], () => true, (_, done) => {
+        assert.ok(!done)
+      }, token)
     })
 
-    it('should perform async forEach', async () => {
+    it('should perform async forEach', async t => {
       await forEach([], () => {})
       let res = []
       await forEach([1, 2], x => res.push(x))
-      expect(res).toEqual([1, 2])
+      assert.deepStrictEqual(res, [1, 2])
       const items = [1, 2, 3]
-      let spy = mockElapsedTime()
-      try {
-        let result = []
-        let yielded = vi.fn()
-        await forEach(items, item => result.push(item), undefined, { yieldCallback: yielded })
-        expect(result).toEqual(items)
-        expect(yielded).toHaveBeenCalled()
-        // it should cancel with callback called.
-        let tokenSource = new CancellationTokenSource()
-        let token = tokenSource.token
-        let called = false
-        let cb = () => {
-          tokenSource.cancel()
-          called = true
-        }
-        result = []
-        await forEach(items, item => result.push(item), token, { yieldCallback: cb })
-        expect(called).toBe(true)
-        expect(result.length).toBeLessThan(items.length)
-      } finally {
-        spy.mockRestore()
+      mockElapsedTime(t)
+      let result = []
+      let yielded = t.mock.fn()
+      await forEach(items, item => result.push(item), undefined, { yieldCallback: yielded })
+      assert.deepStrictEqual(result, items)
+      assert.ok(yielded.mock.callCount() > 0)
+      // it should cancel with callback called.
+      let tokenSource = new CancellationTokenSource()
+      let token = tokenSource.token
+      let called = false
+      let cb = () => {
+        tokenSource.cancel()
+        called = true
       }
+      result = []
+      await forEach(items, item => result.push(item), token, { yieldCallback: cb })
+      assert.strictEqual(called, true)
+      assert.ok(result.length < items.length)
     })
 
     it('should map with empty array should return empty array', async () => {
       const result = await map([], x => x * 2)
-      expect(result).toEqual([])
+      assert.deepStrictEqual(result, [])
     })
 
-    it('should map correct transform items', async () => {
-      let spy = mockElapsedTime()
-      try {
-        const result = await map([1, 2, 3], item => item * 2)
-        expect(result).toEqual([2, 4, 6])
-      } finally {
-        spy.mockRestore()
-      }
+    it('should map correct transform items', async t => {
+      mockElapsedTime(t)
+      const result = await map([1, 2, 3], item => item * 2)
+      assert.deepStrictEqual(result, [2, 4, 6])
     })
 
-    it('should map yieldCallback when yielding', async () => {
+    it('should map yieldCallback when yielding', async t => {
       const items = [1, 2, 3]
       let tokenSource = new CancellationTokenSource()
       let token = tokenSource.token
@@ -1830,31 +1805,22 @@ describe('diff', () => {
         tokenSource.cancel()
         called = true
       }
-      let spy = mockElapsedTime()
-      try {
-        const options: YieldOptions = { yieldCallback: cb }
-        await map(items, item => item * 2, token, options)
-      } finally {
-        spy.mockRestore()
-      }
-      expect(called).toBe(true)
+      mockElapsedTime(t)
+      const options: YieldOptions = { yieldCallback: cb }
+      await map(items, item => item * 2, token, options)
+      assert.strictEqual(called, true)
     })
 
-    it('should cancel on map', async () => {
+    it('should cancel on map', async t => {
       const items = [1, 2, 3]
       let tokenSource = new CancellationTokenSource()
       let token = tokenSource.token
       process.nextTick(() => {
         tokenSource.cancel()
       }, 0)
-      let spy = mockElapsedTime()
-      let res: number[]
-      try {
-        res = await map(items, item => item * 2, token)
-      } finally {
-        spy.mockRestore()
-      }
-      expect(res[res.length - 1]).toBeUndefined()
+      mockElapsedTime(t)
+      let res: number[] = await map(items, item => item * 2, token)
+      assert.strictEqual(res[res.length - 1], undefined)
     })
   })
 
@@ -1863,7 +1829,7 @@ describe('diff', () => {
       let t = createTiming('name', 1)
       t.start()
       t.start('label')
-      await helper.wait(20)
+      await wait(20)
       t.stop()
       t.start()
       t.stop()

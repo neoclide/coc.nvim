@@ -12,67 +12,31 @@
   "env": {
     "builtin": true
   },
-  "ignorePatterns": [
-    "**/node_modules",
-    "**/coverage",
-    "**/build",
-    "**/lib",
-    "**/typings",
-    "vitest.config.ts",
-    "vitest.setup.ts"
-  ],
+  "ignorePatterns": ["**/node_modules", "**/coverage", "**/build", "**/lib", "**/typings", "scripts/**"],
   "overrides": [
     {
-      "files": [
-        "**/*.ts"
-      ],
+      "files": ["**/*.ts"],
       "rules": {
         "constructor-super": "error",
-        "getter-return": [
-          "error"
-        ],
-        "no-class-assign": [
-          "error"
-        ],
-        "no-const-assign": [
-          "error"
-        ],
-        "no-dupe-class-members": [
-          "off"
-        ],
-        "no-dupe-keys": [
-          "error"
-        ],
-        "no-func-assign": [
-          "error"
-        ],
+        "getter-return": ["error"],
+        "no-class-assign": ["error"],
+        "no-const-assign": ["error"],
+        "no-dupe-class-members": ["off"],
+        "no-dupe-keys": ["error"],
+        "no-func-assign": ["error"],
         "no-import-assign": "off",
         "no-new-native-nonconstructor": "off",
-        "no-obj-calls": [
-          "error"
-        ],
+        "no-obj-calls": ["error"],
         "no-redeclare": "error",
         "no-setter-return": "off",
-        "no-this-before-super": [
-          "error"
-        ],
-        "no-unreachable": [
-          "warn"
-        ],
-        "no-unsafe-negation": [
-          "error"
-        ],
+        "no-this-before-super": ["error"],
+        "no-unreachable": ["warn"],
+        "no-unsafe-negation": ["error"],
         "no-var": "error",
-        "no-with": [
-          "error"
-        ],
+        "no-with": ["error"],
         "prefer-const": "off",
-        "prefer-rest-params": [
-          "off"
-        ],
-        "prefer-spread": [
-          "off"
-        ],
+        "prefer-rest-params": ["off"],
+        "prefer-spread": ["off"],
         "no-array-constructor": "error",
         "no-implied-eval": "off",
         "no-unused-expressions": "off",
@@ -109,100 +73,47 @@
             "lib": "always"
           }
         ],
-        "guard-for-in": [
-          "off"
-        ],
-        "func-names": [
-          "off"
-        ],
+        "guard-for-in": ["off"],
+        "func-names": ["off"],
         "no-empty": "off",
         "no-console": "off",
-        "no-prototype-builtins": [
-          "off"
-        ],
-        "no-async-promise-executor": [
-          "off"
-        ],
-        "for-direction": [
-          "error"
-        ],
-        "no-case-declarations": [
-          "error"
-        ],
-        "no-compare-neg-zero": [
-          "error"
-        ],
+        "no-prototype-builtins": ["off"],
+        "no-async-promise-executor": ["off"],
+        "for-direction": ["error"],
+        "no-case-declarations": ["error"],
+        "no-compare-neg-zero": ["error"],
         "no-cond-assign": "error",
-        "no-constant-condition": [
-          "error"
-        ],
-        "no-control-regex": [
-          "error"
-        ],
+        "no-constant-condition": ["error"],
+        "no-control-regex": ["error"],
         "no-debugger": "error",
-        "no-delete-var": [
-          "error"
-        ],
-        "no-duplicate-case": [
-          "error"
-        ],
-        "no-empty-character-class": [
-          "error"
-        ],
-        "no-empty-pattern": [
-          "error"
-        ],
-        "no-ex-assign": [
-          "error"
-        ],
-        "no-extra-boolean-cast": [
-          "error"
-        ],
+        "no-delete-var": ["error"],
+        "no-duplicate-case": ["error"],
+        "no-empty-character-class": ["error"],
+        "no-empty-pattern": ["error"],
+        "no-ex-assign": ["error"],
+        "no-extra-boolean-cast": ["error"],
         "no-fallthrough": "off",
-        "no-global-assign": [
-          "error"
-        ],
+        "no-global-assign": ["error"],
         "no-inner-declarations": "off",
-        "no-invalid-regexp": [
-          "error"
-        ],
+        "no-invalid-regexp": ["error"],
         "no-irregular-whitespace": "error",
-        "no-misleading-character-class": [
-          "error"
-        ],
-        "no-regex-spaces": [
-          "error"
-        ],
-        "no-self-assign": [
-          "error"
-        ],
-        "no-shadow-restricted-names": [
-          "error"
-        ],
+        "no-misleading-character-class": ["error"],
+        "no-regex-spaces": ["error"],
+        "no-self-assign": ["error"],
+        "no-shadow-restricted-names": ["error"],
         "no-sparse-arrays": "error",
-        "no-unexpected-multiline": [
-          "error"
-        ],
+        "no-unexpected-multiline": ["error"],
         "no-unsafe-finally": "error",
         "no-unused-labels": "error",
-        "no-useless-catch": [
-          "error"
-        ],
-        "no-useless-escape": [
-          "error"
-        ],
-        "require-yield": [
-          "error"
-        ],
+        "no-useless-catch": ["error"],
+        "no-useless-escape": ["error"],
+        "require-yield": ["error"],
         "use-isnan": "error",
         "valid-typeof": "off",
         "arrow-body-style": "off",
         "complexity": "off",
         "curly": "off",
-        "eqeqeq": [
-          "off",
-          "always"
-        ],
+        "eqeqeq": ["off", "always"],
         "id-match": "error",
         "max-classes-per-file": "off",
         "no-bitwise": "off",
@@ -249,9 +160,7 @@
         "typescript/prefer-function-type": "off",
         "typescript/unified-signatures": "error"
       },
-      "plugins": [
-        "typescript"
-      ],
+      "plugins": ["typescript"],
       "env": {
         "node": true
       },
@@ -261,52 +170,20 @@
       }
     },
     {
-      "files": [
-        "src/__tests__/**/*.ts"
-      ],
+      "files": ["src/__tests__/**/*.ts"],
       "rules": {
-        "vitest/expect-expect": "off",
-        "vitest/no-commented-out-tests": "error",
-        "vitest/no-conditional-expect": "off",
-        "vitest/no-disabled-tests": "warn",
-        "vitest/no-focused-tests": "error",
-        "vitest/no-identical-title": "off",
-        "vitest/no-import-node-test": "error",
-        "vitest/no-interpolation-in-snapshots": "error",
-        "vitest/no-mocks-import": "error",
-        "vitest/no-standalone-expect": "error",
-        "vitest/no-unneeded-async-expect-function": "error",
-        "vitest/prefer-called-exactly-once-with": "error",
-        "vitest/require-local-test-context-for-concurrent-snapshots": "error",
-        "vitest/valid-describe-callback": "error",
-        "vitest/valid-expect": "error",
-        "vitest/valid-expect-in-promise": "error",
-        "vitest/valid-title": "error",
-        "typescript/no-unsafe-function-type": "off"
+        "typescript/no-unsafe-function-type": "off",
+        "typescript/no-floating-promises": [
+          "error",
+          {
+            "allowForKnownSafeCalls": ["after", "afterEach", "before", "beforeEach", "describe", "it", "test"]
+          }
+        ]
       },
       "globals": {
-        "suite": "writable",
-        "test": "writable",
-        "describe": "writable",
-        "it": "writable",
-        "expectTypeOf": "writable",
-        "assertType": "writable",
-        "expect": "writable",
-        "assert": "writable",
-        "chai": "writable",
-        "vitest": "writable",
-        "vi": "writable",
-        "beforeAll": "writable",
-        "afterAll": "writable",
-        "beforeEach": "writable",
-        "afterEach": "writable",
-        "onTestFailed": "writable",
-        "onTestFinished": "writable"
+        "assertType": "writable"
       },
-      "plugins": [
-        "vitest",
-        "typescript"
-      ]
+      "plugins": ["typescript"]
     }
   ]
 }

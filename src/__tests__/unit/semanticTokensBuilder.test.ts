@@ -1,3 +1,5 @@
+import { describe, it, test } from 'node:test'
+import assert from 'node:assert/strict'
 import { SemanticTokensBuilder } from '../../model/semanticTokensBuilder'
 import { Range, SemanticTokensLegend } from 'vscode-languageserver-protocol'
 
@@ -10,7 +12,7 @@ function toArr(uint32Arr: ReadonlyArray<number>): number[] {
 }
 
 function deepStrictEqual(one: any, two: any): void {
-  expect(one).toEqual(two)
+  assert.deepStrictEqual(one, two)
 }
 
 describe('SemanticTokensBuilder', () => {
@@ -28,19 +30,19 @@ describe('SemanticTokensBuilder', () => {
 
   it('should throw for bad arguments', async () => {
     const builder = new SemanticTokensBuilder()
-    expect(() => {
+    assert.throws(() => {
       builder.push(undefined, undefined, undefined, undefined)
-    }).toThrow(Error)
-    expect(() => {
+    }, Error)
+    assert.throws(() => {
       builder.push(Range.create(0, 0, 0, 3), '')
-    }).toThrow(Error)
+    }, Error)
     Object.assign(builder, { _hasLegend: true })
-    expect(() => {
+    assert.throws(() => {
       builder.push(Range.create(0, 0, 1, 3), '')
-    }).toThrow(Error)
-    expect(() => {
+    }, Error)
+    assert.throws(() => {
       builder.push(Range.create(0, 0, 0, 3), '')
-    }).toThrow(Error)
+    }, Error)
   })
 
   it('should build SemanticTokensBuilder no modifier', () => {
@@ -93,8 +95,8 @@ describe('SemanticTokensBuilder', () => {
       1, 0, 4, 2, 1 | (1 << 5),
       1, 0, 3, 3, (1 << 2) | (1 << 4)
     ])
-    expect(() => {
+    assert.throws(() => {
       builder.push(Range.create(3, 0, 3, 3), 'dType', ['mod2', 'mod4', 'mod10'])
-    }).toThrow(Error)
+    }, Error)
   })
 })

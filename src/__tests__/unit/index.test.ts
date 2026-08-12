@@ -1,17 +1,19 @@
 import { getHighlightItems, toFiletype, parseMarkdown, parseDocuments } from '../../markdown/index'
 import { Documentation } from '../../types'
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 describe('getHighlightItems', () => {
   it('should convert filetype', () => {
-    expect(toFiletype(undefined)).toBe('txt')
-    expect(toFiletype('ts')).toBe('typescript')
-    expect(toFiletype('js')).toBe('javascript')
-    expect(toFiletype('bash')).toBe('sh')
+    assert.strictEqual(toFiletype(undefined), 'txt')
+    assert.strictEqual(toFiletype('ts'), 'typescript')
+    assert.strictEqual(toFiletype('js'), 'javascript')
+    assert.strictEqual(toFiletype('bash'), 'sh')
   })
 
   it('should get highlights in single line', () => {
     let res = getHighlightItems('this line has highlights', 0, [10, 15])
-    expect(res).toEqual([{
+    assert.deepStrictEqual(res, [{
       colStart: 10,
       colEnd: 15,
       lnum: 0,
@@ -21,7 +23,7 @@ describe('getHighlightItems', () => {
 
   it('should get highlights when active end extended', () => {
     let res = getHighlightItems('this line', 0, [5, 30])
-    expect(res).toEqual([{
+    assert.deepStrictEqual(res, [{
       colStart: 5,
       colEnd: 9,
       lnum: 0,
@@ -31,13 +33,13 @@ describe('getHighlightItems', () => {
 
   it('should get highlights across line', () => {
     let res = getHighlightItems('this line\nhas highlights', 0, [5, 15])
-    expect(res).toEqual([{
+    assert.deepStrictEqual(res, [{
       colStart: 5, colEnd: 9, lnum: 0, hlGroup: 'CocFloatActive'
     }, {
       colStart: 0, colEnd: 5, lnum: 1, hlGroup: 'CocFloatActive'
     }])
     res = getHighlightItems('a\nb\nc\nd', 0, [2, 5])
-    expect(res).toEqual([
+    assert.deepStrictEqual(res, [
       { colStart: 0, colEnd: 1, lnum: 1, hlGroup: 'CocFloatActive' },
       { colStart: 0, colEnd: 1, lnum: 2, hlGroup: 'CocFloatActive' },
       { colStart: 0, colEnd: 0, lnum: 3, hlGroup: 'CocFloatActive' }
@@ -59,14 +61,14 @@ if
 \`\`\`
 `
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual([
+    assert.deepStrictEqual(res.lines, [
       'var global = globalThis',
       '',
       'let str:string',
       '',
       'if'
     ])
-    expect(res.codes).toEqual([
+    assert.deepStrictEqual(res.codes, [
       { filetype: 'javascript', startLine: 0, endLine: 1 },
       { filetype: 'typescript', startLine: 2, endLine: 3 },
       { filetype: 'sh', startLine: 4, endLine: 5 },
@@ -81,7 +83,7 @@ if
 [link](javascript:void(0))
 `
     let res = parseMarkdown(content, { excludeImages: true })
-    expect(res.lines).toEqual([
+    assert.deepStrictEqual(res.lines, [
       'link',
       '',
       'link: http://example.com'
@@ -96,8 +98,8 @@ example:
 \`\`\`
     `
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual(['example:', '<div>code</div>'])
-    expect(res.codes).toEqual([{ filetype: 'html', startLine: 1, endLine: 2 }])
+    assert.deepStrictEqual(res.lines, ['example:', '<div>code</div>'])
+    assert.deepStrictEqual(res.codes, [{ filetype: 'html', startLine: 1, endLine: 2 }])
   })
 
   it('should merge empty lines', async () => {
@@ -110,26 +112,26 @@ foo
 bar
  `
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual(['foo', '', 'bar'])
+    assert.deepStrictEqual(res.lines, ['foo', '', 'bar'])
   })
 
   it('should compose empty lines', () => {
     let content = 'foo\n\n\nbar\n\n\n'
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual(['foo', '', 'bar'])
+    assert.deepStrictEqual(res.lines, ['foo', '', 'bar'])
   })
 
   it('should merge lines', () => {
     let content = 'first\nsecond'
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual(['first', 'second'])
+    assert.deepStrictEqual(res.lines, ['first', 'second'])
   })
 
   it('should parse ansi highlights', () => {
     let content = '__foo__\n[link](link)'
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual(['foo', 'link'])
-    expect(res.highlights).toEqual([
+    assert.deepStrictEqual(res.lines, ['foo', 'link'])
+    assert.deepStrictEqual(res.highlights, [
       { hlGroup: 'CocBold', lnum: 0, colStart: 0, colEnd: 3 },
       { hlGroup: 'CocUnderline', lnum: 1, colStart: 0, colEnd: 4 }
     ])
@@ -138,22 +140,22 @@ bar
   it('should exclude images by option', () => {
     let content = 'head\n![img](img)\ncontent ![img](img) ![img](img)'
     let res = parseMarkdown(content, { excludeImages: false })
-    expect(res.lines).toEqual(['head', '![img](img)', 'content ![img](img) ![img](img)'])
+    assert.deepStrictEqual(res.lines, ['head', '![img](img)', 'content ![img](img) ![img](img)'])
     content = 'head\n![img](img)\ncontent ![img](img) ![img](img)'
     res = parseMarkdown(content, { excludeImages: true })
-    expect(res.lines).toEqual(['head', 'content'])
+    assert.deepStrictEqual(res.lines, ['head', 'content'])
   })
 
   it('should render hr', () => {
     let content = 'foo\n***\nbar'
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual(['foo', '───', 'bar'])
+    assert.deepStrictEqual(res.lines, ['foo', '───', 'bar'])
   })
 
   it('should render deleted text', () => {
     let content = '~foo~'
     let res = parseMarkdown(content, {})
-    expect(res.highlights).toEqual([
+    assert.deepStrictEqual(res.highlights, [
       { hlGroup: 'CocStrikeThrough', lnum: 0, colStart: 0, colEnd: 3 }
     ])
   })
@@ -161,13 +163,13 @@ bar
   it('should render br', () => {
     let content = 'a  \nb'
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual(['a', 'b'])
+    assert.deepStrictEqual(res.lines, ['a', 'b'])
   })
 
   it('should render code span', () => {
     let content = '`foo`'
     let res = parseMarkdown(content, {})
-    expect(res.highlights).toEqual([
+    assert.deepStrictEqual(res.highlights, [
       { hlGroup: 'CocMarkdownCode', lnum: 0, colStart: 0, colEnd: 3 }
     ])
   })
@@ -179,19 +181,19 @@ bar
       '|()|0|'
     ].join('\n')
     let res = parseMarkdown(content, {})
-    expect(res.lines).toContain('│ Type │ size_of::<Type>() │')
+    assert.ok(res.lines.includes('│ Type │ size_of::<Type>() │'))
   })
 
   it('should render html', () => {
     let content = '<div>foo</div>'
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual(['foo'])
+    assert.deepStrictEqual(res.lines, ['foo'])
   })
 
   it('should render checkbox', () => {
     let content = '- [x] first\n- [ ] second'
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual([
+    assert.deepStrictEqual(res.lines, [
       '  * [X] first', '  * [ ] second'
     ])
   })
@@ -199,7 +201,7 @@ bar
   it('should render numbered list', () => {
     let content = '1. one\n2. two\n3. three'
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual([
+    assert.deepStrictEqual(res.lines, [
       '  1. one', '  2. two', '  3. three'
     ])
   })
@@ -207,7 +209,7 @@ bar
   it('should render nested list', () => {
     let content = '- foo\n- bar\n    - one\n    - two'
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual([
+    assert.deepStrictEqual(res.lines, [
       '  * foo', '  * bar', '    * one', '    * two'
     ])
   })
@@ -236,8 +238,7 @@ bar
   \`\`\`
 `
     let res = parseMarkdown(content, {})
-    expect(res.lines).toEqual(
-`  * greeting
+    assert.deepStrictEqual(res.lines, `  * greeting
     * hello
       * me
         you
@@ -267,12 +268,12 @@ describe('parseDocuments', () => {
       content: 'Warning text'
     }]
     let res = parseDocuments(docs)
-    expect(res.lines).toEqual([
+    assert.deepStrictEqual(res.lines, [
       'Error text',
       '─',
       'Warning text'
     ])
-    expect(res.codes).toEqual([
+    assert.deepStrictEqual(res.codes, [
       { hlGroup: 'CocErrorFloat', startLine: 0, endLine: 1 },
       { hlGroup: 'CocWarningFloat', startLine: 2, endLine: 3 }
     ])
@@ -287,12 +288,12 @@ describe('parseDocuments', () => {
       content: '**header**'
     }]
     let res = parseDocuments(docs)
-    expect(res.lines).toEqual([
+    assert.deepStrictEqual(res.lines, [
       'const workspace',
       '─',
       'header'
     ])
-    expect(res.highlights).toEqual([{
+    assert.deepStrictEqual(res.highlights, [{
       colEnd: -1,
       colStart: 0,
       hlGroup: "CocFloatDividingLine",
@@ -303,7 +304,7 @@ describe('parseDocuments', () => {
       colStart: 0,
       colEnd: 6
     }])
-    expect(res.codes).toEqual([
+    assert.deepStrictEqual(res.codes, [
       { filetype: 'typescript', startLine: 0, endLine: 1 }
     ])
   })
@@ -324,7 +325,7 @@ describe('parseDocuments', () => {
     }]
     let res = parseDocuments(docs)
     let { highlights } = res
-    expect(highlights[1]).toEqual({ lnum: 2, colStart: 4, colEnd: 7, hlGroup: 'String' })
+    assert.deepStrictEqual(highlights[1], { lnum: 2, colStart: 4, colEnd: 7, hlGroup: 'String' })
   })
 
   it('should parse documents with active highlights', () => {
@@ -338,6 +339,6 @@ describe('parseDocuments', () => {
       active: [15, 20]
     }]
     let res = parseDocuments(docs as any)
-    expect(res.highlights[0]).toEqual({ colStart: 5, colEnd: 8, lnum: 0, hlGroup: 'CocFloatActive' })
+    assert.deepStrictEqual(res.highlights[0], { colStart: 5, colEnd: 8, lnum: 0, hlGroup: 'CocFloatActive' })
   })
 })

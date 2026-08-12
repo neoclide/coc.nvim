@@ -207,10 +207,7 @@ class ServiceManager implements Disposable {
         services.push(service)
       }
     }
-    // eslint-disable-next-line @typescript-eslint/await-thenable
-    await Promise.allSettled(services.map(service => {
-      return service.start()
-    }))
+    await Promise.allSettled(services.map(service => Promise.resolve(service.start())))
   }
 
   public stop(id: string): Promise<void> {

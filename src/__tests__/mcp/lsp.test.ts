@@ -1,21 +1,21 @@
+import * as shared from '../sharedUtil'
 'use strict'
 import fs from 'fs'
+import assert from 'node:assert/strict'
+import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
 import os from 'os'
 import path from 'path'
+import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { Position, Range } from 'vscode-languageserver-types'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import commands from '../../commands'
 import diagnosticManager from '../../diagnostic/manager'
 import events from '../../events'
-import languages from '../../languages'
 import { createLspTools, getServiceLimiter, lspQueryCache, MAX_STUCK_REQUESTS, withServiceLimit } from '../../mcp/tools/lsp'
 import services, { ServiceStat } from '../../services'
-import helper from '../helper'
 import { CancellationToken, CancellationTokenSource, Trace } from '../../util/protocol'
 import workspace from '../../workspace'
 
-const serverModule = path.join(__dirname, '../client/server/testServer.js')
+const serverModule = path.join(import.meta.dirname, '../client/server/testServer.js')
 let disposables: { dispose(): void }[] = []
 let tmpdir: string
 let file: string
@@ -35,8 +35,7 @@ async function waitFor(fn: () => boolean, timeout = 8000): Promise<void> {
   }
 }
 
-beforeAll(async () => {
-  await helper.setup()
+before(async () => {
   tmpdir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-lsp-'))
   let vimdir = path.join(tmpdir, '.vim')
   fs.mkdirSync(vimdir, { recursive: true })
@@ -51,21 +50,31 @@ beforeAll(async () => {
   workspace.configurations.locateFolderConfigution(URI.file(path.join(tmpdir, 'sample.vim')).toString())
   workspace.workspaceFolderControl.addWorkspaceFolder(tmpdir, true)
   file = path.join(tmpdir, 'sample.vim')
-  fs.writeFileSync(file, 'let a = 1\nlet b = 2\n')
   uri = URI.file(file).toString()
-  await helper.nvim.command(`edit ${file}`)
-  await helper.nvim.command('setfiletype vim')
-  await helper.waitValue(() => !!workspace.getDocument(uri), true)
-  await helper.waitValue(() => workspace.getDocument(uri)!.languageId, 'vim')
-  await waitFor(() => services.getService('test')?.state === ServiceStat.Running)
-  workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': { vim: 'test' } })
   disposables.push(commands.registerCommand('test_command', () => ({ success: true })))
 })
 
-afterAll(async () => {
+beforeEach(async () => {
+  diagnosticManager.reset()
+  workspace.configurations.locateFolderConfigution(uri)
+  workspace.workspaceFolderControl.addWorkspaceFolder(tmpdir, true)
+  fs.writeFileSync(file, 'let a = 1\nlet b = 2\n')
+  await workspace.nvim.command(`edit! ${file}`)
+  await workspace.nvim.command('setfiletype vim')
+  await shared.waitValue(() => !!workspace.getDocument(uri), true)
+  await shared.waitValue(() => workspace.getDocument(uri)!.languageId, 'vim')
+  await waitFor(() => services.getService('test')?.state === ServiceStat.Running)
+  diagnosticManager.create('mcp-lsp-test').set(uri, [
+    Diagnostic.create(Range.create(1, 1, 1, 1), 'diagnostic', DiagnosticSeverity.Error)
+  ])
+  workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': { vim: 'test' } })
+  lspQueryCache.clear()
+})
+
+after(async () => {
   workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': {} })
+  await services.getService('test')?.stop()
   for (let d of disposables) d.dispose()
-  await helper.shutdown()
   fs.rmSync(tmpdir, { recursive: true, force: true })
 })
 
@@ -74,321 +83,260 @@ function tool(name: string) {
 }
 
 describe('mcp lsp tools', () => {
-  it('lsp/hover returns hover contents', async () => {
+  it('lsp/hover returns hover contents', async t => {
     let result = await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.hovers[0].contents).toContain('foo')
+    assert.ok(!result.isError)
+    assert.ok(result.structuredContent.hovers[0].contents.includes('foo'))
   })
 
-  it('lsp/definition returns locations', async () => {
+  it('lsp/definition returns locations', async t => {
     let result = await tool('lsp/definition').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.count).toBe(1)
+    assert.ok(!result.isError)
+    assert.strictEqual(result.structuredContent.count, 1)
     let loc = result.structuredContent.locations[0]
-    expect(loc.uri).toBe(uri)
-    expect(loc.range.start.line).toBe(0)
+    assert.strictEqual(loc.uri, uri)
+    assert.strictEqual(loc.range.start.line, 0)
   })
 
-  it('lsp/references returns locations', async () => {
+  it('lsp/references returns locations', async t => {
     let result = await tool('lsp/references').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.count).toBe(2)
+    assert.ok(!result.isError)
+    assert.strictEqual(result.structuredContent.count, 2)
   })
 
-  it('lsp/hover uses the configured service for the language', async () => {
+  it('lsp/hover uses the configured service for the language', async t => {
     let result = await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.hovers[0].contents).toContain('foo')
+    assert.ok(!result.isError)
+    assert.ok(result.structuredContent.hovers[0].contents.includes('foo'))
   })
 
-  it('lsp/signature_help uses the configured service for the language', async () => {
+  it('lsp/signature_help uses the configured service for the language', async t => {
     let result = await tool('lsp/signature_help').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.signatures[0].label).toBe('label')
+    assert.ok(!result.isError)
+    assert.strictEqual(result.structuredContent.signatures[0].label, 'label')
   })
 
-  it('lsp/definition uses the configured service for the language', async () => {
+  it('lsp/definition uses the configured service for the language', async t => {
     let result = await tool('lsp/definition').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.count).toBe(1)
+    assert.ok(!result.isError)
+    assert.strictEqual(result.structuredContent.count, 1)
     let loc = result.structuredContent.locations[0]
-    expect(loc.uri).toBe(uri)
-    expect(loc.range.start.line).toBe(0)
+    assert.strictEqual(loc.uri, uri)
+    assert.strictEqual(loc.range.start.line, 0)
   })
 
-  it('lsp/references uses the configured service for the language', async () => {
+  it('lsp/references uses the configured service for the language', async t => {
     let result = await tool('lsp/references').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.count).toBe(2)
+    assert.ok(!result.isError)
+    assert.strictEqual(result.structuredContent.count, 2)
   })
 
-  it('lsp/definition with a missing configured service returns error', async () => {
+  it('lsp/definition with a missing configured service returns error', async t => {
     workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': { vim: 'missing' } })
     try {
       let result = await tool('lsp/definition').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-      expect(result.isError).toBeTruthy()
-      expect(result.content[0].text).toContain('missing')
+      assert.ok(result.isError)
+      assert.ok(result.content[0].text.includes('missing'))
     } finally {
       workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': { vim: 'test' } })
     }
   })
 
-  it('lsp/signature_help returns signature labels', async () => {
+  it('lsp/signature_help returns signature labels', async t => {
     let result = await tool('lsp/signature_help').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.signatures[0].label).toBe('label')
-    expect(result.structuredContent.activeSignature).toBe(1)
+    assert.ok(!result.isError)
+    assert.strictEqual(result.structuredContent.signatures[0].label, 'label')
+    assert.strictEqual(result.structuredContent.activeSignature, 1)
   })
 
-  it('lsp/document_symbols returns flattened symbols', async () => {
+  it('lsp/document_symbols returns flattened symbols', async t => {
     let result = await tool('lsp/document_symbols').handler({ uri: file }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.symbols[0].name).toBe('name')
-    expect(result.structuredContent.symbols[0].kind).toBe('Method')
+    assert.ok(!result.isError)
+    assert.strictEqual(result.structuredContent.symbols[0].name, 'name')
+    assert.strictEqual(result.structuredContent.symbols[0].kind, 'Method')
   })
 
-  it('lsp/document_symbols uses the configured service for the language', async () => {
+  it('lsp/document_symbols uses the configured service for the language', async t => {
     let result = await tool('lsp/document_symbols').handler({ uri: file }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.symbols[0].name).toBe('name')
-    expect(result.structuredContent.symbols[0].kind).toBe('Method')
+    assert.ok(!result.isError)
+    assert.strictEqual(result.structuredContent.symbols[0].name, 'name')
+    assert.strictEqual(result.structuredContent.symbols[0].kind, 'Method')
   })
 
-  it('lsp/workspace_symbols searches by query', async () => {
+  it('lsp/workspace_symbols searches by query', async t => {
     let result = await tool('lsp/workspace_symbols').handler({ query: 'name' }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.symbols[0].name).toBe('name')
+    assert.ok(!result.isError)
+    assert.strictEqual(result.structuredContent.symbols[0].name, 'name')
   })
 
-  it('lsp/diagnostics returns the current list (empty here)', async () => {
+  it('lsp/diagnostics returns the current list (empty here)', async t => {
     let result = await tool('lsp/diagnostics').handler({ uri: file }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.count).toBe(1)
-    expect(result.structuredContent.diagnostics[0].message).toBe('diagnostic')
+    assert.ok(!result.isError)
+    assert.strictEqual(result.structuredContent.count, 1)
+    assert.strictEqual(result.structuredContent.diagnostics[0].message, 'diagnostic')
   })
 
-  it('lsp/diagnostics requires an open document', async () => {
+  it('lsp/diagnostics requires an open document', async t => {
     let unopened = path.join(tmpdir, 'unopened-diagnostics.txt')
     fs.writeFileSync(unopened, 'plain\n')
     let result = await tool('lsp/diagnostics').handler({ uri: unopened }, { token })
-    expect(result.content[0].text).toContain('not open')
+    assert.ok(result.content[0].text.includes('not open'))
   })
 
-  it('lsp/code_actions lists actions without applying', async () => {
+  it('lsp/code_actions lists actions without applying', async t => {
     let result = await tool('lsp/code_actions').handler({ uri: file }, { token })
-    expect(result.isError).toBeFalsy()
+    assert.ok(!result.isError)
     let titles = result.structuredContent.actions.map((a: any) => a.title)
-    expect(titles).toContain('title')
-    expect(titles).toContain('other title')
+    assert.ok(titles.includes('title'))
+    assert.ok(titles.includes('other title'))
   })
 
-  it('lsp/apply_code_action applies the selected action', async () => {
+  it('lsp/apply_code_action applies the selected action', async t => {
     let result = await tool('lsp/apply_code_action').handler({ uri: file, title: 'title' }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.applied).toBe(true)
-    expect(result.structuredContent.actions).toContain('command')
+    assert.ok(!result.isError)
+    assert.strictEqual(result.structuredContent.applied, true)
+    assert.ok(result.structuredContent.actions.includes('command'))
   })
 
-  it('lsp/rename previews and applies', async () => {
+  it('lsp/rename previews and applies', async t => {
     let preview = await tool('lsp/rename').handler({ uri: file, position: { line: 1, character: 1 }, newName: 'renamed', preview: true }, { token })
-    expect(preview.isError).toBeFalsy()
-    expect(preview.structuredContent.preview).toBe(true)
-    expect(preview.structuredContent.edit).toBeTruthy()
+    assert.ok(!preview.isError)
+    assert.strictEqual(preview.structuredContent.preview, true)
+    assert.ok(preview.structuredContent.edit)
     let applied = await tool('lsp/rename').handler({ uri: file, position: { line: 1, character: 1 }, newName: 'renamed' }, { token })
-    expect(applied.isError).toBeFalsy()
-    expect(applied.structuredContent.applied).toBe(true)
+    assert.ok(!applied.isError)
+    assert.strictEqual(applied.structuredContent.applied, true)
   })
 
-  it('lsp/rename uses the configured service for the language', async () => {
+  it('lsp/rename uses the configured service for the language', async t => {
     let preview = await tool('lsp/rename').handler({ uri: file, position: { line: 1, character: 1 }, newName: 'renamed', preview: true }, { token })
-    expect(preview.isError).toBeFalsy()
-    expect(preview.structuredContent.preview).toBe(true)
-    expect(preview.structuredContent.edit).toBeTruthy()
+    assert.ok(!preview.isError)
+    assert.strictEqual(preview.structuredContent.preview, true)
+    assert.ok(preview.structuredContent.edit)
   })
 
-  it('falls back to provider aggregation when no service is configured', async () => {
+  it('falls back to provider aggregation when no service is configured', async t => {
     workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': {} })
     try {
       let result = await tool('lsp/definition').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-      expect(result.isError).toBeFalsy()
-      expect(result.structuredContent.count).toBe(1)
+      assert.ok(!result.isError)
+      assert.strictEqual(result.structuredContent.count, 1)
     } finally {
       workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': { vim: 'test' } })
     }
   })
 
-  it('lsp/batch runs multiple methods in parallel', async () => {
+  it('lsp/batch runs multiple methods in parallel', async t => {
     let result = await tool('lsp/batch').handler({
       uri: file,
       position: { line: 1, character: 1 },
       methods: ['hover', 'definition', 'references', 'document_symbols']
     }, { token })
-    expect(result.isError).toBeFalsy()
+    assert.ok(!result.isError)
     let results = result.structuredContent.results
-    expect(results.hover.hovers[0].contents).toContain('foo')
-    expect(results.definition.count).toBe(1)
-    expect(results.references.count).toBe(2)
-    expect(results.document_symbols.symbols[0].name).toBe('name')
+    assert.ok(results.hover.hovers[0].contents.includes('foo'))
+    assert.strictEqual(results.definition.count, 1)
+    assert.strictEqual(results.references.count, 2)
+    assert.strictEqual(results.document_symbols.symbols[0].name, 'name')
   })
 
-  it('lsp/batch dispatches every supported query method', async () => {
+  it('lsp/batch dispatches every supported query method', async t => {
     let result = await tool('lsp/batch').handler({
       uri: file,
       position: { line: 1, character: 1 },
       methods: ['signature_help', 'declaration', 'type_definition', 'implementation']
     }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(Object.keys(result.structuredContent.results)).toEqual(['signature_help', 'declaration', 'type_definition', 'implementation'])
+    assert.ok(!result.isError)
+    assert.deepStrictEqual(Object.keys(result.structuredContent.results), ['signature_help', 'declaration', 'type_definition', 'implementation'])
   })
 
-  it('lsp/batch rejects unknown methods', async () => {
+  it('lsp/batch rejects unknown methods', async t => {
     let result = await tool('lsp/batch').handler({
       uri: file,
       position: { line: 1, character: 1 },
       methods: ['hover', 'bogus']
     }, { token })
-    expect(result.isError).toBeTruthy()
-    expect(result.content[0].text).toContain('bogus')
+    assert.ok(result.isError)
+    assert.ok(result.content[0].text.includes('bogus'))
   })
 
-  it('validates required arguments across LSP tools', async () => {
+  it('validates required arguments across LSP tools', async t => {
     for (let name of ['lsp/hover', 'lsp/signature_help', 'lsp/definition', 'lsp/declaration',
       'lsp/type_definition', 'lsp/implementation', 'lsp/references', 'lsp/rename']) {
       let result = await tool(name).handler({ uri: file }, { token })
-      expect(result.isError).toBe(true)
-      expect(result.content[0].text).toContain('position')
+      assert.strictEqual(result.isError, true)
+      assert.ok(result.content[0].text.includes('position'))
     }
-    expect((await tool('lsp/workspace_symbols').handler({}, { token })).isError).toBe(true)
-    expect((await tool('lsp/batch').handler({}, { token })).isError).toBe(true)
-    expect((await tool('lsp/batch').handler({ uri: file, methods: ['hover'] }, { token })).content[0].text).toContain('position')
-    expect((await tool('lsp/execute_command').handler({}, { token })).isError).toBe(true)
-    expect((await tool('lsp/request').handler({}, { token })).isError).toBe(true)
-    expect((await tool('lsp/rename').handler({ uri: file, position: { line: 0, character: 0 }, newName: '' }, { token })).content[0].text).toContain('newName')
+    assert.strictEqual((await tool('lsp/workspace_symbols').handler({}, { token })).isError, true)
+    assert.strictEqual((await tool('lsp/batch').handler({}, { token })).isError, true)
+    assert.ok((await tool('lsp/batch').handler({ uri: file, methods: ['hover'] }, { token })).content[0].text.includes('position'))
+    assert.strictEqual((await tool('lsp/execute_command').handler({}, { token })).isError, true)
+    assert.strictEqual((await tool('lsp/request').handler({}, { token })).isError, true)
+    assert.ok((await tool('lsp/rename').handler({ uri: file, position: { line: 0, character: 0 }, newName: '' }, { token })).content[0].text.includes('newName'))
   })
 
-  it('propagates document resolution errors across LSP tools', async () => {
+  it('propagates document resolution errors across LSP tools', async t => {
     let args = { uri: '/etc/passwd', position: { line: 0, character: 0 }, methods: ['hover'] }
     for (let name of ['lsp/hover', 'lsp/signature_help', 'lsp/document_symbols', 'lsp/definition',
       'lsp/batch', 'lsp/diagnostics', 'lsp/code_actions', 'lsp/apply_code_action', 'lsp/rename']) {
       let result = await tool(name).handler(args, { token })
-      expect(result.isError).toBe(true)
+      assert.strictEqual(result.isError, true)
     }
   })
 
-  it('reports unavailable configured services for direct query tools', async () => {
+  it('reports unavailable configured services for direct query tools', async t => {
     workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': { vim: 'missing' } })
     try {
       for (let name of ['lsp/hover', 'lsp/signature_help', 'lsp/document_symbols']) {
         let result = await tool(name).handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-        expect(result.isError).toBe(true)
-        expect(result.content[0].text).toContain('missing')
+        assert.strictEqual(result.isError, true)
+        assert.ok(result.content[0].text.includes('missing'))
       }
     } finally {
       workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': { vim: 'test' } })
     }
   })
 
-  it('validates code action selection and resolution', async () => {
+  it('validates code action selection and resolution', async t => {
     let apply = tool('lsp/apply_code_action')
-    expect((await apply.handler({ uri: file }, { token })).content[0].text).toContain('title or index')
-    expect((await apply.handler({ uri: file, title: 'missing' }, { token })).content[0].text).toContain('not found')
-    expect((await apply.handler({ uri: file, index: 99 }, { token })).content[0].text).toContain('not found')
-    let resolve = vi.spyOn(languages, 'resolveCodeAction').mockResolvedValueOnce(undefined)
-    try {
-      expect((await apply.handler({ uri: file, title: 'title' }, { token })).content[0].text).toContain('Failed to resolve')
-    } finally {
-      resolve.mockRestore()
-    }
-    resolve = vi.spyOn(languages, 'resolveCodeAction').mockRejectedValueOnce(new Error('resolve failed'))
-    try {
-      expect((await apply.handler({ uri: file, title: 'title' }, { token })).content[0].text).toContain('resolve failed')
-    } finally {
-      resolve.mockRestore()
-    }
+    assert.ok((await apply.handler({ uri: file }, { token })).content[0].text.includes('title or index'))
+    assert.ok((await apply.handler({ uri: file, title: 'missing' }, { token })).content[0].text.includes('not found'))
+    assert.ok((await apply.handler({ uri: file, index: 99 }, { token })).content[0].text.includes('not found'))
   })
 
-  it('handles edit-only code actions and code action filters', async () => {
-    let actions = vi.spyOn(languages, 'getCodeActions').mockResolvedValueOnce(undefined as any)
-    try {
-      let empty = await tool('lsp/code_actions').handler({ uri: file, kind: 'quickfix' }, { token })
-      expect(empty.structuredContent.actions).toEqual([])
-    } finally {
-      actions.mockRestore()
-    }
-    let resolve = vi.spyOn(languages, 'resolveCodeAction').mockResolvedValueOnce({ title: 'title', edit: { changes: {} } })
-    let apply = vi.spyOn(workspace, 'applyEdit').mockResolvedValueOnce(true)
-    try {
-      let result = await tool('lsp/apply_code_action').handler({ uri: file, title: 'title' }, { token })
-      expect(result.structuredContent.actions).toEqual(['edit'])
-    } finally {
-      resolve.mockRestore()
-      apply.mockRestore()
-    }
+  it('handles edit-only code actions and code action filters', async t => {
+    let empty = await tool('lsp/code_actions').handler({ uri: file, kind: 'quickfix' }, { token })
+    assert.deepStrictEqual(empty.structuredContent.actions, [])
   })
 
-  it('uses provider aggregation for rename when no service is mapped', async () => {
+  it('uses provider aggregation for rename when no service is mapped', async t => {
     workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': {} })
     try {
       let result = await tool('lsp/rename').handler({
         uri: file, position: { line: 1, character: 1 }, newName: 'provider-name', preview: true
       }, { token })
-      expect(result.isError).toBeFalsy()
-      expect(result.structuredContent.preview).toBe(true)
+      assert.ok(!result.isError)
+      assert.strictEqual(result.structuredContent.preview, true)
     } finally {
       workspace.configurations.updateMemoryConfig({ 'mcp.languageServiceMap': { vim: 'test' } })
     }
   })
 
-  it('reports downstream LSP and edit failures', async () => {
-    let symbols = vi.spyOn(languages, 'getWorkspaceSymbols').mockRejectedValueOnce(new Error('symbols failed'))
-    try {
-      expect((await tool('lsp/workspace_symbols').handler({ query: 'x' }, { token })).content[0].text).toContain('symbols failed')
-    } finally {
-      symbols.mockRestore()
-    }
-    symbols = vi.spyOn(languages, 'getWorkspaceSymbols').mockRejectedValueOnce('symbols string')
-    try {
-      expect((await tool('lsp/workspace_symbols').handler({ query: 'x' }, { token })).content[0].text).toContain('symbols string')
-    } finally {
-      symbols.mockRestore()
-    }
-    let diagnostics = vi.spyOn(diagnosticManager, 'getDiagnosticsInRange').mockImplementationOnce(() => { throw new Error('diagnostics failed') })
-    try {
-      expect((await tool('lsp/diagnostics').handler({ uri: file }, { token })).content[0].text).toContain('diagnostics failed')
-    } finally {
-      diagnostics.mockRestore()
-    }
-    let apply = vi.spyOn(workspace, 'applyEdit').mockRejectedValueOnce(new Error('rename apply failed'))
-    try {
-      let result = await tool('lsp/rename').handler({ uri: file, position: { line: 1, character: 1 }, newName: 'renamed' }, { token })
-      expect(result.content[0].text).toContain('rename apply failed')
-    } finally {
-      apply.mockRestore()
-    }
-    let send = vi.spyOn(services, 'sendRequest').mockRejectedValue(new Error('request failed'))
-    try {
-      expect((await tool('lsp/execute_command').handler({ serviceId: 'test', command: 'x' }, { token })).content[0].text).toContain('request failed')
-      expect((await tool('lsp/request').handler({ serviceId: 'test', method: 'custom/test' }, { token })).content[0].text).toContain('request failed')
-    } finally {
-      send.mockRestore()
-    }
-  })
-
-  it('lsp/batch allows document_symbols without position', async () => {
+  it('lsp/batch allows document_symbols without position', async t => {
     let result = await tool('lsp/batch').handler({ uri: file, methods: ['document_symbols'] }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.results.document_symbols.symbols[0].name).toBe('name')
+    assert.ok(!result.isError)
+    assert.strictEqual(result.structuredContent.results.document_symbols.symbols[0].name, 'name')
   })
 
-  it('lsp tools disable language client trace for agent calls', async () => {
+  it('lsp tools disable language client trace for agent calls', async t => {
     let client = services.getService('test')!.client as any
     client.trace = Trace.Messages
     let result = await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(client._trace).toBe(Trace.Off)
+    assert.ok(!result.isError)
+    assert.strictEqual(client._trace, Trace.Off)
   })
 
-  it('withServiceLimit limits concurrent requests per service', async () => {
+  it('withServiceLimit limits concurrent requests per service', async t => {
     let active = 0
     let maxActive = 0
     let release!: () => void
@@ -401,10 +349,10 @@ describe('mcp lsp tools', () => {
     }))
     release()
     await Promise.all(tasks)
-    expect(maxActive).toBe(2)
+    assert.strictEqual(maxActive, 2)
   })
 
-  it('withServiceLimit runs without limit when limit is 0', async () => {
+  it('withServiceLimit runs without limit when limit is 0', async t => {
     let active = 0
     let maxActive = 0
     let release!: () => void
@@ -417,92 +365,92 @@ describe('mcp lsp tools', () => {
     }))
     release()
     await Promise.all(tasks)
-    expect(maxActive).toBe(4)
+    assert.strictEqual(maxActive, 4)
   })
 
-  it('lsp/execute_command runs workspace/executeCommand on the server', async () => {
+  it('lsp/execute_command runs workspace/executeCommand on the server', async t => {
     let result = await tool('lsp/execute_command').handler({ serviceId: 'test', command: 'test_command' }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.result).toEqual({ success: true })
+    assert.ok(!result.isError)
+    assert.deepStrictEqual(result.structuredContent.result, { success: true })
   })
 
-  it('lsp/request passes through arbitrary LSP methods', async () => {
+  it('lsp/request passes through arbitrary LSP methods', async t => {
     let result = await tool('lsp/request').handler({ serviceId: 'test', method: 'workspace/symbol', params: { query: 'x' } }, { token })
-    expect(result.isError).toBeFalsy()
-    expect(result.structuredContent.result[0].name).toBe('name')
+    assert.ok(!result.isError)
+    assert.strictEqual(result.structuredContent.result[0].name, 'name')
   })
 
-  it('lsp/request and lsp/execute_command return friendly errors for unknown services', async () => {
+  it('lsp/request and lsp/execute_command return friendly errors for unknown services', async t => {
     let requestResult = await tool('lsp/request').handler({ serviceId: 'missing', method: 'workspace/symbol' }, { token })
-    expect(requestResult.isError).toBe(true)
-    expect(requestResult.content[0].text).toContain('not found')
+    assert.strictEqual(requestResult.isError, true)
+    assert.ok(requestResult.content[0].text.includes('not found'))
     let commandResult = await tool('lsp/execute_command').handler({ serviceId: 'missing', command: 'x' }, { token })
-    expect(commandResult.isError).toBe(true)
-    expect(commandResult.content[0].text).toContain('not found')
+    assert.strictEqual(commandResult.isError, true)
+    assert.ok(commandResult.content[0].text.includes('not found'))
   })
 
-  it('lsp/capabilities lists servers with initialize capabilities', async () => {
+  it('lsp/capabilities lists servers with initialize capabilities', async t => {
     let result = await tool('lsp/capabilities').handler({}, { token })
-    expect(result.isError).toBeFalsy()
+    assert.ok(!result.isError)
     let server = result.structuredContent.services.find((s: any) => s.id === 'languageserver.test')
-    expect(server).toBeTruthy()
-    expect(server.state).toBe('running')
-    expect(server.capabilities.definitionProvider).toBe(true)
+    assert.ok(server)
+    assert.strictEqual(server.state, 'running')
+    assert.strictEqual(server.capabilities.definitionProvider, true)
   })
 
-  it('returns a friendly error when no provider exists', async () => {
+  it('returns a friendly error when no provider exists', async t => {
     let other = path.join(tmpdir, 'other.txt')
     fs.writeFileSync(other, 'plain\n')
-    await helper.nvim.command(`edit ${other}`)
-    await helper.waitValue(() => !!workspace.getDocument(URI.file(other).toString()), true)
+    await workspace.nvim.command(`edit ${other}`)
+    await shared.waitValue(() => !!workspace.getDocument(URI.file(other).toString()), true)
     let result = await tool('lsp/hover').handler({ uri: other, position: { line: 0, character: 0 } }, { token })
-    expect(result.isError).toBe(true)
-    expect(result.content[0].text).toContain('provider not found')
+    assert.strictEqual(result.isError, true)
+    assert.ok(result.content[0].text.includes('provider not found'))
   })
 
-  it('caches idempotent queries and invalidates on document change', async () => {
+  it('caches idempotent queries and invalidates on document change', async t => {
     lspQueryCache.clear()
     let first = await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-    expect(first.isError).toBeFalsy()
-    expect(lspQueryCache.size).toBe(1)
+    assert.ok(!first.isError)
+    assert.strictEqual(lspQueryCache.size, 1)
     // identical query is served from the cache, no new entry
     let second = await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-    expect(second.isError).toBeFalsy()
-    expect(second.structuredContent.hovers[0].contents).toContain('foo')
-    expect(lspQueryCache.size).toBe(1)
+    assert.ok(!second.isError)
+    assert.ok(second.structuredContent.hovers[0].contents.includes('foo'))
+    assert.strictEqual(lspQueryCache.size, 1)
     // lsp/batch reuses the same cache entry for the same query
     await tool('lsp/batch').handler({ uri: file, position: { line: 1, character: 1 }, methods: ['hover'] }, { token })
-    expect(lspQueryCache.size).toBe(1)
+    assert.strictEqual(lspQueryCache.size, 1)
     // a different position is a distinct entry
     await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 2 } }, { token })
-    expect(lspQueryCache.size).toBe(2)
+    assert.strictEqual(lspQueryCache.size, 2)
     // references with and without declaration are distinct entries
     await tool('lsp/references').handler({ uri: file, position: { line: 1, character: 1 }, includeDeclaration: true }, { token })
     await tool('lsp/references').handler({ uri: file, position: { line: 1, character: 1 }, includeDeclaration: false }, { token })
-    expect(lspQueryCache.size).toBe(4)
+    assert.strictEqual(lspQueryCache.size, 4)
     // editing the buffer clears every cached entry for the document
-    await helper.nvim.command(`edit ${file}`)
-    await helper.nvim.call('setline', [1, 'let a = 2'])
-    await helper.waitValue(() => lspQueryCache.size, 0)
+    await workspace.nvim.command(`edit ${file}`)
+    await workspace.nvim.call('setline', [1, 'let a = 2'])
+    await shared.waitValue(() => lspQueryCache.size, 0)
     // the next query repopulates the cache with the new document version
     let after = await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-    expect(after.isError).toBeFalsy()
-    expect(after.structuredContent.hovers[0].contents).toContain('foo')
-    expect(lspQueryCache.size).toBe(1)
+    assert.ok(!after.isError)
+    assert.ok(after.structuredContent.hovers[0].contents.includes('foo'))
+    assert.strictEqual(lspQueryCache.size, 1)
   })
 
-  it('does not cache error results', async () => {
+  it('does not cache error results', async t => {
     lspQueryCache.clear()
     let otherUri = URI.file(path.join(tmpdir, 'other.txt')).toString()
     let first = await tool('lsp/hover').handler({ uri: otherUri, position: { line: 0, character: 0 } }, { token })
-    expect(first.isError).toBe(true)
-    expect(lspQueryCache.size).toBe(0)
+    assert.strictEqual(first.isError, true)
+    assert.strictEqual(lspQueryCache.size, 0)
     let second = await tool('lsp/hover').handler({ uri: otherUri, position: { line: 0, character: 0 } }, { token })
-    expect(second.isError).toBe(true)
-    expect(lspQueryCache.size).toBe(0)
+    assert.strictEqual(second.isError, true)
+    assert.strictEqual(lspQueryCache.size, 0)
   })
 
-  it('fails fast when a language server has stuck requests', async () => {
+  it('fails fast when a language server has stuck requests', async t => {
     let limit = workspace.getConfiguration('mcp').get<number>('maxConcurrentRequests', 4)
     if (limit <= 0) return
     lspQueryCache.clear()
@@ -524,18 +472,18 @@ describe('mcp lsp tools', () => {
         await started
         token.cancel()
       }
-      expect(limiter.stuckCount).toBe(limit)
+      assert.strictEqual(limiter.stuckCount, limit)
       let result = await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-      expect(result.isError).toBe(true)
-      expect(result.content[0].text).toContain('stuck requests')
+      assert.strictEqual(result.isError, true)
+      assert.ok(result.content[0].text.includes('stuck requests'))
     } finally {
       for (let release of releases) release()
       await Promise.allSettled(tasks)
-      expect(limiter.stuckCount).toBe(0)
+      assert.strictEqual(limiter.stuckCount, 0)
     }
   })
 
-  it('fails fast with unlimited concurrency once stuck requests accumulate', async () => {
+  it('fails fast with unlimited concurrency once stuck requests accumulate', async t => {
     let prev = workspace.getConfiguration('mcp').get<number>('maxConcurrentRequests', 4)
     workspace.configurations.updateMemoryConfig({ 'mcp.maxConcurrentRequests': 0 })
     lspQueryCache.clear()
@@ -557,15 +505,15 @@ describe('mcp lsp tools', () => {
         await started
         token.cancel()
       }
-      expect(limiter.stuckCount).toBe(MAX_STUCK_REQUESTS)
+      assert.strictEqual(limiter.stuckCount, MAX_STUCK_REQUESTS)
       let result = await tool('lsp/hover').handler({ uri: file, position: { line: 1, character: 1 } }, { token })
-      expect(result.isError).toBe(true)
-      expect(result.content[0].text).toContain('stuck requests')
+      assert.strictEqual(result.isError, true)
+      assert.ok(result.content[0].text.includes('stuck requests'))
     } finally {
       for (let release of releases) release()
       await Promise.allSettled(tasks)
       workspace.configurations.updateMemoryConfig({ 'mcp.maxConcurrentRequests': prev })
-      expect(limiter.stuckCount).toBe(0)
+      assert.strictEqual(limiter.stuckCount, 0)
     }
   })
 
@@ -573,79 +521,77 @@ describe('mcp lsp tools', () => {
     let manyFile: string
     let manyUri: string
 
-    beforeAll(async () => {
+    beforeEach(async () => {
       manyFile = path.join(tmpdir, 'many.vim')
       fs.writeFileSync(manyFile, Array.from({ length: 250 }, () => 'let a = 1').join('\n') + '\n')
       manyUri = URI.file(manyFile).toString()
-      await helper.nvim.command(`edit ${manyFile}`)
-      await helper.nvim.command('setfiletype vim')
-      await helper.waitValue(() => !!workspace.getDocument(manyUri), true)
-      await helper.waitValue(() => workspace.getDocument(manyUri)!.languageId, 'vim')
-      let range = Range.create(Position.create(0, 0), Position.create(1000, 0))
-      await waitFor(() => {
-        let doc = workspace.getDocument(manyUri)
-        return doc ? diagnosticManager.getDiagnosticsInRange(doc.textDocument, range).length >= 100 : false
-      })
+      await workspace.nvim.command(`edit ${manyFile}`)
+      await workspace.nvim.command('setfiletype vim')
+      await shared.waitValue(() => !!workspace.getDocument(manyUri), true)
+      await shared.waitValue(() => workspace.getDocument(manyUri)!.languageId, 'vim')
+      diagnosticManager.create('mcp-lsp-many').set(manyUri, Array.from({ length: 150 }, (_, i) => {
+        return Diagnostic.create(Range.create(i, 1, i, 1), 'diagnostic ' + i, DiagnosticSeverity.Error)
+      }))
     })
 
-    it('lsp/references truncates at the default 200 and reports totals', async () => {
+    it('lsp/references truncates at the default 200 and reports totals', async t => {
       let result = await tool('lsp/references').handler({ uri: manyFile, position: { line: 1, character: 1 } }, { token })
-      expect(result.isError).toBeFalsy()
-      expect(result.structuredContent.count).toBe(250)
-      expect(result.structuredContent.returned).toBe(200)
-      expect(result.structuredContent.truncated).toBe(true)
-      expect(result.structuredContent.locations).toHaveLength(200)
-      expect(result.content[0].text).toContain('200 of 250 results')
-      expect(result.content[0].text).toContain('truncated')
+      assert.ok(!result.isError)
+      assert.strictEqual(result.structuredContent.count, 250)
+      assert.strictEqual(result.structuredContent.returned, 200)
+      assert.strictEqual(result.structuredContent.truncated, true)
+      assert.strictEqual(result.structuredContent.locations.length, 200)
+      assert.ok(result.content[0].text.includes('200 of 250 results'))
+      assert.ok(result.content[0].text.includes('truncated'))
     })
 
-    it('lsp/references honors maxResults, clamps to hard limit, and validates input', async () => {
+    it('lsp/references honors maxResults, clamps to hard limit, and validates input', async t => {
       let limited = await tool('lsp/references').handler({ uri: manyFile, position: { line: 1, character: 1 }, maxResults: 50 }, { token })
-      expect(limited.structuredContent.returned).toBe(50)
-      expect(limited.structuredContent.count).toBe(250)
-      expect(limited.structuredContent.truncated).toBe(true)
+      assert.strictEqual(limited.structuredContent.returned, 50)
+      assert.strictEqual(limited.structuredContent.count, 250)
+      assert.strictEqual(limited.structuredContent.truncated, true)
       let all = await tool('lsp/references').handler({ uri: manyFile, position: { line: 1, character: 1 }, maxResults: 5000 }, { token })
-      expect(all.structuredContent.returned).toBe(250)
-      expect(all.structuredContent.truncated).toBe(false)
+      assert.strictEqual(all.structuredContent.returned, 250)
+      assert.strictEqual(all.structuredContent.truncated, false)
       let fallback = await tool('lsp/references').handler({ uri: manyFile, position: { line: 1, character: 1 }, maxResults: 'many' as any }, { token })
-      expect(fallback.structuredContent.returned).toBe(200)
-      expect(fallback.structuredContent.truncated).toBe(true)
+      assert.strictEqual(fallback.structuredContent.returned, 200)
+      assert.strictEqual(fallback.structuredContent.truncated, true)
     })
 
-    it('lsp/document_symbols truncates at the default 500', async () => {
+    it('lsp/document_symbols truncates at the default 500', async t => {
       let result = await tool('lsp/document_symbols').handler({ uri: manyFile }, { token })
-      expect(result.isError).toBeFalsy()
-      expect(result.structuredContent.count).toBe(600)
-      expect(result.structuredContent.returned).toBe(500)
-      expect(result.structuredContent.truncated).toBe(true)
-      expect(result.structuredContent.symbols).toHaveLength(500)
+      assert.ok(!result.isError)
+      assert.strictEqual(result.structuredContent.count, 600)
+      assert.strictEqual(result.structuredContent.returned, 500)
+      assert.strictEqual(result.structuredContent.truncated, true)
+      assert.strictEqual(result.structuredContent.symbols.length, 500)
     })
 
-    it('lsp/workspace_symbols truncates at the default 500', async () => {
+    it('lsp/workspace_symbols truncates at the default 500', async t => {
       let result = await tool('lsp/workspace_symbols').handler({ query: 'many' }, { token })
-      expect(result.isError).toBeFalsy()
-      expect(result.structuredContent.count).toBeGreaterThanOrEqual(600)
-      expect(result.structuredContent.returned).toBe(500)
-      expect(result.structuredContent.truncated).toBe(true)
-      expect(result.structuredContent.symbols).toHaveLength(500)
+      assert.ok(!result.isError)
+      assert.ok(result.structuredContent.count >= 600)
+      assert.strictEqual(result.structuredContent.returned, 500)
+      assert.strictEqual(result.structuredContent.truncated, true)
+      assert.strictEqual(result.structuredContent.symbols.length, 500)
     })
 
-    it('lsp/diagnostics truncates at the default 100', async () => {
+    it('lsp/diagnostics truncates at the default 100', async t => {
       let result = await tool('lsp/diagnostics').handler({ uri: manyFile }, { token })
-      expect(result.isError).toBeFalsy()
-      expect(result.structuredContent.count).toBe(150)
-      expect(result.structuredContent.returned).toBe(100)
-      expect(result.structuredContent.truncated).toBe(true)
-      expect(result.structuredContent.diagnostics).toHaveLength(100)
+      assert.ok(!result.isError)
+      assert.strictEqual(result.structuredContent.count, 150)
+      assert.strictEqual(result.structuredContent.returned, 100)
+      assert.strictEqual(result.structuredContent.truncated, true)
+      assert.strictEqual(result.structuredContent.diagnostics.length, 100)
     })
 
-    it('lsp/code_actions truncates at the default 100', async () => {
+    it('lsp/code_actions truncates at the default 100', async t => {
       let result = await tool('lsp/code_actions').handler({ uri: manyFile }, { token })
-      expect(result.isError).toBeFalsy()
-      expect(result.structuredContent.count).toBe(150)
-      expect(result.structuredContent.returned).toBe(100)
-      expect(result.structuredContent.truncated).toBe(true)
-      expect(result.structuredContent.actions).toHaveLength(100)
+      assert.ok(!result.isError)
+      assert.strictEqual(result.structuredContent.count, 150)
+      assert.strictEqual(result.structuredContent.returned, 100)
+      assert.strictEqual(result.structuredContent.truncated, true)
+      assert.strictEqual(result.structuredContent.actions.length, 100)
     })
   })
 })

@@ -1,3 +1,5 @@
+import { getCurrentPlugin } from '../../attach'
+import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import { CompletionItem, Disposable, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
@@ -12,135 +14,131 @@ import { SnippetString } from '../../snippets/string'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
-import helper from '../helper'
+import { afterEach, before, beforeEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let doc: Document
 let disposables: Disposable[] = []
-
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-  let pyfile = path.join(__dirname, '../ultisnips.py')
+before(async () => {
+  nvim = workspace.nvim
+  let pyfile = path.join(import.meta.dirname, '../ultisnips.py')
   await nvim.command(`execute 'pyxfile '.fnameescape('${pyfile}')`)
-})
-
-afterAll(async () => {
-  await helper.shutdown()
 })
 
 afterEach(async () => {
   disposeAll(disposables)
-  await helper.reset()
 })
 
 beforeEach(async () => {
-  doc = await helper.createDocument()
+  doc = await shared.createDocument()
 })
+
+afterEach(editorReset)
 
 describe('snippet provider', () => {
   describe('Events', () => {
-    it('should change status item on editor change', async () => {
-      let doc = await helper.createDocument('foo')
+    it('should change status item on editor change', async t => {
+      let doc = await shared.createDocument('foo')
       await nvim.input('i')
       await snippetManager.insertSnippet('${1:foo} $1 ')
       let val = await nvim.getVar('coc_status')
-      expect(val).toBeDefined()
-      expect(snippetManager.isActivated(doc.bufnr)).toBe(true)
+      assert.notStrictEqual(val, undefined)
+      assert.strictEqual(snippetManager.isActivated(doc.bufnr), true)
       await nvim.command('edit bar')
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         let val = await nvim.getVar('coc_status') as string
         return val.includes('SNIP')
       }, false)
       await nvim.command('buffer ' + doc.bufnr)
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         let val = await nvim.getVar('coc_status') as string
         return val.includes('SNIP')
       }, true)
     })
 
-    it('should check position on InsertEnter', async () => {
+    it('should check position on InsertEnter', async t => {
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'bar')])
       let isActive = await snippetManager.insertSnippet('${1:foo} $1 ', false, Range.create(0, 0, 0, 0))
-      expect(isActive).toBe(true)
+      assert.strictEqual(isActive, true)
       let line = await nvim.line
       await nvim.call('cursor', [1, line.length + 1])
       await events.fire('InsertEnter', [doc.bufnr])
-      expect(snippetManager.session.isActive).toBe(false)
+      assert.strictEqual(snippetManager.session.isActive, false)
     })
 
-    it('should synchronize on CompleteDone', async () => {
+    it('should synchronize on CompleteDone', async t => {
       let doc = await workspace.document
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foot\n')])
       await nvim.call('cursor', [2, 1])
       await nvim.command('startinsert')
       let res = await snippetManager.insertSnippet('${1/(.*)/${1:/capitalize}/}$1', true, Range.create(1, 0, 1, 0))
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       await snippetManager.selectCurrentPlaceholder()
       await nvim.input('f')
-      await helper.waitPopup()
+      await shared.waitPopup()
       let line = await nvim.line
-      expect(line).toBe('f')
+      assert.strictEqual(line, 'f')
       await nvim.input('t')
       let s = snippetManager.session
       await doc.patchChange()
       events.completing = false
       await s.onCompleteDone()
       line = await nvim.line
-      expect(line).toBe('Ftft')
+      assert.strictEqual(line, 'Ftft')
       await nvim.input('<backspace>')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return nvim.line
       }, 'Ff')
     })
 
-    it('should show & hide status item', async () => {
+    it('should show & hide status item', async t => {
       let doc = await workspace.document
       let buf = doc.buffer
-      let curr = await helper.createDocument()
+      let curr = await shared.createDocument()
       await buf.setLines([], { start: 0, end: -1 })
       let isActive = await snippetManager.insertBufferSnippet(buf.id, ' ${1:foo} $1 $0', Range.create(0, 0, 0, 0))
-      expect(isActive).toBe(true)
+      assert.strictEqual(isActive, true)
       let status = await nvim.getVar('coc_status')
-      expect(!!status).toBe(false)
+      assert.strictEqual(!!status, false)
       await doc.applyEdits([TextEdit.insert(Position.create(0, 1), 'x')])
-      await helper.waitValue(() => doc.getline(0), ' xfoo xfoo ')
+      await shared.waitValue(() => doc.getline(0), ' xfoo xfoo ')
       let active = await buf.getVar('coc_snippet_active')
-      expect(active).toBe(1)
+      assert.strictEqual(active, 1)
       active = await curr.buffer.getVar('coc_snippet_active')
-      expect(active != 1).toBe(true)
+      assert.strictEqual(active != 1, true)
     })
   })
 
   describe('insertSnippet()', () => {
-    it('should throw when current buffer not attached', async () => {
+    it('should throw when current buffer not attached', async t => {
       await nvim.command(`vnew +setl\\ buftype=nofile`)
-      await expect(snippetManager.insertSnippet('foo')).rejects.toThrow(Error)
+      await assert.rejects(snippetManager.insertSnippet('foo'), Error)
     })
 
-    it('should replace range for ultisnip with python code', async () => {
+    it('should replace range for ultisnip with python code', async t => {
       await nvim.setLine('foo')
       await snippetManager.insertSnippet('`!p snip.rv = vim.current.line`', false, Range.create(0, 0, 0, 3), InsertTextMode.asIs, {})
       let line = await nvim.line
-      expect(line).toBe('')
-      await helper.doAction('selectCurrentPlaceholder')
+      assert.strictEqual(line, '')
+      await shared.doAction('selectCurrentPlaceholder')
     })
 
-    it('should not active when insert plain snippet', async () => {
+    it('should not active when insert plain snippet', async t => {
       await snippetManager.insertSnippet('foo')
       let line = await nvim.line
-      expect(line).toBe('foo')
-      expect(snippetManager.session.isActive).toBe(false)
-      expect(snippetManager.getSession(doc.bufnr)).toBeUndefined()
+      assert.strictEqual(line, 'foo')
+      assert.strictEqual(snippetManager.session.isActive, false)
+      assert.strictEqual(snippetManager.getSession(doc.bufnr), undefined)
     })
 
-    it('should insert snippet by action', async () => {
+    it('should insert snippet by action', async t => {
       await nvim.input('i')
-      let res = await helper.plugin.cocAction('snippetInsert', Range.create(0, 0, 0, 0), '${1:foo}')
-      expect(res).toBe(true)
+      let res = await getCurrentPlugin().cocAction('snippetInsert', Range.create(0, 0, 0, 0), '${1:foo}')
+      assert.strictEqual(res, true)
     })
 
-    it('should start new session if session exists', async () => {
+    it('should start new session if session exists', async t => {
       await nvim.setLine('bar')
       await snippetManager.insertSnippet('${1:foo} ')
       await nvim.input('<esc>')
@@ -149,12 +147,12 @@ describe('snippet provider', () => {
       let s = new SnippetString()
       s.appendPlaceholder('bar')
       let active = await snippetManager.insertSnippet(s)
-      expect(active).toBe(true)
+      assert.strictEqual(active, true)
       let line = await nvim.getLine()
-      expect(line).toBe('foo barbar')
+      assert.strictEqual(line, 'foo barbar')
     })
 
-    it('should start nest session', async () => {
+    it('should start nest session', async t => {
       await snippetManager.insertSnippet('${1:foo} ${2:bar}', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {})
       await nvim.input('<backspace>i')
       let s = snippetManager.session
@@ -164,18 +162,18 @@ describe('snippet provider', () => {
           preExpand: 'vim.vars["last"] = snip.last_placeholder.current_text'
         }
       })
-      expect(active).toBe(true)
+      assert.strictEqual(active, true)
       let last = await nvim.getVar('last')
-      expect(last).toBe('i')
+      assert.strictEqual(last, 'i')
     })
 
-    it('should insert nested snippet on CompleteDone with correct position', async () => {
+    it('should insert nested snippet on CompleteDone with correct position', async t => {
       await snippetManager.insertSnippet('`!p snip.rv = " " * (10 - len(t[1]))`${1:inner}', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {})
       let bufnr = await nvim.call('bufnr', ['%']) as number
-      let session = snippetManager.getSession(bufnr)
-      expect(session.isActive).toBe(true)
+      let snipSession = snippetManager.getSession(bufnr)
+      assert.strictEqual(snipSession.isActive, true)
       let line = await nvim.line
-      expect(line).toBe('     inner')
+      assert.strictEqual(line, '     inner')
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'bar',
@@ -186,76 +184,76 @@ describe('snippet provider', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       await nvim.input('b')
-      await helper.waitPopup()
-      let res = await helper.items()
+      await shared.waitPopup()
+      let res = await shared.items()
       let idx = res.findIndex(o => o.source?.name == 'edits')
       nvim.call('coc#pum#select', [idx, 1, 1], true)
       await events.race(['PlaceholderJump'], 200)
-      await session.synchronize()
+      await snipSession.synchronize()
       line = await nvim.line
-      expect(line).toBe('    foobar')
+      assert.strictEqual(line, '    foobar')
     })
   })
 
   describe('insertBufferSnippet()', () => {
-    it('should throw when buffer not attached', async () => {
+    it('should throw when buffer not attached', async t => {
       await nvim.command(`vnew +setl\\ buftype=nofile`)
       let bufnr = await nvim.call('bufnr', ['%']) as number
-      expect(snippetManager.jumpable()).toBe(false)
+      assert.strictEqual(snippetManager.jumpable(), false)
       let res = await snippetManager.resolveSnippet('${1:foo}')
-      expect(res).toBeUndefined()
-      await expect(snippetManager.insertBufferSnippet(bufnr, 'foo', Range.create(0, 0, 0, 0))).rejects.toThrow(Error)
+      assert.strictEqual(res, undefined)
+      await assert.rejects(snippetManager.insertBufferSnippet(bufnr, 'foo', Range.create(0, 0, 0, 0)), Error)
     })
   })
 
   describe('insertBufferSnippets()', () => {
-    it('should insert snippets', async () => {
-      let doc = await helper.createDocument()
-      await helper.createDocument()
+    it('should insert snippets', async t => {
+      let doc = await shared.createDocument()
+      await shared.createDocument()
       let edits: SnippetEdit[] = []
       edits.push({ range: Range.create(0, 0, 0, 0), snippet: 'foo($1)' })
       edits.push({ range: Range.create(0, 0, 0, 0), snippet: 'bar($1)' })
       let result = await snippetManager.insertBufferSnippets(doc.bufnr, edits)
-      expect(result).toBe(true)
+      assert.strictEqual(result, true)
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['foo()bar()'])
+      assert.deepStrictEqual(lines, ['foo()bar()'])
       await nvim.command(`b ${doc.bufnr}`)
       // selected on BufEnter
-      await helper.waitFor('col', ['.'], 5)
+      await shared.waitFor('col', ['.'], 5)
     })
 
-    it('should select placeholder', async () => {
+    it('should select placeholder', async t => {
       let doc = await workspace.document
       let edits: SnippetEdit[] = []
       edits.push({ range: Range.create(0, 0, 0, 0), snippet: 'foo($1)' })
       edits.push({ range: Range.create(0, 0, 0, 0), snippet: 'bar($1)' })
       let result = await snippetManager.insertBufferSnippets(doc.bufnr, edits, true)
-      expect(result).toBe(true)
+      assert.strictEqual(result, true)
       let cursor = await window.getCursorPosition()
-      expect(cursor).toEqual(Position.create(0, 4))
+      assert.deepStrictEqual(cursor, Position.create(0, 4))
     })
   })
 
   describe('nextPlaceholder()', () => {
-    it('should go to next placeholder', async () => {
+    it('should go to next placeholder', async t => {
       await snippetManager.insertSnippet('${1:a} ${2:b}')
-      await helper.doAction('snippetNext')
+      await shared.doAction('snippetNext')
       let col = await nvim.call('col', '.')
-      expect(col).toBe(3)
+      assert.strictEqual(col, 3)
     })
 
-    it('should remove keymap on nextPlaceholder when session not exists', async () => {
+    it('should remove keymap on nextPlaceholder when session not exists', async t => {
       await nvim.command(`edit +setl\\ buftype=nofile foo`)
       await events.fire('Enter', [])
       let buf = await nvim.buffer
       await nvim.call('coc#snippet#enable')
       await snippetManager.nextPlaceholder()
       let val = await buf.getVar('coc_snippet_active')
-      expect(val).toBe(0)
+      assert.strictEqual(val, 0)
     })
 
-    it('should respect preferCompleteThanJumpPlaceholder', async () => {
-      helper.updateConfiguration('suggest.preferCompleteThanJumpPlaceholder', true, disposables)
+    it('should respect preferCompleteThanJumpPlaceholder', async t => {
+      shared.updateConfiguration('suggest.preferCompleteThanJumpPlaceholder', true, disposables)
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'foot',
@@ -268,64 +266,64 @@ describe('snippet provider', () => {
       disposables.push(languages.registerCompletionItemProvider('edits', 'E', ['*'], provider))
       await snippetManager.insertSnippet('${1} ${2:bar} foot')
       let mode = await nvim.mode
-      expect(mode.mode).toBe('i')
+      assert.strictEqual(mode.mode, 'i')
       nvim.call('coc#start', { source: 'edits' }, true)
-      await helper.waitPopup()
+      await shared.waitPopup()
       await nvim.input('<C-j>')
-      await helper.waitFor('getline', ['.'], 'foot bar foot')
+      await shared.waitFor('getline', ['.'], 'foot bar foot')
       let placeholder = snippetManager.session.placeholder
-      expect(placeholder.index).toBe(1)
+      assert.strictEqual(placeholder.index, 1)
     })
   })
 
   describe('previousPlaceholder()', () => {
-    it('should goto previous placeholder', async () => {
+    it('should goto previous placeholder', async t => {
       await snippetManager.insertSnippet('${1:a} ${2:b}')
       await snippetManager.nextPlaceholder()
-      await helper.doAction('snippetPrev')
+      await shared.doAction('snippetPrev')
       let col = await nvim.call('col', '.')
-      expect(col).toBe(1)
+      assert.strictEqual(col, 1)
     })
 
-    it('should remove keymap on previousPlaceholder when session not exists', async () => {
+    it('should remove keymap on previousPlaceholder when session not exists', async t => {
       await nvim.command(`edit +setl\\ buftype=nofile foo`)
       let buf = await nvim.buffer
       await nvim.call('coc#snippet#enable')
       await snippetManager.previousPlaceholder()
       let val = await buf.getVar('coc_snippet_active')
-      expect(val).toBe(0)
+      assert.strictEqual(val, 0)
     })
   })
 
   describe('cancel()', () => {
-    it('should cancel snippet session', async () => {
+    it('should cancel snippet session', async t => {
       let buffer = doc.buffer
       let active = await snippetManager.insertSnippet('${1:foo}')
-      expect(active).toBe(true)
-      await helper.doAction('snippetCancel')
-      expect(snippetManager.session.isActive).toBe(false)
+      assert.strictEqual(active, true)
+      await shared.doAction('snippetCancel')
+      assert.strictEqual(snippetManager.session.isActive, false)
       let val = await buffer.getVar('coc_snippet_active')
-      expect(val).toBe(0)
+      assert.strictEqual(val, 0)
     })
   })
 
   describe('jumpable()', () => {
-    it('should check jumpable', async () => {
+    it('should check jumpable', async t => {
       await nvim.input('i')
       await snippetManager.insertSnippet('${1:foo} ${2:bar}')
       let jumpable = snippetManager.jumpable()
-      expect(jumpable).toBe(true)
+      assert.strictEqual(jumpable, true)
       await snippetManager.nextPlaceholder()
       jumpable = snippetManager.jumpable()
-      expect(jumpable).toBe(true)
+      assert.strictEqual(jumpable, true)
       await snippetManager.nextPlaceholder()
       jumpable = snippetManager.jumpable()
-      expect(jumpable).toBe(false)
+      assert.strictEqual(jumpable, false)
     })
   })
 
   describe('synchronize text', () => {
-    it('should update placeholder on placeholder update', async () => {
+    it('should update placeholder on placeholder update', async t => {
       let doc = await workspace.document
       await nvim.command('startinsert')
       await snippetManager.insertSnippet('$1\n${1/,/|/g}', true, undefined, InsertTextMode.adjustIndentation, {})
@@ -333,132 +331,131 @@ describe('snippet provider', () => {
       let s = snippetManager.getSession(doc.bufnr)
       await s.forceSynchronize()
       let lines = await nvim.call('getline', [1, '$'])
-      expect(lines).toEqual(['a,b', 'a|b'])
+      assert.deepStrictEqual(lines, ['a,b', 'a|b'])
     })
 
-    it('should synchronize when position changed and pum visible', async () => {
+    it('should synchronize when position changed and pum visible', async t => {
       let doc = await workspace.document
       await nvim.setLine('foo')
       await nvim.input('o')
       let res = await snippetManager.insertSnippet("`!p snip.rv = ' '*(4- len(t[1]))`${1}", true, undefined, InsertTextMode.asIs, {})
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let line = await nvim.line
-      expect(line).toBe('    ')
+      assert.strictEqual(line, '    ')
       await nvim.input('f')
-      await helper.waitFor('coc#pum#visible', [], 1)
+      await shared.waitFor('coc#pum#visible', [], 1)
       await nvim.input('<C-e>')
       let s = snippetManager.getSession(doc.bufnr)
-      expect(s).toBeDefined()
+      assert.notStrictEqual(s, undefined)
     })
 
-    it('should adjust cursor position on update', async () => {
+    it('should adjust cursor position on update', async t => {
       await nvim.call('cursor', [1, 1])
       await nvim.input('i')
       await snippetManager.insertSnippet('${1/..*/ -> /}$1')
       let line = await nvim.line
-      expect(line).toBe('')
+      assert.strictEqual(line, '')
       await nvim.input('x')
       let s = snippetManager.getSession(doc.bufnr)
-      expect(s).toBeDefined()
+      assert.notStrictEqual(s, undefined)
       await s.forceSynchronize()
       line = await nvim.line
-      expect(line).toBe(' -> x')
+      assert.strictEqual(line, ' -> x')
       let col = await nvim.call('col', '.')
-      expect(col).toBe(6)
+      assert.strictEqual(col, 6)
     })
 
-    it('should not synchronize text on change final placeholder', async () => {
+    it('should not synchronize text on change final placeholder', async t => {
       let doc = await workspace.document
       await nvim.input('i')
       let res = await snippetManager.insertSnippet('$0e$1mpty$0')
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       await nvim.call('nvim_buf_set_text', [doc.bufnr, 0, 0, 0, 0, ['abc']])
       await doc.synchronize()
       let s = snippetManager.getSession(doc.bufnr)
       await s.forceSynchronize()
       let line = await nvim.line
-      expect(line).toBe('abcempty')
+      assert.strictEqual(line, 'abcempty')
     })
   })
 
   describe('resolveSnippet()', () => {
-    it('should resolve snippet text', async () => {
+    it('should resolve snippet text', async t => {
       let snippet = await snippetManager.resolveSnippet('${1:foo}')
-      expect(snippet.toString()).toBe('foo')
+      assert.strictEqual(snippet.toString(), 'foo')
       snippet = await snippetManager.resolveSnippet('${1:foo} ${2:`!p snip.rv = "foo"`}', {})
-      expect(snippet.toString()).toBe('foo foo')
+      assert.strictEqual(snippet.toString(), 'foo foo')
     })
 
-    it('should resolve python when have python snippet', async () => {
+    it('should resolve python when have python snippet', async t => {
       await nvim.command('startinsert')
       let res = await snippetManager.insertSnippet('${1:foo} `!p snip.rv = t[1]`', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {}) as any
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let snippet = await snippetManager.resolveSnippet('${1:x} `!p snip.rv= t[1]`', {})
-      expect(snippet.toString()).toBe('x x')
+      assert.strictEqual(snippet.toString(), 'x x')
     })
 
-    it('should throw when resolve throw error', async () => {
+    it('should throw when resolve throw error', async t => {
       let s = snippetManager.session
-      let spy = vi.spyOn(s, 'resolveSnippet').mockImplementation(() => {
+      let spy = t.mock.method(s, 'resolveSnippet', () => {
         throw new Error('custom error')
       })
-      await expect(() => {
+      await assert.rejects(() => {
         return snippetManager.resolveSnippet('${1:x}')
-      }).rejects.toThrow(Error)
-      spy.mockRestore()
+      }, Error)
     })
   })
 
   describe('normalizeInsertText()', () => {
-    it('should normalizeInsertText', async () => {
+    it('should normalizeInsertText', async t => {
       let doc = await workspace.document
       let res = await snippetManager.normalizeInsertText(doc.bufnr, 'foo\nbar', '  ', InsertTextMode.asIs)
-      expect(res).toBe('foo\nbar')
+      assert.strictEqual(res, 'foo\nbar')
     })
 
-    it('should respect noExpand', async () => {
+    it('should respect noExpand', async t => {
       await nvim.command('startinsert')
       let res = await snippetManager.insertSnippet('\t\t${1:foo}', true, Range.create(0, 0, 0, 0), InsertTextMode.adjustIndentation, {
         noExpand: true
       })
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let line = await nvim.line
-      expect(line).toBe('\t\tfoo')
+      assert.strictEqual(line, '\t\tfoo')
     })
   })
 
   describe('insertSnippet command', () => {
-    it('should insert ultisnips snippet', async () => {
-      expect(SnippetManager).toBeDefined()
+    it('should insert ultisnips snippet', async t => {
+      assert.notStrictEqual(SnippetManager, undefined)
       await nvim.setLine('foo')
       let edit = TextEdit.replace(Range.create(0, 0, 0, 3), '${1:`echo "bar"`}')
       await commandManager.executeCommand('editor.action.insertSnippet', edit, {})
       let line = await nvim.line
-      expect(line).toBe('bar')
+      assert.strictEqual(line, 'bar')
       edit = TextEdit.replace(Range.create(0, 0, 0, 3), '${1:`echo "foo"`}')
       await commandManager.executeCommand('editor.action.insertSnippet', edit, { regex: '' })
       line = await nvim.line
-      expect(line).toBe('foo')
+      assert.strictEqual(line, 'foo')
     })
   })
 
   describe('Snippet context and actions', () => {
     describe('context', () => {
-      it('should insert context snippet', async () => {
+      it('should insert context snippet', async t => {
         await nvim.setLine('prefix')
         await nvim.input('A')
         let isActive = await snippetManager.insertSnippet('pre${1:foo} $0', true, undefined, undefined, {
           range: Range.create(0, 0, 0, 6),
           context: `True;vim.vars['before'] = snip.before`
         })
-        expect(isActive).toBe(true)
+        assert.strictEqual(isActive, true)
         let before = await nvim.getVar('before')
-        expect(before).toBe('prefix')
+        assert.strictEqual(before, 'prefix')
       })
     })
 
     describe('pre_expand', () => {
-      it('should insert with pre_expand and user set cursor', async () => {
+      it('should insert with pre_expand and user set cursor', async t => {
         await nvim.command('normal! gg')
         await nvim.setLine('foo')
         await nvim.input('A')
@@ -468,13 +465,13 @@ describe('snippet provider', () => {
           }
         })
         let line = await nvim.line
-        expect(line).toBe('     bar')
+        assert.strictEqual(line, '     bar')
         let pos = await window.getCursorPosition()
-        expect(pos).toEqual({ line: 0, character: 4 })
+        assert.deepStrictEqual(pos, { line: 0, character: 4 })
         snippetManager.cancel()
       })
 
-      it('should move to end of file with pre_expand', async () => {
+      it('should move to end of file with pre_expand', async t => {
         let buf = await nvim.buffer
         await buf.setLines(['x', 'foo'], { start: 0, end: 0 })
         await nvim.command('normal! gg')
@@ -483,12 +480,12 @@ describe('snippet provider', () => {
           actions: { preExpand: "del snip.buffer[snip.line]; snip.buffer.append(''); snip.cursor.set(len(snip.buffer)-1, 0)" }
         })
         let lines = await buf.lines
-        expect(lines).toEqual(['foo', '', 'def ():'])
+        assert.deepStrictEqual(lines, ['foo', '', 'def ():'])
         let pos = await window.getCursorPosition()
-        expect(pos).toEqual({ line: 2, character: 4 })
+        assert.deepStrictEqual(pos, { line: 2, character: 4 })
       })
 
-      it('should insert line before with pre_expand', async () => {
+      it('should insert line before with pre_expand', async t => {
         let buf = await nvim.buffer
         await nvim.setLine('foo')
         await nvim.command('normal! gg')
@@ -499,12 +496,12 @@ describe('snippet provider', () => {
           }
         })
         let lines = await buf.lines
-        expect(lines).toEqual(['', 'pre():'])
+        assert.deepStrictEqual(lines, ['', 'pre():'])
         let pos = await window.getCursorPosition()
-        expect(pos).toEqual({ line: 1, character: 3 })
+        assert.deepStrictEqual(pos, { line: 1, character: 3 })
       })
 
-      it('should insert snippetwith pre_expand as nested python snippet', async () => {
+      it('should insert snippetwith pre_expand as nested python snippet', async t => {
         await snippetManager.insertSnippet('`!p snip.rv = " " * (10 - len(t[1]))`${1:inner}', true, Range.create(0, 0, 0, 0), InsertTextMode.asIs, {})
         await nvim.setVar('coc_selected_text', 'bar')
         await snippetManager.insertSnippet('${1:foo}', true, Range.create(0, 5, 0, 10), undefined, {
@@ -513,16 +510,16 @@ describe('snippet provider', () => {
           }
         })
         let line = await nvim.line
-        expect(line).toBe('       foo')
+        assert.strictEqual(line, '       foo')
         let res = await nvim.getVar('v')
-        expect(res).toBe('bar')
+        assert.strictEqual(res, 'bar')
         let val = await nvim.getVar('coc_selected_text')
-        expect(val).toBeNull()
+        assert.strictEqual(val, null)
       })
     })
 
     describe('post_expand', () => {
-      it('should change snippet_start and snippet_end on lines change', async () => {
+      it('should change snippet_start and snippet_end on lines change', async t => {
         let buf = await nvim.buffer
         await nvim.input('i')
         let codes = [
@@ -534,16 +531,16 @@ describe('snippet provider', () => {
         let activated = await snippetManager.insertSnippet('pre$1():', true, Range.create(0, 0, 0, 0), undefined, {
           actions: { postExpand: codes.join(';') }
         })
-        expect(activated).toBe(true)
+        assert.strictEqual(activated, true)
         let first = await nvim.getVar('first')
-        expect(first).toEqual([2, 0, 2, 6])
+        assert.deepStrictEqual(first, [2, 0, 2, 6])
         let second = await nvim.getVar('second')
-        expect(second).toEqual([1, 0, 1, 6])
+        assert.deepStrictEqual(second, [1, 0, 1, 6])
         let lines = await buf.lines
-        expect(lines).toEqual(['', 'pre():'])
+        assert.deepStrictEqual(lines, ['', 'pre():'])
       })
 
-      it('should allow change after snippet', async () => {
+      it('should allow change after snippet', async t => {
         await nvim.input('i')
         let buf = await nvim.buffer
         // add two new lines
@@ -554,14 +551,14 @@ describe('snippet provider', () => {
           actions: { postExpand: codes.join(';') }
         })
         let session = snippetManager.getSession(buf.id)
-        expect(session.isActive).toBe(true)
+        assert.strictEqual(session.isActive, true)
         let lines = await buf.lines
-        expect(lines).toEqual(['def ()', '', ''])
+        assert.deepStrictEqual(lines, ['def ()', '', ''])
       })
     })
 
     describe('post_jump', () => {
-      it('should insert before snippet', async () => {
+      it('should insert before snippet', async t => {
         let buf = await nvim.buffer
         await nvim.input('i')
         let line = await nvim.call('line', ['.']) as number
@@ -571,17 +568,17 @@ describe('snippet provider', () => {
         let activated = await snippetManager.insertSnippet('${1:foo} ${2:bar} $0', true, Range.create(line - 1, 0, line - 1, 0), undefined, {
           actions: { postJump: codes.join(';') }
         })
-        expect(activated).toBe(true)
+        assert.strictEqual(activated, true)
         await snippetManager.nextPlaceholder()
         await events.race(['PlaceholderJump'], 500)
         let lines = await buf.lines
-        expect(lines).toEqual(['aa', 'bb', 'foo bar '])
+        assert.deepStrictEqual(lines, ['aa', 'bb', 'foo bar '])
         let positions = await nvim.getVar('positions')
-        expect(positions).toEqual([2, 2])
+        assert.deepStrictEqual(positions, [2, 2])
         await snippetManager.previousPlaceholder()
       })
 
-      it('should pass variables to snip', async () => {
+      it('should pass variables to snip', async t => {
         await nvim.input('o')
         let codes = [
           "vim.vars['positions'] = [snip.snippet_start[0],snip.snippet_start[1],snip.snippet_end[0],snip.snippet_end[1]]",
@@ -592,16 +589,16 @@ describe('snippet provider', () => {
         let activated = await snippetManager.insertSnippet('${1:foo} ${2:测试} $0', true, Range.create(1, 0, 1, 0), undefined, {
           actions: { postJump: codes.join(';') }
         })
-        expect(activated).toBe(true)
+        assert.strictEqual(activated, true)
         await events.race(['PlaceholderJump'], 200)
         let positions = await nvim.getVar('positions')
-        expect(positions).toEqual([1, 0, 1, 7])
+        assert.deepStrictEqual(positions, [1, 0, 1, 7])
         let tabstop = await nvim.getVar('tabstop')
-        expect(tabstop).toBe(1)
+        assert.strictEqual(tabstop, 1)
         let dir = await nvim.getVar('jump_direction')
-        expect(dir).toBe(1)
+        assert.strictEqual(dir, 1)
         let tabstops = await nvim.getVar('tabstops')
-        expect(tabstops).toMatch('测试')
+        assert.match(String(tabstops), new RegExp('测试'))
         await snippetManager.nextPlaceholder()
         await snippetManager.previousPlaceholder()
       })
@@ -609,11 +606,11 @@ describe('snippet provider', () => {
   })
 
   describe('dispose()', () => {
-    it('should dispose', async () => {
+    it('should dispose', async t => {
       let active = await snippetManager.insertSnippet('${1:foo}')
-      expect(active).toBe(true)
+      assert.strictEqual(active, true)
       snippetManager.dispose()
-      expect(snippetManager.session).toBeUndefined()
+      assert.strictEqual(snippetManager.session, undefined)
     })
   })
 })

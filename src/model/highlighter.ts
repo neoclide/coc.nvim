@@ -121,8 +121,7 @@ export default class Highlighter {
   public render(buffer: Buffer, start = 0, end = -1): void {
     buffer.setLines(this.lines, { start, end, strictIndexing: false }, true)
     for (let item of this._highlights) {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      buffer.addHighlight({
+      void buffer.addHighlight({
         hlGroup: item.hlGroup,
         colStart: item.colStart,
         colEnd: item.colEnd,

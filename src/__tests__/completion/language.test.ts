@@ -1,6 +1,5 @@
-import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CompletionTriggerKind, Disposable } from 'vscode-languageserver-protocol'
-import { ApplyKind, CompletionItem, CompletionItemApplyKinds, CompletionItemKind, CompletionList, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
+import workspace from '../../workspace'
+import * as shared from '../sharedUtil'
 import commandManager from '../../commands'
 import completion from '../../completion'
 import { fixIndent, fixTextEdit, getUltisnipOption } from '../../completion/source-language'
@@ -12,22 +11,21 @@ import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
 import { disposeAll } from '../../util'
 import window from '../../window'
-import helper from '../helper'
+import { Neovim } from '@chemzqm/neovim'
+import { CancellationToken, CompletionTriggerKind, Disposable } from 'vscode-languageserver-protocol'
+import { ApplyKind, CompletionItem, CompletionItemApplyKinds, CompletionItemKind, CompletionList, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
+import { afterEach, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+
 
 let nvim: Neovim
 let disposables: Disposable[] = []
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-})
-
-afterAll(async () => {
-  await helper.shutdown()
+before(async () => {
+  nvim = workspace.nvim
 })
 
 afterEach(async () => {
   disposeAll(disposables)
-  await helper.reset()
 })
 
 function createCompletionItem(word: string): CompletionItem {
@@ -35,41 +33,42 @@ function createCompletionItem(word: string): CompletionItem {
 }
 
 describe('LanguageSource util', () => {
-  it('should get ultisnip option', async () => {
+  it('should get ultisnip option', async t => {
     let item: CompletionItem = { label: 'label' }
-    expect(getUltisnipOption(item)).toBeUndefined()
+    assert.strictEqual(getUltisnipOption(item), undefined)
     item.data = {}
-    expect(getUltisnipOption(item)).toBeUndefined()
+    assert.strictEqual(getUltisnipOption(item), undefined)
     item.data.ultisnip = true
-    expect(getUltisnipOption(item)).toBeDefined()
+    assert.notStrictEqual(getUltisnipOption(item), undefined)
     item.data.ultisnip = {}
-    expect(getUltisnipOption(item)).toBeDefined()
+    assert.notStrictEqual(getUltisnipOption(item), undefined)
   })
 
-  it('should fix range from indent', async () => {
+  it('should fix range from indent', async t => {
     let line = '  foo'
     let currline = 'foo'
     let range = Range.create(0, 2, 0, 5)
-    expect(fixIndent(line, currline, range)).toBe(-2)
-    expect(range).toEqual(Range.create(0, 0, 0, 3))
-    expect(fixIndent(currline, line, range)).toBe(2)
-    expect(range).toEqual(Range.create(0, 2, 0, 5))
+    assert.strictEqual(fixIndent(line, currline, range), -2)
+    assert.deepStrictEqual(range, Range.create(0, 0, 0, 3))
+    assert.strictEqual(fixIndent(currline, line, range), 2)
+    assert.deepStrictEqual(range, Range.create(0, 2, 0, 5))
   })
 
-  it('should fix textEdit', async () => {
+  it('should fix textEdit', async t => {
     let edit = TextEdit.insert(Position.create(0, 1), '')
-    expect((fixTextEdit(0, edit) as TextEdit).range.start.character).toBe(0)
+    assert.strictEqual((fixTextEdit(0, edit) as TextEdit).range.start.character, 0)
     let insertReplaceEdit = InsertReplaceEdit.create('text', Range.create(0, 1, 0, 1), Range.create(0, 1, 0, 2))
     fixTextEdit(0, insertReplaceEdit)
-    expect(insertReplaceEdit.insert.start.character).toBe(0)
-    expect(insertReplaceEdit.replace.start.character).toBe(0)
+    assert.strictEqual(insertReplaceEdit.insert.start.character, 0)
+    assert.strictEqual(insertReplaceEdit.replace.start.character, 0)
     fixTextEdit(0, insertReplaceEdit)
-    expect(insertReplaceEdit.insert.start.character).toBe(0)
-    expect(insertReplaceEdit.replace.start.character).toBe(0)
+    assert.strictEqual(insertReplaceEdit.insert.start.character, 0)
+    assert.strictEqual(insertReplaceEdit.replace.start.character, 0)
   })
 
-  it('should select recent item by prefix', async () => {
-    helper.updateConfiguration('suggest.selection', 'recentlyUsedByPrefix', disposables)
+  it('should select recent item by prefix', async t => {
+    t.after(() => editorReset(t))
+    shared.updateConfiguration('suggest.selection', 'recentlyUsedByPrefix', disposables)
     let provider: CompletionItemProvider = {
       provideCompletionItems: async (): Promise<CompletionItem[]> => [{
         label: 'fa'
@@ -90,16 +89,18 @@ describe('LanguageSource util', () => {
     await nvim.setLine('f')
     await nvim.input('A')
     await nvim.call('coc#start', { source: 'foo' })
-    await helper.waitPopup()
+    await shared.waitPopup()
     let info = await nvim.call('coc#pum#info') as any
-    expect(info).toBeDefined()
-    expect(info.word).toBe('foo')
+    assert.notStrictEqual(info, undefined)
+    assert.strictEqual(info.word, 'foo')
   })
 })
 
 describe('language source', () => {
+  afterEach(editorReset)
+
   describe('toggle()', () => {
-    it('should toggle source', () => {
+    it('should toggle source', t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -108,16 +109,16 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
       let source = sources.getSource('foo')
-      expect(source).toBeDefined()
+      assert.notStrictEqual(source, undefined)
       source.toggle()
-      expect(source.enable).toBe(false)
+      assert.strictEqual(source.enable, false)
       source.toggle()
-      expect(source.enable).toBe(true)
+      assert.strictEqual(source.enable, true)
     })
   })
 
   describe('shouldCommit()', () => {
-    it('should check commit characters', async () => {
+    it('should check commit characters', async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -128,11 +129,11 @@ describe('language source', () => {
       let source = sources.getSource('foo')
       let item = createCompletionItem('foo')
       let res = source.shouldCommit(item, '.')
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
-    it('should not feedkeys when already inserted before', async () => {
-      helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true, disposables)
+    it('should not feedkeys when already inserted before', async t => {
+      shared.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true, disposables)
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (_doc, pos): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -144,14 +145,17 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('language', 'l', ['*'], provider))
       await nvim.command('startinsert')
       nvim.call('coc#start', [{ source: 'language' }], true)
-      await helper.waitPopup()
-      expect(completion.selectedItem).toBeDefined()
+      await shared.waitPopup()
+      assert.notStrictEqual(completion.selectedItem, undefined)
       await nvim.input('(')
-      await helper.waitValue(() => completion.isActivated, false)
+      await shared.waitValue(() => completion.isActivated, false)
+      await shared.waitFor('getline', ['.'], 'foo()')
+      await nvim.input('<esc>')
+      await shared.waitFor('mode', [], 'n')
     })
 
-    it('should not feedkeys when have paried characters before', async () => {
-      helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true, disposables)
+    it('should not feedkeys when have paried characters before', async t => {
+      shared.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true, disposables)
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (_doc, pos): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -165,10 +169,12 @@ describe('language source', () => {
       await nvim.command('startinsert')
       await nvim.setLine('')
       nvim.call('coc#start', [{ source: 'language' }], true)
-      await helper.waitPopup()
-      expect(completion.selectedItem).toBeDefined()
+      await shared.waitPopup()
+      assert.notStrictEqual(completion.selectedItem, undefined)
       await nvim.input('()<left>')
-      await helper.waitFor('getline', ['.'], 'foo()')
+      await shared.waitFor('getline', ['.'], 'foo()')
+      await nvim.input('<esc>')
+      await shared.waitFor('mode', [], 'n')
     })
   })
 
@@ -181,7 +187,7 @@ describe('language source', () => {
       return lines.join('\n')
     }
 
-    it('should return null when canceled or no items returned', async () => {
+    it('should return null when canceled or no items returned', async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => []
       }
@@ -189,13 +195,13 @@ describe('language source', () => {
       let source = sources.getSource('foo')
       let opt = await nvim.call('coc#util#get_complete_option') as CompleteOption
       let res = await source.doComplete(opt, CancellationToken.Cancelled)
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
       res = await source.doComplete(opt, CancellationToken.None)
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
     })
 
-    it('should add detail to preview when no resolve exists', async () => {
-      await helper.createDocument('foo.vim')
+    it('should add detail to preview when no resolve exists', async t => {
+      await shared.createDocument('foo.vim')
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -211,19 +217,19 @@ describe('language source', () => {
         await nvim.input('i')
       }
       nvim.call('coc#start', [{ source: 'foo' }], true)
-      await helper.waitPopup()
-      await helper.waitValue(async () => {
+      await shared.waitPopup()
+      await shared.waitValue(async () => {
         let content = await getDetailContent()
         return content && /foo/.test(content)
       }, true)
       await nvim.input('<C-n>')
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         let content = await getDetailContent()
         return content && /bar/.test(content)
       }, true)
     })
 
-    it('should add documentation to preview when no resolve exists', async () => {
+    it('should add documentation to preview when no resolve exists', async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -240,17 +246,17 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
       await nvim.input('i')
       await nvim.call('coc#start', { source: 'foo' })
-      await helper.waitPopup()
-      await helper.wait(20)
+      await shared.waitPopup()
+      await shared.wait(20)
       let content = await getDetailContent()
-      expect(content).toMatch('foo')
+      assert.match(content, new RegExp('foo'))
       await nvim.input('<C-n>')
-      await helper.waitValue(async () => (await getDetailContent()).includes('bar'), true)
+      await shared.waitValue(async () => (await getDetailContent()).includes('bar'), true)
       content = await getDetailContent()
-      expect(content).toMatch('bar')
+      assert.match(content, new RegExp('bar'))
     })
 
-    it('should resolve again when request cancelled', async () => {
+    it('should resolve again when request cancelled', async t => {
       let count = 0
       let cancelled = false
       let resolved = false
@@ -273,17 +279,17 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
       await nvim.input('i')
       await nvim.call('coc#start', { source: 'foo' })
-      await helper.waitPopup()
-      await helper.waitValue(() => {
+      await shared.waitPopup()
+      await shared.waitValue(() => {
         return cancelled
       }, true)
       nvim.call('coc#pum#close', ['confirm'], true)
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return resolved
       }, true)
     })
 
-    it('should resolve CompletionItem', async () => {
+    it('should resolve CompletionItem', async t => {
       let res: CompletionItem | Error | undefined
       let n = 0
       let provider: CompletionItemProvider = {
@@ -310,15 +316,15 @@ describe('language source', () => {
       let p = n
       await source.onCompleteResolve(item, opt, CancellationToken.None)
       await source.onCompleteResolve(item, opt, CancellationToken.None)
-      expect(n - p).toBe(1)
+      assert.strictEqual(n - p, 1)
       res = new Error('resolve error')
       item = createCompletionItem('this')
-      await expect(source.onCompleteResolve(item, opt, CancellationToken.None)).rejects.toThrow(Error)
+      await assert.rejects(Promise.resolve(source.onCompleteResolve(item, opt, CancellationToken.None)), Error)
     })
   })
 
   describe('command', () => {
-    it('should invoke command', async () => {
+    it('should invoke command', async t => {
       let id = 'test.command'
       let item: CompletionItem = {
         label: 'this',
@@ -343,13 +349,13 @@ describe('language source', () => {
         called = true
       })
       await source.onCompleteDone(item, opt)
-      expect(called).toBe(true)
+      assert.strictEqual(called, true)
     })
   })
 
   describe('labelDetails', () => {
-    it('should show labelDetails to documentation window', async () => {
-      helper.updateConfiguration('suggest.labelMaxLength', 10, disposables)
+    it('should show labelDetails to documentation window', async t => {
+      shared.updateConfiguration('suggest.labelMaxLength', 10, disposables)
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -367,22 +373,22 @@ describe('language source', () => {
       await nvim.input('i')
       await nvim.call('coc#start', { source: 'edits' })
       let winid: number
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         winid = await nvim.call('coc#float#get_float_by_kind', ['pumdetail']) as number
         return winid > 0
       }, true)
-      let lines = await helper.getWinLines(winid)
-      expect(lines[0]).toMatch('foo')
+      let lines = await shared.getWinLines(winid)
+      assert.match(lines[0], new RegExp('foo'))
       await nvim.call('coc#pum#_navigate', [1, 1])
-      await helper.waitValue(async () => {
-        lines = await helper.getWinLines(winid)
+      await shared.waitValue(async () => {
+        lines = await shared.getWinLines(winid)
         return lines.join(' ').includes('bar')
       }, true)
     })
   })
 
   describe('additionalTextEdits', () => {
-    it('should fix cursor position with plain text on additionalTextEdits', async () => {
+    it('should fix cursor position with plain text on additionalTextEdits', async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -392,14 +398,14 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       await nvim.input('if')
-      await helper.waitPopup()
-      await helper.confirmCompletion(0)
-      await helper.waitFor('getline', ['.'], 'barfoo')
+      await shared.waitPopup()
+      await shared.confirmCompletion(0)
+      await shared.waitFor('getline', ['.'], 'barfoo')
       let col = await nvim.call('col', ['.'])
-      expect(col).toBe(7)
+      assert.strictEqual(col, 7)
     })
 
-    it('should fix cursor position with snippet on additionalTextEdits', async () => {
+    it('should fix cursor position with snippet on additionalTextEdits', async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'if',
@@ -411,14 +417,14 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       await nvim.input('ii')
-      await helper.waitPopup()
-      let res = await helper.items()
+      await shared.waitPopup()
+      let res = await shared.items()
       let idx = res.findIndex(o => o.source?.name == 'edits')
-      await helper.confirmCompletion(idx)
-      await helper.waitFor('col', ['.'], 8)
+      await shared.confirmCompletion(idx)
+      await shared.waitFor('col', ['.'], 8)
     })
 
-    it('should fix cursor position with plain text snippet on additionalTextEdits', async () => {
+    it('should fix cursor position with plain text snippet on additionalTextEdits', async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'if',
@@ -431,19 +437,19 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       await nvim.input('iif')
-      await helper.waitPopup()
-      let items = await helper.items()
+      await shared.waitPopup()
+      let items = await shared.items()
       let idx = items.findIndex(o => o.word == 'do' && o.source?.name == 'edits')
-      await helper.confirmCompletion(idx)
-      await helper.waitFor('getline', ['.'], 'bar do')
-      await helper.waitFor('col', ['.'], 7)
+      await shared.confirmCompletion(idx)
+      await shared.waitFor('getline', ['.'], 'bar do')
+      await shared.waitFor('col', ['.'], 7)
     })
 
-    it('should fix cursor position with nested snippet on additionalTextEdits', async () => {
+    it('should fix cursor position with nested snippet on additionalTextEdits', async t => {
       let pos = await window.getCursorPosition()
       let range = Range.create(pos, pos)
       let res = await commandManager.executeCommand('editor.action.insertSnippet', TextEdit.replace(range, 'func($1)$0'))
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'if',
@@ -456,15 +462,15 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       await nvim.input('if')
-      await helper.waitPopup()
-      await helper.confirmCompletion(0)
+      await shared.waitPopup()
+      await shared.confirmCompletion(0)
       await events.race(['CompleteDone'], 200)
       let [, lnum, col] = await nvim.call('getcurpos') as [number, number, number]
-      expect(lnum).toBe(1)
-      expect(col).toBe(12)
+      assert.strictEqual(lnum, 1)
+      assert.strictEqual(col, 12)
     })
 
-    it('should fix cursor position and keep placeholder with snippet on additionalTextEdits', async () => {
+    it('should fix cursor position and keep placeholder with snippet on additionalTextEdits', async t => {
       let text = 'foo0bar1'
       await nvim.setLine(text)
       let provider: CompletionItemProvider = {
@@ -478,22 +484,22 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider, ['.']))
       await nvim.input('A.')
-      await helper.waitPopup()
-      let res = await helper.items()
+      await shared.waitPopup()
+      let res = await shared.items()
       let idx = res.findIndex(o => o.source?.name == 'edits')
-      await helper.confirmCompletion(idx)
-      await helper.waitFor('getline', ['.'], 'foo = foo0bar1')
-      await helper.waitValue(async () => {
+      await shared.confirmCompletion(idx)
+      await shared.waitFor('getline', ['.'], 'foo = foo0bar1')
+      await shared.waitValue(async () => {
         let p = await nvim.call('getcurpos') as number[]
         return [p[1], p[2]]
       }, [1, 3])
-      expect(snippetManager.session).toBeDefined()
+      assert.notStrictEqual(snippetManager.session, undefined)
       let [, lnum, col] = await nvim.call('getcurpos') as [number, number, number]
-      expect(lnum).toBe(1)
-      expect(col).toBe(3)
+      assert.strictEqual(lnum, 1)
+      assert.strictEqual(col, 3)
     })
 
-    it('should move cursor to empty placeholder with delete before snippet on additionalTextEdits', async () => {
+    it('should move cursor to empty placeholder with delete before snippet on additionalTextEdits', async t => {
       // Faithful rust-analyzer postfix payload (#5411): the snippet textEdit
       // replaces the trigger char with `$0`, additionalTextEdits delete the
       // prefix located before the snippet, the cursor must land on `$0`.
@@ -510,21 +516,21 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       await nvim.input('Al')
-      await helper.waitPopup()
-      let res = await helper.items()
+      await shared.waitPopup()
+      let res = await shared.items()
       let idx = res.findIndex(o => o.source?.name == 'edits')
-      await helper.confirmCompletion(idx)
-      await helper.waitFor('getline', ['.'], 'let  = Some(2);')
-      await helper.waitValue(async () => {
+      await shared.confirmCompletion(idx)
+      await shared.waitFor('getline', ['.'], 'let  = Some(2);')
+      await shared.waitValue(async () => {
         let p = await nvim.call('getcurpos') as number[]
         return [p[1], p[2]]
       }, [1, 5])
       let [, lnum, col] = await nvim.call('getcurpos') as [number, number, number]
-      expect(lnum).toBe(1)
-      expect(col).toBe(5)
+      assert.strictEqual(lnum, 1)
+      assert.strictEqual(col, 5)
     })
 
-    it('should not cancel current snippet session when additionalTextEdits inside snippet', async () => {
+    it('should not cancel current snippet session when additionalTextEdits inside snippet', async t => {
       await nvim.input('i')
       snippetManager.cancel()
       let pos = await window.getCursorPosition()
@@ -540,17 +546,17 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider, ['.']))
       await nvim.input('b')
-      await helper.waitPopup()
-      let res = await helper.items()
+      await shared.waitPopup()
+      let res = await shared.items()
       let idx = res.findIndex(o => o.source?.name == 'edits')
-      await helper.confirmCompletion(idx)
-      await helper.waitFor('getline', ['.'], '(bar(), )')
-      await helper.waitFor('col', ['.'], 6)
+      await shared.confirmCompletion(idx)
+      await shared.waitFor('getline', ['.'], '(bar(), )')
+      await shared.waitFor('col', ['.'], 6)
     })
   })
 
   describe('filterText', () => {
-    it('should fix input for snippet item', async () => {
+    it('should fix input for snippet item', async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -561,12 +567,12 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('snippets-test', 'st', null, provider))
       await nvim.input('if')
-      await helper.waitPopup()
+      await shared.waitPopup()
       await nvim.call('coc#pum#select', [0, 1, 0])
-      await helper.waitFor('getline', ['.'], 'foo()')
+      await shared.waitFor('getline', ['.'], 'foo()')
     })
 
-    it('should fix filterText of complete item', async () => {
+    it('should fix filterText of complete item', async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'name',
@@ -580,15 +586,15 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('name', 'N', null, provider, ['.']))
       await nvim.setLine('t')
       await nvim.input('A.')
-      await helper.waitPopup()
-      await helper.confirmCompletion(0)
+      await shared.waitPopup()
+      await shared.confirmCompletion(0)
       let line = await nvim.line
-      expect(line).toBe('t?.name')
+      assert.strictEqual(line, 't?.name')
     })
   })
 
   describe('inComplete result', () => {
-    it('should filter in complete request', async () => {
+    it('should filter in complete request', async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (doc, pos, token, context): Promise<CompletionList> => {
           let option = (context as any).option
@@ -630,15 +636,15 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider, ['.']))
       await nvim.input('i.')
-      await helper.waitPopup()
+      await shared.waitPopup()
       await nvim.input('fo')
-      await helper.waitValue(async () => {
-        let items = await helper.items()
+      await shared.waitValue(async () => {
+        let items = await shared.items()
         return items.length
       }, 1)
     })
 
-    it('should refresh language source after backspace clears input', async () => {
+    it('should refresh language source after backspace clears input', async t => {
       let requests: [string, CompletionTriggerKind][] = []
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (_doc, _pos, _token, context): Promise<CompletionList> => {
@@ -654,13 +660,14 @@ describe('language source', () => {
       await nvim.setLine('#include <f')
       await nvim.input('A')
       nvim.call('coc#start', { source: 'backspace' }, true)
-      await helper.waitPopup()
+      await shared.waitPopup()
       await nvim.input('<backspace>')
-      await helper.waitValue(async () => {
-        let items = await helper.items()
+      await shared.waitValue(async () => {
+        let items = await shared.items()
         return items.length
       }, 2)
-      expect(requests).toContainEqual(['', CompletionTriggerKind.Invoked])
+      let found = requests.find((r: any[]) => r.length === 2 && r[0] === '' && r[1] === CompletionTriggerKind.Invoked)
+      assert.ok(found)
     })
   })
 
@@ -674,38 +681,38 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('test', 't', null, provider, triggerCharacters, undefined, []))
       await nvim.input('i')
       nvim.call('coc#start', [{ source: 'test' }], true)
-      await helper.waitPopup()
+      await shared.waitPopup()
     }
 
-    it('should use range of editRange from itemDefaults', async () => {
+    it('should use range of editRange from itemDefaults', async t => {
       await nvim.call('setline', ['.', 'bar'])
       await start({ label: 'foo' }, {
         editRange: Range.create(0, 0, 0, 3)
       })
-      await helper.confirmCompletion(0)
-      await helper.waitFor('getline', ['.'], 'foo')
+      await shared.confirmCompletion(0)
+      await shared.waitFor('getline', ['.'], 'foo')
     })
 
-    it('should use commitCharacters from itemDefaults', async () => {
-      let dispose = helper.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
+    it('should use commitCharacters from itemDefaults', async t => {
+      let dispose = shared.updateConfiguration('suggest.acceptSuggestionOnCommitCharacter', true)
       await start({ label: 'foo' }, { commitCharacters: ['.'] }, ['.'])
       await nvim.input('.')
       // should trigger after commit
-      await helper.waitFor('getline', ['.'], 'foo.')
-      expect(events.completing).toBe(true)
+      await shared.waitFor('getline', ['.'], 'foo.')
+      assert.strictEqual(events.completing, true)
       completion.cancelAndClose()
       dispose()
     })
 
-    it('should merge commitCharacters by applyKind', async () => {
+    it('should merge commitCharacters by applyKind', async t => {
       let item = { label: 'foo', commitCharacters: [','] }
       await start(item, { commitCharacters: ['.'] }, ['.'], { commitCharacters: ApplyKind.Merge })
       let source = sources.getSource('test')
-      expect(source.shouldCommit(item, '.')).toBe(true)
+      assert.strictEqual(source.shouldCommit(item, '.'), true)
       completion.cancelAndClose()
     })
 
-    it('should use replace range of editRange from itemDefaults', async () => {
+    it('should use replace range of editRange from itemDefaults', async t => {
       await nvim.call('setline', ['.', 'bar'])
       await start({ label: 'foo' }, {
         editRange: {
@@ -713,35 +720,35 @@ describe('language source', () => {
           replace: Range.create(0, 0, 0, 3),
         }
       })
-      await helper.confirmCompletion(0)
-      await helper.waitFor('getline', ['.'], 'foo')
+      await shared.confirmCompletion(0)
+      await shared.waitFor('getline', ['.'], 'foo')
     })
 
-    it('should use insertTextFormat from itemDefaults', async () => {
+    it('should use insertTextFormat from itemDefaults', async t => {
       await nvim.call('cursor', [1, 1])
       await start({ label: 'foo', insertText: 'foo($1)$0' }, {
         insertTextFormat: InsertTextFormat.Snippet,
         insertTextMode: InsertTextMode.asIs,
         data: {}
       })
-      await helper.confirmCompletion(0)
-      await helper.waitValue(async () => {
+      await shared.confirmCompletion(0)
+      await shared.waitValue(async () => {
         let line = await nvim.call('getline', ['.']) as string
         return line.startsWith('foo()')
       }, true)
     })
 
-    it('should use textEditText when exists with default range', async () => {
+    it('should use textEditText when exists with default range', async t => {
       await start({ label: 'foo', insertText: 'bar', textEditText: 'foofoo' }, {
         editRange: Range.create(0, 0, 0, 0)
       })
-      await helper.confirmCompletion(0)
-      await helper.waitFor('getline', ['.'], 'foofoo')
+      await shared.confirmCompletion(0)
+      await shared.waitFor('getline', ['.'], 'foofoo')
     })
   })
 
   describe('textEdit', () => {
-    it('should not apply edits when line changed', async () => {
+    it('should not apply edits when line changed', async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -751,7 +758,7 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
       let source = sources.getSource('foo')
-      expect(source).toBeDefined()
+      assert.notStrictEqual(source, undefined)
       let opt = await nvim.call('coc#util#get_complete_option') as any
       await source.doComplete(opt, CancellationToken.None)
       let item = createCompletionItem('foo')
@@ -759,10 +766,10 @@ describe('language source', () => {
       await nvim.command('normal! G')
       await source.onCompleteDone(item, opt)
       let line = await nvim.line
-      expect(line).toBe('')
+      assert.strictEqual(line, '')
     })
 
-    it('should use insert range', async () => {
+    it('should use insert range', async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -771,7 +778,7 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
       let source = sources.getSource('foo')
-      expect(source).toBeDefined()
+      assert.notStrictEqual(source, undefined)
       await nvim.setLine('foo')
       await nvim.input('I')
       let opt = await nvim.call('coc#util#get_complete_option') as any
@@ -780,10 +787,10 @@ describe('language source', () => {
       let item = createCompletionItem('foo')
       await source.onCompleteDone(item, opt)
       let line = await nvim.line
-      expect(line).toBe('foofoo')
+      assert.strictEqual(line, 'foofoo')
     })
 
-    it('should fix replace range for paired characters', async () => {
+    it('should fix replace range for paired characters', async t => {
       // LS may failed to replace paired character at the end
       await nvim.setLine('<>')
       await nvim.input('i<right>')
@@ -797,14 +804,14 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       nvim.call('coc#start', [{ source: 'edits' }], true)
-      await helper.waitPopup()
+      await shared.waitPopup()
       let idx = completion.activeItems.findIndex(o => o.word == '<foo>')
-      expect(idx).toBeGreaterThan(-1)
-      await helper.confirmCompletion(idx)
-      await helper.waitFor('getline', ['.'], '<foo>')
+      assert.ok(idx > -1)
+      await shared.confirmCompletion(idx)
+      await shared.waitFor('getline', ['.'], '<foo>')
     })
 
-    it('should not eat existing paired character on valid range', async () => {
+    it('should not eat existing paired character on valid range', async t => {
       await nvim.setLine('fn bar() {}')
       await nvim.call('cursor', [1, 7])
       await nvim.input('a')
@@ -817,7 +824,7 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       let source = sources.getSource('edits')
-      expect(source).toBeDefined()
+      assert.notStrictEqual(source, undefined)
       let opt = await nvim.call('coc#util#get_complete_option') as any
       await source.doComplete(opt, CancellationToken.None)
       await source.onCompleteDone({
@@ -825,10 +832,10 @@ describe('language source', () => {
         filterText: '(x, y): (i32, i32)',
         textEdit: { range: Range.create(0, 7, 0, 7), newText: '(x, y): (i32, i32)' },
       }, opt)
-      await helper.waitFor('getline', ['.'], 'fn bar((x, y): (i32, i32)) {}')
+      await shared.waitFor('getline', ['.'], 'fn bar((x, y): (i32, i32)) {}')
     })
 
-    it('should fix bad range', async () => {
+    it('should fix bad range', async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: 'foo',
@@ -839,12 +846,12 @@ describe('language source', () => {
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       await nvim.input('i')
       nvim.call('coc#start', [{ source: 'edits' }], true)
-      await helper.waitPopup()
-      await helper.confirmCompletion(0)
-      await helper.waitFor('getline', ['.'], 'foo')
+      await shared.waitPopup()
+      await shared.confirmCompletion(0)
+      await shared.waitFor('getline', ['.'], 'foo')
     })
 
-    it('should applyEdits for empty word', async () => {
+    it('should applyEdits for empty word', { timeout: 10000 }, async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => [{
           label: '',
@@ -855,12 +862,12 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider, ['!']))
       await nvim.input('i!')
-      await helper.waitPopup()
-      await helper.confirmCompletion(0)
-      await helper.waitFor('getline', ['.'], 'foo')
-    }, 10000)
+      await shared.waitPopup()
+      await shared.confirmCompletion(0)
+      await shared.waitFor('getline', ['.'], 'foo')
+    })
 
-    it('should provide word when textEdit after startcol', async () => {
+    it('should provide word when textEdit after startcol', { timeout: 10000 }, async t => {
       // some LS would send textEdit after first character,
       // need fix the word from newText
       let provider: CompletionItemProvider = {
@@ -884,12 +891,12 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('edits', 'edit', null, provider))
       await nvim.input('ib')
-      await helper.waitPopup()
+      await shared.waitPopup()
       let items = completion.activeItems
-      expect(items[0].word).toBe('bar')
-    }, 10000)
+      assert.strictEqual(items[0].word, 'bar')
+    })
 
-    it('should adjust completion position by textEdit start position', async () => {
+    it('should adjust completion position by textEdit start position', { timeout: 10000 }, async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (_document, _position, _token, context): Promise<CompletionItem[]> => {
           if (!context.triggerCharacter) return
@@ -904,13 +911,13 @@ describe('language source', () => {
       }
       disposables.push(languages.registerCompletionItemProvider('fix', 'f', null, provider, ['?']))
       await nvim.input('i?')
-      await helper.waitPopup()
-      await helper.confirmCompletion(0)
+      await shared.waitPopup()
+      await shared.confirmCompletion(0)
       let line = await nvim.line
-      expect(line).toBe('?foo')
-    }, 10000)
+      assert.strictEqual(line, '?foo')
+    })
 
-    it('should fix range of removed text range', async () => {
+    it('should fix range of removed text range', { timeout: 10000 }, async t => {
       let provider: CompletionItemProvider = {
         provideCompletionItems: async (): Promise<CompletionItem[]> => {
           return [{
@@ -928,9 +935,9 @@ describe('language source', () => {
       await nvim.call('cursor', [1, 8])
       await nvim.input('a')
       await nvim.call('coc#start', { source: 'fix' })
-      await helper.waitPopup()
-      await helper.confirmCompletion(0)
-      await helper.waitFor('getline', ['.'], 'import React from "react";')
-    }, 10000)
+      await shared.waitPopup()
+      await shared.confirmCompletion(0)
+      await shared.waitFor('getline', ['.'], 'import React from "react";')
+    })
   })
 })

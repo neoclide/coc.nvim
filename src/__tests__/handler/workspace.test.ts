@@ -1,8 +1,6 @@
+import { getCurrentPlugin } from '../../attach'
+import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
-vi.mock('v8', async importOriginal => {
-  const actual = await importOriginal<typeof import('v8')>()
-  return { ...actual, writeHeapSnapshot: vi.fn(() => '') }
-})
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -17,37 +15,34 @@ import snippetManager from '../../snippets/manager'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
-import helper from '../helper'
+import { afterEach, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let handler: WorkspaceHandler
 let disposables: Disposable[] = []
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-  handler = helper.plugin.getHandler().workspace
-})
 
-afterAll(async () => {
-  await helper.shutdown()
+before(async () => {
+  nvim = workspace.nvim
+  handler = getCurrentPlugin().getHandler().workspace
 })
-
 afterEach(async () => {
-  await helper.reset()
   disposeAll(disposables)
 })
 
+afterEach(editorReset)
+
 describe('Workspace handler', () => {
   async function checkFloat(content: string) {
-    let win = await helper.getFloat()
-    expect(win).toBeDefined()
+    let win = await shared.getFloat()
+    assert.notStrictEqual(win, undefined)
     let buf = await win.buffer
     let lines = await buf.lines
-    expect(lines.join('\n')).toMatch(content)
+    assert.match(lines.join('\n'), new RegExp(content))
   }
 
   describe('events', () => {
-    it('should reset autocmds of extensions', async () => {
+    it('should reset autocmds of extensions', async t => {
       workspace.registerAutocmd({
         event: 'CursorHold',
         callback: () => {},
@@ -62,94 +57,96 @@ describe('Workspace handler', () => {
       m._onDidUnloadExtension.fire('test')
       let map = workspace.autocmds.autocmds
       let arr = Array.from(map.keys())
-      expect(arr).toEqual([2])
+      assert.deepStrictEqual(arr, [2])
       await new Promise(resolve => process.nextTick(resolve))
       let output = await nvim.call('execute', 'autocmd coc_dynamic_autocmd') as string
-      expect(output).toMatch('CursorMoved')
-      expect(output.includes('CursorHold')).toBe(false)
+      assert.match(output, new RegExp('CursorMoved'))
+      assert.strictEqual(output.includes('CursorHold'), false)
       nvim.command('autocmd! coc_dynamic_autocmd', true)
     })
   })
 
   describe('commands', () => {
-    it('should check filetype', async () => {
-      await helper.createDocument('t.vim')
+    it('should check filetype', async t => {
+      await shared.createDocument('t.vim')
       await commands.executeCommand('document.echoFiletype')
-      let line = await helper.getCmdline()
-      expect(line).toMatch('vim')
+      let line = await shared.getCmdline()
+      assert.match(line, new RegExp('vim'))
     })
 
-    it('should show workspace folders', async () => {
-      await helper.edit(__filename)
+    it('should show workspace folders', async t => {
+      await shared.edit(import.meta.filename)
       await commands.executeCommand('workspace.workspaceFolders')
-      let line = await helper.getCmdline()
-      expect(line).toMatch('coc.nvim')
+      let line = await shared.getCmdline()
+      assert.match(line, new RegExp('coc\\.nvim'))
     })
 
-    it('should write writeHeapSnapshot', async () => {
-      const v8 = await import('v8')
-      const mock = v8.writeHeapSnapshot as unknown as ReturnType<typeof vi.fn>
-      mock.mockClear()
+    it('should write writeHeapSnapshot', async t => {
+      const v8 = require('v8') as { writeHeapSnapshot: (...args: any[]) => string }
+      let called = false
+      t.mock.method(v8, 'writeHeapSnapshot', () => {
+        called = true
+        return ''
+      })
       let filepath = await commands.executeCommand('workspace.writeHeapSnapshot')
-      expect(filepath).toBeDefined()
-      expect(mock).toHaveBeenCalled()
+      assert.notStrictEqual(filepath, undefined)
+      assert.strictEqual(called, true)
     })
 
-    it('should show output', async () => {
+    it('should show output', async t => {
       window.createOutputChannel('foo')
       window.createOutputChannel('bar')
       let p = commands.executeCommand('workspace.showOutput')
-      await helper.waitFloat()
+      await shared.waitFloat()
       await nvim.input('<esc>')
       await p
-      let bufname = await nvim.call('bufname', ['%'])
-      expect(bufname).toBe('')
+      let bufname = await nvim.call('bufname', ['%']) as string
+      assert.strictEqual(bufname, '')
       await commands.executeCommand('workspace.showOutput', 'foo')
-      bufname = await nvim.call('bufname', ['%'])
-      expect(bufname).toMatch('output')
+      bufname = await nvim.call('bufname', ['%']) as string
+      assert.match(bufname, new RegExp('output'))
     })
 
-    it('should open location', async () => {
+    it('should open location', async t => {
       let winid = await nvim.call('win_getid')
       await commands.executeCommand('workspace.openLocation', winid, Location.create('lsp:/1', Range.create(0, 0, 0, 0)))
-      let bufname = await nvim.call('bufname', ['%'])
-      expect(bufname).toBe('lsp:/1')
+      let bufname = await nvim.call('bufname', ['%']) as string
+      assert.strictEqual(bufname, 'lsp:/1')
     })
 
-    it('should clear watchman roots', async () => {
+    it('should clear watchman roots', async t => {
       let success = true
-      let spy = vi.spyOn(window, 'runTerminalCommand').mockImplementation(() => {
+      let spy = t.mock.method(window, 'runTerminalCommand', () => {
         return Promise.resolve({ success, bufnr: 1 })
       })
       let res = await commands.executeCommand('workspace.clearWatchman')
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       success = false
       res = await commands.executeCommand('workspace.clearWatchman')
-      expect(res).toBe(false)
-      spy.mockRestore()
+      assert.strictEqual(res, false)
     })
   })
 
   describe('methods', () => {
-    it('should rename buffer', async () => {
-      let doc = await helper.createDocument('a')
+    it('should rename buffer', async t => {
+      let doc = await shared.createDocument('a')
       let fsPath = URI.parse(doc.uri).fsPath.replace(/a$/, 'b')
       disposables.push(Disposable.create(() => {
         if (fs.existsSync(fsPath)) fs.unlinkSync(fsPath)
       }))
       let p = handler.renameCurrent()
-      await helper.waitValue(() => nvim.call('mode'), 'c')
+      await shared.waitValue(() => nvim.call('mode'), 'c')
       await nvim.input('<backspace>b<cr>')
       await p
       let name = await nvim.eval('bufname("%")') as string
-      expect(name.endsWith('b')).toBe(true)
+      assert.strictEqual(name.endsWith('b'), true)
       p = handler.renameCurrent()
-      await helper.waitValue(() => nvim.call('mode'), 'c')
+      await shared.waitValue(() => nvim.call('mode'), 'c')
       await nvim.input('<C-u><cr>')
       await p
     })
 
-    it('should rename file', async () => {
+    it('should rename file', async t => {
       let dir = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(dir, { recursive: true })
       let fsPath = path.join(dir, 'x')
@@ -159,23 +156,22 @@ describe('Workspace handler', () => {
       }))
       fs.writeFileSync(newPath, '', 'utf8')
       fs.writeFileSync(fsPath, 'foo', 'utf8')
-      await helper.createDocument(fsPath)
-      let spy = vi.spyOn(window, 'showPrompt').mockImplementation(() => {
+      await shared.createDocument(fsPath)
+      let spy = t.mock.method(window, 'showPrompt', () => {
         return Promise.resolve(true)
       })
       let p = commands.executeCommand('workspace.renameCurrentFile')
-      await helper.waitFor('mode', [], 'c')
+      await shared.waitFor('mode', [], 'c')
       await nvim.input('<backspace>b<cr>')
       await p
-      spy.mockRestore()
       let name = await nvim.eval('bufname("%")') as string
-      expect(name.endsWith('b')).toBe(true)
-      expect(fs.existsSync(newPath)).toBe(true)
+      assert.strictEqual(name.endsWith('b'), true)
+      assert.strictEqual(fs.existsSync(newPath), true)
       let content = fs.readFileSync(newPath, 'utf8')
-      expect(content).toMatch(/foo/)
+      assert.match(content, /foo/)
     })
 
-    it('should not rename when reject overwrite', async () => {
+    it('should not rename when reject overwrite', async t => {
       let dir = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(dir, { recursive: true })
       let fsPath = path.join(dir, 'x')
@@ -184,97 +180,95 @@ describe('Workspace handler', () => {
         fs.rmSync(dir, { recursive: true, force: true })
       }))
       fs.writeFileSync(newPath, '', 'utf8')
-      await helper.createDocument(fsPath)
-      let spy = vi.spyOn(window, 'showPrompt').mockImplementation(() => {
+      await shared.createDocument(fsPath)
+      let spy = t.mock.method(window, 'showPrompt', () => {
         return Promise.resolve(false)
       })
       let p = handler.renameCurrent()
-      await helper.waitFor('mode', [], 'c')
+      await shared.waitFor('mode', [], 'c')
       await nvim.input('<backspace>b<cr>')
       await p
-      spy.mockRestore()
-      let bufname = await nvim.call('bufname', ['%'])
-      expect(bufname).toMatch(/x$/)
+      let bufname = await nvim.call('bufname', ['%']) as string
+      assert.match(bufname, /x$/)
     })
 
-    it('should open local config', async () => {
+    it('should open local config', async t => {
       let dir = path.join(os.tmpdir(), '.vim')
       fs.rmSync(dir, { recursive: true, force: true })
       fs.mkdirSync(path.join(os.tmpdir(), '.git'), { recursive: true })
-      await helper.edit(path.join(os.tmpdir(), 't'))
+      await shared.edit(path.join(os.tmpdir(), 't'))
       let root = workspace.root
-      expect(root).toBe(os.tmpdir())
+      assert.strictEqual(root, os.tmpdir())
       let p = handler.openLocalConfig()
-      await helper.waitPromptWin()
+      await shared.waitPromptWin()
       await nvim.input('n')
       await p
       p = handler.openLocalConfig()
-      await helper.waitPromptWin()
+      await shared.waitPromptWin()
       await nvim.input('y')
       await p
-      let bufname = await nvim.call('bufname', ['%'])
-      expect(bufname).toMatch('coc-settings.json')
+      let bufname = await nvim.call('bufname', ['%']) as string
+      assert.match(bufname, new RegExp('coc-settings\\.json'))
     })
 
-    it('should not throw when workspace folder does not exist', async () => {
-      helper.updateConfiguration('workspace.rootPatterns', [], disposables)
-      helper.updateConfiguration('workspace.ignoredFiletypes', ['vim'], disposables)
+    it('should not throw when workspace folder does not exist', async t => {
+      shared.updateConfiguration('workspace.rootPatterns', [], disposables)
+      shared.updateConfiguration('workspace.ignoredFiletypes', ['vim'], disposables)
       await nvim.command('enew')
       await (window as any).openLocalConfig()
       await nvim.command(`e ${path.join(os.tmpdir(), 'a')}`)
-      await helper.doAction('openLocalConfig')
+      await shared.doAction('openLocalConfig')
       await nvim.command(`e t.md`)
       await nvim.command('setf markdown')
       await handler.openLocalConfig()
       await nvim.command(`e ${path.join(os.tmpdir(), 't.vim')}`)
       await nvim.command('setf vim')
       let called = false
-      let spy = vi.spyOn(window, 'showWarningMessage').mockImplementation(() => {
+      let spy = t.mock.method(window, 'showWarningMessage', () => {
         called = true
         return Promise.resolve(undefined)
       })
       await commands.executeCommand('workspace.openLocalConfig')
-      expect(called).toBe(true)
-      spy.mockRestore()
+      assert.strictEqual(called, true)
     })
 
-    it('should add workspace folder', async () => {
-      expect(() => {
+    it('should add workspace folder', async t => {
+      assert.throws(() => {
         handler.addWorkspaceFolder(undefined)
-      }).toThrow(TypeError)
-      expect(() => {
-        handler.addWorkspaceFolder(__filename)
-      }).toThrow(Error)
-      await helper.plugin.cocAction('addWorkspaceFolder', __dirname)
+      }, TypeError)
+      assert.throws(() => {
+        handler.addWorkspaceFolder(import.meta.filename)
+      }, Error)
+      await getCurrentPlugin().cocAction('addWorkspaceFolder', import.meta.dirname)
       let folders = workspace.workspaceFolderControl.workspaceFolders
-      let uri = URI.file(__dirname).toString()
+      let uri = URI.file(import.meta.dirname).toString()
       let find = folders.find(o => o.uri === uri)
-      expect(find).toBeDefined()
+      assert.notStrictEqual(find, undefined)
     })
 
-    it('should remove workspace folder', async () => {
-      expect(() => {
-        handler.addWorkspaceFolder(__filename)
-      }).toThrow(Error)
-      expect(() => {
-        handler.addWorkspaceFolder(__filename)
-      }).toThrow(Error)
-      await helper.plugin.cocAction('addWorkspaceFolder', __dirname)
-      await helper.plugin.cocAction('removeWorkspaceFolder', __dirname)
+    it('should remove workspace folder', async t => {
+      assert.throws(() => {
+        handler.addWorkspaceFolder(import.meta.filename)
+      }, Error)
+      assert.throws(() => {
+        handler.addWorkspaceFolder(import.meta.filename)
+      }, Error)
+      await getCurrentPlugin().cocAction('addWorkspaceFolder', import.meta.dirname)
+      await getCurrentPlugin().cocAction('removeWorkspaceFolder', import.meta.dirname)
       let folders = workspace.workspaceFolderControl.workspaceFolders
-      let uri = URI.file(__dirname).toString()
+      let uri = URI.file(import.meta.dirname).toString()
       let find = folders.find(o => o.uri === uri)
-      expect(find).toBeUndefined()
+      assert.strictEqual(find, undefined)
     })
 
-    it('should check env on vim resized', async () => {
+    it('should check env on vim resized', async t => {
       await events.fire('VimResized', [80, 80])
-      expect(workspace.env.columns).toBe(80)
+      assert.strictEqual(workspace.env.columns, 80)
       await events.fire('VimResized', [160, 80])
-      expect(workspace.env.columns).toBe(160)
+      assert.strictEqual(workspace.env.columns, 160)
     })
 
-    it('should should error message for document not attached', async () => {
+    it('should should error message for document not attached', async t => {
       disposables.push(languages.registerDocumentFormatProvider(['*'], {
         provideDocumentFormattingEdits: () => {
           return []
@@ -288,102 +282,100 @@ describe('Workspace handler', () => {
       await checkFloat('not attached')
       await nvim.call('coc#float#close_all', [])
       await nvim.command('edit +setl\\ buftype=nofile b')
-      await helper.doAction('bufferCheck')
+      await shared.doAction('bufferCheck')
       await checkFloat('not attached')
       await nvim.call('coc#float#close_all', [])
-      helper.updateConfiguration('coc.preferences.maxFileSize', '1KB')
-      await helper.edit(__filename)
+      shared.updateConfiguration('coc.preferences.maxFileSize', '1KB')
+      await shared.edit(import.meta.filename)
       await handler.bufferCheck()
       await checkFloat('not attached')
       await nvim.call('coc#float#close_all', [])
+      shared.updateConfiguration('coc.preferences.maxFileSize', '10MB')
     })
 
-    it('should check json extension', async () => {
-      let spy = vi.spyOn(extensions, 'has').mockImplementation(() => {
+    it('should check json extension', async t => {
+      let spy = t.mock.method(extensions, 'has', () => {
         return true
       })
-      await helper.doAction('checkJsonExtension')
-      spy.mockRestore()
-      await helper.doAction('checkJsonExtension')
-      let line = await helper.getCmdline()
-      expect(line).toBeDefined()
+      await shared.doAction('checkJsonExtension')
+      await shared.doAction('checkJsonExtension')
+      let line = await shared.getCmdline()
+      assert.notStrictEqual(line, undefined)
     })
 
-    it('should get rootPatterns', async () => {
+    it('should get rootPatterns', async t => {
       let bufnr = await nvim.call('bufnr', ['%'])
-      let res = await helper.doAction('rootPatterns', bufnr)
-      expect(res).toBeDefined()
+      let res = await shared.doAction('rootPatterns', bufnr)
+      assert.notStrictEqual(res, undefined)
     })
 
-    it('should get config by key', async () => {
-      let res = await helper.doAction('getConfig', ['suggest'])
-      expect(res.autoTrigger).toBeDefined()
+    it('should get config by key', async t => {
+      let res = await shared.doAction('getConfig', ['suggest'])
+      assert.notStrictEqual(res.autoTrigger, undefined)
     })
 
-    it('should open log', async () => {
-      await helper.doAction('openLog')
+    it('should open log', async t => {
+      await shared.doAction('openLog')
       let bufname = await nvim.call('bufname', ['%']) as string
-      expect(bufname).toMatch('coc-nvim')
+      assert.match(bufname, new RegExp('coc-nvim'))
     })
 
-    it('should get configuration of current document', async () => {
+    it('should get configuration of current document', async t => {
       let config = await handler.getConfiguration('suggest')
       let wait = config.get<number>('triggerCompletionWait')
-      expect(wait).toBe(0)
+      assert.strictEqual(wait, 0)
     })
 
-    it('should get root patterns', async () => {
-      let doc = await helper.createDocument()
+    it('should get root patterns', async t => {
+      let doc = await shared.createDocument()
       let patterns = handler.getRootPatterns(doc.bufnr)
-      expect(patterns).toBeDefined()
+      assert.notStrictEqual(patterns, undefined)
       patterns = handler.getRootPatterns(999)
-      expect(patterns).toBeNull()
+      assert.strictEqual(patterns, null)
     })
   })
 
   describe('doKeymap()', () => {
-    it('should return default value when key mapping does not exist', async () => {
-      let res = await helper.doAction('doKeymap', ['not_exists', ''])
-      expect(res).toBe('')
+    it('should return default value when key mapping does not exist', async t => {
+      let res = await shared.doAction('doKeymap', ['not_exists', ''])
+      assert.strictEqual(res, '')
     })
 
-    it('should support repeat key mapping', async () => {
+    it('should support repeat key mapping', async t => {
       let called = false
       await nvim.command('nmap do <Plug>(coc-test)')
       disposables.push(workspace.registerKeymap(['n'], 'test', () => {
         called = true
       }))
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         let res = await nvim.call('maparg', ['<Plug>(coc-test)', 'n']) as string
         return res.length > 0
       }, true)
       await nvim.call('feedkeys', ['do', 'i'])
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return called
       }, true)
     })
   })
 
   describe('snippetCheck()', () => {
-    it('should return false when coc-snippets not found', async () => {
+    it('should return false when coc-snippets not found', async t => {
       let fn = async () => {
-        expect(await handler.snippetCheck(true, false)).toBe(false)
+        assert.strictEqual(await handler.snippetCheck(true, false), false)
       }
-      await expect(fn()).rejects.toThrow(Error)
-      let spy = vi.spyOn(extensions.manager, 'call').mockImplementation(() => {
+      await assert.rejects(fn(), Error)
+      let spy = t.mock.method(extensions.manager, 'call', () => {
         return Promise.resolve(true)
       })
-      expect(await handler.snippetCheck(true, false)).toBe(true)
-      spy.mockRestore()
+      assert.strictEqual(await handler.snippetCheck(true, false), true)
     })
 
-    it('should check jump', async () => {
-      expect(await handler.snippetCheck(false, true)).toBe(false)
-      let spy = vi.spyOn(snippetManager, 'jumpable').mockImplementation(() => {
+    it('should check jump', async t => {
+      assert.strictEqual(await handler.snippetCheck(false, true), false)
+      let spy = t.mock.method(snippetManager, 'jumpable', () => {
         return true
       })
-      expect(await handler.snippetCheck(false, true)).toBe(true)
-      spy.mockRestore()
+      assert.strictEqual(await handler.snippetCheck(false, true), true)
     })
   })
 })

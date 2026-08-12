@@ -1,75 +1,79 @@
+import { getCurrentPlugin } from '../../attach'
+import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import helper from '../helper'
+import { after, afterEach, before, beforeEach, describe, it, mock } from 'node:test'
+import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
 
-beforeAll(async () => {
-  let plugin = await helper.setup(false)
-  nvim = plugin.nvim
-  nvim.emit('notification', 'updateConfig', ['suggest.timeout', 300])
-  nvim.emit('notification', 'action_not_exists', [])
-  let spy = vi.spyOn(console, 'error').mockImplementation(() => {
+before(() => {
+  nvim = workspace.nvim
+  // Suite-level before hooks have no per-test MockTracker; use the module
+  // tracker and restore it after the suite.
+  mock.method(console, 'error', () => {
     // noop
   })
-  await plugin.init('')
-  spy.mockRestore()
+})
+
+beforeEach(() => {
+  nvim.emit('notification', 'updateConfig', ['suggest.timeout', 300])
+  nvim.emit('notification', 'action_not_exists', [])
 })
 
 afterEach(() => {
   disposeAll(disposables)
 })
 
-afterAll(async () => {
-  await helper.shutdown()
+after(() => {
+  mock.restoreAll()
 })
 
 describe('notifications', () => {
-  it('should notification before plugin ready', () => {
+  it('should notification before plugin ready', t => {
     nvim.emit('notification', 'VimEnter', [''])
     let timeout = workspace.getConfiguration('suggest').get('timeout')
-    expect(timeout).toBe(300)
+    assert.strictEqual(timeout, 300)
   })
 
-  it('should do Log', () => {
+  it('should do Log', t => {
     nvim.emit('notification', 'Log', [])
     nvim.emit('notification', 'redraw', [])
   })
 
-  it('should do notifications', async () => {
+  it('should do notifications', async t => {
     nvim.emit('notification', 'listNames', [])
     let called = false
-    let spy = vi.spyOn(console, 'error').mockImplementation(() => {
+    t.mock.method(console, 'error', () => {
       called = true
     })
     nvim.emit('notification', 'name_not_exists', [])
     nvim.emit('notification', 'MenuInput', [])
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return called
     }, true)
-    spy.mockRestore()
   })
 })
 
 describe('request', () => {
-  it('should get results', async () => {
+  it('should get results', async t => {
     let result
     nvim.emit('request', 'listNames', [], {
       send: res => {
         result = res
       }
     })
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return Array.isArray(result)
     }, true)
   })
 
-  it('should return error when plugin not ready', async () => {
-    let plugin = helper.plugin
+  it('should return error when plugin not ready', async t => {
+    let plugin = getCurrentPlugin()
     Object.assign(plugin, { ready: false })
     let isErr
     nvim.emit('request', 'listNames', [], {
@@ -77,57 +81,59 @@ describe('request', () => {
         isErr = isError
       }
     })
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return isErr
     }, true)
     Object.assign(plugin, { ready: true })
   })
 
-  it('should not throw when plugin method not found', async () => {
+  it('should not throw when plugin method not found', async t => {
     let err
     nvim.emit('request', 'NotExists', [], {
       send: res => {
         err = res
       }
     })
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return typeof err === 'string'
     }, true)
   })
 
-  it('should echo error instead of throw for autocmds request', async () => {
-    let disposable = events.on('CursorHold', async () => {
-      throw new Error('my error')
+  it('should echo error instead of throw for autocmds request', async t => {
+    let called = false
+    let responded = false
+    let fire = events.fire.bind(events)
+    t.mock.method(events, 'fire', (event, args) => {
+      return event === 'CursorHold' ? Promise.reject(new Error('my error')) : fire(event, args)
     })
-    let s = vi.spyOn(events, 'fire').mockImplementation(() => {
-      return Promise.reject(new Error('my error'))
-    })
-    nvim.call('coc#rpc#request', ['CocAutocmd', ['CursorHold', 1, [1, 1]]], true)
-    let spy = vi.spyOn(nvim, 'echoError').mockImplementation(() => {
+    t.mock.method(nvim, 'echoError', () => {
       called = true
     })
-    let called = false
-    await helper.waitValue(() => {
-      return called
-    }, true)
-    disposable.dispose()
-    s.mockRestore()
-    spy.mockRestore()
+    try {
+      nvim.emit('request', 'CocAutocmd', ['CursorHold', 1, [1, 1]], {
+        send: () => {
+          responded = true
+        }
+      })
+      await shared.waitValue(() => called && responded, true)
+    } finally {
+      t.mock.restoreAll()
+    }
   })
 })
 
 describe('attach', () => {
-  it('should not throw on event handler error', async () => {
-    events.on('CursorHold', () => {
+  it('should not throw on event handler error', async t => {
+    disposables.push(events.on('CursorHold', () => {
       throw new Error('error')
-    })
+    }))
     let called = false
     nvim.emit('request', 'CocAutocmd', ['CursorHold'], {
       send: () => {
         called = true
       }
     })
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return called
     }, true)
   })

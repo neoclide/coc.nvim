@@ -1,56 +1,53 @@
 'use strict'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, it } from 'node:test'
 import { QueryCache } from '../../mcp/tools/queryCache'
+import assert from 'node:assert/strict'
 
 describe('mcp QueryCache', () => {
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
-  it('returns cached values within the ttl', () => {
-    vi.useFakeTimers()
+  it('returns cached values within the ttl', t => {
+    t.mock.timers.enable()
     let cache = new QueryCache<string>({ maxEntries: 10, ttlMs: 1000 })
     cache.set('a', '1')
-    expect(cache.get('a')).toBe('1')
-    vi.advanceTimersByTime(500)
-    expect(cache.get('a')).toBe('1')
-    expect(cache.size).toBe(1)
+    assert.strictEqual(cache.get('a'), '1')
+    t.mock.timers.tick(500)
+    assert.strictEqual(cache.get('a'), '1')
+    assert.strictEqual(cache.size, 1)
   })
 
   it('returns undefined for a missing key', () => {
     let cache = new QueryCache<string>({ maxEntries: 10, ttlMs: 1000 })
-    expect(cache.get('missing')).toBeUndefined()
-    expect(cache.size).toBe(0)
+    assert.strictEqual(cache.get('missing'), undefined)
+    assert.strictEqual(cache.size, 0)
   })
 
-  it('drops entries after the ttl', () => {
-    vi.useFakeTimers()
+  it('drops entries after the ttl', t => {
+    t.mock.timers.enable()
     let cache = new QueryCache<string>({ maxEntries: 10, ttlMs: 1000 })
     cache.set('a', '1')
-    vi.advanceTimersByTime(1001)
-    expect(cache.get('a')).toBeUndefined()
-    expect(cache.size).toBe(0)
+    t.mock.timers.tick(1001)
+    assert.strictEqual(cache.get('a'), undefined)
+    assert.strictEqual(cache.size, 0)
   })
 
-  it('expires exactly at the ttl boundary', () => {
-    vi.useFakeTimers()
+  it('expires exactly at the ttl boundary', t => {
+    t.mock.timers.enable()
     let cache = new QueryCache<string>({ maxEntries: 10, ttlMs: 1000 })
     cache.set('a', '1')
-    vi.advanceTimersByTime(1000)
-    expect(cache.get('a')).toBeUndefined()
-    expect(cache.size).toBe(0)
+    t.mock.timers.tick(1000)
+    assert.strictEqual(cache.get('a'), undefined)
+    assert.strictEqual(cache.size, 0)
   })
 
-  it('evicts the least recently used entry when full', () => {
-    vi.useFakeTimers()
+  it('evicts the least recently used entry when full', t => {
+    t.mock.timers.enable()
     let cache = new QueryCache<string>({ maxEntries: 2, ttlMs: 1000 })
     cache.set('a', '1')
     cache.set('b', '2')
     cache.get('a')
     cache.set('c', '3')
-    expect(cache.get('a')).toBe('1')
-    expect(cache.get('b')).toBeUndefined()
-    expect(cache.get('c')).toBe('3')
+    assert.strictEqual(cache.get('a'), '1')
+    assert.strictEqual(cache.get('b'), undefined)
+    assert.strictEqual(cache.get('c'), '3')
   })
 
   it('re-inserting a key refreshes recency and value', () => {
@@ -59,9 +56,9 @@ describe('mcp QueryCache', () => {
     cache.set('b', '2')
     cache.set('a', '3')
     cache.set('c', '4')
-    expect(cache.get('b')).toBeUndefined()
-    expect(cache.get('a')).toBe('3')
-    expect(cache.get('c')).toBe('4')
+    assert.strictEqual(cache.get('b'), undefined)
+    assert.strictEqual(cache.get('a'), '3')
+    assert.strictEqual(cache.get('c'), '4')
   })
 
   it('deleteUri removes only entries of that document', () => {
@@ -71,17 +68,17 @@ describe('mcp QueryCache', () => {
     cache.set(key('file:///a', 'definition', 2), 'a2')
     cache.set(key('file:///ab', 'hover', 1), 'ab')
     cache.deleteUri('file:///a')
-    expect(cache.size).toBe(1)
-    expect(cache.get(key('file:///ab', 'hover', 1))).toBe('ab')
-    expect(cache.get(key('file:///a', 'hover', 1))).toBeUndefined()
+    assert.strictEqual(cache.size, 1)
+    assert.strictEqual(cache.get(key('file:///ab', 'hover', 1)), 'ab')
+    assert.strictEqual(cache.get(key('file:///a', 'hover', 1)), undefined)
   })
 
   it('deleteUri is a no-op for an unknown document', () => {
     let cache = new QueryCache<string>({ maxEntries: 10, ttlMs: 1000 })
     cache.set('file:///a\u0000hover', 'a1')
     cache.deleteUri('file:///b')
-    expect(cache.size).toBe(1)
-    expect(cache.get('file:///a\u0000hover')).toBe('a1')
+    assert.strictEqual(cache.size, 1)
+    assert.strictEqual(cache.get('file:///a\u0000hover'), 'a1')
   })
 
   it('clear removes all entries', () => {
@@ -89,21 +86,21 @@ describe('mcp QueryCache', () => {
     cache.set('a', '1')
     cache.set('b', '2')
     cache.clear()
-    expect(cache.size).toBe(0)
-    expect(cache.get('a')).toBeUndefined()
+    assert.strictEqual(cache.size, 0)
+    assert.strictEqual(cache.get('a'), undefined)
   })
 
   it('dispose clears the cache', () => {
     let cache = new QueryCache<string>({ maxEntries: 10, ttlMs: 1000 })
     cache.set('a', '1')
     cache.dispose()
-    expect(cache.size).toBe(0)
-    expect(cache.get('a')).toBeUndefined()
+    assert.strictEqual(cache.size, 0)
+    assert.strictEqual(cache.get('a'), undefined)
   })
 
   it('handles a non-positive entry limit without looping', () => {
     let cache = new QueryCache<string>({ maxEntries: -1, ttlMs: 1000 })
     cache.set('a', '1')
-    expect(cache.size).toBe(0)
+    assert.strictEqual(cache.size, 0)
   })
 })

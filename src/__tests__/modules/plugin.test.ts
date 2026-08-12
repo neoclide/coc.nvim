@@ -1,12 +1,15 @@
+import { getCurrentPlugin } from '../../attach'
+import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
 import * as ts from 'typescript'
 import * as vsTypes from 'vscode-languageserver-types'
 import * as exportObj from '../../index'
-import Plugin from '../../plugin'
+import type Plugin from '../../plugin'
 import workspace from '../../workspace'
-import helper from '../helper'
+import { before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 interface TypingEnumMember {
   name: string
@@ -70,35 +73,26 @@ function parseEnumMembers(node: ts.EnumDeclaration): TypingEnumMember[] {
 
 let nvim: Neovim
 let plugin: Plugin
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-  plugin = helper.plugin
-})
-
-afterAll(async () => {
-  await helper.shutdown()
-})
-
-afterEach(async () => {
-  await helper.reset()
+before(async () => {
+  nvim = workspace.nvim
+  plugin = getCurrentPlugin()
 })
 
 describe('Plugin', () => {
-  it('should check hasAction', () => {
-    expect(plugin.hasAction('NOT_EXISTS')).toBe(false)
-    expect(plugin.hasAction('rename')).toBe(true)
+  it('should check hasAction', t => {
+    assert.strictEqual(plugin.hasAction('NOT_EXISTS'), false)
+    assert.strictEqual(plugin.hasAction('rename'), true)
   })
 
-  it('should throw when action exists', () => {
-    expect(() => {
+  it('should throw when action exists', t => {
+    assert.throws(() => {
       plugin.addAction('rename', () => {})
-    }).toThrow(Error)
+    }, Error)
   })
 })
 
 describe('exports', () => {
-  it('should exports all types from vscode-languageserver-types', () => {
+  it('should exports all types from vscode-languageserver-types', t => {
     // TODO: LanguageKind added in 3.18, we didn't use this yet
     // TODO: CodeActionTag added in 3.18, but prpoposed
     const excludes = [
@@ -109,24 +103,27 @@ describe('exports', () => {
     ]
     let list: string[] = []
     for (let key of Object.keys(vsTypes)) {
+      // 'default' is the ESM/CJS interop artifact of the coc-pkg shim, not
+      // a real vscode-languageserver-types export.
+      if (key === 'default') continue
       if (typeof exportObj[key] === 'undefined' && !excludes.includes(key)) {
         list.push(key)
       }
     }
-    expect(list.length).toBe(0)
+    assert.strictEqual(list.length, 0)
     for (let key of ['InlineCompletionItem', 'InlineCompletionContext', 'EOL', 'ExtensionType']) {
-      expect(exportObj[key]).toBeDefined()
+      assert.notStrictEqual(exportObj[key], undefined)
     }
   })
 })
 
 describe('typings declarations', () => {
-  let typingsPath = path.resolve(__dirname, '../../../typings/index.d.ts')
+  let typingsPath = path.resolve(import.meta.dirname, '../../../typings/index.d.ts')
   let sf = ts.createSourceFile(typingsPath, fs.readFileSync(typingsPath, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
   let block = getTypingsModuleBlock(sf)
 
-  it('should match runtime exports and enum values', () => {
-    expect(block).toBeDefined()
+  it('should match runtime exports and enum values', t => {
+    assert.notStrictEqual(block, undefined)
     let valueNames = new Set<string>()
     let enums = new Map<string, TypingEnumMember[]>()
     let nsMembers = new Map<string, Set<string>>()
@@ -150,23 +147,23 @@ describe('typings declarations', () => {
       return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(k) && !k.startsWith('__') && k !== 'default'
     })
     let missingInTypings = runtimeNames.filter(k => !valueNames.has(k))
-    expect(missingInTypings).toEqual([])
+    assert.deepStrictEqual(missingInTypings, [])
     let missingAtRuntime = [...valueNames].filter(n => !Object.prototype.hasOwnProperty.call(exportObj, n))
-    expect(missingAtRuntime).toEqual([])
+    assert.deepStrictEqual(missingAtRuntime, [])
     for (let [name, members] of enums) {
       let runtimeEnum = exportObj[name]
       if (typeof runtimeEnum !== 'object' || runtimeEnum === null) continue
       let declaredMembers = new Set([...members.map(m => m.name), ...(nsMembers.get(name) || [])])
       for (let m of members) {
-        expect(m.name in runtimeEnum, `${name}.${m.name} missing at runtime`).toBe(true)
+        assert.ok(m.name in runtimeEnum, `${name}.${m.name} missing at runtime`)
         if (m.value !== undefined) {
-          expect(runtimeEnum[m.name]).toBe(m.value)
+          assert.strictEqual(runtimeEnum[m.name], m.value)
         }
       }
       for (let key of Object.keys(runtimeEnum)) {
         if (/^\d+$/.test(key)) continue
         if (typeof runtimeEnum[key] === 'function') continue
-        expect(declaredMembers.has(key)).toBe(true)
+        assert.strictEqual(declaredMembers.has(key), true)
       }
     }
     // namespace value members should exist on the runtime object
@@ -175,35 +172,35 @@ describe('typings declarations', () => {
       let runtimeNs = exportObj[name]
       if (typeof runtimeNs !== 'object' || runtimeNs === null) continue
       for (let member of members) {
-        expect(member in runtimeNs, `${name}.${member} missing at runtime`).toBe(true)
+        assert.ok(member in runtimeNs, `${name}.${member} missing at runtime`)
       }
     }
   })
 })
 
 describe('help tags', () => {
-  it('should return jumpable', async () => {
-    let jumpable = await helper.plugin.cocAction('snippetCheck', false, true)
-    expect(jumpable).toBe(false)
+  it('should return jumpable', async t => {
+    let jumpable = await getCurrentPlugin().cocAction('snippetCheck', false, true)
+    assert.strictEqual(jumpable, false)
   })
 
-  it('should show CocInfo', async () => {
-    await helper.doAction('showInfo')
+  it('should show CocInfo', async t => {
+    await shared.doAction('showInfo')
     let line = await nvim.line
-    expect(line).toMatch('version')
+    assert.match(line, new RegExp('version'))
   })
 
-  it('should ensure current document created', async () => {
+  it('should ensure current document created', async t => {
     await nvim.command('tabe tmp.js')
-    let res = await helper.plugin.cocAction('ensureDocument')
-    expect(res).toBe(true)
+    let res = await getCurrentPlugin().cocAction('ensureDocument')
+    assert.strictEqual(res, true)
     let bufnr = await nvim.call('bufnr', ['%']) as number
     let doc = workspace.getDocument(bufnr)
-    expect(doc).toBeDefined()
+    assert.notStrictEqual(doc, undefined)
   })
 
-  it('should get related information', async () => {
-    let res = await helper.plugin.cocAction('diagnosticRelatedInformation')
-    expect(res).toEqual([])
+  it('should get related information', async t => {
+    let res = await getCurrentPlugin().cocAction('diagnosticRelatedInformation')
+    assert.deepStrictEqual(res, [])
   })
 })

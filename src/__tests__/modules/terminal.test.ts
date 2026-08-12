@@ -1,61 +1,63 @@
+import workspace from '../../workspace'
+import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
-import helper from '../helper'
 import { TerminalModel } from '../../model/terminal'
+import { after, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let terminal: TerminalModel
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
+before(async () => {
+  nvim = workspace.nvim
   terminal = new TerminalModel('sh', [], nvim)
-  await terminal.start(__dirname, { COC_TERMINAL: `option '-term'` })
+  await terminal.start(import.meta.dirname, { COC_TERMINAL: `option '-term'` })
 })
 
-afterAll(async () => {
+after(() => {
   terminal.dispose()
-  await helper.shutdown()
 })
 
 describe('terminal properties', () => {
-  it('should get name', () => {
+  it('should get name', t => {
     let name = terminal.name
-    expect(name).toBe('sh')
+    assert.strictEqual(name, 'sh')
   })
 
-  it('should have correct cwd and env', async () => {
+  it('should have correct cwd and env', async t => {
     let bufnr = terminal.bufnr
     terminal.sendText('echo $PWD')
-    await helper.waitFor('eval', [`join(getbufline(${bufnr},1,'$'),'\n')`], /\S/)
+    await shared.waitFor('eval', [`join(getbufline(${bufnr},1,'$'),'\n')`], /\S/)
     let lines = await nvim.call('getbufline', [bufnr, 1, '$']) as string[]
-    expect(lines[0].trim().length).toBeGreaterThan(0)
+    assert.ok(lines[0].trim().length > 0)
     terminal.sendText('echo $COC_TERMINAL')
-    await helper.waitFor('eval', [`join(getbufline(${bufnr},1,'$'),'\n')`], /option '-term'/)
+    await shared.waitFor('eval', [`join(getbufline(${bufnr},1,'$'),'\n')`], /option '-term'/)
     lines = await nvim.call('getbufline', [bufnr, 1, '$']) as string[]
-    expect(lines.includes(`option '-term'`)).toBe(true)
+    assert.strictEqual(lines.includes(`option '-term'`), true)
     terminal.onExit(-1)
   })
 
-  it('should get pid', async () => {
+  it('should get pid', async t => {
     let pid = await terminal.processId
-    expect(typeof pid).toBe('number')
+    assert.strictEqual(typeof pid, 'number')
   })
 
-  it('should hide terminal window', async () => {
+  it('should hide terminal window', async t => {
     await terminal.hide()
     let winnr = await nvim.call('bufwinnr', terminal.bufnr)
-    expect(winnr).toBe(-1)
+    assert.strictEqual(winnr, -1)
   })
 
-  it('should show terminal window', async () => {
+  it('should show terminal window', async t => {
     await terminal.show()
     let winnr = await nvim.call('bufwinnr', terminal.bufnr)
-    expect(winnr != -1).toBe(true)
+    assert.strictEqual(winnr != -1, true)
   })
 
-  it('should  not throw when not shown', async () => {
+  it('should  not throw when not shown', async t => {
     let terminal = new TerminalModel('sh', [], nvim)
+    t.after(() => terminal.dispose())
     terminal.sendText('text')
-    await terminal.start(__dirname, {})
+    await terminal.start(import.meta.dirname, {})
     await terminal.show()
     await terminal.show()
   })

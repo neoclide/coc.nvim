@@ -1,6 +1,5 @@
-import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Command, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
-import { TextDocument } from 'vscode-languageserver-textdocument'
+import { getCurrentPlugin } from '../../attach'
+import * as shared from '../sharedUtil'
 import commands from '../../commands'
 import ActionsHandler, { shouldAutoApply } from '../../handler/codeActions'
 import languages, { ProviderName } from '../../languages'
@@ -10,21 +9,21 @@ import { disposeAll } from '../../util'
 import { rangeInRange } from '../../util/position'
 import window from '../../window'
 import workspace from '../../workspace'
-import helper from '../helper'
+import { Neovim } from '@chemzqm/neovim'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Command, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
+import { afterEach, before, beforeEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+
 
 let nvim: Neovim
 let disposables: Disposable[] = []
 let codeActions: ActionsHandler
 let currActions: (CodeAction | Command)[]
 let resolvedAction: CodeAction
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-  codeActions = helper.plugin.getHandler().codeActions
-})
-
-afterAll(async () => {
-  await helper.shutdown()
+before(async () => {
+  nvim = workspace.nvim
+  codeActions = getCurrentPlugin().getHandler().codeActions
 })
 
 beforeEach(async () => {
@@ -44,38 +43,37 @@ beforeEach(async () => {
 
 afterEach(async () => {
   disposeAll(disposables)
-  await helper.reset()
 })
 
 describe('handler codeActions', () => {
   describe('autoApply', () => {
-    it('should check auto apply', async () => {
-      expect(shouldAutoApply(undefined)).toBe(false)
-      expect(shouldAutoApply([])).toBe(false)
-      expect(shouldAutoApply([CodeActionKind.Refactor])).toBe(false)
+    it('should check auto apply', async t => {
+      assert.strictEqual(shouldAutoApply(undefined), false)
+      assert.strictEqual(shouldAutoApply([]), false)
+      assert.strictEqual(shouldAutoApply([CodeActionKind.Refactor]), false)
     })
   })
 
   describe('organizeImport', () => {
-    it('should filter command', () => {
+    it('should filter command', t => {
       let cmd = Command.create('title', 'command')
       let res = checkAction([CodeActionKind.Refactor], cmd)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
       res = checkAction(undefined, cmd)
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
     })
 
-    it('should return false when organize import action not found', async () => {
+    it('should return false when organize import action not found', async t => {
       currActions = []
-      let doc = await helper.createDocument()
-      expect(languages.hasProvider(ProviderName.CodeAction, doc)).toBe(true)
-      let res = await helper.doAction('organizeImport')
-      expect(res).toBe(false)
-      expect(languages.hasProvider('undefined' as any, doc)).toBe(false)
+      let doc = await shared.createDocument()
+      assert.strictEqual(languages.hasProvider(ProviderName.CodeAction, doc), true)
+      let res = await shared.doAction('organizeImport')
+      assert.strictEqual(res, false)
+      assert.strictEqual(languages.hasProvider('undefined' as any, doc), false)
     })
 
-    it('should perform organize import action', async () => {
-      let doc = await helper.createDocument()
+    it('should perform organize import action', async t => {
+      let doc = await shared.createDocument()
       await doc.buffer.setLines(['foo', 'bar'], { start: 0, end: -1, strictIndexing: false })
       let edits: TextEdit[] = []
       edits.push(TextEdit.replace(Range.create(0, 0, 0, 3), 'bar'))
@@ -85,11 +83,11 @@ describe('handler codeActions', () => {
       currActions = [action, CodeAction.create('another action'), Command.create('title', 'command')]
       await codeActions.organizeImport()
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar', 'foo'])
+      assert.deepStrictEqual(lines, ['bar', 'foo'])
     })
 
-    it('should register editor.action.organizeImport command', async () => {
-      let doc = await helper.createDocument()
+    it('should register editor.action.organizeImport command', async t => {
+      let doc = await shared.createDocument()
       currActions = []
       await commands.executeCommand('editor.action.organizeImport')
       await doc.buffer.setLines(['foo', 'bar'], { start: 0, end: -1, strictIndexing: false })
@@ -101,40 +99,40 @@ describe('handler codeActions', () => {
       currActions = [action, CodeAction.create('another action')]
       await commands.executeCommand('editor.action.organizeImport')
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar', 'foo'])
+      assert.deepStrictEqual(lines, ['bar', 'foo'])
     })
   })
 
   describe('codeActionRange', () => {
-    it('should show warning when no action available', async () => {
-      await helper.createDocument()
+    it('should show warning when no action available', async t => {
+      await shared.createDocument()
       currActions = []
-      await helper.doAction('codeActionRange', 1, 2, CodeActionKind.QuickFix)
-      let line = await helper.getCmdline()
-      expect(line).toMatch(/No quickfix code action/)
-      await helper.doAction('codeActionRange', 1, 2)
-      line = await helper.getCmdline()
-      expect(line).toMatch(/No code action available/)
+      await shared.doAction('codeActionRange', 1, 2, CodeActionKind.QuickFix)
+      let line = await shared.getCmdline()
+      assert.match(line, /No quickfix code action/)
+      await shared.doAction('codeActionRange', 1, 2)
+      line = await shared.getCmdline()
+      assert.match(line, /No code action available/)
     })
 
-    it('should apply chosen action', async () => {
-      let doc = await helper.createDocument()
+    it('should apply chosen action', async t => {
+      let doc = await shared.createDocument()
       let edits: TextEdit[] = []
       edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
       let edit = { changes: { [doc.uri]: edits } }
       let action = CodeAction.create('code fix', edit, CodeActionKind.QuickFix)
       currActions = [action]
       let p = codeActions.codeActionRange(1, 2, CodeActionKind.QuickFix)
-      await helper.waitPrompt()
+      await shared.waitPrompt()
       await nvim.input('<CR>')
       await p
       let buf = nvim.createBuffer(doc.bufnr)
       let lines = await buf.lines
-      expect(lines[0]).toBe('bar')
+      assert.strictEqual(lines[0], 'bar')
     })
 
-    it('should show command tooltip in code action menu', async () => {
-      await helper.createDocument()
+    it('should show command tooltip in code action menu', async t => {
+      await shared.createDocument()
       disposables.push(commands.registerCommand('cmd.fix', () => {}))
       disposables.push(commands.registerCommand('cmd.refactor', () => {}))
       currActions = [{
@@ -146,27 +144,27 @@ describe('handler codeActions', () => {
         kind: CodeActionKind.Refactor,
         command: { title: 'refactor', command: 'cmd.refactor', tooltip: 'do the refactor' }
       }]
-      let p = helper.doAction('codeAction', undefined)
-      await helper.waitPrompt()
-      let win = await helper.getFloat()
-      expect(win).toBeDefined()
-      let lines = await helper.getWinLines(win.id)
-      expect(lines.join('\n')).toMatch(/fix - apply the fix/)
-      expect(lines.join('\n')).toMatch(/refactor - do the refactor/)
+      let p = shared.doAction('codeAction', undefined)
+      await shared.waitPrompt()
+      let win = await shared.getFloat()
+      assert.notStrictEqual(win, undefined)
+      let lines = await shared.getWinLines(win.id)
+      assert.match(lines.join('\n'), /fix - apply the fix/)
+      assert.match(lines.join('\n'), /refactor - do the refactor/)
       await nvim.input('<cr>')
       await p
     })
   })
 
   describe('getCodeActions', () => {
-    it('should get empty actions', async () => {
+    it('should get empty actions', async t => {
       currActions = []
-      let doc = await helper.createDocument()
+      let doc = await shared.createDocument()
       let res = await codeActions.getCodeActions(doc)
-      expect(res.length).toBe(0)
+      assert.strictEqual(res.length, 0)
     })
 
-    it('should not filter disabled actions', async () => {
+    it('should not filter disabled actions', async t => {
       currActions = []
       let action = CodeAction.create('foo', CodeActionKind.Source)
       currActions.push(action)
@@ -175,13 +173,13 @@ describe('handler codeActions', () => {
       action = CodeAction.create('bar', CodeActionKind.QuickFix)
       action.disabled = { reason: 'disabled' }
       currActions.push(action)
-      let doc = await helper.createDocument()
+      let doc = await shared.createDocument()
       let res = await codeActions.getCodeActions(doc, Range.create(0, 0, 1, 0))
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
 
-    it('should get all actions', async () => {
-      let doc = await helper.createDocument()
+    it('should get all actions', async t => {
+      let doc = await shared.createDocument()
       await doc.buffer.setLines(['', '', ''], { start: 0, end: -1, strictIndexing: false })
       let action = CodeAction.create('curr action', CodeActionKind.Empty)
       currActions = [action]
@@ -202,12 +200,12 @@ describe('handler codeActions', () => {
         },
       }, undefined))
       let res = await codeActions.getCodeActions(doc)
-      expect(range).toEqual(Range.create(0, 0, 3, 0))
-      expect(res.length).toBe(5)
+      assert.deepStrictEqual(range, Range.create(0, 0, 3, 0))
+      assert.strictEqual(res.length, 5)
     })
 
-    it('should filter actions by range', async () => {
-      let doc = await helper.createDocument()
+    it('should filter actions by range', async t => {
+      let doc = await shared.createDocument()
       await doc.buffer.setLines(['', '', ''], { start: 0, end: -1, strictIndexing: false })
       currActions = []
       let range: Range
@@ -223,18 +221,18 @@ describe('handler codeActions', () => {
         },
       }, undefined))
       let res = await codeActions.getCodeActions(doc, Range.create(0, 0, 0, 0))
-      expect(range).toEqual(Range.create(0, 0, 0, 0))
-      expect(res.length).toBe(1)
+      assert.deepStrictEqual(range, Range.create(0, 0, 0, 0))
+      assert.strictEqual(res.length, 1)
     })
 
-    it('should filter actions by kind prefix', async () => {
-      let doc = await helper.createDocument()
+    it('should filter actions by kind prefix', async t => {
+      let doc = await shared.createDocument()
       let action = CodeAction.create('my action', CodeActionKind.SourceFixAll)
       currActions = [action]
       let res = await codeActions.getCodeActions(doc, undefined, [CodeActionKind.Source])
-      expect(res.length).toBe(1)
-      expect(res[0].kind).toBe(CodeActionKind.SourceFixAll)
-      await helper.doAction('fixAll')
+      assert.strictEqual(res.length, 1)
+      assert.strictEqual(res[0].kind, CodeActionKind.SourceFixAll)
+      await shared.doAction('fixAll')
     })
   })
 
@@ -253,43 +251,43 @@ describe('handler codeActions', () => {
       }, undefined))
     })
 
-    it('should get codeActions by line', async () => {
+    it('should get codeActions by line', async t => {
       currActions = []
-      await helper.createDocument()
-      let res = await helper.doAction('codeActions', 'line')
-      expect(range).toEqual(Range.create(0, 0, 1, 0))
-      expect(res.length).toBe(3)
+      await shared.createDocument()
+      let res = await shared.doAction('codeActions', 'line')
+      assert.deepStrictEqual(range, Range.create(0, 0, 1, 0))
+      assert.strictEqual(res.length, 3)
     })
 
-    it('should get codeActions by cursor', async () => {
+    it('should get codeActions by cursor', async t => {
       currActions = []
-      await helper.createDocument()
+      await shared.createDocument()
       let res = await codeActions.getCurrentCodeActions('cursor')
-      expect(range).toEqual(Range.create(0, 0, 0, 0))
-      expect(res.length).toBe(3)
+      assert.deepStrictEqual(range, Range.create(0, 0, 0, 0))
+      assert.strictEqual(res.length, 3)
     })
 
-    it('should get codeActions by visual mode', async () => {
+    it('should get codeActions by visual mode', async t => {
       currActions = []
-      await helper.createDocument()
+      await shared.createDocument()
       await nvim.setLine('foo')
       await nvim.command('normal! 0v$')
       await nvim.input('<esc>')
       let res = await codeActions.getCurrentCodeActions('v')
-      expect(range).toEqual(Range.create(0, 0, 0, 3))
-      expect(res.length).toBe(3)
+      assert.deepStrictEqual(range, Range.create(0, 0, 0, 3))
+      assert.strictEqual(res.length, 3)
     })
   })
 
   describe('doCodeAction', () => {
-    it('should not throw when no action exists', async () => {
+    it('should not throw when no action exists', async t => {
       currActions = []
-      await helper.createDocument()
-      await helper.doAction('codeAction', undefined)
+      await shared.createDocument()
+      await shared.doAction('codeAction', undefined)
     })
 
-    it('should apply single code action when only is title', async () => {
-      let doc = await helper.createDocument()
+    it('should apply single code action when only is title', async t => {
+      let doc = await shared.createDocument()
       let edits: TextEdit[] = []
       edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
       let edit = { changes: { [doc.uri]: edits } }
@@ -297,11 +295,11 @@ describe('handler codeActions', () => {
       currActions = [action]
       await codeActions.doCodeAction(undefined, 'code fix')
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar'])
+      assert.deepStrictEqual(lines, ['bar'])
     })
 
-    it('should apply single code action when only is QuickFix', async () => {
-      let doc = await helper.createDocument()
+    it('should apply single code action when only is QuickFix', async t => {
+      let doc = await shared.createDocument()
       let edits: TextEdit[] = []
       edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
       let edit = { changes: { [doc.uri]: edits } }
@@ -309,11 +307,11 @@ describe('handler codeActions', () => {
       currActions = [action]
       await codeActions.doCodeAction(undefined, [CodeActionKind.QuickFix])
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar'])
+      assert.deepStrictEqual(lines, ['bar'])
     })
 
-    it('should show disabled code action', async () => {
-      let doc = await helper.createDocument()
+    it('should show disabled code action', async t => {
+      let doc = await shared.createDocument()
       let edits: TextEdit[] = []
       edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
       let edit = { changes: { [doc.uri]: edits } }
@@ -322,42 +320,42 @@ describe('handler codeActions', () => {
       let fixAction = CodeAction.create('code fix', edit, CodeActionKind.QuickFix)
       currActions = [refactorAction, fixAction]
       let p = codeActions.doCodeAction(undefined, undefined, true)
-      let winid = await helper.waitFloat()
+      let winid = await shared.waitFloat()
       let win = nvim.createWindow(winid)
       let buf = await win.buffer
       let lines = await buf.lines
-      expect(lines.length).toBe(2)
-      expect(lines[1]).toMatch(/code refactor/)
+      assert.strictEqual(lines.length, 2)
+      assert.match(lines[1], /code refactor/)
       await nvim.input('2')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('j')
       await nvim.input('<cr>')
-      await helper.waitValue(async () => {
-        let cmdline = await helper.getCmdline()
+      await shared.waitValue(async () => {
+        let cmdline = await shared.getCmdline()
         return cmdline.includes('invalid position')
       }, true)
       await nvim.input('<esc>')
       await p
     })
 
-    it('should action dialog to choose action', async () => {
-      let doc = await helper.createDocument()
+    it('should action dialog to choose action', async t => {
+      let doc = await shared.createDocument()
       let edits: TextEdit[] = []
       edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
       let edit = { changes: { [doc.uri]: edits } }
       let action = CodeAction.create('code fix', edit, CodeActionKind.QuickFix)
       currActions = [action, CodeAction.create('foo')]
       let promise = codeActions.doCodeAction(null, undefined)
-      await helper.waitFloat()
+      await shared.waitFloat()
       let ids = await nvim.call('coc#float#get_float_win_list') as number[]
-      expect(ids.length).toBeGreaterThan(0)
+      assert.ok(ids.length > 0)
       await nvim.input('<CR>')
       await promise
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar'])
+      assert.deepStrictEqual(lines, ['bar'])
     })
 
-    it('should choose code actions by range', async () => {
+    it('should choose code actions by range', async t => {
       let range: Range
       disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
         provideCodeActions: (
@@ -369,15 +367,15 @@ describe('handler codeActions', () => {
           return [CodeAction.create('my title'), CodeAction.create('b'), CodeAction.create('c')]
         },
       }, undefined))
-      await helper.createDocument()
+      await shared.createDocument()
       await nvim.setLine('abc')
       await nvim.command('normal! 0v$')
       await nvim.input('<esc>')
       await codeActions.doCodeAction('v', 'my title')
-      expect(range).toEqual({ start: { line: 0, character: 0 }, end: { line: 0, character: 3 } })
+      assert.deepStrictEqual(range, { start: { line: 0, character: 0 }, end: { line: 0, character: 3 } })
     })
 
-    it('should filter by provider kinds', async () => {
+    it('should filter by provider kinds', async t => {
       currActions = []
       disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
         provideCodeActions: () => {
@@ -386,10 +384,10 @@ describe('handler codeActions', () => {
       }, undefined, [CodeActionKind.QuickFix]))
       let doc = await workspace.document
       let res = await languages.getCodeActions(doc.textDocument, Range.create(0, 0, 1, 1), { only: [CodeActionKind.Refactor], diagnostics: [] }, CancellationToken.None)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
     })
 
-    it('should filter by codeAction kind', async () => {
+    it('should filter by codeAction kind', async t => {
       currActions = []
       disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
         provideCodeActions: () => {
@@ -405,67 +403,64 @@ describe('handler codeActions', () => {
       }, undefined))
       let doc = await workspace.document
       let res = await languages.getCodeActions(doc.textDocument, Range.create(0, 0, 1, 1), { only: [CodeActionKind.QuickFix], diagnostics: [] }, CancellationToken.None)
-      expect(res.length).toBe(1)
+      assert.strictEqual(res.length, 1)
       let resolved = await languages.resolveCodeAction(res[0], CancellationToken.None)
-      expect(resolved).toBeDefined()
-      await expect(codeActions.doCodeAction(null, 'command', true)).rejects.toThrow(Error)
+      assert.notStrictEqual(resolved, undefined)
+      await assert.rejects(codeActions.doCodeAction(null, 'command', true), Error)
       await codeActions.doCodeAction(null, 'cmd', true)
-      let line = await helper.getCmdline()
-      expect(line).toMatch('No cmd code action')
+      let line = await shared.getCmdline()
+      assert.match(line, new RegExp('No cmd code action'))
     })
 
-    it('should use quickpick', async () => {
-      helper.updateConfiguration('coc.preferences.floatActions', false)
+    it('should use quickpick', async t => {
+      shared.updateConfiguration('coc.preferences.floatActions', false)
       currActions = [CodeAction.create('foo', CodeActionKind.QuickFix), CodeAction.create('bar', CodeActionKind.QuickFix)]
-      let spy = vi.spyOn(window.dialogs, 'requestInputList').mockReturnValue(Promise.resolve(0))
+      let spy = t.mock.method(window.dialogs, 'requestInputList', () => Promise.resolve(0))
       let action
-      let s = vi.spyOn(codeActions, 'applyCodeAction').mockImplementation((a, _token) => {
+      let s = t.mock.method(codeActions, 'applyCodeAction', (a, _token) => {
         action = a
         return Promise.resolve()
       })
       await codeActions.doCodeAction(null, undefined)
-      s.mockRestore()
-      spy.mockRestore()
-      expect(action).toBeDefined()
-      expect(action.title).toBe('foo')
-      helper.updateConfiguration('coc.preferences.floatActions', true)
+      assert.notStrictEqual(action, undefined)
+      assert.strictEqual(action.title, 'foo')
+      shared.updateConfiguration('coc.preferences.floatActions', true)
     })
 
-    it('should show kind in code action menu (#5288)', async () => {
-      helper.updateConfiguration('coc.preferences.floatActions', false)
+    it('should show kind in code action menu (#5288)', async t => {
+      shared.updateConfiguration('coc.preferences.floatActions', false)
       currActions = [
         CodeAction.create('Move to file', CodeActionKind.RefactorExtract + '.move.file'),
         CodeAction.create('Quick fix', CodeActionKind.QuickFix),
         CodeAction.create('plain')
       ]
       let items: string[] = []
-      let spy = vi.spyOn(window.dialogs, 'requestInputList').mockImplementation((_title, list) => {
+      let spy = t.mock.method(window.dialogs, 'requestInputList', (_title, list) => {
         items = list as string[]
         return Promise.resolve(0)
       })
       await codeActions.doCodeAction(null, undefined)
-      spy.mockRestore()
       // menu items show the top-level kind; order is provider-defined
-      expect(items).toContain('Move to file [refactor]')
-      expect(items).toContain('Quick fix [quickfix]')
+      assert.ok(items.includes('Move to file [refactor]'))
+      assert.ok(items.includes('Quick fix [quickfix]'))
       // no kind -> unchanged
-      expect(items).toContain('plain')
-      expect(items).toHaveLength(3)
-      helper.updateConfiguration('coc.preferences.floatActions', true)
+      assert.ok(items.includes('plain'))
+      assert.strictEqual(items.length, 3)
+      shared.updateConfiguration('coc.preferences.floatActions', true)
     })
   })
 
   describe('doQuickfix', () => {
-    it('should show message when quickfix action does not exist', async () => {
+    it('should show message when quickfix action does not exist', async t => {
       currActions = []
-      await helper.createDocument()
-      await helper.doAction('doQuickfix')
-      let msg = await helper.getCmdline()
-      expect(msg).toMatch('No quickfix')
+      await shared.createDocument()
+      await shared.doAction('doQuickfix')
+      let msg = await shared.getCmdline()
+      assert.match(msg, new RegExp('No quickfix'))
     })
 
-    it('should do preferred quickfix action', async () => {
-      let doc = await helper.createDocument()
+    it('should do preferred quickfix action', async t => {
+      let doc = await shared.createDocument()
       let edits: TextEdit[] = []
       edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
       let edit = { changes: { [doc.uri]: edits } }
@@ -474,13 +469,13 @@ describe('handler codeActions', () => {
       currActions = [CodeAction.create('foo', CodeActionKind.QuickFix), action, CodeAction.create('bar')]
       await codeActions.doQuickfix()
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar'])
+      assert.deepStrictEqual(lines, ['bar'])
     })
   })
 
   describe('applyCodeAction', () => {
-    it('should resolve codeAction', async () => {
-      let doc = await helper.createDocument()
+    it('should resolve codeAction', async t => {
+      let doc = await shared.createDocument()
       let edits: TextEdit[] = []
       edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
       let edit = { changes: { [doc.uri]: edits } }
@@ -488,37 +483,37 @@ describe('handler codeActions', () => {
       action.isPreferred = true
       currActions = [action]
       resolvedAction = Object.assign({ edit }, action)
-      let arr = await helper.doAction('quickfixes', 'line')
+      let arr = await shared.doAction('quickfixes', 'line')
       await commands.executeCommand('editor.action.doCodeAction', arr[0])
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar'])
+      assert.deepStrictEqual(lines, ['bar'])
     })
 
-    it('should not throw when resolved action is null', async () => {
-      await helper.createDocument()
+    it('should not throw when resolved action is null', async t => {
+      await shared.createDocument()
       let edits: TextEdit[] = []
       edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
       let action = CodeAction.create('code fix', CodeActionKind.QuickFix)
       action.isPreferred = true
       currActions = [action]
       resolvedAction = null
-      let arr = await helper.doAction('quickfixes', 'line')
+      let arr = await shared.doAction('quickfixes', 'line')
       await commands.executeCommand('editor.action.doCodeAction', arr[0])
     })
 
-    it('should throw for disabled action', async () => {
+    it('should throw for disabled action', async t => {
       let action: any = CodeAction.create('my action', CodeActionKind.Empty)
       action.disabled = { reason: 'disabled', providerId: 'x' }
-      await expect(helper.doAction('doCodeAction', action)).rejects.toThrow(Error)
+      await assert.rejects(shared.doAction('doCodeAction', action), Error)
     })
 
-    it('should invoke registered command after apply edit', async () => {
+    it('should invoke registered command after apply edit', async t => {
       let called
       disposables.push(commands.registerCommand('test.execute', async (s: string) => {
         called = s
         await nvim.command(s)
       }))
-      let doc = await helper.createDocument()
+      let doc = await shared.createDocument()
       let edits: TextEdit[] = []
       edits.push(TextEdit.insert(Position.create(0, 0), 'bar'))
       let edit = { changes: { [doc.uri]: edits } }
@@ -532,14 +527,14 @@ describe('handler codeActions', () => {
       let arr = await codeActions.getCurrentCodeActions('line', [CodeActionKind.QuickFix])
       await codeActions.applyCodeAction(arr[0])
       let lines = await doc.buffer.lines
-      expect(lines).toEqual(['bar'])
-      expect(called).toBe('normal! $')
+      assert.deepStrictEqual(lines, ['bar'])
+      assert.strictEqual(called, 'normal! $')
     })
   })
 
-  it('should execute code action with timeout', async () => {
+  it('should execute code action with timeout', async t => {
     disposeAll(disposables)
-    let doc = await helper.createDocument('t.js')
+    let doc = await shared.createDocument('t.js')
     let called = false
     disposables.push(languages.registerCodeActionProvider([{ language: '*' }], {
       provideCodeActions: (
@@ -567,11 +562,11 @@ describe('handler codeActions', () => {
     let action = CodeAction.create('fix all', undefined, CodeActionKind.SourceFixAll)
     currActions = [action]
     let res = await codeActions.executeCodeActions(doc, undefined, [CodeActionKind.SourceFixAll], 50)
-    expect(res).toEqual([])
-    expect(called).toBe(true)
+    assert.deepStrictEqual(res, [])
+    assert.strictEqual(called, true)
   })
 
-  it('should execute organizeImport code action', async () => {
+  it('should execute organizeImport code action', async t => {
     let doc = await workspace.document
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo')])
     let action = CodeAction.create('organize import', undefined, CodeActionKind.SourceOrganizeImports)
@@ -582,8 +577,8 @@ describe('handler codeActions', () => {
     obj.edit = { changes: { [doc.uri]: edits } }
     resolvedAction = obj
     let res = await codeActions.executeCodeActions(doc, undefined, [CodeActionKind.SourceOrganizeImports], 50)
-    expect(res).toEqual([CodeActionKind.SourceOrganizeImports])
+    assert.deepStrictEqual(res, [CodeActionKind.SourceOrganizeImports])
     let line = doc.getline(0)
-    expect(line).toBe('bar')
+    assert.strictEqual(line, 'bar')
   })
 })
