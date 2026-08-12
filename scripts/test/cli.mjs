@@ -88,7 +88,8 @@ if (values.coverage && !values.list) {
 // V8 coverage must be on before any unit worker thread starts, otherwise the
 // worker's profiler connection never initializes and its coverage is empty.
 // Raw coverage files copied here by node:test are gitignored; the merged
-// report is what coverage/lcov.info is built from.
+// report is what coverage/lcov.info is built from, and the raw directory is
+// removed once that report has been written.
 if (values.coverage) {
   process.env.NODE_V8_COVERAGE = path.join(projectRoot, '.cache', 'coc-test', 'coverage')
   await fs.mkdir(process.env.NODE_V8_COVERAGE, {recursive: true})
@@ -289,6 +290,9 @@ if (values.coverage) {
   writeLcov(toLcov(Array.from(merged.values())))
   printCoverageSummary(Array.from(merged.values()), totals)
   console.log(`coverage report written to ${path.join('coverage', 'lcov.info')}`)
+  // The raw V8 coverage JSONs are only needed while building the summary
+  // above, so remove them instead of leaving them to accumulate in .cache.
+  await fs.rm(process.env.NODE_V8_COVERAGE, {recursive: true, force: true})
 }
 if (finalFailures.length > 0) {
   console.error(`\n${red('Failures')} (${finalFailures.length}):`)

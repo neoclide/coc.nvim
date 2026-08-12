@@ -1,17 +1,4 @@
-// Synchronous module customization hooks (node:module registerHooks, Node >=
-// 22.9) backed exclusively by code compiled asynchronously in the main
-// process before execution:
-// - each child process or unit worker asynchronously requests only its assigned
-//   test entries and dependency closures over its parent IPC channel;
-// - the execution endpoint passes those records and its optional editor kind
-//   explicitly to initializeTestHooks();
-// - every import of a coc.nvim src module is routed to the editor-runtime
-//   bundle file (`.cache/coc-test/bundle.js`, built once by the parent and
-//   required directly — never rebuilt here), so plugin/workspace/window/...
-//   singletons stay identical across the whole test process without
-//   rewriting imports.
-//
-// The bundle object is bound on `globalThis.__cocBundle` by ensureBundle().
+'use strict'
 import {builtinModules, createRequire, registerHooks} from 'node:module'
 import {fileURLToPath, pathToFileURL} from 'node:url'
 import {threadId} from 'node:worker_threads'
@@ -25,11 +12,13 @@ const require = createRequire(import.meta.url)
 const TEST_TS_RE = new RegExp(
   `^file://${projectRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/src/__tests__/.*\\.ts$`
 )
+const sessionKey = 'coc-test/edit_session'
 const editorSessionPath = path.join(projectRoot, 'scripts', 'test', 'editor-session.mjs')
 const compiled = new Map()
 let initialized = false
 
 function setupTestEnvironment(editor) {
+  if (globalThis.__TEST__ !== undefined) return
   globalThis.__TEST__ = true
   if (editor === 'vim') process.env.VIM_NODE_RPC = '1'
   else delete process.env.VIM_NODE_RPC
@@ -49,15 +38,7 @@ function setupTestEnvironment(editor) {
   process.env.NVIM_LOG_FILE = path.join(dataHome, 'nvim.log')
 }
 
-let bundleObj = globalThis.__cocBundle
-function ensureBundle() {
-  if (bundleObj) return bundleObj
-  if (!fs.existsSync(bundleFile)) {
-    throw new Error(`coc-test: editor-runtime bundle not found at ${bundleFile} — run the tests through scripts/test/cli.mjs`)
-  }
-  bundleObj = globalThis.__cocBundle = require(bundleFile)
-  return bundleObj
-}
+let bundleObj = globalThis.__cocBundle = require(bundleFile)
 
 function srcKeyFor(resolved) {
   const rel = path.relative(projectRoot, resolved)
@@ -83,14 +64,13 @@ export function initializeTestHooks(records, editor) {
   initialized = true
   for (const record of records) compiled.set(record.url, record)
   setupTestEnvironment(editor)
-  ensureBundle()
   registerTestHooks()
 }
 
 function registerTestHooks() {
   registerHooks({
     resolve(specifier, context, nextResolve) {
-      if (specifier === 'coc-test/edit_session') {
+      if (specifier === sessionKey) {
         return {url: 'coc-test:edit_session', shortCircuit: true}
       }
       if (specifier.startsWith('coc-bundle:')) {

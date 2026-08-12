@@ -1,9 +1,7 @@
 'use strict'
-
 import {run} from 'node:test'
-import fs from 'node:fs'
-import path from 'node:path'
 import {projectRoot} from './paths.mjs'
+import {initializeTestHooks} from './bundle-hooks.mjs'
 
 process.once('message', message => {
   if (message?.type !== 'run') return
@@ -16,7 +14,6 @@ process.once('message', message => {
 async function main(options) {
   const {file, editor, coverage, testNamePattern, shardTimeoutMs, testTimeout} = options
   const records = await requestCompiledRecords([file])
-  const {initializeTestHooks} = await import('./bundle-hooks.mjs')
   initializeTestHooks(records, editor)
   const abort = new AbortController()
   const timeoutTimer = setTimeout(() => abort.abort(), shardTimeoutMs)

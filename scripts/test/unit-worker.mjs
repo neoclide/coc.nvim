@@ -1,10 +1,10 @@
 'use strict'
-
 import {run} from 'node:test'
 import fs from 'node:fs'
 import path from 'node:path'
 import {parentPort, workerData} from 'node:worker_threads'
 import {projectRoot} from './paths.mjs'
+import {initializeTestHooks} from './bundle-hooks.mjs'
 
 const {files, coverage, testNamePattern, shardTimeoutMs, testTimeout} = workerData
 const requestedFiles = new Set(files)
@@ -38,7 +38,6 @@ function serializeData(data) {
 
 async function main() {
   const records = await requestCompiledRecords(files)
-  const {initializeTestHooks} = await import('./bundle-hooks.mjs')
   initializeTestHooks(records)
   const abort = new AbortController()
   const timeoutTimer = setTimeout(() => abort.abort(), shardTimeoutMs)
