@@ -4,6 +4,7 @@ import cp, { ChildProcess } from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { PassThrough } from 'stream'
 import { CancellationToken, DidCreateFilesNotification, Disposable, ErrorCodes, InlayHintRequest, LSPErrorCodes, MessageType, ResponseError, Trace, WorkDoneProgress } from 'vscode-languageserver-protocol'
 import { IPCMessageReader, IPCMessageWriter } from 'vscode-languageserver-protocol/node'
 import { MarkupKind, Range } from 'vscode-languageserver-types'
@@ -19,6 +20,7 @@ import { Registry } from '../../util/registry'
 import window from '../../window'
 import workspace from '../../workspace'
 import { afterEach, describe, it } from 'node:test'
+import { createEventServer } from './server/inProcessEventServer'
 
 let disposables: Disposable[] = []
 
@@ -37,6 +39,21 @@ async function testLanguageServer(serverOptions: lsclient.ServerOptions, clientO
   assert.notStrictEqual(client.initializeResult, undefined)
   assert.strictEqual(client.started, true)
   return client
+}
+
+/**
+ * Starts the event server in-process over a duplex stream pair (see
+ * inProcessEventServer.ts) instead of forking a child process. Only for
+ * tests exercising client<->server RPC; process-lifetime tests (restart,
+ * exit, transports) keep real child servers.
+ */
+function inProcessEventServer(): lsclient.ServerOptions {
+  return async () => {
+    let serverInput = new PassThrough()
+    let serverOutput = new PassThrough()
+    createEventServer(serverInput, serverOutput)
+    return { reader: serverOutput, writer: serverInput }
+  }
 }
 
 /**
@@ -159,11 +176,7 @@ describe('global functions', () => {
 describe('Client events', () => {
   it('should start server', async t => {
     let clientOptions: lsclient.LanguageClientOptions = {}
-    let serverModule = path.join(import.meta.dirname, './server/eventServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      module: serverModule,
-      transport: lsclient.TransportKind.ipc
-    }
+    let serverOptions: lsclient.ServerOptions = inProcessEventServer()
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     disposables.push(client)
     await client.start()
@@ -223,11 +236,7 @@ describe('Client events', () => {
 
   it('should register events before server start', async t => {
     let clientOptions: lsclient.LanguageClientOptions = {}
-    let serverModule = path.join(import.meta.dirname, './server/eventServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      module: serverModule,
-      transport: lsclient.TransportKind.ipc
-    }
+    let serverOptions: lsclient.ServerOptions = inProcessEventServer()
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     let name = client.getExtensionName()
     assert.strictEqual(name, 'html')
@@ -260,11 +269,7 @@ describe('Client events', () => {
       synchronize: {},
       initializationOptions: { initEvent: true }
     }
-    let serverModule = path.join(import.meta.dirname, './server/eventServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      module: serverModule,
-      transport: lsclient.TransportKind.stdio
-    }
+    let serverOptions: lsclient.ServerOptions = inProcessEventServer()
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     disposables.push(client)
     await client.start()
@@ -294,11 +299,7 @@ describe('Client events', () => {
       synchronize: {},
       initializationOptions: { initEvent: true }
     }
-    let serverModule = path.join(import.meta.dirname, './server/eventServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      module: serverModule,
-      transport: lsclient.TransportKind.stdio
-    }
+    let serverOptions: lsclient.ServerOptions = inProcessEventServer()
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     let called = false
     client.onNotification('progressResult', res => {
@@ -361,11 +362,7 @@ describe('Client events', () => {
     let clientOptions: lsclient.LanguageClientOptions = {
       synchronize: {},
     }
-    let serverModule = path.join(import.meta.dirname, './server/eventServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      module: serverModule,
-      transport: lsclient.TransportKind.stdio
-    }
+    let serverOptions: lsclient.ServerOptions = inProcessEventServer()
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     assert.strictEqual(client.hasPendingResponse, undefined)
     disposables.push(client)
@@ -435,17 +432,12 @@ describe('Client events', () => {
         }
       }
     }
-    let serverModule = path.join(import.meta.dirname, './server/eventServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      module: serverModule,
-      transport: lsclient.TransportKind.stdio
-    }
+    let serverOptions: lsclient.ServerOptions = inProcessEventServer()
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     let uri = URI.file(import.meta.filename)
     await client.start()
     await client.sendNotification('showDocument', { uri: uri.toString() })
     await shared.waitValue(() => called, true)
-    await client.restart()
     await client.stop()
   })
 })
@@ -694,11 +686,7 @@ describe('Client integration', () => {
 
   it('should register features', async t => {
     let features: StaticFeature[] = []
-    let serverModule = path.join(import.meta.dirname, './server/eventServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      command: 'node',
-      args: [serverModule, '--stdio']
-    }
+    let serverOptions: lsclient.ServerOptions = inProcessEventServer()
     let clientOptions: lsclient.LanguageClientOptions = {
       documentSelector: ['css'],
       initializationOptions: {}
@@ -764,10 +752,7 @@ describe('Client integration', () => {
       dispose: () => {}
     }
     shared.updateConfiguration('css.trace.server.verbosity', 'verbose', disposables)
-    let serverOptions: lsclient.ServerOptions = {
-      command: 'node',
-      args: [path.join(import.meta.dirname, './server/eventServer.js'), '--stdio']
-    }
+    let serverOptions: lsclient.ServerOptions = inProcessEventServer()
     let client = await testLanguageServer(serverOptions, {
       outputChannel,
       initializationOptions: { trace: true }
@@ -777,11 +762,7 @@ describe('Client integration', () => {
   })
 
   it('should use console for messages', async t => {
-    let serverModule = path.join(import.meta.dirname, './server/eventServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      command: 'node',
-      args: [serverModule, '--stdio']
-    }
+    let serverOptions: lsclient.ServerOptions = inProcessEventServer()
     let client = await testLanguageServer(serverOptions)
     let fn = t.mock.fn()
     t.mock.method(console, 'log', () => {
@@ -807,11 +788,7 @@ describe('Client integration', () => {
       documentSelector: [{ scheme: 'file' }],
       initializationOptions: {},
     }
-    let serverModule = path.join(import.meta.dirname, './server/eventServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      module: serverModule,
-      transport: lsclient.TransportKind.stdio,
-    }
+    let serverOptions: lsclient.ServerOptions = inProcessEventServer()
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     let res
     client.onNotification('result', p => {
@@ -831,11 +808,7 @@ describe('Client integration', () => {
     let clientOptions: lsclient.LanguageClientOptions = {
       initializationOptions: {},
     }
-    let serverModule = path.join(import.meta.dirname, './server/eventServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      module: serverModule,
-      transport: lsclient.TransportKind.stdio,
-    }
+    let serverOptions: lsclient.ServerOptions = inProcessEventServer()
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     let res
     client.onNotification('result', p => {

@@ -313,6 +313,7 @@ describe('ExtensionManager', () => {
       await shared.waitValue(() => ext.isActive, true)
       assert.strictEqual(ext.isActive, true)
       ext = await createExtension(manager, 'onFileSystem:zip')
+      await shared.waitValue(() => ext.isActive, true)
       assert.strictEqual(ext.isActive, true)
     })
   })
