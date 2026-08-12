@@ -1,5 +1,6 @@
+import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
-import { nvim } from '../sharedUtil'
+import { Neovim } from '@chemzqm/neovim'
 import events from '../../events'
 import FloatFactoryImpl from '../../model/floatFactory'
 import snippetManager from '../../snippets/manager'
@@ -7,8 +8,10 @@ import { Documentation } from '../../types'
 import { afterEach, before, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
+let nvim: Neovim
 let floatFactory: FloatFactoryImpl
 before(async () => {
+  nvim = workspace.nvim
   floatFactory = new FloatFactoryImpl(nvim)
 })
 

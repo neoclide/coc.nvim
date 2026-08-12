@@ -1,6 +1,7 @@
+import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
-import { nvim } from '../sharedUtil'
 process.env.COC_NO_PLUGINS = '1'
+import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -12,10 +13,14 @@ import { InstallBuffer, InstallChannel } from '../../extension/ui'
 import { disposeAll } from '../../util'
 import { loadJson, writeJson } from '../../util/fs'
 import window from '../../window'
-import { afterEach, describe, it } from 'node:test'
+import { afterEach, before, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
 let disposables: Disposable[] = []
+let nvim: Neovim
+before(async () => {
+  nvim = workspace.nvim
+})
 
 afterEach(() => {
   disposeAll(disposables)

@@ -1,8 +1,14 @@
+import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
-import { nvim } from '../sharedUtil'
+import { Neovim } from '@chemzqm/neovim'
 import OutputChannel from '../../model/outputChannel'
-import { describe, test } from 'node:test'
+import { before, describe, test } from 'node:test'
 import assert from 'node:assert/strict'
+
+let nvim: Neovim
+before(async () => {
+  nvim = workspace.nvim
+})
 
 describe('OutputChannel', () => {
   test('without nvim', t => {

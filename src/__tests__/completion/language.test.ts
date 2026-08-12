@@ -1,5 +1,5 @@
+import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
-import { nvim } from '../sharedUtil'
 import commandManager from '../../commands'
 import completion from '../../completion'
 import { fixIndent, fixTextEdit, getUltisnipOption } from '../../completion/source-language'
@@ -11,13 +11,18 @@ import { CompletionItemProvider } from '../../provider'
 import snippetManager from '../../snippets/manager'
 import { disposeAll } from '../../util'
 import window from '../../window'
+import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CompletionTriggerKind, Disposable } from 'vscode-languageserver-protocol'
 import { ApplyKind, CompletionItem, CompletionItemApplyKinds, CompletionItemKind, CompletionList, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
-import { afterEach, describe, it } from 'node:test'
+import { afterEach, before, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
 
+let nvim: Neovim
 let disposables: Disposable[] = []
+before(async () => {
+  nvim = workspace.nvim
+})
 
 afterEach(async () => {
   disposeAll(disposables)

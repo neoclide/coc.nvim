@@ -1,13 +1,14 @@
+import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
-import { nvim } from '../sharedUtil'
 import BasicList from '../../list/basic'
 import events from '../../events'
 import manager from '../../list/manager'
 import { ListItem, IList, ListTask } from '../../list/types'
 import { disposeAll } from '../../util'
+import { Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import { Disposable } from 'vscode-languageserver-protocol'
-import { afterEach, describe, it } from 'node:test'
+import { afterEach, before, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
 
@@ -55,7 +56,11 @@ class SlowTask extends EventEmitter implements ListTask {
   }
 }
 
+let nvim: Neovim
 let disposables: Disposable[] = []
+before(async () => {
+  nvim = workspace.nvim
+})
 
 afterEach(async () => {
   disposeAll(disposables)
