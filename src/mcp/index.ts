@@ -197,7 +197,7 @@ class McpService implements Disposable {
    * or when it was running before a coc.nvim restart (`:CocRestart`), whose
    * started state is kept in a vim variable.
    */
-  public async init(started: boolean = false): Promise<void> {
+  public async init(started = false): Promise<void> {
     if (started) {
       await this.start(true)
     } else {
