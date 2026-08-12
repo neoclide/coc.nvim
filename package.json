@@ -17,7 +17,7 @@
     "watch": "node esbuild.js --watch",
     "test": "node scripts/test/cli.mjs",
     "test:unit": "node scripts/test/cli.mjs --unit",
-    "test:coverage": "node --enable-source-maps --experimental-test-coverage scripts/test/cli.mjs -j 2 --coverage",
+    "test:coverage": "node --enable-source-maps --experimental-test-coverage scripts/test/cli.mjs -j 4 --coverage",
     "prepare": "node esbuild.js"
   },
   "repository": {
