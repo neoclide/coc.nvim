@@ -242,7 +242,7 @@ export async function writeBundleFiles() {
   const signature = bundleSignature(modules, packages)
   try {
     if (fs.readFileSync(hashFile, 'utf8') === signature &&
-        fs.existsSync(bundleFile) && fs.existsSync(bundleFile + '.map')) {
+      fs.existsSync(bundleFile) && fs.existsSync(bundleFile + '.map')) {
       return {
         cached: true,
         moduleCount: modules.length,

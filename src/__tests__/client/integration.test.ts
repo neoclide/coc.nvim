@@ -337,11 +337,7 @@ describe('Client events', () => {
       },
       initializationOptions: { initEvent: true }
     }
-    let serverModule = path.join(import.meta.dirname, './server/eventServer.js')
-    let serverOptions: lsclient.ServerOptions = {
-      module: serverModule,
-      transport: lsclient.TransportKind.stdio
-    }
+    let serverOptions: lsclient.ServerOptions = inProcessEventServer()
     let client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
     disposables.push(client)
     throwError = true
@@ -837,11 +833,7 @@ describe('Client integration', () => {
           maxRestartCount: 1
         }
       }
-      let serverModule = path.join(import.meta.dirname, './server/eventServer.js')
-      let serverOptions: lsclient.ServerOptions = {
-        module: serverModule,
-        transport: lsclient.TransportKind.ipc,
-      }
+      let serverOptions: lsclient.ServerOptions = inProcessEventServer()
       client = new lsclient.LanguageClient('html', 'Test Language Server', serverOptions, clientOptions)
       await client.start()
       return client
