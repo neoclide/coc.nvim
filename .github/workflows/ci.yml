@@ -24,10 +24,6 @@ jobs:
             vim: "nightly"
         node:
           - "24"
-        include:
-          # only enable coverage on the fastest job
-          - node: "24"
-            ENABLE_CODE_COVERAGE: true
 
     env:
       NODE_ENV: test
@@ -80,12 +76,13 @@ jobs:
         env:
           VIM_COMMAND: ${{ steps.vim.outputs.executable }}
           NVIM_COMMAND: ${{ steps.nvim.outputs.executable }}
+          COVERAGE_ARGS: ${{ matrix.versions.neovim == 'stable' && '--coverage' || '' }}
         run: |
-          node --enable-source-maps --experimental-test-coverage scripts/test/cli.mjs -j 2 --coverage
+          node --enable-source-maps --experimental-test-coverage scripts/test/cli.mjs -j 2 $COVERAGE_ARGS
 
       - name: Codecov
         uses: codecov/codecov-action@v6
-        if: ${{ matrix.ENABLE_CODE_COVERAGE }}
+        if: matrix.versions.neovim == 'stable'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
