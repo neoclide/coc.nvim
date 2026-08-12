@@ -11,6 +11,22 @@ import {writeBundleFiles} from './bundle.mjs'
 import {TestCompiler} from './compiler.mjs'
 import {runProcessPool} from './process-pool.mjs'
 
+// Per-run on-disk V8 compile cache for every child/worker. The multi-megabyte
+// runtime bundle is required by all of them, so compiling it once per run
+// saves real wall time. A fresh directory per run keeps concurrent writers
+// (or a killed run) from corrupting entries used by later runs; Node 24+
+// supports the variable, older versions ignore it silently.
+const compileCacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-compile-cache-'))
+
+// Remove the per-run cache on exit (normal completion or early exits like
+// --list), so /tmp never accumulates compile-cache directories.
+let compileCacheRemoved = false
+process.once('exit', () => {
+  if (compileCacheRemoved) return
+  compileCacheRemoved = true
+  fs.rmSync(compileCacheDir, {recursive: true, force: true})
+})
+
 // Read once in the main process; every worker/editor child receives the
 // source with its compiled records instead of re-reading editor-session.mjs
 // from disk.
@@ -177,9 +193,24 @@ function runEditorProcess(
   {coverage, testNamePattern, forceExit, shardTimeoutMs, testTimeout, onProgress, onFailure, onOutput}
 ) {
   return new Promise((resolve, reject) => {
+    // The child's own 20s shard timeout aborts node:test, but a test stuck on
+    // an nvim RPC promise can keep the child alive past that; bound the whole
+    // file with a parent-side kill so the pool slot is never leaked forever.
+    const killTimer = setTimeout(() => {
+      if (settled) return
+      // detached: true gives the child its own process group, so a negative
+      // pid also terminates the nvim/vim process it spawned.
+      try {
+        process.kill(-child.pid, 'SIGTERM')
+      } catch {
+        child.kill('SIGTERM')
+      }
+    }, shardTimeoutMs + 10_000)
+    killTimer.unref?.()
     const child = fork(new URL('./editor-worker.mjs', import.meta.url), [], {
       cwd: projectRoot,
-      env: {...process.env},
+      detached: true,
+      env: {...process.env, NODE_COMPILE_CACHE: compileCacheDir},
       execArgv: ['--enable-source-maps'],
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     })
@@ -191,11 +222,16 @@ function runEditorProcess(
     const finish = (fn, value) => {
       if (settled) return
       settled = true
+      clearTimeout(killTimer)
       signal.removeEventListener('abort', onAbort)
       fn(value)
     }
     const onAbort = () => {
-      child.kill()
+      try {
+        process.kill(-child.pid, 'SIGTERM')
+      } catch {
+        child.kill('SIGTERM')
+      }
     }
     if (signal.aborted) onAbort()
     else signal.addEventListener('abort', onAbort, {once: true})
@@ -353,7 +389,7 @@ function runUnitWorker(
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./unit-worker.mjs', import.meta.url), {
       workerData: {files, coverage, testNamePattern, shardTimeoutMs, testTimeout},
-      env: {...process.env},
+      env: {...process.env, NODE_COMPILE_CACHE: compileCacheDir},
     })
     let result
     worker.on('message', message => {

@@ -1,6 +1,7 @@
 'use strict'
 
 import {build} from 'esbuild'
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import {createRequire} from 'node:module'
@@ -8,6 +9,11 @@ import {fileURLToPath, pathToFileURL} from 'node:url'
 import {bundleFile, projectRoot} from './paths.mjs'
 
 const require = createRequire(import.meta.url)
+const esbuildVersion = JSON.parse(fs.readFileSync(require.resolve('esbuild/package.json'), 'utf8')).version
+
+// Bump when the bundle build options below change in a way that alters the
+// output (entry shape, plugins, sourcemap handling, ...).
+const BUNDLE_SIGNATURE_VERSION = 1
 
 function collectSrcModules() {
   const files = []
@@ -201,6 +207,27 @@ function fixCoverageSourceMap() {
 }
 
 /**
+ * Content signature of every input that determines the bundle output: the
+ * exported src module list, the bundled package list, esbuild's own version
+ * and the config version. The bundle is only rebuilt when this changes, so
+ * repeated test runs reuse the cached bundle.js (+ fixed map).
+ */
+function bundleSignature(modules, packages) {
+  const hash = crypto.createHash('sha256')
+  hash.update(`${BUNDLE_SIGNATURE_VERSION}\n`)
+  hash.update(`${esbuildVersion}\n`)
+  for (const mod of modules) {
+    hash.update(`${mod}\0`)
+    hash.update(fs.readFileSync(path.join(projectRoot, mod + '.ts')))
+    hash.update('\0')
+  }
+  for (const pkg of packages) {
+    hash.update(`pkg:${pkg}\0`)
+  }
+  return hash.digest('hex')
+}
+
+/**
  * Builds the editor-runtime bundle exactly ONCE and writes it to
  * `.cache/coc-test/bundle.js` (+ bundle.js.map): every src module is lazily
  * exported under its full repository path, so requiring it has no side
@@ -211,6 +238,22 @@ function fixCoverageSourceMap() {
 export async function writeBundleFiles() {
   const modules = collectSrcModules()
   const packages = collectPackages()
+  const hashFile = bundleFile + '.hash'
+  const signature = bundleSignature(modules, packages)
+  try {
+    if (fs.readFileSync(hashFile, 'utf8') === signature &&
+        fs.existsSync(bundleFile) && fs.existsSync(bundleFile + '.map')) {
+      return {
+        cached: true,
+        moduleCount: modules.length,
+        packageCount: packages.length,
+        packages,
+        durationMs: 0,
+      }
+    }
+  } catch {
+    // Missing or unreadable hash file: rebuild below.
+  }
   const started = performance.now()
   fs.mkdirSync(path.dirname(bundleFile), {recursive: true})
   await build({
@@ -238,7 +281,9 @@ export async function writeBundleFiles() {
     logLevel: 'silent',
   })
   fixCoverageSourceMap()
+  fs.writeFileSync(hashFile, signature)
   return {
+    cached: false,
     moduleCount: modules.length,
     packageCount: packages.length,
     packages,

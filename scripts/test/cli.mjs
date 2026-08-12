@@ -198,39 +198,45 @@ const runnableByLane = Object.fromEntries(lanes.map(lane => [lane, discovered[la
 const allFiles = lanes.flatMap(lane => runnableByLane[lane])
 const reporter = createLiveReporter(allFiles.map(file => file.file))
 
-// Phase 1 — unit tests run first in an isolation:none worker pool using all
-// CPU cores, so they never contend with the heavier editor sessions.
-// Longest-running files are assigned first so the pool drains evenly.
-if (lanes.includes('unit') && runnableByLane.unit.length > 0) {
-  const files = runnableByLane.unit
-    .slice()
-    .sort((a, b) => (timings[b.file] ?? 0) - (timings[a.file] ?? 0))
-    .map(file => file.file)
-  const result = await runLane('unit', {
-    files,
-    jobs: unitJobs,
-    reporter,
-  })
-  await collect('unit', result, files.length)
-}
+// Lanes run concurrently: the unit worker pool uses a few CPU cores while the
+// editor pool mostly waits on nvim/vim RPC, so they overlap without stealing
+// cycles from each other. Both pools assign longest-running files first so
+// slots drain evenly.
+const unitFiles = runnableByLane.unit
+  .slice()
+  .sort((a, b) => (timings[b.file] ?? 0) - (timings[a.file] ?? 0))
+  .map(file => file.file)
+const unitPromise = lanes.includes('unit') && unitFiles.length > 0
+  ? runLane('unit', {
+      files: unitFiles,
+      jobs: unitJobs,
+      reporter,
+    })
+  : Promise.resolve(null)
 
-// Phase 2 — nvim + vim share one rolling child-process pool capped at
-// editorJobs. Each freed slot is filled with the next pending file immediately,
-// so a finished test is replaced on the spot until everything is done.
-// Historically slowest first.
 const editorLanes = lanes.filter(lane => lane !== 'unit')
-if (editorLanes.length > 0) {
-  const editorFiles = editorLanes
-    .flatMap(lane => runnableByLane[lane])
-    .slice()
-    .sort((a, b) => (timings[b.file] ?? 0) - (timings[a.file] ?? 0))
-    .map(file => file.file)
-  if (editorFiles.length > 0) {
-    const result = await runLane(editorLanes[0], {
+const editorFiles = editorLanes
+  .flatMap(lane => runnableByLane[lane])
+  .slice()
+  .sort((a, b) => (timings[b.file] ?? 0) - (timings[a.file] ?? 0))
+  .map(file => file.file)
+const editorPromise = editorLanes.length > 0 && editorFiles.length > 0
+  ? runLane(editorLanes[0], {
       files: editorFiles,
       jobs: editorJobs,
       reporter,
     })
+  : Promise.resolve(null)
+
+// Wait for both phases so a failing pool never orphans the other lane's
+// processes; rethrow the first infrastructure error afterwards.
+const [unitResult, editorResult] = await Promise.allSettled([unitPromise, editorPromise])
+const laneError = [unitResult, editorResult].find(result => result.status === 'rejected')
+if (laneError) throw laneError.reason
+
+if (unitResult.value) await collect('unit', unitResult.value, unitFiles.length)
+if (editorResult.value) {
+  const result = editorResult.value
     // Split the aggregate result back into per-lane summaries from the
     // per-file completion statuses.
     timings = await persistTimings(timings, result)
@@ -259,7 +265,6 @@ if (editorLanes.length > 0) {
     if (values.coverage && result.stats.diagnostics.some(message => /code coverage/i.test(message))) coverageFailed = true
     if (Array.isArray(result.coverage)) coverageSummaries.push(...result.coverage)
     else if (result.coverage) coverageSummaries.push(result.coverage)
-  }
 }
 reporter.finish()
 
