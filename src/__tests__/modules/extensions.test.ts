@@ -1,3 +1,4 @@
+import * as shared from '../sharedUtil'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -10,17 +11,11 @@ import { Disposable, disposeAll } from '../../util'
 import { writeFile, writeJson } from '../../util/fs'
 import window from '../../window'
 import workspace from '../../workspace'
-import helper from '../helper'
+import { afterEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 let tmpfolder: string
 let disposables: Disposable[] = []
-beforeAll(async () => {
-  await helper.setup()
-})
-
-afterAll(async () => {
-  await helper.shutdown()
-})
 
 afterEach(() => {
   if (tmpfolder) {
@@ -31,62 +26,62 @@ afterEach(() => {
 })
 
 describe('extensions', () => {
-  it('should convert url', async () => {
-    expect(toUrl('https://github.com/a/b.git#master')).toBe('https://github.com/a/b')
-    expect(toUrl('https://github.com/a/b.git#main')).toBe('https://github.com/a/b')
-    expect(toUrl('url')).toBe('')
+  it('should convert url', async t => {
+    assert.strictEqual(toUrl('https://github.com/a/b.git#master'), 'https://github.com/a/b')
+    assert.strictEqual(toUrl('https://github.com/a/b.git#main'), 'https://github.com/a/b')
+    assert.strictEqual(toUrl('url'), '')
   })
 
-  it('should have events', async () => {
-    expect(Extensions).toBeDefined()
-    expect(extensions.onDidLoadExtension).toBeDefined()
-    expect(extensions.onDidActiveExtension).toBeDefined()
-    expect(extensions.onDidUnloadExtension).toBeDefined()
-    expect(extensions.schemes).toBeDefined()
-    expect(extensions.createInstaller('npm', 'id')).toBeDefined()
+  it('should have events', async t => {
+    assert.notStrictEqual(Extensions, undefined)
+    assert.notStrictEqual(extensions.onDidLoadExtension, undefined)
+    assert.notStrictEqual(extensions.onDidActiveExtension, undefined)
+    assert.notStrictEqual(extensions.onDidUnloadExtension, undefined)
+    assert.notStrictEqual(extensions.schemes, undefined)
+    assert.notStrictEqual(extensions.createInstaller('npm', 'id'), undefined)
   })
 
-  it('should not throw with addSchemeProperty', async () => {
+  it('should not throw with addSchemeProperty', async t => {
     extensions.addSchemeProperty('', null)
   })
 
-  it('should get update settings', async () => {
+  it('should get update settings', async t => {
     let settings = extensions.getUpdateSettings()
-    expect(settings.updateCheck).toBe('never')
-    expect(settings.updateUIInTab).toBe(false)
-    expect(settings.silentAutoupdate).toBe(true)
+    assert.strictEqual(settings.updateCheck, 'never')
+    assert.strictEqual(settings.updateUIInTab, false)
+    assert.strictEqual(settings.silentAutoupdate, true)
     let config = workspace.getConfiguration('extensions')
     await config.update('updateCheck', 'weekly', ConfigurationUpdateTarget.Global)
     await config.update('updateUIInTab', true, ConfigurationUpdateTarget.Global)
     await config.update('silentAutoupdate', false, ConfigurationUpdateTarget.Global)
     settings = extensions.getUpdateSettings()
-    expect(settings.updateCheck).toBe('weekly')
-    expect(settings.updateUIInTab).toBe(true)
-    expect(settings.silentAutoupdate).toBe(false)
+    assert.strictEqual(settings.updateCheck, 'weekly')
+    assert.strictEqual(settings.updateUIInTab, true)
+    assert.strictEqual(settings.silentAutoupdate, false)
     await config.update('updateCheck', undefined, ConfigurationUpdateTarget.Global)
     await config.update('updateUIInTab', undefined, ConfigurationUpdateTarget.Global)
     await config.update('silentAutoupdate', undefined, ConfigurationUpdateTarget.Global)
   })
 
-  it('should toggle auto update', async () => {
+  it('should toggle auto update', async t => {
     await commands.executeCommand('extensions.toggleAutoUpdate')
     let config = workspace.getConfiguration('extensions')
-    expect(config.get('updateCheck')).toBe('daily')
+    assert.strictEqual(config.get('updateCheck'), 'daily')
     await commands.executeCommand('extensions.toggleAutoUpdate')
     config = workspace.getConfiguration('extensions')
-    expect(config.get('updateCheck')).toBe('never')
+    assert.strictEqual(config.get('updateCheck'), 'never')
     await config.update('extensions.updateCheck', undefined, ConfigurationUpdateTarget.Global)
   })
 
-  it('should get extensions stat', async () => {
+  it('should get extensions stat', async t => {
     process.env.COC_NO_PLUGINS = '1'
     await extensions.globalExtensions()
     let stats = await extensions.getExtensionStates()
-    expect(stats.length).toBe(0)
+    assert.strictEqual(stats.length, 0)
     process.env.COC_NO_PLUGINS = '0'
   })
 
-  it('should add global extensions', async () => {
+  it('should add global extensions', async t => {
     extensions.states.addExtension('foo', '0.0.1')
     extensions.states.addExtension('bar', '0.0.1')
     extensions.modulesFolder = path.join(os.tmpdir(), crypto.randomUUID())
@@ -94,33 +89,33 @@ describe('extensions', () => {
     writeJson(path.join(folder, 'package.json'), { name: 'foo', engines: { coc: '>=0.0.1' } })
     fs.writeFileSync(path.join(folder, 'index.js'), '')
     let res = await extensions.globalExtensions()
-    expect(res.length).toBe(1)
+    assert.strictEqual(res.length, 1)
     fs.rmSync(extensions.modulesFolder, { recursive: true })
     extensions.states.removeExtension('foo')
   })
 
-  it('should has extension', async () => {
+  it('should has extension', async t => {
     let res = extensions.has('test')
-    expect(res).toBe(false)
-    expect(extensions.isActivated('unknown')).toBe(false)
-    let loaded = await helper.doAction('loadedExtensions')
-    expect(loaded).toEqual([])
-    let stats = await helper.doAction('extensionStats')
-    expect(stats).toBeDefined()
+    assert.strictEqual(res, false)
+    assert.strictEqual(extensions.isActivated('unknown'), false)
+    let loaded = await shared.doAction('loadedExtensions')
+    assert.deepStrictEqual(loaded, [])
+    let stats = await shared.doAction('extensionStats')
+    assert.notStrictEqual(stats, undefined)
   })
 
-  it('should load global extensions', async () => {
+  it('should load global extensions', async t => {
     extensions.states.addExtension('foo', '0.0.1')
     let stats = extensions.globalExtensionStats()
-    expect(stats).toEqual([])
+    assert.deepStrictEqual(stats, [])
     extensions.states.removeExtension('foo')
     process.env.COC_NO_PLUGINS = '1'
     stats = extensions.globalExtensionStats()
-    expect(stats).toEqual([])
+    assert.deepStrictEqual(stats, [])
     process.env.COC_NO_PLUGINS = '0'
   })
 
-  it('should load extension stats from runtimepath', () => {
+  it('should load extension stats from runtimepath', t => {
     let f1 = path.join(os.tmpdir(), crypto.randomUUID())
     fs.mkdirSync(f1)
     writeJson(path.join(f1, 'package.json'), { name: 'name', engines: { coc: '>=0.0.1' } })
@@ -131,62 +126,58 @@ describe('extensions', () => {
     fs.writeFileSync(path.join(f2, 'index.js'), '')
     extensions.states.addExtension('folder', '0.0.1')
     let res = extensions.runtimeExtensionStats([f1, f2])
-    expect(res.length).toBe(1)
-    expect(res[0].id).toBe('name')
+    assert.strictEqual(res.length, 1)
+    assert.strictEqual(res[0].id, 'name')
     extensions.states.removeExtension('folder')
     fs.rmSync(f1, { recursive: true, force: true })
     fs.rmSync(f2, { recursive: true, force: true })
   })
 
-  it('should force update extensions', async () => {
-    let spy = vi.spyOn(extensions, 'installExtensions').mockImplementation(() => {
+  it('should force update extensions', async t => {
+    t.mock.method(extensions, 'installExtensions', () => {
       return Promise.resolve()
     })
     await commands.executeCommand('extensions.forceUpdateAll')
-    spy.mockRestore()
   })
 
-  it('should auto update', async () => {
-    let spy = vi.spyOn(extensions.states, 'shouldUpdate').mockImplementation(() => {
+  it('should auto update', async t => {
+    t.mock.method(extensions.states, 'shouldUpdate', () => {
       return true
     })
-    let s = vi.spyOn(extensions, 'updateExtensions').mockImplementation(() => {
+    t.mock.method(extensions, 'updateExtensions', () => {
       return Promise.reject(new Error('error on update'))
     })
     await extensions.activateExtensions()
-    spy.mockRestore()
-    s.mockRestore()
   })
 
-  it('should use absolute path for npm', async () => {
+  it('should use absolute path for npm', async t => {
     let res = extensions.npm
-    expect(path.isAbsolute(res)).toBe(true)
+    assert.strictEqual(path.isAbsolute(res), true)
   })
 
-  it('should not throw when npm not found', async () => {
-    let spy = vi.spyOn(which, 'sync').mockImplementation(() => {
+  it('should not throw when npm not found', async t => {
+    t.mock.method(which, 'sync', () => {
       throw new Error('not executable')
     })
     let res = extensions.npm
-    expect(res).toBeNull()
+    assert.strictEqual(res, null)
     await extensions.updateExtensions()
-    spy.mockRestore()
   })
 
-  it('should get all extensions', () => {
+  it('should get all extensions', t => {
     let list = extensions.all
-    expect(Array.isArray(list)).toBe(true)
+    assert.strictEqual(Array.isArray(list), true)
   })
 
-  it('should call extension API', async () => {
+  it('should call extension API', async t => {
     let fn = async () => {
       await extensions.call('test', 'echo', ['5'])
     }
-    await expect(fn()).rejects.toThrow(Error)
+    await assert.rejects(fn(), Error)
   })
 
-  it('should catch error when installExtensions', async () => {
-    let spy = vi.spyOn(extensions, 'createInstaller').mockImplementation(() => {
+  it('should catch error when installExtensions', async t => {
+    t.mock.method(extensions, 'createInstaller', () => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
@@ -196,19 +187,17 @@ describe('extensions', () => {
         }
       } as any
     })
-    let s = vi.spyOn(extensions.states, 'setLocked').mockImplementation(() => {
+    t.mock.method(extensions.states, 'setLocked', () => {
       throw new Error('my error')
     })
     await extensions.installExtensions(['abc@1.0.0'])
-    spy.mockRestore()
-    s.mockRestore()
   })
 
-  it('should catch error on updateExtensions', async () => {
-    let spy = vi.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
+  it('should catch error on updateExtensions', async t => {
+    t.mock.method(extensions, 'globalExtensionStats', () => {
       return [{ id: 'test' }] as any
     })
-    let s = vi.spyOn(extensions, 'createInstaller').mockImplementation(() => {
+    t.mock.method(extensions, 'createInstaller', () => {
       return {
         on: () => {},
         update: () => {
@@ -216,56 +205,50 @@ describe('extensions', () => {
         }
       } as any
     })
-    await helper.doAction('updateExtensions', true)
-    spy.mockRestore()
-    s.mockRestore()
+    await shared.doAction('updateExtensions', true)
   })
 
-  it('should update enabled extensions', async () => {
-    let spy = vi.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
+  it('should update enabled extensions', async t => {
+    t.mock.method(extensions, 'globalExtensionStats', () => {
       return [{ id: 'test' }, { id: 'global', isLocked: true }, { id: 'disabled', state: 'disabled' }] as any
     })
-    let s = vi.spyOn(extensions, 'createInstaller').mockImplementation(() => {
+    t.mock.method(extensions, 'createInstaller', () => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
         },
         update: async () => {
-          await helper.wait(20)
+          await shared.wait(20)
           return ''
         }
       } as any
     })
     await extensions.updateExtensions(true, true)
-    spy.mockRestore()
-    s.mockRestore()
   })
 
-  it('should update extensions by url', async () => {
-    let spy = vi.spyOn(extensions, 'globalExtensionStats').mockImplementation(() => {
+  it('should update extensions by url', async t => {
+    t.mock.method(extensions, 'globalExtensionStats', () => {
       return [{ id: 'test', exotic: true, uri: 'http://example.com' }] as any
     })
     let called = false
-    let s = vi.spyOn(extensions, 'createInstaller').mockImplementation(() => {
+    t.mock.method(extensions, 'createInstaller', () => {
       return {
         on: (_key, cb) => {
           cb('msg', false)
         },
         update: async url => {
-          await helper.wait(20)
+          await shared.wait(20)
           called = true
-          expect(url).toBe('http://example.com')
+          assert.strictEqual(url, 'http://example.com')
           return ''
         }
       } as any
     })
     await extensions.updateExtensions()
-    expect(called).toBe(true)
-    spy.mockRestore()
-    s.mockRestore()
+    assert.strictEqual(called, true)
   })
 
-  it('should clean unnecessary folders & links', async () => {
+  it('should clean unnecessary folders & links', async t => {
     // create folder and link in modulesFolder
     let folder = path.join(extensions.modulesFolder, 'test')
     let link = path.join(extensions.modulesFolder, 'test-link')
@@ -276,17 +259,17 @@ describe('extensions', () => {
     let extensionFolder = path.join(extensions.modulesFolder, 'foo')
     fs.mkdirSync(extensionFolder, { recursive: true })
     extensions.cleanModulesFolder()
-    expect(fs.existsSync(folder)).toBe(false)
-    expect(fs.existsSync(link)).toBe(false)
+    assert.strictEqual(fs.existsSync(folder), false)
+    assert.strictEqual(fs.existsSync(link), false)
     stats.removeExtension('foo')
-    expect(fs.existsSync(extensionFolder)).toBe(true)
+    assert.strictEqual(fs.existsSync(extensionFolder), true)
     fs.rmSync(extensionFolder, { recursive: true })
   })
 
-  it('should install global extension', async () => {
-    expect(extensions.getExtensionById('coc-omni')).toBeUndefined()
+  it('should install global extension', async t => {
+    assert.strictEqual(extensions.getExtensionById('coc-omni'), undefined)
     let folder = path.join(extensions.modulesFolder, 'coc-omni')
-    let spy = vi.spyOn(extensions, 'createInstaller').mockImplementation(() => {
+    t.mock.method(extensions, 'createInstaller', () => {
       return {
         on: () => {},
         install: async () => {
@@ -298,27 +281,26 @@ describe('extensions', () => {
         }
       } as any
     })
-    await helper.doAction('installExtensions', 'coc-omni')
+    await shared.doAction('installExtensions', 'coc-omni')
     let item = extensions.getExtension('coc-omni')
-    expect(item).toBeDefined()
-    expect(extensions.getExtensionById('coc-omni')).toBeDefined()
-    expect(item.extension.isActive).toBe(true)
-    expect(extensions.isActivated('coc-omni')).toBe(true)
+    assert.notStrictEqual(item, undefined)
+    assert.notStrictEqual(extensions.getExtensionById('coc-omni'), undefined)
+    assert.strictEqual(item.extension.isActive, true)
+    assert.strictEqual(extensions.isActivated('coc-omni'), true)
     let globals = extensions.globalExtensionStats()
-    expect(globals.length).toBe(1)
-    expect((await extensions.getExtensionStates()).length).toBeGreaterThan(0)
-    spy.mockRestore()
-    await helper.doAction('reloadExtension', 'coc-omni')
-    await helper.doAction('deactivateExtension', 'coc-omni')
-    await helper.doAction('activeExtension', 'coc-omni')
-    await helper.doAction('toggleExtension', 'coc-omni')
-    await helper.doAction('uninstallExtension', 'coc-omni')
+    assert.strictEqual(globals.length, 1)
+    assert.ok((await extensions.getExtensionStates()).length > 0)
+    await shared.doAction('reloadExtension', 'coc-omni')
+    await shared.doAction('deactivateExtension', 'coc-omni')
+    await shared.doAction('activeExtension', 'coc-omni')
+    await shared.doAction('toggleExtension', 'coc-omni')
+    await shared.doAction('uninstallExtension', 'coc-omni')
     item = extensions.getExtension('coc-omni')
-    expect(item).toBeUndefined()
+    assert.strictEqual(item, undefined)
   })
 
-  it('should checkRecommendation', async () => {
-    await extensions.checkRecommendation({ name: 'tmp', uri: URI.file(__dirname).toString() })
+  it('should checkRecommendation', async t => {
+    await extensions.checkRecommendation({ name: 'tmp', uri: URI.file(import.meta.dirname).toString() })
     tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
     let folder = path.join(tmpfolder, '.vim')
     fs.mkdirSync(folder, { recursive: true })
@@ -328,38 +310,36 @@ describe('extensions', () => {
     fs.writeFileSync(jsonFile, `{"extensions.recommendations": ["coc-abc", "coc-def"]}`)
     let returnValue
     let calledTimes = 0
-    let spy = vi.spyOn(window, 'showInformationMessage').mockImplementation(() => {
+    t.mock.method(window, 'showInformationMessage', () => {
       calledTimes++
       return Promise.resolve(returnValue)
     })
     disposables.push({
       dispose: () => {
-        spy.mockRestore()
       }
     })
-    await helper.edit(jsonFile)
+    await shared.edit(jsonFile)
     workspace.workspaceFolderControl.addWorkspaceFolder(tmpfolder, true)
-    await helper.waitValue(() => calledTimes, 1)
+    await shared.waitValue(() => calledTimes, 1)
     let called = false
-    let s = vi.spyOn(extensions, 'installExtensions').mockImplementation(() => {
+    t.mock.method(extensions, 'installExtensions', () => {
       called = true
       return Promise.resolve(undefined)
     })
     disposables.push({
       dispose: () => {
-        s.mockRestore()
       }
     })
     returnValue = { index: 1 }
     let uri = URI.file(tmpfolder).toString()
     await extensions.checkRecommendation({ name: 'tmp', uri })
-    expect(called).toBe(true)
+    assert.strictEqual(called, true)
     returnValue = { index: 2 }
     await extensions.checkRecommendation({ name: 'tmp', uri })
-    expect(extensions.states.shouldPrompt(uri)).toBe(false)
+    assert.strictEqual(extensions.states.shouldPrompt(uri), false)
     let curr = calledTimes
     await extensions.checkRecommendation({ name: 'tmp', uri })
-    expect(calledTimes).toBe(curr)
+    assert.strictEqual(calledTimes, curr)
     extensions.states.reset()
   })
 })

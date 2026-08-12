@@ -730,7 +730,7 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
           continue
         }
         const uriStr = resource.toString()
-        let textDocument = workspace.getDocument(uriStr)!.textDocument
+        let textDocument = workspace.getDocument(uriStr)?.textDocument
         if (textDocument !== undefined && matches(textDocument)) {
           this.diagnosticRequestor.pull(textDocument, () => { addToBackgroundIfNeeded(textDocument!) })
         }

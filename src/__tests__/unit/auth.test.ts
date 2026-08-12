@@ -2,7 +2,6 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   createDiscoveryInfo,
   generateToken,
@@ -15,14 +14,16 @@ import {
   writeInstanceFile
 } from '../../mcp/auth'
 import type { DiscoveryInfo } from '../../mcp/auth'
+import { after, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 let dir: string
 
-beforeAll(() => {
+before(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-auth-'))
 })
 
-afterAll(() => {
+after(() => {
   fs.rmSync(dir, { recursive: true, force: true })
 })
 
@@ -31,9 +32,9 @@ describe('mcp auth', () => {
     let previous = process.env.COC_MCP_DIR
     process.env.COC_MCP_DIR = dir
     try {
-      expect(getMcpDir()).toBe(dir)
+      assert.strictEqual(getMcpDir(), dir)
       delete process.env.COC_MCP_DIR
-      expect(getMcpDir()).toContain(path.join('.coc', 'mcp'))
+      assert.ok(getMcpDir().includes(path.join('.coc', 'mcp')))
     } finally {
       if (previous === undefined) delete process.env.COC_MCP_DIR
       else process.env.COC_MCP_DIR = previous
@@ -42,8 +43,8 @@ describe('mcp auth', () => {
 
   it('should generate a 64 char hex token', () => {
     let token = generateToken()
-    expect(token).toMatch(/^[0-9a-f]{64}$/)
-    expect(token).not.toBe(generateToken())
+    assert.match(token, /^[0-9a-f]{64}$/)
+    assert.notStrictEqual(token, generateToken())
   })
 
   it('should support unix socket discovery info', () => {
@@ -53,8 +54,8 @@ describe('mcp auth', () => {
       token: 'token-2',
       pid: process.pid
     })
-    expect(info.socketPath).toBe('/tmp/coc-mcp-test.sock')
-    expect(info.port).toBeUndefined()
+    assert.strictEqual(info.socketPath, '/tmp/coc-mcp-test.sock')
+    assert.strictEqual(info.port, undefined)
   })
 
   it('should write, list and remove per-instance files with cwd info', () => {
@@ -69,16 +70,16 @@ describe('mcp auth', () => {
     })
     writeInstanceFile(info, dir)
     let file = getInstanceFilePath(info.pid, dir)
-    expect(fs.existsSync(file)).toBe(true)
+    assert.strictEqual(fs.existsSync(file), true)
     if (process.platform !== 'win32') {
-      expect(fs.statSync(file).mode & 0o777).toBe(0o600)
+      assert.strictEqual(fs.statSync(file).mode & 0o777, 0o600)
     }
     let instances = listInstances(dir)
-    expect(instances.length).toBe(1)
-    expect(instances[0].cwd).toBe('/tmp/project-a')
-    expect(instances[0].workspaceRoot).toBe('/tmp/project-a')
+    assert.strictEqual(instances.length, 1)
+    assert.strictEqual(instances[0].cwd, '/tmp/project-a')
+    assert.strictEqual(instances[0].workspaceRoot, '/tmp/project-a')
     removeInstanceFile(info.pid, dir)
-    expect(fs.existsSync(file)).toBe(false)
+    assert.strictEqual(fs.existsSync(file), false)
   })
 
   it('should ignore stale instance files whose process is dead', () => {
@@ -94,17 +95,17 @@ describe('mcp auth', () => {
       apiVersion: 38
     }
     writeInstanceFile(stale, dir)
-    expect(listInstances(dir).length).toBe(0)
+    assert.strictEqual(listInstances(dir).length, 0)
   })
 
   it('should return null for invalid discovery files', () => {
     let file = path.join(dir, 'discovery.json')
     fs.writeFileSync(file, '{invalid json')
-    expect(readDiscoveryFile(file)).toBeNull()
+    assert.strictEqual(readDiscoveryFile(file), null)
     fs.writeFileSync(file, JSON.stringify({ version: 2, pid: 1, token: 'x' }))
-    expect(readDiscoveryFile(file)).toBeNull()
+    assert.strictEqual(readDiscoveryFile(file), null)
     fs.writeFileSync(file, JSON.stringify({ version: 1, pid: 'a', token: 'x' }))
-    expect(readDiscoveryFile(file)).toBeNull()
+    assert.strictEqual(readDiscoveryFile(file), null)
     for (let value of [
       { version: 1, pid: 1, token: '', transport: 'tcp', host: 'x', port: 1 },
       { version: 1, pid: 1, token: 'x', transport: 'invalid' },
@@ -113,20 +114,20 @@ describe('mcp auth', () => {
       { version: 1, pid: 1, token: 'x', transport: 'unix' }
     ]) {
       fs.writeFileSync(file, JSON.stringify(value))
-      expect(readDiscoveryFile(file)).toBeNull()
+      assert.strictEqual(readDiscoveryFile(file), null)
     }
-    expect(readDiscoveryFile(path.join(dir, 'missing.json'))).toBeNull()
+    assert.strictEqual(readDiscoveryFile(path.join(dir, 'missing.json')), null)
   })
 
   it('ignores unrelated instance files and missing cleanup targets', () => {
     fs.writeFileSync(path.join(dir, 'unrelated.json'), '{}')
-    expect(listInstances(dir)).toEqual([])
-    expect(() => removeInstanceFile(999999, dir)).not.toThrow()
-    expect(() => removeSocketFile(path.join(dir, 'missing.sock'))).not.toThrow()
+    assert.deepStrictEqual(listInstances(dir), [])
+    assert.doesNotThrow(() => removeInstanceFile(999999, dir))
+    assert.doesNotThrow(() => removeSocketFile(path.join(dir, 'missing.sock')))
   })
 
   it('should return no instances when the MCP directory does not exist', () => {
-    expect(listInstances(path.join(dir, 'missing-directory'))).toEqual([])
+    assert.deepStrictEqual(listInstances(path.join(dir, 'missing-directory')), [])
   })
 
   it('should ignore instance file write errors', () => {
@@ -139,7 +140,7 @@ describe('mcp auth', () => {
       token: 'token',
       pid: process.pid
     })
-    expect(() => writeInstanceFile(info, notDirectory)).not.toThrow()
-    expect(fs.existsSync(getInstanceFilePath(process.pid, notDirectory))).toBe(false)
+    assert.doesNotThrow(() => writeInstanceFile(info, notDirectory))
+    assert.strictEqual(fs.existsSync(getInstanceFilePath(process.pid, notDirectory)), false)
   })
 })

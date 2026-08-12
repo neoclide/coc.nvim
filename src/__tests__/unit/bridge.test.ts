@@ -4,12 +4,13 @@ import crypto from 'crypto'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { afterAll, describe, expect, it } from 'vitest'
 import { FrameSplitter } from '../../mcp/framing'
 import { McpServer } from '../../mcp/server'
 import { ToolRegistry } from '../../mcp/tools'
+import { after, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
-const bridgePath = path.resolve(__dirname, '../../../bin/coc-mcp.js')
+const bridgePath = path.resolve(import.meta.dirname, '../../../bin/coc-mcp.js')
 
 interface BridgeClient {
   proc: import('child_process').ChildProcess
@@ -46,7 +47,7 @@ describe('coc-mcp stdio bridge', () => {
   let address: { host: string, port: number, socketPath: string }
   let dir: string
 
-  afterAll(() => {
+  after(() => {
     if (server) server.dispose()
     try {
       fs.rmSync(dir, { recursive: true, force: true })
@@ -134,22 +135,22 @@ describe('coc-mcp stdio bridge', () => {
       capabilities: {},
       clientInfo: { name: 'codex-test', version: '1' }
     })
-    expect(init.protocolVersion).toBe('2025-06-18')
+    assert.strictEqual(init.protocolVersion, '2025-06-18')
     proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n')
     let list = await requestTools(client, request, 2)
-    expect(list.tools.map((t: any) => t.name)).toContain('bridge_echo')
+    assert.ok(list.tools.map((t: any) => t.name).includes('bridge_echo'))
     let call = await request(3, 'tools/call', { name: 'bridge_echo', arguments: { value: 'via-bridge' } })
-    expect(call.structuredContent.value).toBe('via-bridge')
+    assert.strictEqual(call.structuredContent.value, 'via-bridge')
     proc.stdin.end()
 
     await new Promise<void>(resolve => {
       proc.on('exit', () => resolve())
     })
-    expect(stderr).not.toContain('not available')
+    assert.ok(!stderr.includes('not available'))
     // the bridge reports what the coc.nvim side supports instead of hardcoding it
-    expect(stderr).toContain('connected to coc.nvim 0.0.0')
-    expect(stderr).toContain('mcp protocol 2025-06-18')
-    expect(stderr).toContain('server capabilities: tools')
+    assert.ok(stderr.includes('connected to coc.nvim 0.0.0'))
+    assert.ok(stderr.includes('mcp protocol 2025-06-18'))
+    assert.ok(stderr.includes('server capabilities: tools'))
   })
 
   it('waits for coc.nvim before completing initialize', async () => {
@@ -167,7 +168,7 @@ describe('coc-mcp stdio bridge', () => {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
     })
     await waitFor(() => stderr.includes('retrying'))
-    expect(proc.exitCode).toBe(null)
+    assert.strictEqual(proc.exitCode, null)
 
     let registry = new ToolRegistry()
     registry.register({
@@ -187,12 +188,12 @@ describe('coc-mcp stdio bridge', () => {
       serverInfo: { name: 'coc.nvim', version: '0.0.0' }, cwd: process.cwd()
     }))
     let init = await initialize
-    expect(init.capabilities.tools.listChanged).toBe(true)
+    assert.strictEqual(init.capabilities.tools.listChanged, true)
     let list = await request(2, 'tools/list')
-    expect(list.tools.map((tool: any) => tool.name)).toContain('delayed_tool')
+    assert.ok(list.tools.map((tool: any) => tool.name).includes('delayed_tool'))
     proc.stdin.end()
     await new Promise<void>(resolve => proc.on('exit', () => resolve()))
-    expect(proc.exitCode).toBe(0)
+    assert.strictEqual(proc.exitCode, 0)
     delayedServer.dispose()
     fs.rmSync(emptyDir, { recursive: true, force: true })
   })
@@ -282,11 +283,11 @@ describe('coc-mcp stdio bridge', () => {
     let init = await request(1, 'initialize', {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
     })
-    expect(init.protocolVersion).toBe('2025-06-18')
+    assert.strictEqual(init.protocolVersion, '2025-06-18')
     let list = await requestTools(client, request, 2)
     let names = list.tools.map((t: any) => t.name)
-    expect(names).toContain('instance_a_tool')
-    expect(names).not.toContain('instance_b_tool')
+    assert.ok(names.includes('instance_a_tool'))
+    assert.ok(!names.includes('instance_b_tool'))
     proc.stdin.end()
     await new Promise<void>(resolve => proc.on('exit', () => resolve()))
     serverA.dispose()
@@ -397,12 +398,12 @@ describe('coc-mcp stdio bridge', () => {
       stderr += chunk.toString('utf8')
     })
     let { request } = attachClient(proc)
-    await expect(request(1, 'initialize', {
+    await assert.rejects(request(1, 'initialize', {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
-    })).rejects.toThrow(/unavailable after 100ms/)
+    }), /unavailable after 100ms/)
     await new Promise<void>(resolve => proc.on('exit', () => resolve()))
-    expect(proc.exitCode).toBe(2)
-    expect(stderr).toContain('no instance matches cwd')
+    assert.strictEqual(proc.exitCode, 2)
+    assert.ok(stderr.includes('no instance matches cwd'))
     serverA.dispose()
     serverB.dispose()
     fs.rmSync(dir, { recursive: true, force: true })
@@ -426,8 +427,8 @@ describe('coc-mcp stdio bridge', () => {
     })
     let list = await requestTools(client, request, 2)
     let names = list.tools.map((t: any) => t.name)
-    expect(names).toContain('instance_a_tool')
-    expect(names).not.toContain('instance_b_tool')
+    assert.ok(names.includes('instance_a_tool'))
+    assert.ok(!names.includes('instance_b_tool'))
     proc.stdin.end()
     await new Promise<void>(resolve => proc.on('exit', () => resolve()))
     serverA.dispose()
@@ -453,8 +454,8 @@ describe('coc-mcp stdio bridge', () => {
     })
     let list = await requestTools(client, request, 2)
     let names = list.tools.map((t: any) => t.name)
-    expect(names).toContain('instance_b_tool')
-    expect(names).not.toContain('instance_a_tool')
+    assert.ok(names.includes('instance_b_tool'))
+    assert.ok(!names.includes('instance_a_tool'))
     proc.stdin.end()
     await new Promise<void>(resolve => proc.on('exit', () => resolve()))
     serverA.dispose()
@@ -505,7 +506,7 @@ describe('coc-mcp stdio bridge', () => {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
     })
     let before = await requestTools(client, request, 2)
-    expect(before.tools.map((t: any) => t.name)).toContain('before_restart')
+    assert.ok(before.tools.map((t: any) => t.name).includes('before_restart'))
     let stderr = ''
     proc.stderr.on('data', chunk => {
       stderr += chunk.toString('utf8')
@@ -545,10 +546,10 @@ describe('coc-mcp stdio bridge', () => {
       startedAt: Date.now()
     }))
     let changed = await waitNotification(client, 'notifications/tools/list_changed')
-    expect(changed.method).toBe('notifications/tools/list_changed')
+    assert.strictEqual(changed.method, 'notifications/tools/list_changed')
     // the bridge reconnects and relays requests to the new server
     let after = await requestTools(client, request, 3)
-    expect(after.tools.map((t: any) => t.name)).toContain('after_restart')
+    assert.ok(after.tools.map((t: any) => t.name).includes('after_restart'))
     proc.stdin.end()
     await new Promise<void>(resolve => proc.on('exit', () => resolve()))
     secondServer.dispose()
@@ -603,12 +604,12 @@ describe('coc-mcp stdio bridge', () => {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
     })
     let list = await requestTools(client, request, 2)
-    expect(list.tools.map((t: any) => t.name)).toContain('clean_tool')
+    assert.ok(list.tools.map((t: any) => t.name).includes('clean_tool'))
     proc.stdin.end()
     await new Promise<void>(resolve => proc.on('exit', () => resolve()))
-    expect(fs.existsSync(staleJson)).toBe(false)
-    expect(fs.existsSync(staleSock)).toBe(false)
-    expect(fs.existsSync(live)).toBe(true)
+    assert.strictEqual(fs.existsSync(staleJson), false)
+    assert.strictEqual(fs.existsSync(staleSock), false)
+    assert.strictEqual(fs.existsSync(live), true)
     cleanServer.dispose()
     fs.rmSync(dir, { recursive: true, force: true })
   })
@@ -663,7 +664,7 @@ describe('coc-mcp stdio bridge', () => {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
     })
     let list = await requestTools(client, request, 2)
-    expect(list.tools.map((t: any) => t.name)).toContain('key_tool')
+    assert.ok(list.tools.map((t: any) => t.name).includes('key_tool'))
     proc.stdin.end()
     await new Promise<void>(resolve => proc.on('exit', () => resolve()))
     keyServer.dispose()
@@ -712,12 +713,12 @@ describe('coc-mcp stdio bridge', () => {
       stderr += chunk.toString('utf8')
     })
     let { request } = attachClient(proc)
-    await expect(request(1, 'initialize', {
+    await assert.rejects(request(1, 'initialize', {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
-    })).rejects.toThrow(/unavailable after 100ms/)
+    }), /unavailable after 100ms/)
     await new Promise<void>(resolve => proc.on('exit', () => resolve()))
-    expect(proc.exitCode).toBe(2)
-    expect(stderr).toContain('authentication failed')
+    assert.strictEqual(proc.exitCode, 2)
+    assert.ok(stderr.includes('authentication failed'))
     keyServer.dispose()
     fs.rmSync(dir, { recursive: true, force: true })
   })
@@ -731,11 +732,11 @@ describe('coc-mcp stdio bridge', () => {
       stdout += chunk.toString('utf8')
     })
     let code = await new Promise<number | null>(resolve => proc.on('exit', resolve))
-    expect(code).toBe(0)
-    expect(stdout).toContain('PRIVATE KEY')
-    expect(stdout).toContain('PUBLIC KEY')
-    expect(stdout).toContain('BEGIN PRIVATE KEY')
-    expect(stdout).toContain('BEGIN PUBLIC KEY')
+    assert.strictEqual(code, 0)
+    assert.ok(stdout.includes('PRIVATE KEY'))
+    assert.ok(stdout.includes('PUBLIC KEY'))
+    assert.ok(stdout.includes('BEGIN PRIVATE KEY'))
+    assert.ok(stdout.includes('BEGIN PUBLIC KEY'))
   })
 
   it('--connect requires a private key', async () => {
@@ -747,11 +748,11 @@ describe('coc-mcp stdio bridge', () => {
       stderr += chunk.toString('utf8')
     })
     let code = await new Promise<number | null>(resolve => proc.on('exit', resolve))
-    expect(code).toBe(2)
-    expect(stderr).toContain('COC_MCP_AUTH_KEY_FILE')
+    assert.strictEqual(code, 2)
+    assert.ok(stderr.includes('COC_MCP_AUTH_KEY_FILE'))
   })
 
-  it('--connect with public-key auth connects to a forwarded port', async () => {
+  it('--connect with public-key auth connects to a forwarded port', { timeout: 15000 }, async () => {
     const { publicKey, privateKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
     let registry = new ToolRegistry()
     registry.register({
@@ -820,14 +821,14 @@ describe('coc-mcp stdio bridge', () => {
       capabilities: {},
       clientInfo: { name: 'codex-test', version: '1' }
     })
-    expect(init.protocolVersion).toBe('2025-06-18')
+    assert.strictEqual(init.protocolVersion, '2025-06-18')
     let call = await request(2, 'tools/call', { name: 'ssh_echo', arguments: { value: 'ssh-ok' } })
-    expect(call.structuredContent.value).toBe('ssh-ok')
+    assert.strictEqual(call.structuredContent.value, 'ssh-ok')
     proc.stdin.end()
     await new Promise<void>(resolve => proc.on('exit', resolve))
-    expect(stderr).toContain('connected to coc.nvim')
-    expect(stderr).toContain('--connect')
+    assert.ok(stderr.includes('connected to coc.nvim'))
+    assert.ok(stderr.includes('--connect'))
     connectServer.dispose()
     fs.rmSync(connectDir, { recursive: true, force: true })
-  }, 15000)
+  })
 })

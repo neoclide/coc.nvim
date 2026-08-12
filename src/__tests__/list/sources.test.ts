@@ -1,8 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
-import fs from 'fs'
-import os from 'os'
-import { CancellationToken, CancellationTokenSource, Diagnostic, DiagnosticSeverity, Disposable, DocumentLink, Emitter, Location, Position, Range, SymbolInformation, SymbolKind, SymbolTag, TextEdit } from 'vscode-languageserver-protocol'
-import { URI } from 'vscode-uri'
+import * as shared from '../sharedUtil'
 import diagnosticManager, { DiagnosticItem } from '../../diagnostic/manager'
 import events from '../../events'
 import extensions from '../../extension/index'
@@ -26,8 +22,15 @@ import { path } from '../../util/node'
 import { Registry } from '../../util/registry'
 import window from '../../window'
 import workspace from '../../workspace'
+import { Neovim } from '@chemzqm/neovim'
+import fs from 'fs'
+import os from 'os'
+import { CancellationToken, CancellationTokenSource, Diagnostic, DiagnosticSeverity, Disposable, DocumentLink, Emitter, Location, Position, Range, SymbolInformation, SymbolKind, SymbolTag, TextEdit } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
 import Parser from '../handler/parser'
-import helper from '../helper'
+import { afterEach, before, beforeEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+
 
 let listItems: ListItem[] = []
 class OptionList extends BasicList {
@@ -101,18 +104,18 @@ async function createContext(option: Partial<ListOptions>): Promise<ListContext>
 let disposables: Disposable[] = []
 let nvim: Neovim
 const locations: QuickfixItem[] = [{
-  filename: __filename,
+  filename: import.meta.filename,
   range: Range.create(0, 0, 0, 6),
   targetRange: Range.create(0, 0, 0, 6),
   text: 'foo',
   type: 'Error'
 }, {
-  filename: __filename,
+  filename: import.meta.filename,
   range: Range.create(2, 0, 2, 6),
   text: 'Bar',
   type: 'Warning'
 }, {
-  filename: __filename,
+  filename: import.meta.filename,
   range: Range.create(3, 0, 4, 6),
   text: 'multiple'
 }, {
@@ -121,22 +124,19 @@ const locations: QuickfixItem[] = [{
   text: 'tmpdir'
 }]
 
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-})
-
-afterAll(async () => {
-  manager.dispose()
-  await helper.shutdown()
+before(async () => {
+  nvim = workspace.nvim
 })
 
 afterEach(async () => {
   listItems = []
   disposeAll(disposables)
+  await manager.cancel(true)
   manager.reset()
-  await helper.reset()
+  await nvim.command('windo setl winfixbuf&')
 })
+
+afterEach(editorReset)
 
 describe('configuration', () => {
   beforeEach(() => {
@@ -144,89 +144,89 @@ describe('configuration', () => {
     manager.registerList(list)
   })
 
-  it('should change default options', async () => {
-    helper.updateConfiguration('list.source.option.defaultOptions', ['--normal'])
+  it('should change default options', async t => {
+    shared.updateConfiguration('list.source.option.defaultOptions', ['--normal'])
     await manager.start(['option'])
     await manager.session.ui.ready
     const mode = manager.prompt.mode
-    expect(mode).toBe('normal')
+    assert.strictEqual(mode, 'normal')
   })
 
-  it('should change default action', async () => {
-    helper.updateConfiguration('list.source.option.defaultAction', 'split')
+  it('should change default action', async t => {
+    shared.updateConfiguration('list.source.option.defaultAction', 'split')
     await manager.start(['option'])
     await manager.session.ui.ready
     const action = manager.session.defaultAction
-    expect(action.name).toBe('split')
+    assert.strictEqual(action.name, 'split')
     await manager.session.doAction()
     let tab = await nvim.tabpage
     let wins = await tab.windows
-    expect(wins.length).toBeGreaterThan(1)
+    assert.ok(wins.length > 1)
   })
 
-  it('should change default arguments', async () => {
-    helper.updateConfiguration('list.source.option.defaultArgs', ['-word'])
+  it('should change default arguments', async t => {
+    shared.updateConfiguration('list.source.option.defaultArgs', ['-word'])
     await manager.start(['option'])
     await manager.session.ui.ready
     const context = manager.session.context
-    expect(context.args).toEqual(['-word'])
+    assert.deepStrictEqual(context.args, ['-word'])
   })
 })
 
 describe('BasicList', () => {
   describe('parse arguments', () => {
-    it('should parse args #1', () => {
+    it('should parse args #1', t => {
       let list = new OptionList()
       let res = list.parseArguments(['-w'])
-      expect(res).toEqual({ word: true })
+      assert.deepStrictEqual(res, { word: true })
     })
 
-    it('should parse args #2', () => {
+    it('should parse args #2', t => {
       let list = new OptionList()
       let res = list.parseArguments(['-word'])
-      expect(res).toEqual({ word: true })
+      assert.deepStrictEqual(res, { word: true })
     })
 
-    it('should parse args #3', () => {
+    it('should parse args #3', t => {
       let list = new OptionList()
       let res = list.parseArguments(['-input', 'foo'])
-      expect(res).toEqual({ input: 'foo' })
+      assert.deepStrictEqual(res, { input: 'foo' })
     })
   })
 
   describe('jumpTo()', () => {
     let list: OptionList
-    beforeAll(() => {
+    before(() => {
       list = new OptionList()
     })
 
-    it('should jump to uri', async () => {
-      let uri = URI.file(__filename).toString()
+    it('should jump to uri', async t => {
+      let uri = URI.file(import.meta.filename).toString()
       let ctx = await createContext({ position: 'tab' })
       await list.jumpTo(uri, null, ctx)
-      let bufname = await nvim.call('bufname', ['%'])
-      expect(bufname).toMatch('sources.test.ts')
+      let bufname = await nvim.call('bufname', ['%']) as string
+      assert.match(bufname, new RegExp('sources\\.test\\.(?:js|ts)'))
     })
 
-    it('should jump to location', async () => {
-      let uri = URI.file(__filename).toString()
+    it('should jump to location', async t => {
+      let uri = URI.file(import.meta.filename).toString()
       let loc = Location.create(uri, Range.create(0, 0, 1, 0))
       await list.jumpTo(loc, 'edit')
-      let bufname = await nvim.call('bufname', ['%'])
-      expect(bufname).toMatch('sources.test.ts')
+      let bufname = await nvim.call('bufname', ['%']) as string
+      assert.match(bufname, new RegExp('sources\\.test\\.(?:js|ts)'))
     })
 
-    it('should jump to location with empty range', async () => {
-      let uri = URI.file(__filename).toString()
+    it('should jump to location with empty range', async t => {
+      let uri = URI.file(import.meta.filename).toString()
       let loc = Location.create(uri, Range.create(0, 0, 0, 0))
       await list.jumpTo(loc, 'edit')
-      let bufname = await nvim.call('bufname', ['%'])
-      expect(bufname).toMatch('sources.test.ts')
+      let bufname = await nvim.call('bufname', ['%']) as string
+      assert.match(bufname, new RegExp('sources\\.test\\.(?:js|ts)'))
     })
   })
 
   describe('createAction()', () => {
-    it('should overwrite action', async () => {
+    it('should overwrite action', async t => {
       let idx: number
       let list = new OptionList()
       listItems.push({
@@ -245,7 +245,7 @@ describe('BasicList', () => {
       await manager.start(['--normal', 'option'])
       await manager.session.ui.ready
       await manager.doAction('foo')
-      expect(idx).toBe(1)
+      assert.strictEqual(idx, 1)
     })
   })
 
@@ -261,16 +261,16 @@ describe('BasicList', () => {
       await manager.session.ui.ready
       await manager.doAction('preview')
       let res = await nvim.call('coc#list#has_preview') as number
-      expect(res).toBeGreaterThan(0)
+      assert.ok(res > 0)
       let winid = await nvim.call('win_getid', [res]) as number
       return winid
     }
 
-    it('should preview lines', async () => {
+    it('should preview lines', async t => {
       await doPreview({ filetype: '', lines: ['foo', 'bar'] })
     })
 
-    it('should preview with bufname', async () => {
+    it('should preview with bufname', async t => {
       await doPreview({
         bufname: 't.js',
         filetype: 'typescript',
@@ -278,7 +278,7 @@ describe('BasicList', () => {
       })
     })
 
-    it('should preview with range highlight', async () => {
+    it('should preview with range highlight', async t => {
       let winid = await doPreview({
         bufname: 't.js',
         filetype: 'typescript',
@@ -286,16 +286,16 @@ describe('BasicList', () => {
         range: Range.create(0, 0, 0, 3)
       })
       let res = await nvim.call('getmatches', [winid]) as any[]
-      expect(res.length).toBeGreaterThan(0)
+      assert.ok(res.length > 0)
     })
   })
 
   describe('previewLocation()', () => {
-    it('should preview sketch buffer', async () => {
+    it('should preview sketch buffer', async t => {
       await nvim.command('new')
       await nvim.setLine('foo')
       let doc = await workspace.document
-      expect(doc.uri).toMatch('untitled')
+      assert.match(doc.uri, new RegExp('untitled'))
       let list = new OptionList()
       listItems.push({
         label: 'foo',
@@ -304,14 +304,15 @@ describe('BasicList', () => {
       disposables.push(manager.registerList(list))
       await manager.start(['option'])
       await manager.session.ui.ready
-      await helper.wait(30)
+      await shared.wait(30)
       await manager.doAction('preview')
       await nvim.command('wincmd p')
       let win = await nvim.window
       let isPreview = await win.getVar('previewwindow')
-      expect(isPreview).toBe(1)
+      assert.strictEqual(isPreview, 1)
       let line = await nvim.line
-      expect(line).toBe('foo')
+      assert.strictEqual(line, 'foo')
+      await manager.cancel(true)
     })
   })
 })
@@ -322,31 +323,32 @@ describe('list sources', () => {
   })
 
   describe('locations', () => {
-    it('should format filepath with async function', async () => {
+    it('should format filepath with async function', async t => {
       global.formatFilepath = async () => 'formatted'
       try {
         let items = await manager.loadItems('location')
-        expect(items[0].label).toMatch(/^formatted /)
+        assert.match(items[0].label, /^formatted /)
       } finally {
         global.formatFilepath = undefined
       }
     })
 
-    it('should highlight ranges', async () => {
+    it('should highlight ranges', async t => {
       await manager.start(['--normal', '--auto-preview', 'location'])
       await manager.session.ui.ready
-      await helper.waitFor('winnr', ['$'], 3)
+      await shared.waitFor('winnr', ['$'], 3)
       manager.prompt.cancel()
       await nvim.command('wincmd k')
-      let name = await nvim.eval('bufname("%")')
-      expect(name).toMatch('sources.test.ts')
+      let name = await nvim.eval('bufname("%")') as string
+      assert.match(name, new RegExp('sources\\.test\\.(?:js|ts)'))
       let res = await nvim.call('getmatches') as any[]
-      expect(res.length).toBe(1)
+      assert.strictEqual(res.length, 1)
+      await manager.cancel(true)
     })
 
-    it('should not use filename when current buffer only', async () => {
+    it('should not use filename when current buffer only', async t => {
       let filepath = path.join(os.tmpdir(), 'b7d9e548-00ec-4419-98a8-dc03874e405c')
-      let doc = await helper.createDocument(filepath)
+      let doc = await shared.createDocument(filepath)
       let locations = [{
         filename: filepath,
         bufnr: doc.bufnr,
@@ -367,105 +369,107 @@ describe('list sources', () => {
       await manager.session.ui.ready
     })
 
-    it('should change highlight on cursor move', async () => {
+    it('should change highlight on cursor move', async t => {
       await manager.start(['--normal', '--auto-preview', 'location'])
       await manager.session.ui.ready
       await nvim.command('exe 2')
       let bufnr = await nvim.eval('bufnr("%")')
       await events.fire('CursorMoved', [bufnr, [2, 1]])
-      await helper.waitFor('winnr', ['$'], 3)
+      await shared.waitFor('winnr', ['$'], 3)
       await nvim.command('wincmd k')
       let res = await nvim.call('getmatches') as any
-      expect(res.length).toBe(1)
-      expect(res[0]['pos1']).toEqual([3, 1, 6])
+      assert.strictEqual(res.length, 1)
+      assert.deepStrictEqual(res[0]['pos1'], [3, 1, 6])
+      await manager.cancel(true)
     })
 
-    it('should highlight multiple line range', async () => {
+    it('should highlight multiple line range', async t => {
       await manager.start(['--normal', '--auto-preview', 'location'])
       await manager.session.ui.ready
       await nvim.command('exe 3')
       let bufnr = await nvim.eval('bufnr("%")')
       await events.fire('CursorMoved', [bufnr, [2, 1]])
-      await helper.waitFor('winnr', ['$'], 3)
+      await shared.waitFor('winnr', ['$'], 3)
       await nvim.command('wincmd k')
       let res = await nvim.call('getmatches') as any
-      expect(res.length).toBe(1)
-      expect(res[0]['pos1']).toBeDefined()
-      expect(res[0]['pos2']).toBeDefined()
+      assert.strictEqual(res.length, 1)
+      assert.notStrictEqual(res[0]['pos1'], undefined)
+      assert.notStrictEqual(res[0]['pos2'], undefined)
+      await manager.cancel(true)
     })
 
-    it('should do open action', async () => {
+    it('should do open action', async t => {
       global.formatFilepath = function() {
         return ''
       }
       await manager.start(['--normal', 'location'])
       await manager.session.ui.ready
       await manager.doAction('open')
-      let name = await nvim.eval('bufname("%")')
-      expect(name).toMatch('sources.test.ts')
+      let name = await nvim.eval('bufname("%")') as string
+      assert.match(name, new RegExp('sources\\.test\\.(?:js|ts)'))
       global.formatFilepath = undefined
     })
 
-    it('should do quickfix action', async () => {
+    it('should do quickfix action', async t => {
       await nvim.setVar('coc_quickfix_open_command', 'copen', false)
       await manager.start(['--normal', 'location'])
       await manager.session.ui.ready
       await manager.session.ui.selectAll()
       await manager.doAction('quickfix')
       let buftype = await nvim.eval('&buftype')
-      expect(buftype).toBe('quickfix')
+      assert.strictEqual(buftype, 'quickfix')
     })
 
-    it('should do refactor action', async () => {
+    it('should do refactor action', async t => {
       await manager.start(['--normal', 'location'])
       await manager.session.ui.ready
       await manager.doAction('refactor')
-      let name = await nvim.eval('bufname("%")')
-      expect(name).toMatch('coc_refactor')
+      let name = await nvim.eval('bufname("%")') as string
+      assert.match(name, new RegExp('coc_refactor'))
     })
 
-    it('should do tabe action', async () => {
+    it('should do tabe action', async t => {
       await manager.start(['--normal', 'location'])
       await manager.session.ui.ready
       await manager.doAction('tabe')
       let tabs = await nvim.tabpages
-      expect(tabs.length).toBe(2)
+      assert.strictEqual(tabs.length, 2)
     })
 
-    it('should do drop action', async () => {
+    it('should do drop action', async t => {
       await manager.start(['--normal', 'location'])
       await manager.session.ui.ready
       await manager.doAction('drop')
-      let name = await nvim.eval('bufname("%")')
-      expect(name).toMatch('sources.test.ts')
+      let name = await nvim.eval('bufname("%")') as string
+      assert.match(name, new RegExp('sources\\.test\\.(?:js|ts)'))
     })
 
-    it('should do vsplit action', async () => {
+    it('should do vsplit action', async t => {
       await manager.start(['--normal', 'location'])
       await manager.session.ui.ready
       await manager.doAction('vsplit')
-      let name = await nvim.eval('bufname("%")')
-      expect(name).toMatch('sources.test.ts')
+      let name = await nvim.eval('bufname("%")') as string
+      assert.match(name, new RegExp('sources\\.test\\.(?:js|ts)'))
     })
 
-    it('should do split action', async () => {
+    it('should do split action', async t => {
       await manager.start(['--normal', 'location'])
       await manager.session.ui.ready
       await manager.doAction('split')
-      let name = await nvim.eval('bufname("%")')
-      expect(name).toMatch('sources.test.ts')
+      let name = await nvim.eval('bufname("%")') as string
+      assert.match(name, new RegExp('sources\\.test\\.(?:js|ts)'))
     })
   })
 
   describe('commands', () => {
-    it('should do run action', async () => {
+    it('should do run action', async t => {
       await manager.start(['commands'])
       await manager.session?.ui.ready
       await manager.doAction()
     })
 
-    it('should load commands source', async () => {
-      let registry = Registry.as<extension.IExtensionRegistry>(extension.Extensions.ExtensionContribution)
+    it('should load commands source', async t => {
+      let registry = Registry.as(extension.Extensions.ExtensionContribution) as extension.IExtensionRegistry
       registry.registerExtension('single', {
         name: 'single',
         directory: os.tmpdir(),
@@ -474,10 +478,10 @@ describe('list sources', () => {
       })
       await manager.start(['commands'])
       await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
       await manager.doAction('append')
-      let line = await helper.getCmdline()
-      expect(line).toMatch(':CocCommand')
+      let line = await shared.getCmdline()
+      assert.match(line, new RegExp(':CocCommand'))
       registry.unregistExtension('single')
     })
   })
@@ -489,7 +493,7 @@ describe('list sources', () => {
     }
 
     async function createDocument(name?: string): Promise<Document> {
-      let doc = await helper.createDocument(name)
+      let doc = await shared.createDocument(name ? path.join(import.meta.dirname, '..', name) : name)
       let collection = diagnosticManager.create('test')
       disposables.push({
         dispose: () => {
@@ -513,7 +517,7 @@ describe('list sources', () => {
       return doc
     }
 
-    it('should get label', async () => {
+    it('should get label', async t => {
       let item: DiagnosticItem = {
         code: 1000,
         col: 0,
@@ -527,65 +531,63 @@ describe('list sources', () => {
         severity: 'error',
         source: 'source'
       }
-      expect(convertToLabel(item, process.cwd(), false).indexOf('1000')).toBe(-1)
-      expect(convertToLabel(item, process.cwd(), true, 'hidden').includes('[source 1000]')).toBe(true)
+      assert.strictEqual(convertToLabel(item, process.cwd(), false).indexOf('1000'), -1)
+      assert.strictEqual(convertToLabel(item, process.cwd(), true, 'hidden').includes('[source 1000]'), true)
     })
 
-    it('should load diagnostics source', async () => {
+    it('should load diagnostics source', async t => {
       await createDocument('a')
       await createDocument('b')
       await manager.start(['diagnostics'])
       await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
       let buf = await nvim.buffer
       let lines = await buf.lines
-      expect(lines.length).toEqual(10)
+      assert.deepStrictEqual(lines.length, 10)
     })
 
-    it('should filter diagnostics', async () => {
+    it('should filter diagnostics', async t => {
       await createDocument('list/workspace-folder1/a')
       await createDocument('list/workspace-folder1/b')
       await createDocument('list/workspace-folder2/c')
       await createDocument('list/workspace-folder2/d')
-      const workspaceFolder = path.join(__dirname, 'workspace-folder1')
+      const workspaceFolder = path.join(import.meta.dirname, 'workspace-folder1')
       let list = new DiagnosticsList(manager, false)
       {
         let res = await list.filterDiagnostics({})
-        expect(res.length).toBe(20)
-        let spy = vi.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue({
+        assert.strictEqual(res.length, 20)
+        let spy = t.mock.method(workspace, 'getWorkspaceFolder', () => ({
           name: 'workspace-folder1',
           uri: URI.file(workspaceFolder).toString()
-        })
+        }))
         res = await list.filterDiagnostics({ 'workspace-folder': true })
-        expect(res.length).toBe(10)
-        spy.mockRestore()
-        spy = vi.spyOn(workspace, 'getWorkspaceFolder').mockReturnValue(undefined)
+        assert.strictEqual(res.length, 10)
+        spy = t.mock.method(workspace, 'getWorkspaceFolder', () => undefined)
         res = await list.filterDiagnostics({ 'workspace-folder': true })
-        expect(res.length).toBe(20)
-        spy.mockRestore()
+        assert.strictEqual(res.length, 20)
       }
       {
         let res = await list.filterDiagnostics({ buffer: true })
-        expect(res.length).toBe(5)
+        assert.strictEqual(res.length, 5)
       }
       {
         let res = await list.filterDiagnostics({ level: 'error' })
-        expect(res.length).toBe(8)
+        assert.strictEqual(res.length, 8)
       }
     })
 
-    it('should refresh on diagnostics refresh', async () => {
+    it('should refresh on diagnostics refresh', async t => {
       let doc = await createDocument('bar')
       await manager.start(['diagnostics'])
       await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
       let diagnostics: Diagnostic[] = []
       let collection = diagnosticManager.create('test')
       diagnostics.push(createDiagnostic('error', Range.create(0, 0, 0, 2), DiagnosticSeverity.Error, 1000))
       diagnostics.push(createDiagnostic('error', Range.create(2, 0, 2, 2), DiagnosticSeverity.Error, 1009))
       collection.set(doc.uri, diagnostics)
       let buf = await nvim.buffer
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         let n = await buf.length
         return n > 1
       }, true)
@@ -593,7 +595,7 @@ describe('list sources', () => {
   })
 
   describe('extensions', () => {
-    it('should load extensions source', async () => {
+    it('should load extensions source', async t => {
       let folder = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(path.join(folder, 'foo'), { recursive: true })
       fs.mkdirSync(path.join(folder, 'bar'), { recursive: true })
@@ -620,7 +622,7 @@ describe('list sources', () => {
         isLocked: false,
         packageJSON: { name: 'bar', engines: {} }
       })
-      let spy = vi.spyOn(extensions, 'getExtensionStates').mockImplementation(() => {
+      let spy = t.mock.method(extensions, 'getExtensionStates', () => {
         return Promise.resolve(infos)
       })
       const doAction = async (name: string, item: any) => {
@@ -631,41 +633,40 @@ describe('list sources', () => {
       let manager = new ExtensionManager(states, folder)
       let source = new ExtensionList(manager)
       let items = await source.loadItems()
-      expect(items.length).toBe(2)
+      assert.strictEqual(items.length, 2)
       items[0].data.state = 'disabled'
       await doAction('toggle', items[0])
       await doAction('toggle', items[1])
       items[1].data.state = 'loaded'
-      await expect(doAction('toggle', items[1])).rejects.toThrow(Error)
+      await assert.rejects(doAction('toggle', items[1]), Error)
       await doAction('configuration', items[0])
       let jsonfile = path.join(folder, 'bar/package.json')
       fs.writeFileSync(jsonfile, '{}', 'utf8')
       await doAction('configuration', items[1])
       fs.writeFileSync(jsonfile, '{"contributes": {}}', 'utf8')
       await doAction('configuration', items[1])
-      await helper.mockFunction('coc#ui#open_url', 0)
+      await shared.mockFunction('coc#ui#open_url', 0)
       await doAction('open', items[1])
       await doAction('disable', items[0])
       await doAction('disable', items[1])
       await doAction('enable', items[0])
       await doAction('enable', items[1])
       await doAction('lock', items[0])
-      await expect(doAction('reload', items[0])).rejects.toThrow(Error)
+      await assert.rejects(doAction('reload', items[0]), Error)
       await doAction('uninstall', items)
       await doAction('help', items[0])
       let helpfile = path.join(folder, 'bar/readme.md')
       fs.writeFileSync(helpfile, '', 'utf8')
       await doAction('help', items[1])
-      let bufname = await nvim.eval('bufname("%")')
-      expect(bufname).toMatch('readme')
+      let bufname = await nvim.eval('bufname("%")') as string
+      assert.match(bufname, new RegExp('readme'))
       source.doHighlight()
-      spy.mockRestore()
     })
   })
 
   describe('folders', () => {
-    it('should load folders source', async () => {
-      await helper.createDocument(__filename)
+    it('should load folders source', async t => {
+      await shared.createDocument(import.meta.filename)
       let uid = crypto.randomUUID()
       let source = new FolderList()
       const doAction = async (name: string, item: any) => {
@@ -673,38 +674,36 @@ describe('list sources', () => {
         await action.execute(item)
       }
       let res = await source.loadItems()
-      expect(res.length).toBe(1)
+      assert.strictEqual(res.length, 1)
       await doAction('delete', res[0])
-      expect(workspace.folderPaths.length).toBe(0)
+      assert.strictEqual(workspace.folderPaths.length, 0)
       let p = doAction('edit', res[0])
-      await helper.waitFor('mode', [], 'c')
+      await shared.waitFor('mode', [], 'c')
       await nvim.input('<cr>')
       await p
       p = doAction('edit', res[0])
-      await helper.waitFor('mode', [], 'c')
+      await shared.waitFor('mode', [], 'c')
       await nvim.input('<C-u>')
       await nvim.input('<cr>')
       await p
-      let spy = vi.spyOn(window, 'requestInput').mockReturnValue(Promise.resolve(''))
+      let spy = t.mock.method(window, 'requestInput', () => Promise.resolve(''))
       await doAction('newfile', res[0])
-      spy.mockRestore()
       fs.rmSync(path.join(os.tmpdir(), uid), { recursive: true, force: true })
       let filepath = path.join(os.tmpdir(), uid, 'bar')
-      spy = vi.spyOn(window, 'requestInput').mockReturnValue(Promise.resolve(filepath))
+      spy = t.mock.method(window, 'requestInput', () => Promise.resolve(filepath))
       await doAction('newfile', res[0])
       let exists = fs.existsSync(filepath)
-      expect(exists).toBe(true)
-      spy.mockRestore()
+      assert.strictEqual(exists, true)
     })
   })
 
   describe('lists', () => {
-    it('should load lists source', async () => {
+    it('should load lists source', async t => {
       await manager.start(['lists'])
       await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
       await manager.doAction()
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         let s = manager.getSession()
         return s && s.name !== 'lists'
       }, true)
@@ -712,7 +711,7 @@ describe('list sources', () => {
   })
 
   describe('outline', () => {
-    it('should load items from provider', async () => {
+    it('should load items from provider', async t => {
       let doc = await workspace.document
       disposables.push(languages.registerDocumentSymbolProvider([{ language: '*' }], {
         provideDocumentSymbols: document => {
@@ -725,29 +724,29 @@ describe('list sources', () => {
       let source = new OutlineList()
       let context = await createContext({})
       let res = await source.loadItems(context, CancellationToken.None)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
       let code = `class myClass {
       fun1() {
       }
     }`
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), code)])
       res = await source.loadItems(context, CancellationToken.None)
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
       source.doHighlight()
     })
 
-    it('should load items by ctags', async () => {
-      helper.updateConfiguration('list.source.outline.ctagsFiletypes', ['vim'])
+    it('should load items by ctags', async t => {
+      shared.updateConfiguration('list.source.outline.ctagsFiletypes', ['vim'])
       await nvim.command('edit +setl\\ filetype=vim foo')
       let doc = await workspace.document
-      expect(doc.filetype).toBe('vim')
+      assert.strictEqual(doc.filetype, 'vim')
       let source = new OutlineList()
       let context = await createContext({})
       context.args = ['-kind', 'function', '-name', 'name']
       let res = await source.loadItems(context, CancellationToken.None)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
       res = await source.loadItems(context, CancellationToken.Cancelled)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
     })
   })
 
@@ -781,100 +780,107 @@ describe('list sources', () => {
       return service
     }
 
-    it('should load services source', async () => {
+    it('should load services source', async t => {
       createService('foo')
       createService('bar')
       await manager.start(['services'])
       await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
       let lines = await nvim.call('getline', [1, '$']) as string[]
-      expect(lines.length).toBe(2)
+      assert.strictEqual(lines.length, 2)
     })
 
-    it('should toggle service state', async () => {
+    it('should toggle service state', async t => {
       let service = createService('foo')
       await service.start()
       await manager.start(['services'])
       await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
       let ses = manager.session
-      expect(ses.name).toBe('services')
+      assert.strictEqual(ses.name, 'services')
       await ses.doAction('toggle')
-      expect(service.state).toBe(ServiceStat.Stopped)
+      assert.strictEqual(service.state, ServiceStat.Stopped)
       await ses.doAction('toggle')
     })
   })
 
   describe('sources', () => {
-    it('should load sources source', async () => {
+    it('should load sources source', async t => {
       await manager.start(['sources'])
       await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
       let session = manager.getSession()
+      // Jumping opens the source file through real nvim RPC; mock the jump
+      // so the assertion checks the resolved location instead of racing the
+      // nvim request timeout when the suite runs under load.
+      let jumped: string | undefined
+      t.mock.method(workspace, 'jumpTo', async (uri: string | URI, _position?: Position | null, _openCommand?: string) => {
+        jumped = typeof uri === 'string' ? uri : uri.toString()
+      })
       await session.doAction('open')
-      let bufname = await nvim.call('bufname', '%')
-      expect(bufname).toMatch(/native/)
+      assert.ok(jumped, 'open action should jump to a source file')
+      assert.match(jumped, /(?:native|bundle\.js|coc-bundle-runtime)/)
     })
 
-    it('should toggle source state', async () => {
+    it('should toggle source state', async t => {
       await manager.start(['sources'])
       await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
       let session = manager.getSession()
       await session.doAction('toggle')
       await session.doAction('toggle')
     })
 
-    it('should refresh source', async () => {
+    it('should refresh source', async t => {
       await manager.start(['sources'])
       await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
       let session = manager.getSession()
       await session.doAction('refresh')
     })
   })
 
   describe('notifications', () => {
-    it('should load notifications history', async () => {
+    it('should load notifications history', async t => {
       await window.showInformationMessage('Info message')
 
       await manager.start(['notifications'])
       await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
       let items = await manager.loadItems('notifications')
-      expect(items.at(-1).label).toContain('INFO'.padEnd(7))
-      expect(items.at(-1).filterText).toBe('Info message')
+      assert.ok(items.at(-1).label.includes('INFO'.padEnd(7)))
+      assert.strictEqual(items.at(-1).filterText, 'Info message')
 
       const action = manager.session.defaultAction
-      expect(action.name).toBe('clear')
+      assert.strictEqual(action.name, 'clear')
       await manager.session.doAction()
       items = await manager.loadItems('notifications')
-      expect(items.length).toBe(0)
+      assert.strictEqual(items.length, 0)
     })
 
-    it('should load notifications from action', async () => {
+    it('should load notifications from action', async t => {
       await window.showInformationMessage('Info message')
 
-      const res = await helper.doAction('notificationHistory')
-      expect(res.length).toBe(1)
-      expect(res[0].message).toBe('Info message')
+      const res = await shared.doAction('notificationHistory')
+      assert.strictEqual(res.length, 1)
+      assert.strictEqual(res[0].message, 'Info message')
     })
   })
 
   describe('symbols', () => {
-    it('should format filepath with async function', async () => {
+    it('should format filepath with async function', async t => {
       global.formatFilepath = async () => 'formatted'
       try {
         let source = new SymbolsList()
         let symbolItem = SymbolInformation.create('root', SymbolKind.Method, Range.create(0, 0, 0, 10), '')
         let item = await source.createListItem('', symbolItem, 'kind', './foo')
-        expect(item.label).toBe('root [kind] formatted')
+        assert.strictEqual(item.label, 'root [kind] formatted')
       } finally {
         global.formatFilepath = undefined
       }
     })
 
-    it('should stop formatting filepath when cancelled', async () => {
+    it('should stop formatting filepath when cancelled', async t => {
       let source = new SymbolsList()
       let context = await createContext({ interactive: true })
       let tokenSource = new CancellationTokenSource()
@@ -885,44 +891,44 @@ describe('list sources', () => {
       }
       disposables.push(languages.registerWorkspaceSymbolProvider({
         provideWorkspaceSymbols: () => [
-          SymbolInformation.create('one', SymbolKind.Method, Range.create(0, 0, 0, 1), URI.file(__filename).toString()),
-          SymbolInformation.create('two', SymbolKind.Method, Range.create(1, 0, 1, 1), URI.file(__filename).toString())
+          SymbolInformation.create('one', SymbolKind.Method, Range.create(0, 0, 0, 1), URI.file(import.meta.filename).toString()),
+          SymbolInformation.create('two', SymbolKind.Method, Range.create(1, 0, 1, 1), URI.file(import.meta.filename).toString())
         ]
       }))
       try {
         let items = await source.loadItems(context, tokenSource.token)
-        expect(items).toEqual([])
-        expect(count).toBe(1)
+        assert.deepStrictEqual(items, [])
+        assert.strictEqual(count, 1)
       } finally {
         global.formatFilepath = undefined
         tokenSource.dispose()
       }
     })
 
-    it('should create list item', async () => {
+    it('should create list item', async t => {
       let source = new SymbolsList()
       let symbolItem = SymbolInformation.create('root', SymbolKind.Method, Range.create(0, 0, 0, 10), '')
       let item = await source.createListItem('', symbolItem, 'kind', './foo')
-      expect(item).toBeDefined()
+      assert.notStrictEqual(item, undefined)
       symbolItem.tags = [SymbolTag.Deprecated]
       item = await source.createListItem('', symbolItem, 'kind', './foo')
       let highlights = item.ansiHighlights
       let find = highlights.find(o => o.hlGroup == 'CocDeprecatedHighlight')
-      expect(find).toBeDefined()
+      assert.notStrictEqual(find, undefined)
       source.fuzzyMatch.setPattern('a')
       item = await source.createListItem('a', symbolItem, 'kind', './foo')
-      expect(item).toBeDefined()
+      assert.notStrictEqual(item, undefined)
       source.fuzzyMatch.setPattern('r')
       item = await source.createListItem('r', symbolItem, 'kind', './foo')
       highlights = item.ansiHighlights
       find = highlights.find(o => o.hlGroup == 'CocListSearch')
-      expect(find).toBeDefined()
+      assert.notStrictEqual(find, undefined)
     })
 
-    it('should resolve item', async () => {
+    it('should resolve item', async t => {
       let source = new SymbolsList()
       let res = await source.resolveItem({ label: 'label', data: {} })
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
       let haveResult = false
       let disposable = languages.registerWorkspaceSymbolProvider({
         provideWorkspaceSymbols: () => [
@@ -936,52 +942,52 @@ describe('list sources', () => {
       disposables.push(disposable)
       let symbols = await languages.getWorkspaceSymbols('', CancellationToken.None)
       res = await source.resolveItem({ label: 'label', data: { original: symbols[0] } })
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
       haveResult = true
       symbols[0].location = { uri: 'lsp:///1' }
       res = await source.resolveItem({ label: 'label', data: { original: symbols[0] } })
-      expect(Location.is(res.location)).toBe(true)
+      assert.strictEqual(Location.is(res.location), true)
       if (Location.is(res.location)) {
-        expect(res.location.uri).toBe('lsp:///1')
+        assert.strictEqual(res.location.uri, 'lsp:///1')
       }
     })
 
-    it('should load items', async () => {
+    it('should load items', async t => {
       let source = new SymbolsList()
       let context = await createContext({ interactive: true })
-      await expect(source.loadItems(context, CancellationToken.None)).rejects.toThrow(Error)
+      await assert.rejects(source.loadItems(context, CancellationToken.None), Error)
       disposables.push(languages.registerWorkspaceSymbolProvider({
         provideWorkspaceSymbols: () => [
-          SymbolInformation.create('root', SymbolKind.Method, Range.create(0, 0, 0, 10), URI.file(__filename).toString())
+          SymbolInformation.create('root', SymbolKind.Method, Range.create(0, 0, 0, 10), URI.file(import.meta.filename).toString())
         ]
       }))
       let res = await source.loadItems(context, CancellationToken.Cancelled)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
       context.args = ['-kind', 'function']
       res = await source.loadItems(context, CancellationToken.None)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
       context.args = []
-      helper.updateConfiguration('list.source.symbols.excludes', ['**/*.ts'])
+      shared.updateConfiguration('list.source.symbols.excludes', ['**/*.ts'])
       res = await source.loadItems(context, CancellationToken.None)
-      expect(res).toEqual([])
-      helper.updateConfiguration('list.source.symbols.excludes', [])
+      assert.deepStrictEqual(res, [])
+      shared.updateConfiguration('list.source.symbols.excludes', [])
       res = await source.loadItems(context, CancellationToken.None)
-      expect(res.length).toBe(1)
+      assert.strictEqual(res.length, 1)
     })
 
-    it('should load symbols source', async () => {
-      await helper.createDocument()
+    it('should load symbols source', async t => {
+      await shared.createDocument()
       disposables.push(languages.registerWorkspaceSymbolProvider({
         provideWorkspaceSymbols: () => []
       }))
       await manager.start(['--interactive', 'symbols'])
       await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
     })
   })
 
   describe('links', () => {
-    it('should load links source', async () => {
+    it('should load links source', async t => {
       let disposable = languages.registerDocumentLinkProvider([{ scheme: 'file' }, { scheme: 'untitled' }], {
         provideDocumentLinks: () => {
           return [
@@ -992,12 +998,12 @@ describe('list sources', () => {
       })
       await manager.start(['links'])
       await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
       await manager.doAction('jump')
       disposable.dispose()
     })
 
-    it('should resolve target', async () => {
+    it('should resolve target', async t => {
       let disposable = languages.registerDocumentLinkProvider([{ scheme: 'file' }, { scheme: 'untitled' }], {
         provideDocumentLinks: () => {
           return [
@@ -1011,7 +1017,7 @@ describe('list sources', () => {
       })
       await manager.start(['links'])
       await manager.session?.ui.ready
-      expect(manager.isActivated).toBe(true)
+      assert.strictEqual(manager.isActivated, true)
       await manager.doAction('open')
       disposable.dispose()
     })

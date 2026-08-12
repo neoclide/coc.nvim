@@ -2,6 +2,7 @@
 import * as assert from 'assert'
 import { EvalKind } from '../../snippets/eval'
 import { Choice, CodeBlock, ConditionMarker, ConditionString, FormatString, getPlaceholderId, Marker, mergeTexts, Placeholder, Scanner, SnippetParser, Text, TextmateSnippet, TokenType, Transform, transformEscapes, Variable } from '../../snippets/parser'
+import { describe, test } from 'node:test'
 
 describe('SnippetParser', () => {
 
@@ -146,12 +147,12 @@ describe('SnippetParser', () => {
 
   test('Parser, escaped ultisnips', () => {
     const actual = new SnippetParser(true).text('t\\`a\\`\n\\$ \\{\\}')
-    expect(actual).toBe('t`a`\n$ {}')
+    assert.strictEqual(actual, 't`a`\n$ {}')
   })
 
   test('Parser, transform with empty placeholder', () => {
     const actual = new SnippetParser(true).text('${1} ${1/^(.*)/$1aa/}')
-    expect(actual).toBe(' aa')
+    assert.strictEqual(actual, ' aa')
   })
 
   test('Parser, isPlainText()', function() {
@@ -179,11 +180,11 @@ describe('SnippetParser', () => {
     }
 
     let text = getText('${1:{foo}}')
-    expect(text).toBe('{foo}')
+    assert.strictEqual(text, '{foo}')
     text = getText('${1:ab{foo}}')
-    expect(text).toBe('ab{foo}')
+    assert.strictEqual(text, 'ab{foo}')
     text = getText('${1:ab{foo}cd}')
-    expect(text).toBe('ab{foo}cd')
+    assert.strictEqual(text, 'ab{foo}cd')
   })
 
   test('Parser, first placeholder / variable', function() {
@@ -244,14 +245,14 @@ describe('SnippetParser', () => {
         [new Text('b '), new FormatString(2)],
       )
       let val = m.resolve('', ['', 'foo', 'bar'])
-      expect(val).toBe('b bar')
+      assert.strictEqual(val, 'b bar')
       val = m.resolve('x', ['', 'foo', 'bar'])
-      expect(val).toBe('a foo')
+      assert.strictEqual(val, 'a foo')
       m.addIfMarker(new Text('if'))
       m.addElseMarker(new Text('else'))
       let s = m.toTextmateString()
-      expect(s).toBe('(?1:a ${1}if:b ${2}else)')
-      expect(m.clone()).toBeDefined()
+      assert.strictEqual(s, '(?1:a ${1}if:b ${2}else)')
+      assert.notStrictEqual(m.clone(), undefined)
     }
     {
       let m = new ConditionMarker(1,
@@ -259,7 +260,7 @@ describe('SnippetParser', () => {
         []
       )
       let text = m.toTextmateString()
-      expect(text).toBe('(?1:foo)')
+      assert.strictEqual(text, '(?1:foo)')
     }
   })
 
@@ -377,9 +378,9 @@ describe('SnippetParser', () => {
     const c = text => {
       return (new SnippetParser(true)).parse(text)
     }
-    expect(c('`foo`').toTextmateString()).toBe('`foo`')
-    expect(c('`!p snip.rv`').toTextmateString()).toBe('`!p snip.rv`')
-    expect(c('`!v "var"`').toTextmateString()).toBe('`!v "var"`')
+    assert.strictEqual(c('`foo`').toTextmateString(), '`foo`')
+    assert.strictEqual(c('`!p snip.rv`').toTextmateString(), '`!p snip.rv`')
+    assert.strictEqual(c('`!v "var"`').toTextmateString(), '`!v "var"`')
   })
 
   test('Parser, placeholder with CodeBlock primary', () => {
@@ -424,8 +425,8 @@ describe('SnippetParser', () => {
     }
     let s = c('${1:_foo} ${2:bar} $1 $3 ${3:`!p snip.rv = str(t[1]) + str(t[2])`}')
     let b = s.pyBlocks[0]
-    expect(b).toBeDefined()
-    expect(b.related).toEqual([1, 2])
+    assert.notStrictEqual(b, undefined)
+    assert.deepStrictEqual(b.related, [1, 2])
   })
 
   test('Parser, python CodeBlock by sequence', () => {
@@ -434,8 +435,8 @@ describe('SnippetParser', () => {
     }
     let s = c('${2:\{${3:`!p foo`}\}} ${1:`!p bar`}')
     let arr = s.pyBlocks
-    expect(arr[0].code).toBe('foo')
-    expect(arr[1].code).toBe('bar')
+    assert.strictEqual(arr[0].code, 'foo')
+    assert.strictEqual(arr[1].code, 'bar')
   })
 
   test('Parser, hasPython()', () => {
@@ -520,14 +521,14 @@ describe('SnippetParser', () => {
       let s = c('${myname/(.*)$/${1:/capitalize}/}')
       let variable = s.children[0] as Variable
       variable.appendChild(new Text(''))
-      expect(s.toTextmateString()).toBe('${myname:/(.*)$/${1:/capitalize}/}')
+      assert.strictEqual(s.toTextmateString(), '${myname:/(.*)$/${1:/capitalize}/}')
       s = s.clone()
       await s.resolveVariables({
         resolve: async (_variable) => {
           return undefined
         }
       })
-      expect(s.toString()).toBe('Myname')
+      assert.strictEqual(s.toString(), 'Myname')
     }
   })
 
@@ -542,7 +543,7 @@ describe('SnippetParser', () => {
         return ''
       }
     })
-    expect(s.clone().toString()).toBe('Visual\\x ${visual}')
+    assert.strictEqual(s.clone().toString(), 'Visual\\x ${visual}')
   })
 
   test('Parser variable with code', () => {
@@ -558,77 +559,77 @@ describe('SnippetParser', () => {
   test('Parser, transform condition if text', () => {
     const p = new SnippetParser(true)
     let snip = p.parse('begin|${1:t}${1/(t)$|(a)$|(.*)/(?1:abular)(?2:rray)/}')
-    expect(snip.toString()).toBe('begin|tabular')
+    assert.strictEqual(snip.toString(), 'begin|tabular')
     let m = snip.placeholders.find(o => o.index == 1 && o.primary)
     m.setOnlyChild(new Text('a'))
     snip.onPlaceholderUpdate(m)
-    expect(snip.toString()).toBe('begin|array')
+    assert.strictEqual(snip.toString(), 'begin|array')
   })
 
   test('Parser, transform condition not match', () => {
     const p = new SnippetParser(true)
     let snip = p.parse('${1:xyz} ${1/^(f)(b?)/(?2:_:two)/}')
-    expect(snip.toString()).toBe('xyz xyz')
+    assert.strictEqual(snip.toString(), 'xyz xyz')
   })
 
   test('Parser, transform backslash in condition', () => {
     const p = new SnippetParser(true)
     let snip = p.parse('${1:foo} ${1/^(f)/(?1:x\\)\\:a:two)/}')
-    expect(snip.toString()).toBe('foo x):aoo')
+    assert.strictEqual(snip.toString(), 'foo x):aoo')
   })
 
   test('Parser, transform backslash in format string', () => {
     const p = new SnippetParser(true)
     let snip = p.parse('${1:\\n} ${1/^(\\\\n)/$1aa/}')
-    expect(snip.toString()).toBe('\\n \\naa')
+    assert.strictEqual(snip.toString(), '\\n \\naa')
   })
 
   test('Parser, ultisnips transform replacement', () => {
     const p = new SnippetParser(true)
     let snip = p.parse('${1:foo} ${1/^\\w/$0_/}')
-    expect(snip.toString()).toBe('foo f_oo')
+    assert.strictEqual(snip.toString(), 'foo f_oo')
     snip = p.parse('${1:foo} ${1/^\\w//}')
-    expect(snip.toString()).toBe('foo oo')
+    assert.strictEqual(snip.toString(), 'foo oo')
     snip = p.parse('${1:Foo} ${1/^(\\w+)$/\\u$1 (?1:-\\l$1)/g}')
-    expect(snip.toString()).toBe('Foo Foo -foo')
+    assert.strictEqual(snip.toString(), 'Foo Foo -foo')
   })
 
 
   test('Parser, convert ultisnips regex', () => {
     const p = new SnippetParser(true)
     let snip = p.parse('${1:foo} ${1/^\\A/_/}')
-    expect(snip.toString()).toBe('foo _foo')
+    assert.strictEqual(snip.toString(), 'foo _foo')
   })
 
   test('Parser, transform condition else text', () => {
     const p = new SnippetParser(true)
     let snip = p.parse('${1:foo} ${1/^(f)(b?)/(?2:_:two)/}')
-    expect(snip.toString()).toBe('foo twooo')
+    assert.strictEqual(snip.toString(), 'foo twooo')
     let m = snip.placeholders.find(o => o.index == 1 && o.primary)
     m.setOnlyChild(new Text('fb'))
     snip.onPlaceholderUpdate(m)
-    expect(snip.toString()).toBe('fb _')
+    assert.strictEqual(snip.toString(), 'fb _')
   })
 
   test('Parser, transform escape sequence', () => {
     const p = new SnippetParser(true)
     const snip = p.parse('${1:a text}\n${1/\\w+\\s*/\\u$0/}')
-    expect(snip.toString()).toBe('a text\nA text')
+    assert.strictEqual(snip.toString(), 'a text\nA text')
   })
 
   test('Parser, transform backslash', () => {
     const p = new SnippetParser(true)
     const snip = p.parse('${1:a}\n${1/\\w+/\\(\\)\\:\\x\\\\y/}')
-    expect(snip.toString()).toBe('a\n():\\x\\y')
+    assert.strictEqual(snip.toString(), 'a\n():\\x\\y')
   })
 
   test('Parser, transform with ascii option', () => {
     let p = new SnippetParser()
     let snip = p.parse('${1:pêche}\n${1/.*/$0/a}')
-    expect(snip.toString()).toBe('pêche\npeche')
+    assert.strictEqual(snip.toString(), 'pêche\npeche')
     p = new SnippetParser()
     snip = p.parse('${1/.*/$0/a}\n${1:pêche}')
-    expect(snip.toString()).toBe('peche\npêche')
+    assert.strictEqual(snip.toString(), 'peche\npêche')
   })
 
   test('Parser, placeholder with transform', () => {
@@ -706,7 +707,7 @@ describe('SnippetParser', () => {
     {
       const snippet = new SnippetParser(true).parse('${1:Foo} ${1/^(\\w+)$/\\x\\u$1/g}')
       const actual = snippet.children[2].toTextmateString()
-      expect(actual).toBe('${1:\\\\xFoo/^(\\w+)$/\\\\x\\u${1}/g}')
+      assert.strictEqual(actual, '${1:\\\\xFoo/^(\\w+)$/\\\\x\\u${1}/g}')
     }
   })
 
@@ -959,11 +960,11 @@ describe('SnippetParser', () => {
 
   test('marker#replaceWith', () => {
     let m = new Placeholder(1)
-    expect(m.replaceWith(new Text(''))).toBe(false)
+    assert.strictEqual(m.replaceWith(new Text('')), false)
     let p = new Placeholder(2)
     p.appendChild(m)
     p.replaceChildren([])
-    expect(m.replaceWith(new Text(''))).toBe(false)
+    assert.strictEqual(m.replaceWith(new Text('')), false)
   })
 
   test('parser, parent node', function() {
@@ -1130,12 +1131,12 @@ describe('TextmateSnippet', () => {
 
   test('TextmateSnippet#getTextBefore', () => {
     let snippet = new SnippetParser().parse('This ${1:is ${2:nested}}$0', true)
-    expect(snippet.getTextBefore(snippet, undefined)).toBe('')
+    assert.strictEqual(snippet.getTextBefore(snippet, undefined), '')
     let [first, second] = snippet.placeholders
-    expect(snippet.getTextBefore(second, first)).toBe('is ')
+    assert.strictEqual(snippet.getTextBefore(second, first), 'is ')
     snippet = new SnippetParser().parse('This ${1:foo ${2:is ${3:nested}}} $0', true)
     let arr = snippet.placeholders
-    expect(snippet.getTextBefore(arr[2], arr[0])).toBe('foo is ')
+    assert.strictEqual(snippet.getTextBefore(arr[2], arr[0]), 'foo is ')
   })
 
   test('TextmateSnippet#offset', () => {
@@ -1189,7 +1190,7 @@ describe('TextmateSnippet', () => {
     } catch (e) {
       err = e
     }
-    expect(err).toBeDefined()
+    assert.notStrictEqual(err, undefined)
   })
 
   test('TextmateSnippet#replace 2/2', () => {
@@ -1215,11 +1216,11 @@ describe('TextmateSnippet', () => {
     })
     let placeholders = snippet.placeholders
     let indexes = placeholders.map(o => o.index)
-    expect(indexes).toEqual([1, 2, 2, 1, 3, 0])
+    assert.deepStrictEqual(indexes, [1, 2, 2, 1, 3, 0])
     let p = placeholders.find(o => o.index == 2 && o.primary)
     p.setOnlyChild(new Text('x'))
     snippet.onPlaceholderUpdate(p)
-    expect(snippet.toString()).toBe('|x x x bar|')
+    assert.strictEqual(snippet.toString(), '|x x x bar|')
   })
 
   test('mergeTexts()', () => {
@@ -1236,18 +1237,18 @@ describe('TextmateSnippet', () => {
       new Text('e')
     ])
     mergeTexts(m, 0)
-    expect(m.hasPythonBlock).toBe(false)
-    expect(m.hasCodeBlock).toBe(false)
-    expect(m.children.length).toBe(5)
-    expect(m.children[2].toString()).toBe('ab')
-    expect(m.children[4].toString()).toBe('cde')
+    assert.strictEqual(m.hasPythonBlock, false)
+    assert.strictEqual(m.hasCodeBlock, false)
+    assert.strictEqual(m.children.length, 5)
+    assert.strictEqual(m.children[2].toString(), 'ab')
+    assert.strictEqual(m.children[4].toString(), 'cde')
   })
 
   test('getPlaceholderId', () => {
     const p = new Placeholder(1)
     let id = getPlaceholderId(p)
-    expect(typeof id).toBe('number')
-    expect(p.id).toBe(id)
-    expect(getPlaceholderId(p)).toBe(id)
+    assert.strictEqual(typeof id, 'number')
+    assert.strictEqual(p.id, id)
+    assert.strictEqual(getPlaceholderId(p), id)
   })
 })

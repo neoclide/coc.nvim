@@ -1,3 +1,6 @@
+import completion from '../completion'
+import { getCurrentPlugin } from '../attach'
+import * as shared from './sharedUtil'
 import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
@@ -13,7 +16,8 @@ import type { VirtualTextItem } from '../handler/inlayHint/buffer'
 import languages from '../languages'
 import { sameFile } from '../util/fs'
 import workspace from '../workspace'
-import helper from './helper'
+import { afterEach, before, beforeEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
 function disposeAll(disposables: Disposable[]): void {
   while (disposables.length) {
@@ -25,21 +29,16 @@ function disposeAll(disposables: Disposable[]): void {
 const disposables: Disposable[] = []
 let nvim: Neovim
 let featuredPropList = false
-beforeAll(async () => {
-  await helper.setupVim()
-  nvim = helper.workspace.nvim
+before(async () => {
+  nvim = workspace.nvim
   // for text_padding_left of property
-  if (helper.workspace.has('patch-9.0.1782')) {
+  if (workspace.has('patch-9.0.1782')) {
     featuredPropList = true
   }
 })
 
 afterEach(() => {
   disposeAll(disposables)
-})
-
-afterAll(async () => {
-  await helper.shutdown()
 })
 
 async function createTmpFile(content: string, disposables?: Disposable[]): Promise<string> {
@@ -60,19 +59,19 @@ async function createTmpFile(content: string, disposables?: Disposable[]): Promi
 }
 
 describe('workspace', () => {
-  it('should not has nvim feature', () => {
-    expect(helper.workspace.has('nvim-0.4.0')).toBe(false)
-    expect(helper.workspace.has('patch-9.0.0000')).toBe(true)
+  it('should not has nvim feature', t => {
+    assert.strictEqual(workspace.has('nvim-0.4.0'), false)
+    assert.strictEqual(workspace.has('patch-9.0.0000'), true)
   })
 
-  it('should evaluate dynamic insert keymaps', async () => {
+  it('should evaluate dynamic insert keymaps', async t => {
     let value: string | undefined
     let mapping = workspace.registerInsertKeymap('[', current => {
       value = current
       return [{ text: '<left>' }, { key: '<Left>' }]
     }, { buffer: true, arglist: ['getline(".")'] })
     await nvim.setLine('current state')
-    await helper.waitValue(async () => {
+    await shared.waitValue(async () => {
       let rhs = await nvim.call('maparg', ['[', 'i']) as string
       return rhs.includes('coc#_insert_keymap')
     }, true)
@@ -80,22 +79,22 @@ describe('workspace', () => {
     try {
       let rhs = await nvim.call('maparg', ['[', 'i']) as string
       let result = await nvim.eval(rhs) as string
-      expect(value).toBe('current state')
-      expect(result.startsWith('<left>')).toBe(true)
-      expect(result.length).toBeGreaterThan('<left>'.length)
+      assert.strictEqual(value, 'current state')
+      assert.strictEqual(result.startsWith('<left>'), true)
+      assert.ok(result.length > '<left>'.length)
     } finally {
       mapping.dispose()
-      await helper.waitValue(async () => await nvim.call('maparg', ['[', 'i']), '')
+      await shared.waitValue(async () => await nvim.call('maparg', ['[', 'i']), '')
     }
   })
 })
 
 describe('rpc client', () => {
-  it('should report live socket channel as running', async () => {
-    expect(await nvim.call('coc#client#is_running', ['coc'])).toBe(1)
+  it('should report live socket channel as running', async t => {
+    assert.strictEqual(await nvim.call('coc#client#is_running', ['coc']), 1)
   })
 
-  it('should reset client when channel is gone on E475', async () => {
+  it('should reset client when channel is gone on E475', async t => {
     // ch_sendraw on an invalid channel raises E475, which must still be
     // treated as connection loss for a dead channel.
     await nvim.command(`
@@ -104,14 +103,14 @@ describe('rpc client', () => {
       let g:fake['channel'] = 'x'
       call g:fake['notify']('testMethod', [])
     `)
-    expect(await nvim.call('eval', ["coc#client#get_client('fake')['running']"])).toBe(0)
+    assert.strictEqual(await nvim.call('eval', ["coc#client#get_client('fake')['running']"]), 0)
   })
 })
 
 describe('disable and enable', () => {
-  it('should keep dynamic autocmd after disable and enable', async () => {
+  it('should keep dynamic autocmd after disable and enable', async t => {
     let times = 0
-    let disposable = helper.workspace.registerAutocmd({
+    let disposable = workspace.registerAutocmd({
       event: 'CursorMoved',
       request: false,
       callback: () => {
@@ -119,54 +118,54 @@ describe('disable and enable', () => {
       }
     })
     await nvim.command('doautocmd <nomodeline> CursorMoved')
-    await helper.waitValue(() => times, 1)
+    await shared.waitValue(() => times, 1)
     await nvim.command('CocDisable')
     // While disabled the autocmd stays installed but no RPC is sent.
     await nvim.command('doautocmd <nomodeline> CursorMoved')
-    await helper.wait(50)
-    expect(times).toBe(1)
+    await shared.wait(50)
+    assert.strictEqual(times, 1)
     await nvim.command('CocEnable')
     await nvim.command('doautocmd <nomodeline> CursorMoved')
-    await helper.waitValue(() => times, 2)
+    await shared.waitValue(() => times, 2)
     disposable.dispose()
   })
 
-  it('should remove dynamic autocmd on dispose', async () => {
+  it('should remove dynamic autocmd on dispose', async t => {
     let name = `CocTestEvent${Math.random().toString(16).slice(2, 8)}`
-    let disposable = helper.workspace.registerAutocmd({
+    let disposable = workspace.registerAutocmd({
       event: `User ${name}`,
       callback: () => {}
     })
     let output = await nvim.call('execute', 'autocmd coc_dynamic_autocmd') as string
-    expect(output).toMatch(name)
+    assert.match(output, new RegExp(name))
     disposable.dispose()
     await new Promise(resolve => process.nextTick(resolve))
     output = await nvim.call('execute', 'autocmd coc_dynamic_autocmd') as string
-    expect(output.includes(name)).toBe(false)
+    assert.strictEqual(output.includes(name), false)
   })
 })
 
 describe('vim api', () => {
-  it('should start server', async () => {
+  it('should start server', async t => {
     await nvim.setLine('foobar')
     let buf = await nvim.buffer
     let lines = await buf.lines
-    expect(lines).toEqual(['foobar'])
+    assert.deepStrictEqual(lines, ['foobar'])
     await nvim.command('bd!')
   })
 
-  it('should show info', async () => {
+  it('should show info', async t => {
     global.REVISION = '2e82259f'
-    let handler = helper.plugin.getHandler().workspace
+    let handler = getCurrentPlugin().getHandler().workspace
     await handler.showInfo()
     // scratch buffer should carry a meaningful name (#5061)
     let bufname = await nvim.call('bufname', ['%']) as string
-    expect(bufname).toBe('[Coc Info]')
+    assert.strictEqual(bufname, '[Coc Info]')
     await nvim.command('bd!')
   })
 
-  it('should navigate complete items', async () => {
-    helper.updateConfiguration('suggest.noselect', true)
+  it('should navigate complete items', async t => {
+    shared.updateConfiguration('suggest.noselect', true)
     let name = Math.random().toString(16).slice(-6)
     let disposable = sources.createSource({
       name,
@@ -178,45 +177,45 @@ describe('vim api', () => {
     })
     await nvim.input('i')
     nvim.call('coc#start', { source: name }, true)
-    await helper.waitPopup()
+    await shared.waitPopup()
     await nvim.call('coc#pum#_navigate', [1, 1])
-    await helper.waitFor('getline', ['.'], 'foo')
-    expect(helper.completion.isActivated).toBe(true)
+    await shared.waitFor('getline', ['.'], 'foo')
+    assert.strictEqual(completion.isActivated, true)
     await nvim.call('coc#pum#close', ['cancel'])
     await nvim.input('<esc>')
-    await helper.waitFor('mode', [], 'n')
+    await shared.waitFor('mode', [], 'n')
     disposable.dispose()
     await nvim.command('silent! %bwipeout!')
   })
 
-  it('should synchronize document before completion done', async () => {
+  it('should synchronize document before completion done', async t => {
     let line: string
     let name = crypto.randomUUID()
     let disposable = sources.createSource({
       name,
       doComplete: (): Promise<CompleteResult<ExtendedCompleteItem>> => Promise.resolve({ items: [{ word: 'foo' }] }),
       onCompleteDone: (_item, opt) => {
-        line = helper.workspace.getDocument(opt.bufnr).getline(0)
+        line = workspace.getDocument(opt.bufnr).getline(0)
       }
     })
     await nvim.setLine('')
     await nvim.input('i')
     nvim.call('coc#start', { source: name }, true)
     try {
-      await helper.waitPopup()
+      await shared.waitPopup()
       await nvim.call('coc#pum#select', [0, 1, 1])
-      await helper.waitValue(() => line, 'foo')
+      await shared.waitValue(() => line, 'foo')
     } finally {
       await nvim.input('<esc>')
-      await helper.waitFor('mode', [], 'n')
+      await shared.waitFor('mode', [], 'n')
       disposable.dispose()
       await nvim.command('silent! %bwipeout!')
     }
   })
 
-  it('should keep retriggered pum on noinsert navigation', async () => {
-    helper.updateConfiguration('suggest.noselect', true, disposables)
-    let feedkeys = vi.fn((keys: string): void => {
+  it('should keep retriggered pum on noinsert navigation', async t => {
+    shared.updateConfiguration('suggest.noselect', true, disposables)
+    let feedkeys = t.mock.fn((keys: string): void => {
       nvim.call('feedkeys', [keys, 'in'], true)
     })
     let disposable = languages.registerCompletionItemProvider('issue-5409', '5409', null, {
@@ -242,39 +241,39 @@ describe('vim api', () => {
     await nvim.input('a')
     try {
       nvim.call('coc#start', { source: 'issue-5409' }, true)
-      await helper.waitPopup()
+      await shared.waitPopup()
       await nvim.input('<esc>')
-      await helper.waitFor('mode', [], 'n')
-      await helper.waitFor('coc#pum#visible', [], 0)
+      await shared.waitFor('mode', [], 'n')
+      await shared.waitFor('coc#pum#visible', [], 0)
 
       await nvim.input('a')
       nvim.call('coc#start', { source: 'issue-5409' }, true)
-      await helper.waitPopup()
+      await shared.waitPopup()
       let keys = await nvim.call('coc#pum#next', [0]) as string
       feedkeys(keys)
-      await helper.waitValue(() => helper.completion.selectedItem?.word.includes('inlayHint.position'), true)
+      await shared.waitValue(() => completion.selectedItem?.word.includes('inlayHint.position'), true)
       keys = await nvim.call('coc#pum#confirm') as string
       feedkeys(keys)
-      await helper.waitValue(async () => (await nvim.line).startsWith('{"inlayHint.position": '), true)
-      await helper.waitValue(() => helper.completion.activeItems.some(item => item.word.includes('"inline"')), true)
-      await helper.waitFor('coc#pum#visible', [], 1)
+      await shared.waitValue(async () => (await nvim.line).startsWith('{"inlayHint.position": '), true)
+      await shared.waitValue(() => completion.activeItems.some(item => item.word.includes('"inline"')), true)
+      await shared.waitFor('coc#pum#visible', [], 1)
 
       let textChanged = events.race(['TextChangedI'], 1000)
       keys = await nvim.call('coc#pum#next', [0]) as string
       feedkeys(keys)
-      expect(await textChanged).toBeDefined()
-      expect(await nvim.call('coc#pum#visible')).toBe(1)
-      expect(helper.completion.isActivated).toBe(true)
-      expect(helper.completion.selectedItem?.word).toContain('"inline"')
+      assert.notStrictEqual(await textChanged, undefined)
+      assert.strictEqual(await nvim.call('coc#pum#visible'), 1)
+      assert.strictEqual(completion.isActivated, true)
+      assert.ok(completion.selectedItem?.word.includes('"inline"'))
     } finally {
       await nvim.input('<esc>')
-      await helper.waitFor('mode', [], 'n')
+      await shared.waitFor('mode', [], 'n')
       disposable.dispose()
       await nvim.command('silent! %bwipeout!')
     }
   })
 
-  it('should place popup menu after concealed text on current line', async () => {
+  it('should place popup menu after concealed text on current line', async t => {
     // Regression for #5582: Vim's popup 'cursor' column anchor ignores concealed
     // text, so the menu must be positioned with the conceal-aware screen column.
     let name = crypto.randomUUID()
@@ -291,9 +290,9 @@ describe('vim api', () => {
     await nvim.input('conc')
     nvim.call('coc#start', { source: name }, true)
     try {
-      await helper.waitPopup()
+      await shared.waitPopup()
       let id = 0
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         id = await nvim.call('coc#pum#winid', []) as number
         return id > 0
       }, true)
@@ -303,18 +302,18 @@ describe('vim api', () => {
       // "conceal" is hidden, so the conceal-aware cursor column is far smaller than
       // the virtual column; the menu must follow the conceal-aware column and not
       // land after the hidden text.
-      expect(wincol).toBeLessThan(virtcol)
-      expect(pos.col).toBeLessThanOrEqual(wincol)
+      assert.ok(wincol < virtcol)
+      assert.ok(pos.col <= wincol)
     } finally {
       await nvim.call('coc#pum#close', ['cancel'])
       await nvim.input('<esc>')
-      await helper.waitFor('mode', [], 'n')
+      await shared.waitFor('mode', [], 'n')
       disposable.dispose()
       await nvim.command('silent! %bwipeout!')
     }
   })
 
-  it('should place popup menu by word start when input wraps on concealed line', async () => {
+  it('should place popup menu by word start when input wraps on concealed line', async t => {
     // Regression for #5582 (wrap case): with 'wrap', the typed input can span
     // multiple display rows. A flat column subtraction underflows below 0 and the
     // menu was clamped to the left screen edge, while the word visibly starts near
@@ -337,27 +336,27 @@ describe('vim api', () => {
     await nvim.input('Aconcea')
     nvim.call('coc#start', { source: name }, true)
     try {
-      await helper.waitPopup()
+      await shared.waitPopup()
       let id = 0
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         id = await nvim.call('coc#pum#winid', []) as number
         return id > 0
       }, true)
       let pos = await nvim.call('popup_getpos', [id]) as { col: number }
       // The word start is on the right half of the screen on an upper wrap row,
       // so the menu must be anchored there, not clamped to the left edge (col 1).
-      expect(pos.col).toBeGreaterThan(20)
+      assert.ok(pos.col > 20)
     } finally {
       await nvim.call('coc#pum#close', ['cancel'])
       await nvim.input('<esc>')
-      await helper.waitFor('mode', [], 'n')
+      await shared.waitFor('mode', [], 'n')
       await nvim.command(`set columns=${columns}`)
       disposable.dispose()
       await nvim.command('silent! %bwipeout!')
     }
   })
 
-  it('should shift popup left when pumAlign is configured', async () => {
+  it('should shift popup left when pumAlign is configured', async t => {
     let name = crypto.randomUUID()
     let disposable = sources.createSource({
       name,
@@ -372,38 +371,38 @@ describe('vim api', () => {
     await nvim.input('A')
     nvim.call('coc#start', { source: name }, true)
     try {
-      await helper.waitPopup()
+      await shared.waitPopup()
       let id = 0
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         id = await nvim.call('coc#pum#winid', []) as number
         return id > 0
       }, true)
       let pos = await nvim.call('popup_getpos', [id]) as { col: number }
       await nvim.call('coc#pum#close', ['cancel'])
       await nvim.input('<esc>')
-      await helper.waitFor('mode', [], 'n')
-      helper.updateConfiguration('suggest.pumAlign', 'menu')
+      await shared.waitFor('mode', [], 'n')
+      shared.updateConfiguration('suggest.pumAlign', 'menu')
       await nvim.input('A')
       nvim.call('coc#start', { source: name }, true)
-      await helper.waitPopup()
+      await shared.waitPopup()
       let id2 = 0
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         id2 = await nvim.call('coc#pum#winid', []) as number
         return id2 > 0
       }, true)
       let pos2 = await nvim.call('popup_getpos', [id2]) as { col: number }
       // offset: abbr width (6) + trailing space (1)
-      expect(pos.col - pos2.col).toBe(7)
+      assert.strictEqual(pos.col - pos2.col, 7)
     } finally {
       await nvim.call('coc#pum#close', ['cancel'])
       await nvim.input('<esc>')
-      await helper.waitFor('mode', [], 'n')
+      await shared.waitFor('mode', [], 'n')
       disposable.dispose()
       await nvim.command('silent! %bwipeout!')
     }
   })
 
-  it('should keep popup menu at word start when typed input becomes concealed', async () => {
+  it('should keep popup menu at word start when typed input becomes concealed', async t => {
     let name = crypto.randomUUID()
     let disposable = sources.createSource({
       name,
@@ -418,33 +417,33 @@ describe('vim api', () => {
     await nvim.command('setl conceallevel=2 concealcursor=i')
     await nvim.input('150a.')
     await nvim.input('<esc>')
-    await helper.waitFor('mode', [], 'n')
+    await shared.waitFor('mode', [], 'n')
     await nvim.input('A')
     await nvim.input('concea')
     nvim.call('coc#start', { source: name }, true)
     try {
-      await helper.waitPopup()
+      await shared.waitPopup()
       let id = 0
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         id = await nvim.call('coc#pum#winid', []) as number
         return id > 0
       }, true)
       let before = await nvim.call('popup_getpos', [id]) as { col: number }
       await nvim.input('l')
-      await helper.waitFor('getline', ['.'], '.'.repeat(150) + 'conceal')
+      await shared.waitFor('getline', ['.'], '.'.repeat(150) + 'conceal')
       let after = await nvim.call('popup_getpos', [id]) as { col: number }
-      expect(after.col).toBe(before.col)
+      assert.strictEqual(after.col, before.col)
     } finally {
       await nvim.call('coc#pum#close', ['cancel'])
       await nvim.input('<esc>')
-      await helper.waitFor('mode', [], 'n')
+      await shared.waitFor('mode', [], 'n')
       await nvim.command(`set columns=${columns}`)
       disposable.dispose()
       await nvim.command('silent! %bwipeout!')
     }
   })
 
-  it('should keep popup menu at word start after another concealed word', async () => {
+  it('should keep popup menu at word start after another concealed word', async t => {
     let name = crypto.randomUUID()
     let disposable = sources.createSource({
       name,
@@ -457,89 +456,89 @@ describe('vim api', () => {
     await nvim.input('Iconceal concea')
     nvim.call('coc#start', { source: name }, true)
     try {
-      await helper.waitPopup()
+      await shared.waitPopup()
       let id = 0
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         id = await nvim.call('coc#pum#winid', []) as number
         return id > 0
       }, true)
       let before = await nvim.call('popup_getpos', [id]) as { col: number }
       await nvim.input('l')
-      await helper.waitFor('getline', ['.'], 'conceal conceal')
+      await shared.waitFor('getline', ['.'], 'conceal conceal')
       let after = await nvim.call('popup_getpos', [id]) as { col: number }
-      expect(after.col).toBe(before.col)
+      assert.strictEqual(after.col, before.col)
       let virtcol = await nvim.call('virtcol', ['.']) as number
-      expect(after.col).toBeLessThan(virtcol - 'conceal'.length)
+      assert.ok(after.col < virtcol - 'conceal'.length)
     } finally {
       await nvim.call('coc#pum#close', ['cancel'])
       await nvim.input('<esc>')
-      await helper.waitFor('mode', [], 'n')
+      await shared.waitFor('mode', [], 'n')
       disposable.dispose()
       await nvim.command('silent! %bwipeout!')
     }
   })
 
-  it('should echo message by callTimer', async () => {
+  it('should echo message by callTimer', async t => {
     ui.echoMessages(nvim, 'message', 'more', 'more')
-    await helper.waitValue(async () => {
-      let line = await helper.getCmdline()
+    await shared.waitValue(async () => {
+      let line = await shared.getCmdline()
       return line.includes('message')
     }, true)
   })
 
-  it('should call async', async () => {
+  it('should call async', async t => {
     await nvim.command('normal! gg')
     let res = await funcs.callAsync(nvim, 'line', ['.'])
-    expect(res).toBe(1)
+    assert.strictEqual(res, 1)
   })
 })
 
 describe('call_function', () => {
-  beforeAll(async () => {
-    let folder = path.resolve(__dirname)
+  before(async () => {
+    let folder = path.resolve(import.meta.dirname)
     await nvim.command(`set runtimepath+=${folder}`)
   })
 
-  it('should throw when call vim9 void function', async () => {
-    await expect(nvim.call('vim9#Execute', ['g:x = $"foo"'])).rejects.toThrow(Error)
+  it('should throw when call vim9 void function', async t => {
+    await assert.rejects(nvim.call('vim9#Execute', ['g:x = $"foo"']), Error)
     // should not report error
     nvim.call('vim9#Execute', ['g:x = $"abc"'], true)
     let x = await nvim.getVar('x')
-    expect(x).toBe('abc')
+    assert.strictEqual(x, 'abc')
   })
 
-  it('should call dict function', async () => {
+  it('should call dict function', async t => {
     let res = await nvim.callDictFunction({ key: 1 }, 'legacy#dict_add')
-    expect(res).toBe(2)
+    assert.strictEqual(res, 2)
   })
 
-  it('should use notify for execute', async () => {
+  it('should use notify for execute', async t => {
     nvim.call('execute', 'let g:x = "a"."b"', true)
     let res = await nvim.getVar('x')
-    expect(res).toBe('ab')
+    assert.strictEqual(res, 'ab')
   })
 
-  it('should not throw for win_execute', async () => {
+  it('should not throw for win_execute', async t => {
     // old style syntax
     await nvim.call('execute', ['let g:y = "a"."b"'])
     let y = await nvim.getVar('y')
-    expect(y).toBe('ab')
+    assert.strictEqual(y, 'ab')
     // new style syntax in vim9 function
     let res = await nvim.call('vim9#WinExecute', [])
-    expect(res).toBe(true)
+    assert.strictEqual(res, true)
     // old style syntax win_execute in legacy function
     await nvim.call('legacy#win_execute', [])
     let win = await nvim.window
     let val = await win.getVar('foo')
-    expect(val).toBe('ab')
+    assert.strictEqual(val, 'ab')
   })
 
-  it('should eval with legacy syntax', async () => {
+  it('should eval with legacy syntax', async t => {
     let res = await nvim.call('eval', ['"a"."b"'])
-    expect(res).toBe('ab')
+    assert.strictEqual(res, 'ab')
   })
 
-  it('should not conflict with global function', async () => {
+  it('should not conflict with global function', async t => {
     await nvim.exec([
       'function! Win_execute(...) abort',
       ' throw "my error"',
@@ -549,26 +548,26 @@ describe('call_function', () => {
     await nvim.call('win_execute', [winid, 'let w:f = "b"'])
     let win = nvim.createWindow(winid)
     let val = await win.getVar('f')
-    expect(val).toBe('b')
+    assert.strictEqual(val, 'b')
   })
 })
 
 describe('client API', () => {
-  it('stops and restarts a task without evaluating the Job as a number', async () => {
+  it('stops and restarts a task without evaluating the Job as a number', async t => {
     let id = `vim-task-${Date.now()}`
     let started = await nvim.call('coc#task#start', [id, { cmd: 'sleep', args: ['30'] }])
-    expect(started).toBe(true)
+    assert.strictEqual(started, true)
     // stop() must not throw E910 (Using a Job as a Number)
     await nvim.call('coc#task#stop', [id])
-    await helper.waitValue(async () => await nvim.call('coc#task#running', [id]), false)
+    await shared.waitValue(async () => await nvim.call('coc#task#running', [id]), false)
     // restarting the same id stops the old job first without E910
     started = await nvim.call('coc#task#start', [id, { cmd: 'sleep', args: ['30'] }])
-    expect(started).toBe(true)
+    assert.strictEqual(started, true)
     await nvim.call('coc#task#stop', [id])
-    await helper.waitValue(async () => await nvim.call('coc#task#running', [id]), false)
+    await shared.waitValue(async () => await nvim.call('coc#task#running', [id]), false)
   })
 
-  it('runs node version checks with spaces in the executable path', async () => {
+  it('runs node version checks with spaces in the executable path', async t => {
     let dir = path.join(os.tmpdir(), `coc node check-${crypto.randomUUID()}`)
     fs.mkdirSync(dir, { recursive: true })
     let node = path.join(dir, 'my node')
@@ -584,7 +583,7 @@ describe('client API', () => {
       await nvim.exec(code)
       let [beforeLen, afterLen] = await nvim.call('eval', ['[g:coc_stderr_before_len, g:coc_stderr_after_len]']) as [number, number]
       // check_version must parse the version without reporting an error
-      expect(afterLen).toBe(beforeLen)
+      assert.strictEqual(afterLen, beforeLen)
     } finally {
       if (saved === '') {
         await nvim.exec('unlet g:coc_node_path')
@@ -595,7 +594,7 @@ describe('client API', () => {
     }
   })
 
-  it('rejects pending async callbacks once when the connection detaches', async () => {
+  it('rejects pending async callbacks once when the connection detaches', async t => {
     let code = [
       "call coc#client#create('fake', [])",
       'let g:coc_detach_err = ""',
@@ -612,65 +611,65 @@ describe('client API', () => {
       "let g:coc_detach_running = c['running']"
     ].join('\n')
     await nvim.exec(code)
-    expect(await nvim.getVar('coc_detach_err')).toContain('exited before response')
+    assert.ok(String(await nvim.getVar('coc_detach_err')).includes('exited before response'))
     // callbacks completed exactly once even though detach ran twice
-    expect(await nvim.getVar('coc_detach_count')).toBe(1)
-    expect(await nvim.getVar('coc_detach_map_empty')).toBe(1)
+    assert.strictEqual(await nvim.getVar('coc_detach_count'), 1)
+    assert.strictEqual(await nvim.getVar('coc_detach_map_empty'), 1)
     // request ids reset so a reconnect can safely reuse id 1
-    expect(await nvim.getVar('coc_detach_id')).toBe(1)
-    expect(await nvim.getVar('coc_detach_running')).toBe(0)
+    assert.strictEqual(await nvim.getVar('coc_detach_id'), 1)
+    assert.strictEqual(await nvim.getVar('coc_detach_running'), 0)
   })
 
-  it('should set current dir', async () => {
+  it('should set current dir', async t => {
     let dir = path.join(fs.realpathSync(os.tmpdir()), crypto.randomUUID())
     fs.mkdirSync(dir, { recursive: true })
     await nvim.setDirectory(dir)
     let res = await nvim.call('getcwd') as string
-    expect(sameFile(res, dir)).toBe(true)
+    assert.strictEqual(sameFile(res, dir), true)
   })
 
-  it('should input characters', async () => {
+  it('should input characters', async t => {
     await nvim.input('iabc')
-    await helper.waitFor('getline', ['.'], 'abc')
+    await shared.waitFor('getline', ['.'], 'abc')
     await nvim.input('<esc>')
-    await helper.waitFor('mode', [], 'n')
+    await shared.waitFor('mode', [], 'n')
     await nvim.command('bwipeout!')
   })
 
-  it('should set var', async () => {
+  it('should set var', async t => {
     await nvim.setVar('foo', 'bar', false)
     let res = await nvim.getVar('foo')
-    expect(res).toBe('bar')
+    assert.strictEqual(res, 'bar')
   })
 
-  it('should del var', async () => {
-    await expect(async () => {
+  it('should del var', async t => {
+    await assert.rejects(async () => {
       nvim.pauseNotification()
       nvim.deleteVar('not_exists')
       await nvim.resumeNotification()
-    }).rejects.toThrow(Error)
+    }, Error)
     await nvim.setVar('foo', 'bar', false)
     nvim.deleteVar('foo')
     let res = await nvim.getVar('foo')
-    expect(res).toBeNull()
+    assert.strictEqual(res, null)
   })
 
-  it('should set option', async () => {
+  it('should set option', async t => {
     await nvim.setOption('emoji', false)
     let res = await nvim.getOption('emoji')
-    expect(res).toBe(false)
+    assert.strictEqual(res, false)
   })
 
-  it('should set current buffer', async () => {
+  it('should set current buffer', async t => {
     let bufnr = await nvim.call('bufadd', ['foo']) as number
     await nvim.command(`call bufload(${bufnr})`)
     await nvim.setBuffer(nvim.createBuffer(bufnr))
     let b = await nvim.buffer
-    expect(b.id).toBe(bufnr)
+    assert.strictEqual(b.id, bufnr)
     await nvim.command('silent! %bwipeout!')
   })
 
-  it('validates Buf_set_lines ranges like Neovim', async () => {
+  it('validates Buf_set_lines ranges like Neovim', async t => {
     let buf = await nvim.createNewBuffer()
     let cases: Array<[number, number, boolean]> = [
       [2, 1, true], // reversed range, strict
@@ -687,13 +686,13 @@ describe('client API', () => {
       } catch (e) {
         err = e as Error
       }
-      expect(err, `${start}:${end}:${strict}`).toBeTruthy()
-      expect(await buf.lines, `${start}:${end}:${strict}`).toEqual(['a', 'b'])
+      assert.ok(err, `${start}:${end}:${strict}`)
+      assert.deepStrictEqual(await buf.lines, ['a', 'b'], `${start}:${end}:${strict}`)
     }
     // boundary insert at the end still works
     await buf.setLines(['a', 'b'], { start: 0, end: -1 })
     await buf.setLines(['X'], { start: 2, end: 2, strictIndexing: true })
-    expect(await buf.lines).toEqual(['a', 'b', 'X'])
+    assert.deepStrictEqual(await buf.lines, ['a', 'b', 'X'])
     // get_lines validates reversed ranges too
     await buf.setLines(['a', 'b'], { start: 0, end: -1 })
     let getErr: Error | undefined
@@ -702,11 +701,11 @@ describe('client API', () => {
     } catch (e) {
       getErr = e as Error
     }
-    expect(getErr).toBeTruthy()
+    assert.ok(getErr)
     await nvim.command('silent! %bwipeout!')
   })
 
-  it('restores wildignore when opening throws', async () => {
+  it('restores wildignore when opening throws', async t => {
     let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-wild-'))
     let file = path.join(dir, 'c.txt')
     fs.writeFileSync(file, 'c\n')
@@ -721,8 +720,8 @@ describe('client API', () => {
       } catch (e) {
         err = e as Error
       }
-      expect(err).toBeTruthy()
-      expect(await nvim.getOption('wildignore')).toBe(value)
+      assert.ok(err)
+      assert.strictEqual(await nvim.getOption('wildignore'), value)
     } finally {
       await nvim.exec(`autocmd! BufReadPre ${file}`)
       await nvim.setOption('wildignore', '')
@@ -734,7 +733,7 @@ describe('client API', () => {
     }
   })
 
-  it('keeps the centered prompt on screen with a large marginTop', async () => {
+  it('keeps the centered prompt on screen with a large marginTop', async t => {
     let savedLines = await nvim.getOption('lines') as number
     let savedColumns = await nvim.getOption('columns') as number
     await nvim.setOption('lines', 12)
@@ -742,10 +741,10 @@ describe('client API', () => {
     try {
       let maxRow = Number(await nvim.getOption('lines')) - Number(await nvim.getOption('cmdheight')) - 2
       for (let marginTop of [0, 1, 50, maxRow]) {
-        let input = await helper.plugin.window.createInputBox('title', '', { marginTop, position: 'center' })
+        let input = await getCurrentPlugin().window.createInputBox('title', '', { marginTop, position: 'center' })
         let row = input.dimension.row
-        expect(row, `marginTop ${marginTop}`).toBeGreaterThanOrEqual(0)
-        expect(row, `marginTop ${marginTop}`).toBeLessThanOrEqual(maxRow)
+        assert.ok(row >= 0, `marginTop ${marginTop}`)
+        assert.ok(row <= maxRow, `marginTop ${marginTop}`)
         input.dispose()
       }
     } finally {
@@ -754,189 +753,189 @@ describe('client API', () => {
     }
   })
 
-  it('should execute vim script', async () => {
+  it('should execute vim script', async t => {
     let output = await nvim.exec(`echo 'foo'\necho 'bar'`, true)
-    expect(output).toBe('foo\nbar')
+    assert.strictEqual(output, 'foo\nbar')
     output = await nvim.exec(`let g:x = '5'\nunlet g:x`)
-    expect(output).toBe('')
+    assert.strictEqual(output, '')
   })
 
-  it('should create new buffer', async () => {
+  it('should create new buffer', async t => {
     let buf = await nvim.createNewBuffer()
     let valid = await buf.valid
-    expect(valid).toBe(true)
+    assert.strictEqual(valid, true)
     let listed = await buf.getOption('buflisted')
-    expect(listed).toBe(false)
+    assert.strictEqual(listed, false)
     buf = await nvim.createNewBuffer(true, true)
     valid = await buf.valid
-    expect(valid).toBe(true)
+    assert.strictEqual(valid, true)
     listed = await buf.getOption('buflisted')
-    expect(listed).toBe(true)
+    assert.strictEqual(listed, true)
     let buftype = await buf.getOption('buftype')
-    expect(buftype).toBe('nofile')
+    assert.strictEqual(buftype, 'nofile')
   })
 
-  it('should name float scratch buffer', async () => {
+  it('should name float scratch buffer', async t => {
     let bufnr = await nvim.call('coc#float#create_buf', [0]) as number
     let name = await nvim.call('bufname', [bufnr])
-    expect(name).toBe(`coc-float://${bufnr}`)
+    assert.strictEqual(name, `coc-float://${bufnr}`)
     await nvim.command(`silent! bwipeout! ${bufnr}`)
   })
 
-  it('should set current window', async () => {
+  it('should set current window', async t => {
     let winid = await nvim.call('win_getid') as number
     await nvim.command('sp | sp | sp')
     let win = nvim.createWindow(winid)
     await nvim.setWindow(win)
     let curr = await nvim.call('win_getid') as number
-    expect(curr).toBe(winid)
+    assert.strictEqual(curr, winid)
     await nvim.command('only!')
   })
 
-  it('should set current tabpage', async () => {
+  it('should set current tabpage', async t => {
     let tab = await nvim.tabpage
     await nvim.command('tabe')
     await nvim.setTabpage(tab)
     let nr = await nvim.call('tabpagenr')
-    expect(nr).toBe(tab.id)
+    assert.strictEqual(nr, tab.id)
     let tabpages = await nvim.tabpages
-    expect(tabpages.length).toBe(2)
+    assert.strictEqual(tabpages.length, 2)
     await nvim.command('tabonly!')
   })
 
-  it('should list windows', async () => {
+  it('should list windows', async t => {
     let wins = await nvim.windows
-    expect(Array.isArray(wins)).toBe(true)
+    assert.strictEqual(Array.isArray(wins), true)
   })
 
-  it('should call atomic', async () => {
-    await expect(async () => {
+  it('should call atomic', async t => {
+    await assert.rejects(async () => {
       nvim.pauseNotification()
       nvim.call('abc', [], true)
       await nvim.resumeNotification()
-    }).rejects.toThrow(Error)
+    }, Error)
     let res = await nvim.getVvar('errmsg')
-    expect(res).toBe('')
+    assert.strictEqual(res, '')
   })
 
-  it('should execute command', async () => {
+  it('should execute command', async t => {
     await nvim.command('sp')
     let wins = await nvim.windows
-    expect(wins.length).toBe(2)
+    assert.strictEqual(wins.length, 2)
     await nvim.command('only')
     wins = await nvim.windows
-    expect(wins.length).toBe(1)
+    assert.strictEqual(wins.length, 1)
   })
 
-  it('should allow legacy script on command', async () => {
+  it('should allow legacy script on command', async t => {
     await nvim.command('let g:x = v:argv[0]." bar"')
     let res = await nvim.getVar('x')
-    expect(res).toMatch('bar')
+    assert.match(String(res), new RegExp('bar'))
   })
 
-  it('should not throw for silent error command', async () => {
-    await expect(nvim.command('abcdefg')).rejects.toThrow(/E492/)
+  it('should not throw for silent error command', async t => {
+    await assert.rejects(nvim.command('abcdefg'), /E492/)
     await nvim.command('silent! abcdefg')
   })
 
-  it('should use legacy eval', async () => {
+  it('should use legacy eval', async t => {
     let res = await nvim.eval('"a"."b"')
-    expect(res).toBe('ab')
+    assert.strictEqual(res, 'ab')
   })
 
-  it('should get api info', async () => {
+  it('should get api info', async t => {
     let info = await nvim.apiInfo
-    expect(typeof info[0]).toBe('number')
+    assert.strictEqual(typeof info[0], 'number')
   })
 
-  it('should get buffer list', async () => {
+  it('should get buffer list', async t => {
     let bufs = await nvim.buffers
-    expect(typeof bufs[0].id).toBe('number')
+    assert.strictEqual(typeof bufs[0].id, 'number')
   })
 
-  it('should feedkeys', async () => {
+  it('should feedkeys', async t => {
     await nvim.setLine('foo')
     await nvim.feedKeys('$', 'int', false)
     let col = await nvim.call('col', ['.'])
-    expect(col).toBe(3)
+    assert.strictEqual(col, 3)
     await nvim.command('bd!')
   })
 
-  it('should list runtimepath', async () => {
+  it('should list runtimepath', async t => {
     let res = await nvim.runtimePaths
-    expect(Array.isArray(res)).toBe(true)
+    assert.strictEqual(Array.isArray(res), true)
   })
 
-  it('should get command output', async () => {
+  it('should get command output', async t => {
     let res = await nvim.commandOutput('echo "foo"."bar"')
-    expect(res).toMatch(/foobar/)
-    await expect(nvim.commandOutput('echonot_exists')).rejects.toThrow(/E492/)
+    assert.match(res, /foobar/)
+    await assert.rejects(nvim.commandOutput('echonot_exists'), /E492/)
   })
 
-  it('should get line & set line', async () => {
+  it('should get line & set line', async t => {
     await nvim.setLine('foo')
     let curr = await nvim.getLine()
-    expect(curr).toBe('foo')
+    assert.strictEqual(curr, 'foo')
     await nvim.deleteCurrentLine()
     curr = await nvim.getLine()
-    expect(curr).toBe('')
+    assert.strictEqual(curr, '')
   })
 
-  it('should get var', async () => {
+  it('should get var', async t => {
     await nvim.setVar('foo', 'bar')
     let res = await nvim.getVar('foo')
-    expect(res).toBe('bar')
+    assert.strictEqual(res, 'bar')
     nvim.deleteVar('foo')
     res = await nvim.getVar('foo')
-    expect(res).toBeNull()
+    assert.strictEqual(res, null)
   })
 
-  it('should get vvar', async () => {
+  it('should get vvar', async t => {
     let res = await nvim.getVvar('progpath')
-    expect(res).toMatch('vim')
+    assert.match(String(res), new RegExp('vim'))
   })
 
-  it('should get current buffer, window, tabpage', async () => {
-    expect(await nvim.buffer).toBeDefined()
-    expect(await nvim.window).toBeDefined()
-    expect(await nvim.tabpage).toBeDefined()
+  it('should get current buffer, window, tabpage', async t => {
+    assert.notStrictEqual(await nvim.buffer, undefined)
+    assert.notStrictEqual(await nvim.window, undefined)
+    assert.notStrictEqual(await nvim.tabpage, undefined)
   })
 
-  it('should get strwidth', async () => {
+  it('should get strwidth', async t => {
     let w = await nvim.strWidth('foo')
-    expect(w).toBe(3)
+    assert.strictEqual(w, 3)
   })
 
-  it('should out_write', async () => {
+  it('should out_write', async t => {
     nvim.outWrite('foo')
     nvim.outWriteLine('bar')
-    let env = helper.workspace.env
-    let line = await helper.getCmdline(env.lines - 1)
-    expect(line).toBe('foobar')
+    let env = workspace.env
+    let line = await shared.getCmdline(env.lines - 1)
+    assert.strictEqual(line, 'foobar')
   })
 
-  it('should err_write', async () => {
+  it('should err_write', async t => {
     nvim.errWrite('foo')
     nvim.errWriteLine('bar')
-    let env = helper.workspace.env
-    let line = await helper.getCmdline(env.lines - 1)
-    expect(line).toBe('foobar')
+    let env = workspace.env
+    let line = await shared.getCmdline(env.lines - 1)
+    assert.strictEqual(line, 'foobar')
   })
 
-  it('should create namespace', async () => {
+  it('should create namespace', async t => {
     let ns = await nvim.createNamespace('foo')
-    expect(typeof ns).toBe('number')
+    assert.strictEqual(typeof ns, 'number')
     let namespace = await nvim.createNamespace('foo')
-    expect(ns).toBe(namespace)
+    assert.strictEqual(ns, namespace)
   })
 
-  it('should add and delete keymap', async () => {
+  it('should add and delete keymap', async t => {
     nvim.setKeymap('n', ' ', ':normal! G', { nowait: true, script: true })
     let res = await nvim.exec('nmap <space>', true)
-    expect(res).toMatch('normal!')
+    assert.match(res, new RegExp('normal!'))
     nvim.deleteKeymap('n', ' ')
     res = await nvim.exec('nmap <space>', true)
-    expect(res).toMatch('No mapping found')
+    assert.match(res, new RegExp('No mapping found'))
   })
 })
 
@@ -950,8 +949,8 @@ describe('Buffer API', () => {
     await nvim.command('bd!')
   })
 
-  it('should checkLines on CursorHold', async () => {
-    let doc = await helper.createDocument()
+  it('should checkLines on CursorHold', async t => {
+    let doc = await shared.createDocument()
     let buffer = doc.buffer
     await buffer.setLines(['1', '2'], {})
     await events.fire('CursorHold', [buffer.id, [1, 1]])
@@ -963,53 +962,53 @@ describe('Buffer API', () => {
     }, null, disposables)
     Object.assign(doc, { lines: [''], _changedtick: doc.changedtick + 1 })
     await events.fire('CursorHold', [buffer.id, [1, 1]])
-    expect(called).toBe(true)
-    expect(doc.getLines()).toEqual(['1', '2'])
+    assert.strictEqual(called, true)
+    assert.deepStrictEqual(doc.getLines(), ['1', '2'])
   })
 
-  it('should set buffer option', async () => {
+  it('should set buffer option', async t => {
     await buffer.setOption('buflisted', false)
     let curr = await buffer.getOption('buflisted')
-    expect(curr).toBe(false)
+    assert.strictEqual(curr, false)
     await buffer.setOption('buflisted', true)
     curr = await buffer.getOption('buflisted')
-    expect(curr).toBe(true)
+    assert.strictEqual(curr, true)
   })
 
-  it('should get changedtick', async () => {
+  it('should get changedtick', async t => {
     let changedtick = await buffer.changedtick
     let curr = await nvim.eval('b:changedtick')
-    expect(changedtick).toBe(curr)
+    assert.strictEqual(changedtick, curr)
   })
 
-  it('should add and delete buffer keymap', async () => {
+  it('should add and delete buffer keymap', async t => {
     buffer.setKeymap('n', 'e', ':normal! G', { noremap: true, nowait: true, silent: true })
     let res = await nvim.exec('nmap e', true)
-    expect(res).toMatch('normal!')
+    assert.match(res, new RegExp('normal!'))
     buffer.deleteKeymap('n', 'e')
     res = await nvim.exec('nmap e', true)
-    expect(res).toMatch('No mapping found')
+    assert.match(res, new RegExp('No mapping found'))
   })
 
-  it('should check buffer valid', async () => {
+  it('should check buffer valid', async t => {
     let valid = await buffer.valid
-    expect(valid).toBe(true)
+    assert.strictEqual(valid, true)
     let buf = nvim.createBuffer(99)
     valid = await buf.valid
-    expect(valid).toBe(false)
+    assert.strictEqual(valid, false)
   })
 
-  it('should get mark', async () => {
+  it('should get mark', async t => {
     await buffer.append(['', '', ''])
     let c = await buffer.length
-    expect(c).toBe(4)
+    assert.strictEqual(c, 4)
     await nvim.command(`normal! Gm"`)
     let m = await buffer.mark('"')
-    expect(m).toEqual([4, 0])
+    assert.deepStrictEqual(m, [4, 0])
     await nvim.command('bd!')
   })
 
-  it('should add highlight', async () => {
+  it('should add highlight', async t => {
     let ns = await nvim.createNamespace('test') as number
     await nvim.setLine('foo')
     let buf = await nvim.buffer
@@ -1021,106 +1020,106 @@ describe('Buffer API', () => {
       srcId: ns
     })
     let curr = await buf.getHighlights('test')
-    expect(curr).toEqual([{ hlGroup: 'MoreMsg', lnum: 0, colStart: 0, colEnd: 3, id: 1001 }])
+    assert.deepStrictEqual(curr, [{ hlGroup: 'MoreMsg', lnum: 0, colStart: 0, colEnd: 3, id: 1001 }])
     buf.clearNamespace(ns)
     curr = await buf.getHighlights('test')
-    expect(curr).toEqual([])
+    assert.deepStrictEqual(curr, [])
   })
 
-  it('should get line count', async () => {
+  it('should get line count', async t => {
     await buffer.append(['', '', '', ''])
     await nvim.command('tabe')
     let n = await buffer.length
-    expect(n).toBe(5)
+    assert.strictEqual(n, 5)
     await nvim.command('silent! %bwipeout!')
-    await expect(async () => {
+    await assert.rejects(async () => {
       let buf = nvim.createBuffer(-1)
       await buf.length
-    }).rejects.toThrow(/Invalid buffer/)
+    }, /Invalid buffer/)
   })
 
-  it('should get lines', async () => {
+  it('should get lines', async t => {
     await buffer.setLines(['1', '2', '3', '4'], { start: 0, end: -1, strictIndexing: false })
     let lines = await buffer.lines
-    expect(lines).toEqual(['1', '2', '3', '4'])
+    assert.deepStrictEqual(lines, ['1', '2', '3', '4'])
     lines = await buffer.getLines({ start: 0, end: 1, strictIndexing: false })
-    expect(lines).toEqual(['1'])
+    assert.deepStrictEqual(lines, ['1'])
     lines = await buffer.getLines({ start: -2, end: -1, strictIndexing: false })
-    expect(lines).toEqual(['4'])
+    assert.deepStrictEqual(lines, ['4'])
     await nvim.command('bd!')
   })
 
-  it('should set lines', async () => {
+  it('should set lines', async t => {
     // insert
     await buffer.setLines(['1', '2', '3'], { start: 0, end: 0, strictIndexing: true })
     let lines = await buffer.lines
-    expect(lines).toEqual(['1', '2', '3', ''])
+    assert.deepStrictEqual(lines, ['1', '2', '3', ''])
     // replace
     await buffer.setLines(['4'], { start: 2, end: -1, strictIndexing: true })
     lines = await buffer.lines
-    expect(lines).toEqual(['1', '2', '4'])
+    assert.deepStrictEqual(lines, ['1', '2', '4'])
     // delete
     await buffer.setLines([], { start: 1, end: 2, strictIndexing: true })
     lines = await buffer.lines
-    expect(lines).toEqual(['1', '4'])
+    assert.deepStrictEqual(lines, ['1', '4'])
     await buffer.setLines(['2', '3'], { start: 1, end: 2, strictIndexing: true })
     lines = await buffer.lines
-    expect(lines).toEqual(['1', '2', '3'])
+    assert.deepStrictEqual(lines, ['1', '2', '3'])
     await nvim.command('bd!')
   })
 
-  it('should set name', async () => {
+  it('should set name', async t => {
     await buffer.setName('foo')
     let name = await buffer.name
-    expect(name).toBe('foo')
+    assert.strictEqual(name, 'foo')
     await nvim.command('bd!')
   })
 
-  it('should change buffer variable', async () => {
+  it('should change buffer variable', async t => {
     await buffer.setVar('foo', 'bar', false)
     let curr = await buffer.getVar('foo')
-    expect(curr).toBe('bar')
+    assert.strictEqual(curr, 'bar')
     buffer.deleteVar('foo')
     curr = await buffer.getVar('foo')
-    expect(curr).toBeNull()
+    assert.strictEqual(curr, null)
 
     // another non-current buffer
     const buf2 = await nvim.createNewBuffer()
     await buf2.setVar('foo', 'qux', false)
     let curr2 = await buf2.getVar('foo')
-    expect(curr2).toBe('qux')
+    assert.strictEqual(curr2, 'qux')
     buf2.deleteVar('foo')
     curr = await buf2.getVar('foo')
-    expect(curr).toBeNull()
+    assert.strictEqual(curr, null)
   })
 
-  it('should add virtual text', async () => {
+  it('should add virtual text', async t => {
     let buf = await nvim.buffer
     await nvim.call('setline', ['.', '  foo'])
     let ns = await nvim.createNamespace('virtual-text')
     buf.setVirtualText(ns, 0, [['bar', 'MoreMsg']], { text_align: 'above', indent: true })
     let types = await nvim.call('coc#api#GetNamespaceTypes', [ns])
     let props = await nvim.call('prop_list', [1, { types }]) as any[]
-    expect(props.length).toBe(1)
+    assert.strictEqual(props.length, 1)
     let prop = props[0]
     if (featuredPropList) {
-      expect(prop.text_align).toBe('above')
-      expect(prop.text_padding_left).toBe(2)
-      expect(prop.text).toBe('bar')
+      assert.strictEqual(prop.text_align, 'above')
+      assert.strictEqual(prop.text_padding_left, 2)
+      assert.strictEqual(prop.text, 'bar')
     }
   })
 
-  it('should add virtual text above with right_gravity', async () => {
+  it('should add virtual text above with right_gravity', async t => {
     let buf = await nvim.buffer
     await nvim.call('setline', ['.', '  foo'])
     let ns = await nvim.createNamespace('virtual-text-gravity')
     buf.setVirtualText(ns, 0, [['bar', 'MoreMsg']], { text_align: 'above', indent: true, right_gravity: true })
     let types = await nvim.call('coc#api#GetNamespaceTypes', [ns])
     let props = await nvim.call('prop_list', [1, { types }]) as any[]
-    expect(props.length).toBe(1)
+    assert.strictEqual(props.length, 1)
   })
 
-  it('should set multiple virtual texts', async () => {
+  it('should set multiple virtual texts', async t => {
     let buf = await nvim.buffer
     let arr = (new Array(10)).fill('foo')
     await buf.setLines(arr)
@@ -1140,16 +1139,16 @@ describe('Buffer API', () => {
     await nvim.call('coc#vtext#set', [buf.id, ns, items, false, 900])
     let types = await nvim.call('coc#api#GetNamespaceTypes', [ns])
     let props = await nvim.call('prop_list', [1, { types, end_lnum: len }]) as any[]
-    expect(props.length).toBe(10)
+    assert.strictEqual(props.length, 10)
     let prop = props[0]
-    expect(prop.lnum).toBe(1)
-    expect(prop.col).toBe(1)
+    assert.strictEqual(prop.lnum, 1)
+    assert.strictEqual(prop.col, 1)
     if (featuredPropList) {
-      expect(prop.text).toBe('0')
+      assert.strictEqual(prop.text, '0')
     }
   })
 
-  it('should update highlights', async () => {
+  it('should update highlights', async t => {
     let buf = await nvim.buffer
     await buf.setLines(['foo', 'bar'])
     let hls = []
@@ -1157,29 +1156,29 @@ describe('Buffer API', () => {
     hls.push({ lnum: 1, colStart: 1, colEnd: 3, hlGroup: 'MoreMsg' })
     buf.updateHighlights('test', hls, { priority: 80 })
     let arr = await buf.getHighlights('test')
-    expect(arr.length).toBe(2)
+    assert.strictEqual(arr.length, 2)
     let obj = {}
     for (const key of ['hlGroup', 'lnum', 'colStart', 'colEnd']) {
       obj[key] = arr[0][key]
     }
-    expect(obj).toEqual(hls[0])
+    assert.deepStrictEqual(obj, hls[0])
     await nvim.call('coc#highlight#clear_all', [])
     buf.updateHighlights('test', [hls[0]], { priority: 80, start: 0, end: 1 })
     arr = await buf.getHighlights('test')
-    expect(arr.length).toBe(1)
+    assert.strictEqual(arr.length, 1)
     let hl = { lnum: 1, colStart: 0, colEnd: -1, hlGroup: 'MoreMsg' }
     buf.updateHighlights('test', [hl], { priority: 80 })
     arr = await buf.getHighlights('test')
-    expect(arr.length).toBe(1)
+    assert.strictEqual(arr.length, 1)
   })
 
-  it('should highlight ranges', async () => {
+  it('should highlight ranges', async t => {
     let buf = await nvim.buffer
     await buf.setLines(['foo', 'bar'])
     const range = Range.create(0, 0, 2, 0)
     buf.highlightRanges('test', 'MoreMsg', [range])
     let arr = await buf.getHighlights('test')
-    expect(arr.length).toBe(2)
+    assert.strictEqual(arr.length, 2)
   })
 })
 
@@ -1189,93 +1188,93 @@ describe('Window API', () => {
     win = await nvim.window
   })
 
-  it('should get buffer of window', async () => {
+  it('should get buffer of window', async t => {
     let buf = await win.buffer
     let curr = await nvim.buffer
-    expect(buf.id).toBe(curr.id)
+    assert.strictEqual(buf.id, curr.id)
   })
 
-  it('should set buffer', async () => {
+  it('should set buffer', async t => {
     let bufnr = await nvim.call('bufadd', ['foo']) as number
     await nvim.command(`call bufload(${bufnr})`)
     await win.setBuffer(nvim.createBuffer(bufnr))
     let buf = await win.buffer
-    expect(buf.id).toBe(bufnr)
+    assert.strictEqual(buf.id, bufnr)
     await nvim.command('silent! %bwipeout!')
   })
 
-  it('should get position', async () => {
+  it('should get position', async t => {
     await nvim.command('sp')
     let res = await win.position
-    expect(res[0]).toBeGreaterThan(0)
-    expect(res[1]).toBe(0)
+    assert.ok(res[0] > 0)
+    assert.strictEqual(res[1], 0)
     await nvim.command('only!')
   })
 
-  it('should get and set height', async () => {
+  it('should get and set height', async t => {
     let h = await win.height
     await win.setHeight(3)
     let curr = await win.height
-    expect(curr).toBe(3)
+    assert.strictEqual(curr, 3)
     await win.setHeight(h)
   })
 
-  it('should get and set width', async () => {
+  it('should get and set width', async t => {
     await nvim.command('vs')
     await win.setWidth(5)
     let curr = await win.width
-    expect(curr).toBe(5)
+    assert.strictEqual(curr, 5)
     await nvim.command('only!')
   })
 
-  it('should get and set cursor', async () => {
+  it('should get and set cursor', async t => {
     let buf = await nvim.buffer
     await buf.setLines(['1', '2', '3', '4'], { start: 0, end: -1, strictIndexing: false })
     await win.setCursor([3, 1])
     let cursor = await win.cursor
-    expect(cursor).toEqual([3, 0])
+    assert.deepStrictEqual(cursor, [3, 0])
     await nvim.command('bd!')
   })
 
-  it('should get and set option', async () => {
+  it('should get and set option', async t => {
     let relative = await win.getOption('relativenumber')
-    expect(relative).toBe(false)
+    assert.strictEqual(relative, false)
     await win.setOption('relativenumber', true)
     relative = await win.getOption('relativenumber')
-    expect(relative).toBe(true)
+    assert.strictEqual(relative, true)
     await win.setOption('relativenumber', false)
-    await expect(win.getOption('not_exists')).rejects.toThrow('Invalid')
-    await expect(win.setOption('not_exists', '')).rejects.toThrow('Invalid')
+    await assert.rejects(win.getOption('not_exists'), new RegExp('Invalid'))
+    await assert.rejects(win.setOption('not_exists', ''), new RegExp('Invalid'))
   })
 
-  it('should get and set var', async () => {
+  it('should get and set var', async t => {
     await win.setVar('foo', 'bar')
     let curr = await win.getVar('foo')
-    expect(curr).toBe('bar')
+    assert.strictEqual(curr, 'bar')
     let res = await win.getVar('not_exists')
-    expect(res).toBeNull()
+    assert.strictEqual(res, null)
     win.deleteVar('foo')
     curr = await win.getVar('foo')
-    expect(curr).toBe(null)
+    assert.strictEqual(curr, null)
   })
 
-  it('should check window is valid', async () => {
+  it('should check window is valid', async t => {
     let valid = await win.valid
-    expect(valid).toBe(true)
+    assert.strictEqual(valid, true)
     let tab = await win.tabpage
     let nr = await tab.number
-    expect(nr).toBe(1)
+    assert.strictEqual(nr, 1)
     let n = await win.number
-    expect(n).toBe(1)
+    assert.strictEqual(n, 1)
     await nvim.command('vs')
     await nvim.call('win_gotoid', [win.id])
     await win.close(true)
     valid = await win.valid
-    expect(valid).toBe(false)
+    assert.strictEqual(valid, false)
     await nvim.command('only!')
   })
 
-  it('should add and clear matches', async () => {
+  it('should add and clear matches', async t => {
     let buf = await nvim.buffer
     let arr = new Array(10)
     arr.fill('foo')
@@ -1286,86 +1285,86 @@ describe('Window API', () => {
     }
     let win = await nvim.window
     let ids = await win.highlightRanges('MoreMsg', ranges)
-    expect(ids.length).toBeGreaterThan(0)
-    let matches = await helper.getMatches('MoreMsg')
-    expect(matches.length).toBe(10)
+    assert.ok(ids.length > 0)
+    let matches = await shared.getMatches('MoreMsg')
+    assert.strictEqual(matches.length, 10)
     win.clearMatches(ids)
-    matches = await helper.getMatches('MoreMsg')
-    expect(matches.length).toBe(0)
+    matches = await shared.getMatches('MoreMsg')
+    assert.strictEqual(matches.length, 0)
   })
 })
 
 describe('Popup', () => {
-  it('should works for popup window', async () => {
+  it('should works for popup window', async t => {
     let winid = await nvim.call('popup_create', [['foo', 'bar'], {}]) as number
-    expect(winid).toBeGreaterThan(1000)
+    assert.ok(winid > 1000)
     let win = nvim.createWindow(winid)
     let buf = await win.buffer
-    expect(buf.id).toBeGreaterThan(0)
+    assert.ok(buf.id > 0)
     let pos = await win.position
-    expect(typeof pos[0]).toBe('number')
-    expect(typeof pos[1]).toBe('number')
+    assert.strictEqual(typeof pos[0], 'number')
+    assert.strictEqual(typeof pos[1], 'number')
     await win.setHeight(10)
     let height = await win.height
-    expect(height).toBe(10)
+    assert.strictEqual(height, 10)
     await win.setWidth(20)
     let width = await win.width
-    expect(width).toBe(20)
+    assert.strictEqual(width, 20)
     await win.setCursor([1, 2])
     let cur = await win.cursor
-    expect(cur).toEqual([1, 2])
+    assert.deepStrictEqual(cur, [1, 2])
     await win.setOption('relativenumber', true)
     // different on neovim which returns true and false
     let option = await win.getOption('relativenumber')
-    expect(option).toBe(true)
+    assert.strictEqual(option, true)
     await win.setVar('foo', 'bar', false)
     let val = await win.getVar('foo')
-    expect(val).toBe('bar')
+    assert.strictEqual(val, 'bar')
     win.deleteVar('foo')
     val = await win.getVar('foo')
-    expect(val).toBeNull()
+    assert.strictEqual(val, null)
     let valid = await win.valid
-    expect(valid).toBe(true)
+    assert.strictEqual(valid, true)
     // not work on vim
     let num = await win.number
-    expect(num).toBe(0)
+    assert.strictEqual(num, 0)
     let tabpage = await win.tabpage
-    expect(tabpage.id).toBeGreaterThan(0)
+    assert.ok(tabpage.id > 0)
     await win.close(true)
     await nvim.command(`call popup_clear()`)
   })
 
-  it('should create inputBox', async () => {
-    let input = await helper.plugin.window.createInputBox('title', '')
+  it('should create inputBox', async t => {
+    let input = await getCurrentPlugin().window.createInputBox('title', '')
     input.title = 'new title'
     let curr: string
     input.onDidChange(text => {
       curr = text
     })
     await nvim.input('abc')
-    await helper.waitValue((() => {
+    await shared.waitValue((() => {
       return curr
     }), 'abc')
     input.dispose()
   })
 
-  it('updates the visible input value programmatically', async () => {
-    let input = await helper.plugin.window.createInputBox('title', 'old')
+  it('updates the visible input value programmatically', async t => {
+    let input = await getCurrentPlugin().window.createInputBox('title', 'old')
     let changed: string | undefined
     input.onDidChange(v => {
       changed = v
     })
     // wait until the prompt terminal is ready (default value echoed)
-    await helper.waitValue(async () => {
+    await shared.waitValue(async () => {
       let line = await nvim.call('term_getline', [input.bufnr, 1]) as string
       return line.includes('old')
     }, true)
     input.value = 'foo'
-    await helper.wait(60)
+    await shared.wait(60)
     let line = await nvim.call('term_getline', [input.bufnr, 1]) as string
-    expect(line.trim()).toBe('foo')
-    expect(input.value).toBe('foo')
-    expect(changed).toBe('foo')
+    assert.strictEqual(line.trim(), 'foo')
+    assert.strictEqual(input.value, 'foo')
+    assert.strictEqual(changed, 'foo')
     input.dispose()
   })
 })
@@ -1376,36 +1375,36 @@ describe('Tabpage API', () => {
     tab = await nvim.tabpage
   })
 
-  it('should get window list', async () => {
+  it('should get window list', async t => {
     await nvim.command('vs')
     let wins = await tab.windows
-    expect(wins.length).toBe(2)
+    assert.strictEqual(wins.length, 2)
     await nvim.command('only!')
   })
 
-  it('should get and set var', async () => {
+  it('should get and set var', async t => {
     await tab.setVar('foo', 'bar')
     let curr = await tab.getVar('foo')
-    expect(curr).toBe('bar')
+    assert.strictEqual(curr, 'bar')
     tab.deleteVar('foo')
     curr = await tab.getVar('foo')
-    expect(curr).toBe(null)
+    assert.strictEqual(curr, null)
   })
 
-  it('should get current window', async () => {
+  it('should get current window', async t => {
     let valid = await tab.valid
-    expect(valid).toBe(true)
+    assert.strictEqual(valid, true)
     let win = await tab.window
     let curr = await nvim.call('win_getid')
-    expect(win.id).toBe(curr)
+    assert.strictEqual(win.id, curr)
   })
 })
 
 describe('notify', () => {
-  it('should call function by notify', async () => {
+  it('should call function by notify', async t => {
     let curr = await nvim.call('line', ['.'])
     nvim.call('setline', [curr, 'foo'], true)
-    await helper.waitValue(async () => {
+    await shared.waitValue(async () => {
       return await nvim.call('getline', [curr])
     }, 'foo')
     await nvim.command('normal! dd')
@@ -1416,19 +1415,19 @@ describe('document', () => {
   async function shouldEqual(doc, synced = false): Promise<void> {
     let lines = synced ? doc.textDocument.lines : doc.getLines()
     let cur = await doc.buffer.lines
-    expect(lines).toEqual(cur)
+    assert.deepStrictEqual(lines, cur)
   }
 
-  it('should not wait for lines when already applied', async () => {
-    let doc = await helper.createDocument()
+  it('should not wait for lines when already applied', async t => {
+    let doc = await shared.createDocument()
     doc['_changedtick'] = 10
     doc['_linesTick'] = 10
     let p = doc['waitForLineEvents']()
-    await expect(p).resolves.toBeUndefined()
+    assert.strictEqual(await p, undefined)
   })
 
-  it('should settle line waiters when lines catch up', async () => {
-    let doc = await helper.createDocument()
+  it('should settle line waiters when lines catch up', async t => {
+    let doc = await shared.createDocument()
     doc['_changedtick'] = 10
     doc['_linesTick'] = 9
     let resolved = false
@@ -1436,26 +1435,26 @@ describe('document', () => {
       resolved = true
     })
     await Promise.resolve()
-    expect(resolved).toBe(false)
+    assert.strictEqual(resolved, false)
     doc['settleLineWaiters'](10)
     await p
-    expect(resolved).toBe(true)
+    assert.strictEqual(resolved, true)
   })
 
-  it('should synchronize current buffer when call vim function', async () => {
-    let doc = await helper.createDocument()
+  it('should synchronize current buffer when call vim function', async t => {
+    let doc = await shared.createDocument()
     await nvim.call('appendbufline', [doc.bufnr, 0, ['3', '4', '5']])
     await nvim.call('setbufline', [doc.bufnr, 1, 'txt'])
     await shouldEqual(doc)
   })
 
-  it('should synchronize changes', async () => {
+  it('should synchronize changes', async t => {
     let lines = []
     for (let i = 1; i < 8; i++) {
       lines.push(`line ${i}`)
     }
     let filepath = await createTmpFile(lines.join('\n'), disposables)
-    let doc = await helper.createDocument(filepath)
+    let doc = await shared.createDocument(filepath)
     let bufnr = doc.buffer.id
     // remove first line
     nvim.pauseNotification()
@@ -1466,9 +1465,9 @@ describe('document', () => {
     await doc.patchChange()
   })
 
-  it('should synchronize changes after undo', async () => {
+  it('should synchronize changes after undo', async t => {
     const filepath = await createTmpFile('abc', disposables)
-    const doc = await helper.createDocument(filepath)
+    const doc = await shared.createDocument(filepath)
     nvim.pauseNotification()
     nvim.command('normal! Ofoo', true)
     nvim.command('normal! u', true)
@@ -1476,9 +1475,9 @@ describe('document', () => {
     await shouldEqual(doc)
   })
 
-  it('should synchronize changes after undo (2)', async () => {
+  it('should synchronize changes after undo (2)', async t => {
     const filepath2 = await createTmpFile('abc\ndef', disposables)
-    const doc2 = await helper.createDocument(filepath2)
+    const doc2 = await shared.createDocument(filepath2)
     nvim.pauseNotification()
     nvim.command('normal! Ofoo', true)
     nvim.command('normal! u', true)
@@ -1486,8 +1485,8 @@ describe('document', () => {
     await shouldEqual(doc2)
   })
 
-  it('should synchronize changes after executing a command with count', async () => {
-    const doc = await helper.createDocument()
+  it('should synchronize changes after executing a command with count', async t => {
+    const doc = await shared.createDocument()
     nvim.pauseNotification()
     await nvim.command('normal! 2o')
     await nvim.resumeNotification(true)
@@ -1498,17 +1497,17 @@ describe('document', () => {
     await nvim.resumeNotification(true)
     await shouldEqual(doc)
   })
-  it('should synchronize changes after executing a command with count (2)', async () => {
-    const doc2 = await helper.createDocument()
+  it('should synchronize changes after executing a command with count (2)', async t => {
+    const doc2 = await shared.createDocument()
     nvim.pauseNotification()
     await nvim.command('normal! 5o')
     await nvim.resumeNotification(true)
     await shouldEqual(doc2)
   })
 
-  it('should synchronize changes after single line change', async () => {
+  it('should synchronize changes after single line change', async t => {
     const filepath = await createTmpFile(['a', 'b', 'c'].join('\n'), disposables)
-    const doc = await helper.createDocument(filepath)
+    const doc = await shared.createDocument(filepath)
 
     nvim.pauseNotification()
     await nvim.command('normal! O')
@@ -1541,7 +1540,7 @@ describe('document', () => {
   })
 
   // #5542
-  it('should synchronize buffered changes after setlines', async () => {
+  it('should synchronize buffered changes after setlines', async t => {
     const fileContents = [
       'import { equal } from "assert"',
       '',
@@ -1549,7 +1548,7 @@ describe('document', () => {
       'console.log(0)',
     ]
     const filepath = await createTmpFile(fileContents.join('\n'), disposables)
-    const doc = await helper.createDocument(filepath)
+    const doc = await shared.createDocument(filepath)
     nvim.pauseNotification()
     // Simulate auto-import
     await nvim.command(`call setline(4, 'console.log(path)') | call appendbufline('%', 1, 'import path from "path"')`)
@@ -1559,8 +1558,8 @@ describe('document', () => {
     await shouldEqual(doc)
   })
 
-  it('should patch change of current line', async () => {
-    let doc = await helper.createDocument()
+  it('should patch change of current line', async t => {
+    let doc = await shared.createDocument()
     nvim.call('setline', ['.', 'foo'], true)
     await doc.patchChange()
     await shouldEqual(doc, true)
@@ -1569,8 +1568,8 @@ describe('document', () => {
     await shouldEqual(doc, true)
   })
 
-  it('should patch change', async () => {
-    let doc = await helper.workspace.document
+  it('should patch change', async t => {
+    let doc = await workspace.document
     // synchronize after user input
     await nvim.input('o')
     await doc.patchChange()
@@ -1590,8 +1589,8 @@ describe('document', () => {
     await nvim.command('stopinsert')
   })
 
-  it('should synchronize after changeLines', async () => {
-    let doc = await helper.createDocument()
+  it('should synchronize after changeLines', async t => {
+    let doc = await shared.createDocument()
     await doc.buffer.setLines(['a', 'b', 'c', 'd'])
     await doc.synchronize()
     await doc.changeLines([
@@ -1603,8 +1602,8 @@ describe('document', () => {
     await shouldEqual(doc)
   })
 
-  it('should add and remove lines', async () => {
-    let doc = await helper.workspace.document
+  it('should add and remove lines', async t => {
+    let doc = await workspace.document
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'foo\nbar\n')])
     await shouldEqual(doc)
     await doc.applyEdits([TextEdit.replace(Range.create(0, 0, 3, 0), '')])
@@ -1612,8 +1611,8 @@ describe('document', () => {
     await nvim.command('bd!')
   })
 
-  it('should synchronize hidden buffer after replace lines', async () => {
-    let doc = await helper.createDocument()
+  it('should synchronize hidden buffer after replace lines', async t => {
+    let doc = await shared.createDocument()
     await doc.buffer.setLines(['a', 'b', 'c', 'd'])
     await nvim.command('enew')
     await shouldEqual(doc)
@@ -1626,14 +1625,14 @@ describe('document', () => {
   async function assertBuffer(lines: string[], hls: [string, number, number, number][]): Promise<void> {
     let buf = await nvim.buffer
     let curr = await buf.lines
-    expect(curr).toEqual(lines)
+    assert.deepStrictEqual(curr, lines)
     let highlights = await buf.getHighlights('test')
     let arr = highlights.map(o => [o.hlGroup, o.lnum, o.colStart, o.colEnd])
-    expect(arr).toEqual(hls)
+    assert.deepStrictEqual(arr, hls)
   }
 
-  it('should apply single line edit', async () => {
-    let doc = await helper.createDocument()
+  it('should apply single line edit', async t => {
+    let doc = await shared.createDocument()
     await doc.buffer.setLines(['foo foo'])
     await doc.patchChange()
     let ranges = [Range.create(0, 0, 0, 3), Range.create(0, 4, 0, 7)]
@@ -1660,8 +1659,8 @@ describe('document', () => {
     ])
   })
 
-  it('should apply multi lines edit', async () => {
-    let doc = await helper.createDocument()
+  it('should apply multi lines edit', async t => {
+    let doc = await shared.createDocument()
     await doc.buffer.setLines(['foo foo'])
     await doc.patchChange()
     let ranges = [Range.create(0, 0, 0, 3), Range.create(0, 4, 0, 7)]
@@ -1680,22 +1679,22 @@ describe('document', () => {
     ])
   })
 
-  it('should apply for lines replace edit', async () => {
-    let doc = await helper.createDocument()
+  it('should apply for lines replace edit', async t => {
+    let doc = await shared.createDocument()
     await doc.buffer.setLines(['foo', 'bar'])
     await doc.patchChange()
     let edit = TextEdit.replace(Range.create(0, 0, 1, 0), 'a\nb\n')
     await doc.applyEdits([edit, TextEdit.insert(Position.create(1, 0), 'x')])
     let lines = await doc.buffer.lines
-    expect(lines).toEqual(['a', 'b', 'xbar'])
+    assert.deepStrictEqual(lines, ['a', 'b', 'xbar'])
     edit = TextEdit.replace(Range.create(0, 0, 2, 0), '')
     await doc.applyEdits([edit, TextEdit.replace(Range.create(2, 0, 2, 1), '')])
     lines = await doc.buffer.lines
-    expect(lines).toEqual(['bar'])
+    assert.deepStrictEqual(lines, ['bar'])
   })
 
-  it('should apply multiple edits', async () => {
-    let doc = await helper.createDocument()
+  it('should apply multiple edits', async t => {
+    let doc = await shared.createDocument()
     let arr = new Array(10)
     arr.fill('foo bar a b c d e')
     let ranges: Range[] = []
@@ -1717,18 +1716,18 @@ describe('document', () => {
     await doc.applyEdits(edits)
     await events.race(['TextChanged'], 200)
     let hls = await buf.getHighlights('test')
-    expect(hls.length).toBe(70)
+    assert.strictEqual(hls.length, 70)
   })
 
-  it('should consider latest change', async () => {
-    let doc = await helper.createDocument()
+  it('should consider latest change', async t => {
+    let doc = await shared.createDocument()
     let buf = doc.buffer
     {
       let edits: TextEdit[] = [TextEdit.insert(Position.create(0, 0), 'bar')]
       nvim.call('setline', [1, 'foo'], true)
       await doc.applyEdits(edits)
       let line = await nvim.line
-      expect(line).toBe('foobar')
+      assert.strictEqual(line, 'foobar')
     }
     {
       await buf.setLines(['  foo'])
@@ -1738,7 +1737,7 @@ describe('document', () => {
       let edits: TextEdit[] = [TextEdit.del(Range.create(0, 0, 0, 1))]
       await doc.applyEdits(edits)
       let line = await nvim.line
-      expect(line).toBe(' fooa')
+      assert.strictEqual(line, ' fooa')
     }
     {
       await buf.setLines(['foo'])
@@ -1748,12 +1747,12 @@ describe('document', () => {
       let edits: TextEdit[] = [TextEdit.insert(Position.create(0, 0), ' ')]
       await doc.applyEdits(edits)
       let line = await nvim.line
-      expect(line).toBe(' fo')
+      assert.strictEqual(line, ' fo')
     }
   })
 
-  it('should merge concurrent edits with multibyte characters like ASCII', async () => {
-    let doc = await helper.createDocument()
+  it('should merge concurrent edits with multibyte characters like ASCII', async t => {
+    let doc = await shared.createDocument()
     let buf = doc.buffer
     await buf.setLines(['你a'])
     await doc.patchChange()
@@ -1762,11 +1761,11 @@ describe('document', () => {
     let edits: TextEdit[] = [TextEdit.replace(Range.create(0, 1, 0, 2), 'b')]
     await doc.applyEdits(edits)
     let line = await nvim.line
-    expect(line).toBe('你bx')
+    assert.strictEqual(line, '你bx')
   })
 
-  it('should merge concurrent edits with emoji like ASCII', async () => {
-    let doc = await helper.createDocument()
+  it('should merge concurrent edits with emoji like ASCII', async t => {
+    let doc = await shared.createDocument()
     let buf = doc.buffer
     await buf.setLines(['a😀'])
     await doc.patchChange()
@@ -1775,81 +1774,81 @@ describe('document', () => {
     let edits: TextEdit[] = [TextEdit.replace(Range.create(0, 0, 0, 1), 'b')]
     await doc.applyEdits(edits)
     let line = await nvim.line
-    expect(line).toBe('b😀x')
+    assert.strictEqual(line, 'b😀x')
   })
 
-  it('should mark common multibyte characters as equal in LCS diff', async () => {
+  it('should mark common multibyte characters as equal in LCS diff', async t => {
     let diff = await nvim.call('coc#text#LcsDiff', ['你a', '你b']) as { type: string, char: string }[]
-    expect(diff).toEqual([
+    assert.deepStrictEqual(diff, [
       { type: '=', char: '你' },
       { type: '-', char: 'a' },
       { type: '+', char: 'b' },
     ])
     diff = await nvim.call('coc#text#LcsDiff', ['a😀b', 'a😀c']) as { type: string, char: string }[]
-    expect(diff).toEqual([
+    assert.deepStrictEqual(diff, [
       { type: '=', char: 'a' },
       { type: '=', char: '😀' },
       { type: '-', char: 'b' },
       { type: '+', char: 'c' },
     ])
     diff = await nvim.call('coc#text#LcsDiff', ['ab', 'ac']) as { type: string, char: string }[]
-    expect(diff).toEqual([
+    assert.deepStrictEqual(diff, [
       { type: '=', char: 'a' },
       { type: '-', char: 'b' },
       { type: '+', char: 'c' },
     ])
   })
 
-  it('should merge concurrent line edits with multibyte characters like ASCII', async () => {
+  it('should merge concurrent line edits with multibyte characters like ASCII', async t => {
     let res = await nvim.call('coc#text#DiffApply', ['你a', '你ax', '你b', -1])
-    expect(res).toBe('你bx')
+    assert.strictEqual(res, '你bx')
     res = await nvim.call('coc#text#DiffApply', ['你a', '你ax', '你b', 4])
-    expect(res).toBe('你bx')
+    assert.strictEqual(res, '你bx')
     res = await nvim.call('coc#text#DiffApply', ['ab', 'abx', 'ac', -1])
-    expect(res).toBe('acx')
+    assert.strictEqual(res, 'acx')
   })
 
-  it('SimpleStringDiff produces no user-visible echo', async () => {
+  it('SimpleStringDiff produces no user-visible echo', async t => {
     let output = await nvim.call('execute', ["let g:coc_merge_result = coc#text#DiffApply('ab', 'abx', 'ac', -1)"]) as string
-    expect(output.trim()).toBe('')
-    expect(await nvim.getVar('coc_merge_result')).toBe('acx')
+    assert.strictEqual(output.trim(), '')
+    assert.strictEqual(await nvim.getVar('coc_merge_result'), 'acx')
   })
 
-  it('should merge multiple concurrent edits on a line', async () => {
+  it('should merge multiple concurrent edits on a line', async t => {
     let res = await nvim.call('coc#text#DiffApply', ['abcdef', 'aBcdEf', 'abCdef', -1])
-    expect(res).toBe('aBCdEf')
+    assert.strictEqual(res, 'aBCdEf')
     res = await nvim.call('coc#text#DiffApply', ['abcd', 'axbycd', 'aXcd', -1])
-    expect(res).toBe('axXycd')
+    assert.strictEqual(res, 'axXycd')
     res = await nvim.call('coc#text#DiffApply', ['abcdef', 'abCDef', 'aBcdef', -1])
-    expect(res).toBe('aBCDef')
+    assert.strictEqual(res, 'aBCDef')
   })
 
-  it('should keep user text when concurrent edits overlap', async () => {
+  it('should keep user text when concurrent edits overlap', async t => {
     let res = await nvim.call('coc#text#DiffApply', ['abc', 'aXc', 'aYc', -1])
-    expect(res).toBe('aXc')
+    assert.strictEqual(res, 'aXc')
     res = await nvim.call('coc#text#DiffApply', ['abcde', 'abde', 'abCde', -1])
-    expect(res).toBe('abde')
+    assert.strictEqual(res, 'abde')
     res = await nvim.call('coc#text#DiffApply', ['abcdef', 'abef', 'abcXdef', -1])
-    expect(res).toBe('abef')
+    assert.strictEqual(res, 'abef')
   })
 
-  it('should merge multiple concurrent edits with multibyte characters', async () => {
+  it('should merge multiple concurrent edits with multibyte characters', async t => {
     let res = await nvim.call('coc#text#DiffApply', ['你a你b', '你A你B', '好a你b', -1])
-    expect(res).toBe('好A你B')
+    assert.strictEqual(res, '好A你B')
     res = await nvim.call('coc#text#DiffApply', ['a😀b', 'B😀C', 'aX😀b', -1])
-    expect(res).toBe('BX😀C')
+    assert.strictEqual(res, 'BX😀C')
   })
 
-  it('should keep user text for very long lines', async () => {
+  it('should keep user text for very long lines', async t => {
     let base = 'a'.repeat(300)
     let ours = 'a'.repeat(100) + 'x' + 'a'.repeat(49) + 'y' + 'a'.repeat(150)
     let theirs = 'a'.repeat(100) + 'b' + 'a'.repeat(49) + 'c' + 'a'.repeat(149)
     let res = await nvim.call('coc#text#DiffApply', [base, ours, theirs, -1])
-    expect(res).toBe(ours)
+    assert.strictEqual(res, ours)
   })
 
-  it('should merge multiple concurrent edits through applyEdits', async () => {
-    let doc = await helper.createDocument()
+  it('should merge multiple concurrent edits through applyEdits', async t => {
+    let doc = await shared.createDocument()
     let buf = doc.buffer
     await buf.setLines(['abcdef'])
     await doc.patchChange()
@@ -1858,10 +1857,10 @@ describe('document', () => {
     let edits: TextEdit[] = [TextEdit.replace(Range.create(0, 2, 0, 3), 'C')]
     await doc.applyEdits(edits)
     let line = await nvim.line
-    expect(line).toBe('aBCdEf')
+    assert.strictEqual(line, 'aBCdEf')
   })
 
-  it('should merge fallback without performance regression', async () => {
+  it('should merge fallback without performance regression', async t => {
     let base = 'a'.repeat(100)
     let ours = 'a'.repeat(30) + 'x' + 'a'.repeat(40) + 'y' + 'a'.repeat(30)
     let theirs = 'a'.repeat(30) + 'b' + 'a'.repeat(39) + 'c' + 'a'.repeat(30)
@@ -1870,20 +1869,20 @@ describe('document', () => {
       await nvim.call('coc#text#DiffApply', [base, ours, theirs, -1])
     }
     let elapsed = Date.now() - start
-    expect(elapsed).toBeLessThan(10000)
+    assert.ok(elapsed < 10000)
   })
 })
 
 describe('vim highlight generation', () => {
   async function createBufferedDoc(lines: number): Promise<[number, any]> {
-    let doc = await helper.createDocument()
+    let doc = await shared.createDocument()
     let buf = doc.buffer
     await buf.setLines(Array.from({ length: lines }, (_, i) => `line-${i}`))
     await doc.patchChange()
     return [doc.bufnr, doc]
   }
 
-  it('does not write back stale highlight batches after a clear', async () => {
+  it('does not write back stale highlight batches after a clear', async t => {
     let [bufnr, doc] = await createBufferedDoc(20)
     let key = `generation-${Date.now()}`
     let highlights: any[] = []
@@ -1893,13 +1892,13 @@ describe('vim highlight generation', () => {
     await nvim.call('coc#highlight#buffer_update', [bufnr, key, highlights, 10])
     // clear the namespace while the old batch timer is still pending
     await nvim.call('coc#highlight#buffer_update', [bufnr, key, [], 10])
-    await helper.wait(120)
+    await shared.wait(120)
     let props = await nvim.call('coc#vim9#Get_highlights', [bufnr, key, 0, -1]) as any[]
-    expect(props.length).toBe(0)
+    assert.strictEqual(props.length, 0)
     await nvim.command(`bwipeout! ${bufnr}`)
   })
 
-  it('keeps only the newest highlight generation', async () => {
+  it('keeps only the newest highlight generation', async t => {
     let [bufnr, doc] = await createBufferedDoc(20)
     let key = `generation-new-${Date.now()}`
     let oldHighlights: any[] = []
@@ -1909,11 +1908,11 @@ describe('vim highlight generation', () => {
     await nvim.call('coc#highlight#buffer_update', [bufnr, key, oldHighlights, 10])
     let newHighlights = [['Error', 0, 0, 1], ['Error', 1, 0, 1]]
     await nvim.call('coc#highlight#buffer_update', [bufnr, key, newHighlights, 10])
-    await helper.wait(120)
+    await shared.wait(120)
     let props = await nvim.call('coc#vim9#Get_highlights', [bufnr, key, 0, -1]) as any[]
-    expect(props.length).toBe(2)
+    assert.strictEqual(props.length, 2)
     for (let p of props) {
-      expect(p[0]).toBe('Error')
+      assert.strictEqual(p[0], 'Error')
     }
     await nvim.command(`bwipeout! ${bufnr}`)
   })

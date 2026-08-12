@@ -200,8 +200,11 @@ export class Completion implements Disposable {
     if (Is.string(opt.source)) {
       sourceList = toArray(sources.getSource(opt.source))
     }
-    let doc = workspace.getAttachedDocument(events.bufnr)
     let info = await this.nvim.call('coc#util#change_info') as InsertChange
+    if (workspace.getDocument(events.bufnr) == null) {
+      return
+    }
+    let doc = workspace.getAttachedDocument(events.bufnr)
     info.pre = byteSlice(info.line, 0, info.col - 1)
     const option = this.getCompleteOption(doc, info, true, opt.col)
     await this._startCompletion(option, sourceList)

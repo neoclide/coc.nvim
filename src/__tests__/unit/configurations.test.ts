@@ -10,18 +10,20 @@ import { FolderConfigutions } from '../../configuration/configuration'
 import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../configuration/types'
 import { disposeAll, wait } from '../../util'
 import { remove } from '../../util/fs'
-import helper from '../helper'
+import { waitValue } from './testUtils'
 import { resourceLanguageSettingsSchemaId } from '../../configuration/registry'
 import { CONFIG_FILE_NAME } from '../../util/constants'
+import { afterEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 
-const workspaceConfigFile = path.resolve(__dirname, `../sample/.vim/${CONFIG_FILE_NAME}`)
+const workspaceConfigFile = path.resolve(import.meta.dirname, `../sample/.vim/${CONFIG_FILE_NAME}`)
 
 function U(fsPath: string): string {
   return URI.file(fsPath).toString()
 }
 
 function createConfigurations(): Configurations {
-  let userConfigFile = path.join(__dirname, '../configuration/settings.json')
+  let userConfigFile = path.join(import.meta.dirname, '../configuration/settings.json')
   return new Configurations(userConfigFile)
 }
 
@@ -38,13 +40,13 @@ function generateTmpDir(): string {
 describe('FolderConfigutions', () => {
   it('should getConfigurationByResource', async () => {
     let c = new FolderConfigutions()
-    expect(c.getConfigurationByResource('')).toBeUndefined()
-    expect(c.getConfigurationByResource('file:///a')).toBeUndefined()
+    assert.strictEqual(c.getConfigurationByResource(''), undefined)
+    assert.strictEqual(c.getConfigurationByResource('file:///a'), undefined)
     let model = new ConfigurationModel()
     c.set(os.tmpdir(), model)
     let uri = URI.file(path.join(os.tmpdir(), 'a/foo.js')).toString()
     let res = c.getConfigurationByResource(uri)
-    expect(res.model).toBe(model)
+    assert.strictEqual(res.model, model)
   })
 })
 
@@ -53,7 +55,7 @@ describe('Configurations', () => {
     it('should get markdown preferences', async () => {
       let configurations = createConfigurations()
       let preferences = configurations.markdownPreference
-      expect(preferences).toEqual({
+      assert.deepStrictEqual(preferences, {
         excludeImages: true,
         breaks: true
       })
@@ -67,10 +69,10 @@ describe('Configurations', () => {
       let proxy = new ConfigurationProxy({}, false)
       await proxy.modifyConfiguration(uri.fsPath, 'foo', true)
       let content = fs.readFileSync(uri.fsPath, 'utf8')
-      expect(JSON.parse(content)).toEqual({ foo: true })
+      assert.deepStrictEqual(JSON.parse(content), { foo: true })
       await proxy.modifyConfiguration(uri.fsPath, 'foo', false)
       content = fs.readFileSync(uri.fsPath, 'utf8')
-      expect(JSON.parse(content)).toEqual({ foo: false })
+      assert.deepStrictEqual(JSON.parse(content), { foo: false })
       await remove(folder)
     })
 
@@ -86,15 +88,15 @@ describe('Configurations', () => {
           }
           return undefined
         },
-        root: __dirname
+        root: import.meta.dirname
       })
       let uri = proxy.getWorkspaceFolder(URI.file(path.join(os.tmpdir(), 'foo')).toString())
-      expect(uri.fsPath.startsWith(os.tmpdir())).toBe(true)
+      assert.strictEqual(uri.fsPath.startsWith(os.tmpdir()), true)
       uri = proxy.getWorkspaceFolder(URI.file('abc').toString())
-      expect(uri).toBeUndefined()
+      assert.strictEqual(uri, undefined)
       proxy = new ConfigurationProxy({})
       uri = proxy.getWorkspaceFolder(URI.file(path.join(os.tmpdir(), 'foo')).toString())
-      expect(uri).toBeUndefined()
+      assert.strictEqual(uri, undefined)
     })
   })
 
@@ -104,14 +106,14 @@ describe('Configurations', () => {
       fs.writeFileSync(userConfigFile, '{"foo.bar": true}', { encoding: 'utf8' })
       let conf = new Configurations(userConfigFile, undefined, false)
       disposables.push(conf)
-      expect(conf.getDefaultResource()).toBe(undefined)
+      assert.strictEqual(conf.getDefaultResource(), undefined)
       await wait(50)
       // Replace the file by rename like an atomic save: the watcher must
       // survive the inode replacement and keep tracking changes.
       let tmp = `${userConfigFile}.tmp`
       fs.writeFileSync(tmp, '{"foo.bar": false}', { encoding: 'utf8' })
       fs.renameSync(tmp, userConfigFile)
-      await helper.waitValue(() => {
+      await waitValue(() => {
         let c = conf.getConfiguration('foo')
         return c.get('bar')
       }, false)
@@ -132,14 +134,14 @@ describe('Configurations', () => {
           return URI.file(dir)
         }
       }, false)
-      expect(conf.getDefaultResource()).toMatch('file:')
+      assert.match(conf.getDefaultResource(), new RegExp('file:'))
       disposables.push(conf)
       let uri = U(dir)
       let resolved = conf.locateFolderConfigution(uri)
-      expect(resolved).toBeDefined()
+      assert.notStrictEqual(resolved, undefined)
       await wait(20)
       fs.writeFileSync(configFile, '{"foo.bar": false}', { encoding: 'utf8' })
-      await helper.waitValue(() => {
+      await waitValue(() => {
         let c = conf.getConfiguration('foo')
         return c.get('bar')
       }, false)
@@ -148,31 +150,31 @@ describe('Configurations', () => {
 
   describe('getJSONSchema()', () => {
     it('should getJSONSchema', () => {
-      let userConfigFile = path.join(__dirname, '.vim/coc-settings.json')
+      let userConfigFile = path.join(import.meta.dirname, '.vim/coc-settings.json')
       let conf = new Configurations(userConfigFile, undefined)
-      expect(conf.getJSONSchema(userSettingsSchemaId)).toBeDefined()
-      expect(conf.getJSONSchema(folderSettingsSchemaId)).toBeDefined()
-      expect(conf.getJSONSchema(resourceLanguageSettingsSchemaId)).toBeDefined()
-      expect(conf.getJSONSchema('vscode://not_exists')).toBeUndefined()
+      assert.notStrictEqual(conf.getJSONSchema(userSettingsSchemaId), undefined)
+      assert.notStrictEqual(conf.getJSONSchema(folderSettingsSchemaId), undefined)
+      assert.notStrictEqual(conf.getJSONSchema(resourceLanguageSettingsSchemaId), undefined)
+      assert.strictEqual(conf.getJSONSchema('vscode://not_exists'), undefined)
     })
   })
 
   describe('getDescription()', () => {
     it('should get description', () => {
-      let userConfigFile = path.join(__dirname, '.vim/coc-settings.json')
+      let userConfigFile = path.join(import.meta.dirname, '.vim/coc-settings.json')
       let conf = new Configurations(userConfigFile, undefined)
-      expect(conf.getDescription('not_exists_key')).toBeUndefined()
+      assert.strictEqual(conf.getDescription('not_exists_key'), undefined)
     })
   })
 
   describe('addFolderFile()', () => {
     it('should not add invalid folder from cwd', async () => {
-      let userConfigFile = path.join(__dirname, '.vim/coc-settings.json')
+      let userConfigFile = path.join(import.meta.dirname, '.vim/coc-settings.json')
       let conf = new Configurations(userConfigFile, undefined, true, os.homedir())
       let res = conf.folderToConfigfile(os.homedir())
-      expect(res).toBeUndefined()
-      res = conf.folderToConfigfile(__dirname)
-      expect(res).toBeUndefined()
+      assert.strictEqual(res, undefined)
+      res = conf.folderToConfigfile(import.meta.dirname)
+      assert.strictEqual(res, undefined)
     })
 
     it('should add folder as workspace configuration', () => {
@@ -186,24 +188,24 @@ describe('Configurations', () => {
       let resource = URI.file(path.resolve(workspaceConfigFile, '../../tmp'))
       let c = configurations.getConfiguration('coc.preferences', resource)
       let res = c.inspect('rootPath')
-      expect(res.key).toBe('coc.preferences.rootPath')
-      expect(res.workspaceFolderValue).toBe('./src')
-      expect(c.get('rootPath')).toBe('./src')
-      expect(fired).toBe(false)
+      assert.strictEqual(res.key, 'coc.preferences.rootPath')
+      assert.strictEqual(res.workspaceFolderValue, './src')
+      assert.strictEqual(c.get('rootPath'), './src')
+      assert.strictEqual(fired, false)
     })
 
     it('should not add invalid folders', async () => {
       let configurations = createConfigurations()
-      expect(configurations.addFolderFile('ab')).toBe(false)
+      assert.strictEqual(configurations.addFolderFile('ab'), false)
     })
 
     it('should resolve folder configuration when possible', async () => {
       let configurations = createConfigurations()
-      expect(configurations.locateFolderConfigution('test:///foo')).toBe(false)
-      let fsPath = path.join(__dirname, `../sample/abc`)
-      expect(configurations.locateFolderConfigution(URI.file(fsPath).toString())).toBe(true)
-      fsPath = path.join(__dirname, `../sample/foo`)
-      expect(configurations.locateFolderConfigution(URI.file(fsPath).toString())).toBe(true)
+      assert.strictEqual(configurations.locateFolderConfigution('test:///foo'), false)
+      let fsPath = path.join(import.meta.dirname, `../sample/abc`)
+      assert.strictEqual(configurations.locateFolderConfigution(URI.file(fsPath).toString()), true)
+      fsPath = path.join(import.meta.dirname, `../sample/foo`)
+      assert.strictEqual(configurations.locateFolderConfigution(URI.file(fsPath).toString()), true)
     })
   })
 
@@ -213,49 +215,49 @@ describe('Configurations', () => {
         modifyConfiguration: async () => {}
       })
       disposables.push(conf)
-      expect(conf.configuration.defaults.contents.coc).toBeDefined()
+      assert.notStrictEqual(conf.configuration.defaults.contents.coc, undefined)
       let c = conf.getConfiguration('languageserver')
-      expect(c).toEqual({})
-      expect(c.has('not_exists')).toBe(false)
+      assert.deepStrictEqual(c, {})
+      assert.strictEqual(c.has('not_exists'), false)
     })
 
     it('should load configuration without folder configuration', async () => {
       let conf = new Configurations(undefined, {
-        root: path.join(path.dirname(__dirname), 'sample'),
+        root: path.join(path.dirname(import.meta.dirname), 'sample'),
         modifyConfiguration: async () => {}
       })
       disposables.push(conf)
       conf.addFolderFile(workspaceConfigFile)
       let c = conf.getConfiguration('coc.preferences')
-      expect(c.rootPath).toBeDefined()
+      assert.notStrictEqual(c.rootPath, undefined)
       c = conf.getConfiguration('coc.preferences', null)
-      expect(c.rootPath).toBeUndefined()
+      assert.strictEqual(c.rootPath, undefined)
     })
 
     it('should inspect configuration', async () => {
       let conf = new Configurations()
       let c = conf.getConfiguration('suggest')
       let res = c.inspect('not_exists')
-      expect(res.defaultValue).toBeUndefined()
-      expect(res.globalValue).toBeUndefined()
-      expect(res.workspaceValue).toBeUndefined()
+      assert.strictEqual(res.defaultValue, undefined)
+      assert.strictEqual(res.globalValue, undefined)
+      assert.strictEqual(res.workspaceValue, undefined)
       c = conf.getConfiguration()
       res = c.inspect('not_exists')
-      expect(res.key).toBe('not_exists')
+      assert.strictEqual(res.key, 'not_exists')
     })
 
-    it('should update memory config #1', () => {
+    it('should update memory config #1', t => {
       let conf = new Configurations()
-      let fn = vi.fn()
+      let fn = t.mock.fn()
       conf.onDidChange(e => {
-        expect(e.affectsConfiguration('x')).toBe(true)
+        assert.strictEqual(e.affectsConfiguration('x'), true)
         fn()
       })
       conf.updateMemoryConfig({ x: 1 })
       let config = conf.configuration.memory
-      expect(config.contents).toEqual({ x: 1 })
-      expect(fn).toHaveBeenCalled()
-      expect(conf.configuration.workspace).toBeDefined()
+      assert.deepStrictEqual(config.contents, { x: 1 })
+      assert.ok(fn.mock.callCount() > 0)
+      assert.notStrictEqual(conf.configuration.workspace, undefined)
     })
 
     it('should update memory config #2', () => {
@@ -263,7 +265,7 @@ describe('Configurations', () => {
       conf.updateMemoryConfig({ x: 1 })
       conf.updateMemoryConfig({ x: undefined })
       let config = conf.configuration.user
-      expect(config.contents).toEqual({})
+      assert.deepStrictEqual(config.contents, {})
     })
 
     it('should update memory config #3', () => {
@@ -272,9 +274,9 @@ describe('Configurations', () => {
       conf.updateMemoryConfig({ 'x.y': { foo: 1 } })
       let val = conf.getConfiguration()
       let res = val.get('suggest') as any
-      expect(res.floatConfig).toEqual({ border: true })
+      assert.deepStrictEqual(res.floatConfig, { border: true })
       res = val.get('x.y') as any
-      expect(res).toEqual({ foo: 1 })
+      assert.deepStrictEqual(res, { foo: 1 })
     })
 
     it('should handle errors', () => {
@@ -283,7 +285,7 @@ describe('Configurations', () => {
       let conf = new Configurations(tmpFile)
       disposables.push(conf)
       let errors = conf.errors
-      expect(errors.size).toBeGreaterThan(0)
+      assert.ok(errors.size > 0)
     })
 
     it('should get nested property', () => {
@@ -291,61 +293,61 @@ describe('Configurations', () => {
       disposables.push(config)
       let conf = config.getConfiguration('servers.c')
       let res = conf.get<string>('trace.server', '')
-      expect(res).toBe('verbose')
+      assert.strictEqual(res, 'verbose')
     })
 
     it('should get user and workspace configuration', () => {
-      let userConfigFile = path.join(__dirname, '../configuration/settings.json')
+      let userConfigFile = path.join(import.meta.dirname, '../configuration/settings.json')
       let configurations = new Configurations(userConfigFile)
       disposables.push(configurations)
       let data = configurations.configuration.toData()
-      expect(data.user).toBeDefined()
-      expect(data.workspace).toBeDefined()
-      expect(data.defaults).toBeDefined()
+      assert.notStrictEqual(data.user, undefined)
+      assert.notStrictEqual(data.workspace, undefined)
+      assert.notStrictEqual(data.defaults, undefined)
       let value = configurations.configuration.getValue(undefined, {})
-      expect(value.foo).toBeDefined()
-      expect(value.foo.bar).toBe(1)
+      assert.notStrictEqual(value.foo, undefined)
+      assert.strictEqual(value.foo.bar, 1)
     })
 
-    it('should update configuration', async () => {
+    it('should update configuration', async t => {
       let configurations = createConfigurations()
       disposables.push(configurations)
       configurations.addFolderFile(workspaceConfigFile)
       let resource = URI.file(path.resolve(workspaceConfigFile, '../..'))
-      let fn = vi.fn()
+      let fn = t.mock.fn()
       configurations.onDidChange(e => {
-        expect(e.affectsConfiguration('foo')).toBe(true)
-        expect(e.affectsConfiguration('foo.bar')).toBe(true)
-        expect(e.affectsConfiguration('foo.bar', 'file://tmp/foo.js')).toBe(false)
+        assert.strictEqual(e.affectsConfiguration('foo'), true)
+        assert.strictEqual(e.affectsConfiguration('foo.bar'), true)
+        assert.strictEqual(e.affectsConfiguration('foo.bar', 'file://tmp/foo.js'), false)
         fn()
       })
       let config = configurations.getConfiguration('foo', resource)
       let o = config.get<number>('bar')
-      expect(o).toBe(1)
+      assert.strictEqual(o, 1)
       await config.update('bar', 6)
       config = configurations.getConfiguration('foo', resource)
-      expect(config.get<number>('bar')).toBe(6)
-      expect(fn).toHaveBeenCalledTimes(1)
+      assert.strictEqual(config.get<number>('bar'), 6)
+      assert.strictEqual(fn.mock.callCount(), 1)
     })
 
-    it('should remove configuration', async () => {
+    it('should remove configuration', async t => {
       let configurations = createConfigurations()
       disposables.push(configurations)
       configurations.addFolderFile(workspaceConfigFile)
       let resource = URI.file(path.resolve(workspaceConfigFile, '../..'))
-      let fn = vi.fn()
+      let fn = t.mock.fn()
       configurations.onDidChange(e => {
-        expect(e.affectsConfiguration('foo')).toBe(true)
-        expect(e.affectsConfiguration('foo.bar')).toBe(true)
+        assert.strictEqual(e.affectsConfiguration('foo'), true)
+        assert.strictEqual(e.affectsConfiguration('foo.bar'), true)
         fn()
       })
       let config = configurations.getConfiguration('foo', resource)
       let o = config.get<number>('bar')
-      expect(o).toBe(1)
+      assert.strictEqual(o, 1)
       await config.update('bar', null, true)
       config = configurations.getConfiguration('foo', resource)
-      expect(config.get<any>('bar')).toBeUndefined()
-      expect(fn).toHaveBeenCalledTimes(1)
+      assert.strictEqual(config.get<any>('bar'), undefined)
+      assert.strictEqual(fn.mock.callCount(), 1)
     })
   })
 
@@ -355,7 +357,7 @@ describe('Configurations', () => {
       let m = new ConfigurationModel({ x: { a: 1 } }, ['x.a'])
       con.changeConfiguration(ConfigurationTarget.Workspace, m, undefined)
       let res = con.getConfiguration('x')
-      expect(res.a).toBe(1)
+      assert.strictEqual(res.a, 1)
     })
 
     it('should change default configuration', async () => {
@@ -363,7 +365,7 @@ describe('Configurations', () => {
       let con = createConfigurations()
       con.changeConfiguration(ConfigurationTarget.Default, m, undefined)
       let res = con.getConfiguration('x')
-      expect(res.a).toBe(1)
+      assert.strictEqual(res.a, 1)
     })
   })
 
@@ -374,12 +376,12 @@ describe('Configurations', () => {
       let res = con.getConfiguration()
       await res.update('x', 3, target)
       let val = con.getConfiguration().get('x')
-      expect(val).toBe(3)
+      assert.strictEqual(val, 3)
     })
 
-    it('should show error when workspace folder not resolved', async () => {
+    it('should show error when workspace folder not resolved', async t => {
       let called = false
-      let s = vi.spyOn(console, 'error').mockImplementation(() => {
+      t.mock.method(console, 'error', () => {
         called = true
       })
       let con = new Configurations(undefined, {
@@ -390,8 +392,7 @@ describe('Configurations', () => {
       })
       let conf = con.getConfiguration(undefined, 'file:///1')
       await conf.update('x', 3, ConfigurationUpdateTarget.WorkspaceFolder)
-      s.mockRestore()
-      expect(called).toBe(true)
+      assert.strictEqual(called, true)
     })
   })
 
@@ -399,7 +400,7 @@ describe('Configurations', () => {
     it('should not get config uri for undefined resource', async () => {
       let conf = createConfigurations()
       let res = conf.resolveWorkspaceFolderForResource()
-      expect(res).toBeUndefined()
+      assert.strictEqual(res, undefined)
     })
 
     it('should not get config folder same as home', async () => {
@@ -409,9 +410,9 @@ describe('Configurations', () => {
           return URI.file(os.homedir())
         }
       })
-      let uri = U(__filename)
+      let uri = U(import.meta.filename)
       let res = conf.resolveWorkspaceFolderForResource(uri)
-      expect(res).toBeUndefined()
+      assert.strictEqual(res, undefined)
     })
 
     it('should create config file for workspace folder', async () => {
@@ -423,11 +424,11 @@ describe('Configurations', () => {
         }
       })
       let res = conf.resolveWorkspaceFolderForResource('file:///1')
-      expect(res).toBe(folder)
+      assert.strictEqual(res, folder)
       let configFile = path.join(folder, '.vim/coc-settings.json')
-      expect(fs.existsSync(configFile)).toBe(true)
+      assert.strictEqual(fs.existsSync(configFile), true)
       res = conf.resolveWorkspaceFolderForResource('file:///1')
-      expect(res).toBe(folder)
+      assert.strictEqual(res, folder)
     })
   })
 })

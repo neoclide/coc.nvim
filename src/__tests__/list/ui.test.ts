@@ -1,12 +1,16 @@
-import { Neovim } from '@chemzqm/neovim'
-import { EventEmitter } from 'events'
-import { Disposable } from 'vscode-languageserver-protocol'
+import workspace from '../../workspace'
+import * as shared from '../sharedUtil'
 import BasicList from '../../list/basic'
 import events from '../../events'
 import manager from '../../list/manager'
 import { ListItem, IList, ListTask } from '../../list/types'
 import { disposeAll } from '../../util'
-import helper from '../helper'
+import { Neovim } from '@chemzqm/neovim'
+import { EventEmitter } from 'events'
+import { Disposable } from 'vscode-languageserver-protocol'
+import { afterEach, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+
 
 let labels: string[] = []
 let lastItem: string
@@ -54,24 +58,20 @@ class SlowTask extends EventEmitter implements ListTask {
 
 let nvim: Neovim
 let disposables: Disposable[] = []
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-})
-
-afterAll(async () => {
-  await helper.shutdown()
+before(async () => {
+  nvim = workspace.nvim
 })
 
 afterEach(async () => {
   disposeAll(disposables)
   manager.reset()
-  await helper.reset()
 })
+
+afterEach(editorReset)
 
 describe('list ui', () => {
   describe('selectLines()', () => {
-    it('should select lines', async () => {
+    it('should select lines', async t => {
       labels = ['foo', 'bar']
       disposables.push(manager.registerList(new SimpleList()))
       await manager.start(['simple'])
@@ -80,12 +80,12 @@ describe('list ui', () => {
       await ui.selectLines(3, 1)
       let buf = await nvim.buffer
       let res = await buf.getSigns({ group: 'coc-list' })
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
   })
 
   describe('preselect', () => {
-    it('should select preselect item', async () => {
+    it('should select preselect item', async t => {
       let list: IList = {
         actions: [{
           name: 'open',
@@ -103,12 +103,12 @@ describe('list ui', () => {
       await ui.ready
       ui.restoreWindow()
       let line = await nvim.line
-      expect(line).toBe('bar')
+      assert.strictEqual(line, 'bar')
     })
   })
 
   describe('resume()', () => {
-    it('should resume with selected lines', async () => {
+    it('should resume with selected lines', async t => {
       labels = ['foo', 'bar']
       disposables.push(manager.registerList(new SimpleList()))
       await manager.start(['simple'])
@@ -118,9 +118,9 @@ describe('list ui', () => {
       await nvim.call('coc#window#close', [ui.winid])
       await manager.session.resume()
       let buf = await nvim.buffer
-      await helper.waitValue(async () => (await buf.getSigns({ group: 'coc-list' })).length, 2)
+      await shared.waitValue(async () => (await buf.getSigns({ group: 'coc-list' })).length, 2)
       let res = await buf.getSigns({ group: 'coc-list' })
-      expect(res.length).toBe(2)
+      assert.strictEqual(res.length, 2)
     })
   })
 
@@ -131,7 +131,7 @@ describe('list ui', () => {
       await nvim.command('let v:mouse_col = 1')
     }
 
-    it('should fire action on double click', async () => {
+    it('should fire action on double click', async t => {
       labels = ['foo', 'bar']
       disposables.push(manager.registerList(new SimpleList()))
       await manager.start(['simple'])
@@ -139,10 +139,10 @@ describe('list ui', () => {
       await ui.ready
       await mockMouse(ui.winid, 1)
       await manager.session.onMouseEvent('<2-LeftMouse>')
-      await helper.waitValue(() => lastItem, 'foo')
+      await shared.waitValue(() => lastItem, 'foo')
     })
 
-    it('should select clicked line', async () => {
+    it('should select clicked line', async t => {
       labels = ['foo', 'bar']
       disposables.push(manager.registerList(new SimpleList()))
       await manager.start(['simple'])
@@ -159,10 +159,10 @@ describe('list ui', () => {
       await ui.onMouse('mouseUp')
       let item = await ui.item
       await ui.appendItems([])
-      expect(item.label).toBe('bar')
+      assert.strictEqual(item.label, 'bar')
     })
 
-    it('should jump to original window on click', async () => {
+    it('should jump to original window on click', async t => {
       labels = ['foo', 'bar']
       let win = await nvim.window
       disposables.push(manager.registerList(new SimpleList()))
@@ -171,12 +171,12 @@ describe('list ui', () => {
       await ui.ready
       await mockMouse(win.id, 1)
       await ui.onMouse('mouseUp')
-      await helper.waitValue(async () => (await nvim.window).id, win.id)
+      await shared.waitValue(async () => (await nvim.window).id, win.id)
       let curr = await nvim.window
-      expect(curr.id).toBe(win.id)
+      assert.strictEqual(curr.id, win.id)
     })
 
-    it('should highlights items on CursorMoved', async () => {
+    it('should highlights items on CursorMoved', async t => {
       labels = (new Array(400)).fill('a')
       disposables.push(manager.registerList(new SimpleList()))
       await manager.start(['--normal', 'simple'])
@@ -185,7 +185,7 @@ describe('list ui', () => {
       await nvim.call('cursor', [350, 1])
       await events.fire('CursorMoved', [ui.bufnr, [350, 1]])
       let buf = nvim.createBuffer(ui.bufnr)
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         let res = await buf.getHighlights('list')
         return res.length > 300
       }, true)
@@ -194,7 +194,7 @@ describe('list ui', () => {
 })
 
 describe('reversed list', () => {
-  it('should render and add highlights', async () => {
+  it('should render and add highlights', async t => {
     labels = ['a', 'b', 'c', 'd']
     disposables.push(manager.registerList(new SimpleList()))
     await manager.start(['--reverse', 'simple'])
@@ -202,31 +202,31 @@ describe('reversed list', () => {
     await ui.ready
     let buf = nvim.createBuffer(ui.bufnr)
     let lines = await buf.lines
-    expect(lines).toEqual(['d', 'c', 'b', 'a'])
-    await helper.listInput('a')
-    await helper.waitValue(async () => buf.lines, ['a'])
+    assert.deepStrictEqual(lines, ['d', 'c', 'b', 'a'])
+    await shared.listInput('a')
+    await shared.waitValue(async () => buf.lines, ['a'])
     lines = await buf.lines
-    expect(lines).toEqual(['a'])
+    assert.deepStrictEqual(lines, ['a'])
     let res = await buf.getHighlights('list')
-    expect(res.length).toBe(2)
+    assert.strictEqual(res.length, 2)
     let win = nvim.createWindow(ui.winid)
     let height = await win.height
-    expect(height).toBe(1)
+    assert.strictEqual(height, 1)
   })
 
-  it('should moveUp and moveDown', async () => {
+  it('should moveUp and moveDown', async t => {
     labels = ['a', 'b', 'c', 'd']
     disposables.push(manager.registerList(new SimpleList()))
     await manager.start(['--reverse', 'simple'])
     let ui = manager.session.ui
     await ui.ready
     await ui.moveCursor(-1)
-    await helper.waitFor('line', ['.'], 3)
+    await shared.waitFor('line', ['.'], 3)
     await ui.moveCursor(1)
-    await helper.waitFor('line', ['.'], 4)
+    await shared.waitFor('line', ['.'], 4)
   })
 
-  it('should toggle selection', async () => {
+  it('should toggle selection', async t => {
     labels = ['a', 'b', 'c', 'd']
     disposables.push(manager.registerList(new SimpleList()))
     await manager.start(['--reverse', '--normal', 'simple'])
@@ -234,17 +234,20 @@ describe('reversed list', () => {
     await ui.ready
     await ui.toggleSelection()
     let items = ui.selectedItems
-    expect(items.length).toBeGreaterThan(0)
-    expect(items[0].label).toBe('a')
+    assert.ok(items.length > 0)
+    assert.strictEqual(items[0].label, 'a')
     let lnum = await nvim.call('line', ['.'])
-    expect(lnum).toBe(3)
-    await helper.listInput('j')
+    assert.strictEqual(lnum, 3)
+    await shared.listInput('j')
+    // The cursor move is async; toggling before it lands would toggle the
+    // previously selected line and make the assertion timing dependent.
+    await shared.waitFor('line', ['.'], 4)
     await ui.toggleSelection()
     items = ui.selectedItems
-    expect(items.length).toBe(0)
+    assert.strictEqual(items.length, 0)
   })
 
-  it('should prepend list items', async () => {
+  it('should prepend list items', async t => {
     let o: any
     let p = new Promise(resolve => {
       let list: IList = {
@@ -271,10 +274,10 @@ describe('reversed list', () => {
     ui.setCursor(99)
     await p
     let buf = nvim.createBuffer(ui.bufnr)
-    await helper.waitValue(async () => buf.lines, ['5', '4', '3', '2', '1'])
+    await shared.waitValue(async () => buf.lines, ['5', '4', '3', '2', '1'])
     let lines = await buf.lines
-    expect(lines).toEqual(['5', '4', '3', '2', '1'])
+    assert.deepStrictEqual(lines, ['5', '4', '3', '2', '1'])
     let lnum = await nvim.call('line', ['.'])
-    expect(lnum).toBe(5)
+    assert.strictEqual(lnum, 5)
   })
 })

@@ -12,11 +12,12 @@ import { mergeChanges } from '../../configuration/util'
 import { disposeAll } from '../../util'
 import { IJSONContributionRegistry, Extensions as JSONExtensions } from '../../util/jsonRegistry'
 import { Registry } from '../../util/registry'
+import { after, describe, test } from 'node:test'
 
 describe('ConfigurationRegistry', () => {
   let disposables: Disposable[] = []
 
-  afterAll(() => {
+  after(() => {
     disposeAll(disposables)
   })
 
@@ -52,7 +53,7 @@ describe('ConfigurationRegistry', () => {
       scope: ConfigurationScope.LANGUAGE_OVERRIDABLE,
       default: []
     }
-    expect(typeof configurationDefaultsSchemaId).toBe('string')
+    assert.strictEqual(typeof configurationDefaultsSchemaId, 'string')
     let called = 0
     configuration.onDidSchemaChange(() => {
       called++
@@ -61,20 +62,20 @@ describe('ConfigurationRegistry', () => {
       called++
     }, null, disposables)
     configuration.registerConfigurations([node], false)
-    expect(called).toBe(2)
+    assert.strictEqual(called, 2)
     let other = createNode('other')
     other.scope = ConfigurationScope.RESOURCE
     other.properties['test.foo'] = { type: 'string' }
     configuration.registerConfiguration(other)
     configuration.registerConfigurations([other])
-    expect(length(configuration.getConfigurationProperties())).toBe(3)
-    expect(length(configuration.getExcludedConfigurationProperties())).toBe(1)
+    assert.strictEqual(length(configuration.getConfigurationProperties()), 3)
+    assert.strictEqual(length(configuration.getExcludedConfigurationProperties()), 1)
     let jsonRegistry = Registry.as<IJSONContributionRegistry>(JSONExtensions.JSONContribution)
     let schemas = jsonRegistry.getSchemaContributions().schemas
-    expect(schemas[resourceLanguageSettingsSchemaId]).toBeDefined()
+    assert.notStrictEqual(schemas[resourceLanguageSettingsSchemaId], undefined)
     configuration.deregisterConfigurations([node])
     let schema = schemas[resourceLanguageSettingsSchemaId]
-    expect(schema.properties).toEqual({})
+    assert.deepStrictEqual(schema.properties, {})
   })
 
   test('register with extension info', () => {
@@ -90,8 +91,8 @@ describe('ConfigurationRegistry', () => {
       default: '',
     }
     configuration.registerConfiguration(node)
-    expect(allSettings.properties['test.foo'].description).toBeDefined()
-    expect(allSettings.properties['test.bar'].description).toBeDefined()
+    assert.notStrictEqual(allSettings.properties['test.foo'].description, undefined)
+    assert.notStrictEqual(allSettings.properties['test.bar'].description, undefined)
     configuration.deregisterConfigurations([node])
   })
 
@@ -101,13 +102,13 @@ describe('ConfigurationRegistry', () => {
       called++
     }, null, disposables)
     configuration.updateConfigurations({ add: [], remove: [] })
-    expect(called).toBe(1)
+    assert.strictEqual(called, 1)
   })
 
   test('validateProperty', () => {
-    expect(validateProperty('', {} as any) != null).toBe(true)
-    expect(validateProperty('[docker]') != null).toBe(true)
-    expect(validateProperty('key')).toBeNull()
+    assert.strictEqual(validateProperty('', {} as any) != null, true)
+    assert.strictEqual(validateProperty('[docker]') != null, true)
+    assert.strictEqual(validateProperty('key'), null)
   })
 })
 
@@ -120,30 +121,29 @@ describe('ConfigurationModelParser', () => {
   test('parser no error with empty text', async () => {
     const parser = new ConfigurationModelParser('test')
     parser.parse(' ')
-    expect(parser.errors.length).toBe(0)
+    assert.strictEqual(parser.errors.length, 0)
   })
 
   test('parse invalid value', async () => {
     let parser = new ConfigurationModelParser('test')
     parser.parse(33 as any)
-    expect(parser.errors.length).toBe(1)
+    assert.strictEqual(parser.errors.length, 1)
   })
 
-  test('parse conflict properties', async () => {
+  test('parse conflict properties', async t => {
     let parser = new ConfigurationModelParser('test')
     let called = false
-    let s = vi.spyOn(console, 'error').mockImplementation(() => {
+    t.mock.method(console, 'error', () => {
       called = true
     })
     parser.parse(JSON.stringify({ x: 1, 'x.y': {} }, null, 2))
-    s.mockRestore()
-    expect(called).toBe(true)
+    assert.strictEqual(called, true)
   })
 
   test('parse configuration model with single override identifier', () => {
     const testObject = new ConfigurationModelParser('')
     testObject.parse(JSON.stringify({ '[x]': { a: 1 } }))
-    expect(JSON.stringify(testObject.configurationModel.overrides)).toEqual(JSON.stringify([{ identifiers: ['x'], keys: ['a'], contents: { a: 1 } }]))
+    assert.deepStrictEqual(JSON.stringify(testObject.configurationModel.overrides), JSON.stringify([{ identifiers: ['x'], keys: ['a'], contents: { a: 1 } }]))
   })
 
   test('parse configuration model with multiple override identifiers', () => {
@@ -170,7 +170,7 @@ describe('ConfigurationModelParser', () => {
 })
 
 describe('ConfigurationModel', () => {
-  test('setValue for a key that has no sections and not defined', () => {
+  test('setValue for a key that has no sections and not defined', t => {
     const testObject = new ConfigurationModel({ a: { b: 1 } }, ['a.b'])
 
     testObject.setValue('f', 1)
@@ -178,11 +178,10 @@ describe('ConfigurationModel', () => {
     assert.deepStrictEqual(testObject.contents, { a: { b: 1 }, f: 1 })
     assert.deepStrictEqual(testObject.keys, ['a.b', 'f'])
     let called = false
-    let s = vi.spyOn(console, 'error').mockImplementation(() => {
+    t.mock.method(console, 'error', () => {
       called = true
     })
     testObject.setValue('a.b.c.d', { x: 3 })
-    s.mockRestore()
   })
 
   test('setValue for a key that has no sections and defined', () => {
@@ -204,7 +203,7 @@ describe('ConfigurationModel', () => {
     expected['f'] = 1
     expected['b'] = Object.create(null)
     expected['b']['c'] = 1
-    expect(testObject.contents).toEqual(expected)
+    assert.deepStrictEqual(testObject.contents, expected)
     // assert.deepStrictEqual(testObject.contents, expected)
     assert.deepStrictEqual(testObject.keys, ['a.b', 'f', 'b.c'])
   })
@@ -552,11 +551,11 @@ describe('Configuration', () => {
     const parser = new ConfigurationModelParser('test')
     parser.parse(JSON.stringify({ a: 1 }))
     const con: Configuration = new Configuration(parser.configurationModel, new ConfigurationModel(), new ConfigurationModel())
-    expect(con.getConfigurationModel(ConfigurationTarget.Default)).toBeDefined()
-    expect(con.getConfigurationModel(ConfigurationTarget.User)).toBeDefined()
-    expect(con.getConfigurationModel(ConfigurationTarget.Workspace)).toBeDefined()
-    expect(con.getConfigurationModel(ConfigurationTarget.WorkspaceFolder, 'folder')).toBeDefined()
-    expect(con.getConfigurationModel(ConfigurationTarget.Memory)).toBeDefined()
+    assert.notStrictEqual(con.getConfigurationModel(ConfigurationTarget.Default), undefined)
+    assert.notStrictEqual(con.getConfigurationModel(ConfigurationTarget.User), undefined)
+    assert.notStrictEqual(con.getConfigurationModel(ConfigurationTarget.Workspace), undefined)
+    assert.notStrictEqual(con.getConfigurationModel(ConfigurationTarget.WorkspaceFolder, 'folder'), undefined)
+    assert.notStrictEqual(con.getConfigurationModel(ConfigurationTarget.Memory), undefined)
   })
 
   test('resolveFolder', async () => {
@@ -564,7 +563,7 @@ describe('Configuration', () => {
     con.addFolderConfiguration('/a/b/c', new ConfigurationModel())
     con.addFolderConfiguration('/a', new ConfigurationModel())
     let res = con.resolveFolder('/a/b/c/d/e')
-    expect(res).toBe('/a/b/c')
+    assert.strictEqual(res, '/a/b/c')
   })
 
   test('inspect for overrideIdentifiers', () => {
@@ -577,25 +576,25 @@ describe('Configuration', () => {
     const { overrideIdentifiers } = testObject.inspect('a', {})
     assert.deepStrictEqual(overrideIdentifiers, ['l1', 'l3', 'l4'])
     let res = testObject.inspect('a', { overrideIdentifier: 'l1' })
-    expect(res.value).toBe(3)
-    expect(res.default.override).toBe(1)
-    expect(res.user).toBeUndefined()
+    assert.strictEqual(res.value, 3)
+    assert.strictEqual(res.default.override, 1)
+    assert.strictEqual(res.user, undefined)
     res = testObject.inspect('a', { overrideIdentifier: 'l3' })
-    expect(res.user).toEqual({ value: undefined, override: 2 })
+    assert.deepStrictEqual(res.user, { value: undefined, override: 2 })
     res = testObject.inspect('a', { overrideIdentifier: 'l3', resource: '/foo/bar' })
-    expect(res.workspaceFolder).toEqual({ value: undefined, override: 3 })
+    assert.deepStrictEqual(res.workspaceFolder, { value: undefined, override: 3 })
     testObject.updateValue('b', 3)
     res = testObject.inspect('b', {})
-    expect(res.memoryValue).toBe(3)
+    assert.strictEqual(res.memoryValue, 3)
     res = testObject.inspect('b', { overrideIdentifier: 'l3' })
-    expect(res.memoryValue).toBe(3)
+    assert.strictEqual(res.memoryValue, 3)
     const newModel = toConfigurationModel({ a: 4 })
     testObject.compareAndUpdateFolderConfiguration('/foo', newModel)
     res = testObject.inspect('a', { resource: '/foo/bar' })
-    expect(res.workspaceFolderValue).toBe(4)
+    assert.strictEqual(res.workspaceFolderValue, 4)
     testObject.compareAndUpdateFolderConfiguration('/foo', newModel)
     res = testObject.inspect('a', { resource: '/foo/bar' })
-    expect(res.workspaceFolderValue).toBe(4)
+    assert.strictEqual(res.workspaceFolderValue, 4)
   })
 
   test('update value', () => {
@@ -647,12 +646,12 @@ describe('Configuration', () => {
         'editor.showbreak': 'off'
       }
     }), ['[markdown]'])
-    expect(res.overrides).toEqual([
+    assert.deepStrictEqual(res.overrides, [
       ['markdown', ['editor.lineNumbers', 'editor.showbreak', 'editor.wordWrap']]
     ])
 
     res = testObject.compareAndUpdateDefaultConfiguration(toConfigurationModel({}))
-    expect(res.overrides).toEqual([
+    assert.deepStrictEqual(res.overrides, [
       [
         'markdown',
         [
@@ -670,11 +669,11 @@ describe('Configuration', () => {
   test('compare and update same configurationModel', async () => {
     const testObject = new Configuration(new ConfigurationModel(), new ConfigurationModel(), new ConfigurationModel())
     let res = testObject.compareAndUpdateUserConfiguration(testObject.user)
-    expect(res.keys).toEqual([])
+    assert.deepStrictEqual(res.keys, [])
     res = testObject.compareAndUpdateWorkspaceConfiguration(testObject.workspace)
-    expect(res.keys).toEqual([])
+    assert.deepStrictEqual(res.keys, [])
     res = testObject.compareAndUpdateDefaultConfiguration(testObject.defaults)
-    expect(res.keys).toEqual([])
+    assert.deepStrictEqual(res.keys, [])
     testObject.compareAndDeleteFolderConfiguration('/a/b')
   })
 
@@ -742,7 +741,7 @@ describe('Configuration', () => {
     }))
     assert.deepStrictEqual(actual, { keys: ['window.zoomLevel', 'editor.lineNumbers', '[typescript]', 'editor.fontSize'], overrides: [['typescript', ['editor.insertSpaces', 'editor.wordWrap']]] })
     testObject.compareAndUpdateFolderConfiguration('/a/b', new ConfigurationModel())
-    expect(testObject.hasFolder('/a/b')).toBe(true)
+    assert.strictEqual(testObject.hasFolder('/a/b'), true)
   })
 })
 

@@ -2,7 +2,6 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 import events from '../../events'
 import { gracefulExit, setExitHook } from '../../exit'
 import { getInstanceFilePath, readDiscoveryFile } from '../../mcp/auth'
@@ -10,6 +9,8 @@ import mcp from '../../mcp'
 import { McpServer } from '../../mcp/server'
 import workspace from '../../workspace'
 import { TestClient } from '../mcp/testClient'
+import { after, afterEach, describe, it, test } from 'node:test'
+import assert from 'node:assert/strict'
 
 // no-isolate worker threads share one process pid and the default COC_MCP_DIR,
 // so a concurrent mcp.stop() in a sibling test (e.g. exit.test) can delete the
@@ -34,37 +35,41 @@ describe('mcp service', () => {
     workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false, 'mcp.allowedTools': [], 'mcp.transport': 'auto' })
   })
 
-  afterAll(() => {
+  after(() => {
     fs.rmSync(mcpDir, { recursive: true, force: true })
   })
 
   it('starts the socket server and writes the per-instance discovery file', async () => {
     workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.allowedTools': ['workspace/info', 'workspace/configuration'] })
     await mcp.start()
-    expect(mcp.running).toBe(true)
+    assert.strictEqual(mcp.running, true)
     let status = mcp.status()
-    expect(status.running).toBe(true)
-    expect(status.transport).toBe(process.platform === 'win32' ? 'tcp' : 'unix')
+    assert.strictEqual(status.running, true)
+    assert.strictEqual(status.transport, process.platform === 'win32' ? 'tcp' : 'unix')
     if (status.transport === 'tcp') {
-      expect(status.port).toBeGreaterThan(0)
+      assert.ok(status.port > 0)
     } else {
-      expect(status.socketPath).toBeTruthy()
+      assert.ok(status.socketPath)
     }
-    expect(status.tools).toEqual(expect.arrayContaining(['workspace/info', 'workspace/configuration']))
+    // status.tools is the allowedTools name list (strings), not tool objects.
+    const toolNames = status.tools
+    for (const expected of ['workspace/info', 'workspace/configuration']) {
+      assert.ok(toolNames.includes(expected), `missing tool ${expected}`)
+    }
     let instancePath = await waitForInstanceFile()
     let info = readDiscoveryFile(instancePath)
-    expect(info).not.toBeNull()
-    expect(info!.token.length).toBe(64)
+    assert.notStrictEqual(info, null)
+    assert.strictEqual(info!.token.length, 64)
     if (status.transport === 'tcp') {
-      expect(info!.port).toBe(status.port)
+      assert.strictEqual(info!.port, status.port)
     } else {
-      expect(info!.socketPath).toBe(status.socketPath)
+      assert.strictEqual(info!.socketPath, status.socketPath)
     }
-    expect(info!.cwd).toBeTruthy()
-    expect(info!.workspaceRoot).toBeTruthy()
-    expect(status.pid).toBe(process.pid)
-    expect(status.cwd).toBeTruthy()
-    expect(Array.isArray(status.clients)).toBe(true)
+    assert.ok(info!.cwd)
+    assert.ok(info!.workspaceRoot)
+    assert.strictEqual(status.pid, process.pid)
+    assert.ok(status.cwd)
+    assert.strictEqual(Array.isArray(status.clients), true)
   })
 
   it('removes the per-instance discovery file and stops listening on stop', async () => {
@@ -73,85 +78,71 @@ describe('mcp service', () => {
     // The instance file is published as part of the start flow; poll briefly
     // so the assertion is not racing the file write.
     let instancePath = await waitForInstanceFile()
-    expect(fs.existsSync(instancePath)).toBe(true)
+    assert.strictEqual(fs.existsSync(instancePath), true)
     let socketPath = mcp.status().socketPath as string | undefined
     mcp.stop()
-    expect(mcp.running).toBe(false)
-    expect(fs.existsSync(instancePath)).toBe(false)
+    assert.strictEqual(mcp.running, false)
+    assert.strictEqual(fs.existsSync(instancePath), false)
     if (socketPath) {
-      expect(fs.existsSync(socketPath)).toBe(false)
+      assert.strictEqual(fs.existsSync(socketPath), false)
     }
   })
 
   it('does nothing when disabled', async () => {
     workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false })
     await mcp.start()
-    expect(mcp.running).toBe(false)
-    expect(fs.existsSync(getInstanceFilePath(process.pid))).toBe(false)
+    assert.strictEqual(mcp.running, false)
+    assert.strictEqual(fs.existsSync(getInstanceFilePath(process.pid)), false)
   })
 
   it('starts even when disabled when forced', async () => {
     workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false })
     await mcp.start(true)
-    expect(mcp.running).toBe(true)
+    assert.strictEqual(mcp.running, true)
     let instancePath = await waitForInstanceFile()
-    expect(fs.existsSync(instancePath)).toBe(true)
+    assert.strictEqual(fs.existsSync(instancePath), true)
   })
 
-  it('handles a server listen failure without publishing the service', async () => {
-    let listenSpy = vi.spyOn(McpServer.prototype, 'listen').mockRejectedValue(new Error('listen failed'))
-    let disposeSpy = vi.spyOn(McpServer.prototype, 'dispose')
+  it('handles a server listen failure without publishing the service', async t => {
+    t.mock.method(McpServer.prototype, 'listen', async () => {
+      throw new Error('listen failed')
+    })
+    let disposeSpy = t.mock.method(McpServer.prototype, 'dispose')
     workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.transport': 'tcp' })
-    try {
-      await mcp.start()
-      expect(mcp.running).toBe(false)
-      expect(disposeSpy).toHaveBeenCalled()
-      expect(fs.existsSync(getInstanceFilePath(process.pid))).toBe(false)
-    } finally {
-      listenSpy.mockRestore()
-      disposeSpy.mockRestore()
-    }
+    await mcp.start()
+    assert.strictEqual(mcp.running, false)
+    assert.ok(disposeSpy.mock.callCount() > 0)
+    assert.strictEqual(fs.existsSync(getInstanceFilePath(process.pid)), false)
   })
 
-  it('serializes concurrent starts into a single server', async () => {
+  it('serializes concurrent starts into a single server', async t => {
     let releaseListen: () => void = () => {}
-    let listenSpy = vi.spyOn(McpServer.prototype, 'listen').mockImplementation(() => new Promise(resolve => {
+    let listenSpy = t.mock.method(McpServer.prototype, 'listen', () => new Promise(resolve => {
       releaseListen = () => resolve({ host: '127.0.0.1', port: 0, socketPath: '' } as any)
     }))
     workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.allowedTools': [] })
-    try {
-      let first = mcp.start()
-      let second = mcp.start()
-      expect(listenSpy).toHaveBeenCalledTimes(1)
-      releaseListen()
-      await Promise.all([first, second])
-      expect(mcp.running).toBe(true)
-    } finally {
-      listenSpy.mockRestore()
-      mcp.stop()
-    }
+    let first = mcp.start()
+    let second = mcp.start()
+    assert.strictEqual(listenSpy.mock.callCount(), 1)
+    releaseListen()
+    await Promise.all([first, second])
+    assert.strictEqual(mcp.running, true)
   })
 
-  it('stop during start disposes the pending server and publishes nothing', async () => {
+  it('stop during start disposes the pending server and publishes nothing', async t => {
     let releaseListen: () => void = () => {}
-    let listenSpy = vi.spyOn(McpServer.prototype, 'listen').mockImplementation(() => new Promise(resolve => {
+    t.mock.method(McpServer.prototype, 'listen', () => new Promise(resolve => {
       releaseListen = () => resolve({ host: '127.0.0.1', port: 0, socketPath: '' } as any)
     }))
-    let disposeSpy = vi.spyOn(McpServer.prototype, 'dispose')
+    let disposeSpy = t.mock.method(McpServer.prototype, 'dispose')
     workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true, 'mcp.allowedTools': [] })
-    try {
-      let pending = mcp.start()
-      mcp.stop()
-      releaseListen()
-      await pending
-      expect(mcp.running).toBe(false)
-      expect(disposeSpy).toHaveBeenCalled()
-      expect(fs.existsSync(getInstanceFilePath(process.pid))).toBe(false)
-    } finally {
-      listenSpy.mockRestore()
-      disposeSpy.mockRestore()
-      mcp.stop()
-    }
+    let pending = mcp.start()
+    mcp.stop()
+    releaseListen()
+    await pending
+    assert.strictEqual(mcp.running, false)
+    assert.ok(disposeSpy.mock.callCount() > 0)
+    assert.strictEqual(fs.existsSync(getInstanceFilePath(process.pid)), false)
   })
 
   it('formats human-readable status lines', async () => {
@@ -163,32 +154,32 @@ describe('mcp service', () => {
       await client.request(0, 'coc/auth', { token: info.token, clientInfo: { name: 'status-client', version: '1' } })
       await client.request(1, 'initialize', { protocolVersion: '2025-06-18', capabilities: {} })
       let lines = mcp.getStatusLines()
-      expect(lines[0]).toBe('MCP server: running')
-      expect(lines.join('\n')).toContain('transport:')
-      expect(lines.join('\n')).toContain('cwd:')
-      expect(lines.join('\n')).toContain('clients: 1')
-      expect(lines.join('\n')).toContain('status-client')
-      expect(lines.join('\n')).toContain('tools:')
-      expect(lines.join('\n')).toContain('    document/read')
-      expect(lines.join('\n')).toContain('    lsp/references')
+      assert.strictEqual(lines[0], 'MCP server: running')
+      assert.ok(lines.join('\n').includes('transport:'))
+      assert.ok(lines.join('\n').includes('cwd:'))
+      assert.ok(lines.join('\n').includes('clients: 1'))
+      assert.ok(lines.join('\n').includes('status-client'))
+      assert.ok(lines.join('\n').includes('tools:'))
+      assert.ok(lines.join('\n').includes('    document/read'))
+      assert.ok(lines.join('\n').includes('    lsp/references'))
     } finally {
       client.close()
       mcp.stop()
     }
-    expect(mcp.getStatusLines()).toEqual(['MCP server: not running'])
+    assert.deepStrictEqual(mcp.getStatusLines(), ['MCP server: not running'])
   })
 
   it('stops the MCP service on VimLeavePre', async () => {
     workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': true })
     await mcp.start()
-    expect(mcp.running).toBe(true)
+    assert.strictEqual(mcp.running, true)
     await events.fire('VimLeavePre', [])
-    expect(mcp.running).toBe(false)
-    expect(fs.existsSync(getInstanceFilePath(process.pid))).toBe(false)
+    assert.strictEqual(mcp.running, false)
+    assert.strictEqual(fs.existsSync(getInstanceFilePath(process.pid)), false)
   })
 
-  it('stops the MCP service on termination signals', () => {
-    let spy = vi.spyOn(mcp, 'stop')
+  it('stops the MCP service on termination signals', t => {
+    let spy = t.mock.method(mcp, 'stop')
     setExitHook((code: number): never => {
       // prevent the test process from exiting
       process.exitCode = code
@@ -196,9 +187,8 @@ describe('mcp service', () => {
     })
     try {
       gracefulExit('SIGTERM')
-      expect(spy).toHaveBeenCalled()
+      assert.ok(spy.mock.callCount() > 0)
     } finally {
-      spy.mockRestore()
       // keep the no-op exit hook installed: gracefulExit's async tail calls
       // exitFn after this test finishes, and vitest's process.exit throws
     }
@@ -213,9 +203,9 @@ describe('mcp service', () => {
       handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
     })
     await mcp.start()
-    expect(mcp.status().tools).toContain('extension/hello')
+    assert.ok(mcp.status().tools.includes('extension/hello'))
     disposable.dispose()
-    expect(mcp.status().tools).not.toContain('extension/hello')
+    assert.ok(!mcp.status().tools.includes('extension/hello'))
   })
 
   it('registers a tool while running and unregisters on dispose', async () => {
@@ -227,9 +217,9 @@ describe('mcp service', () => {
       inputSchema: { type: 'object', properties: {} },
       handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
     })
-    expect(mcp.status().tools).toContain('extension/live')
+    assert.ok(mcp.status().tools.includes('extension/live'))
     disposable.dispose()
-    expect(mcp.status().tools).not.toContain('extension/live')
+    assert.ok(!mcp.status().tools.includes('extension/live'))
   })
 
   it('throws on duplicate extension tool names', () => {
@@ -239,22 +229,22 @@ describe('mcp service', () => {
       inputSchema: { type: 'object', properties: {} },
       handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
     })
-    expect(() => mcp.registerTool({
+    assert.throws(() => mcp.registerTool({
       name: 'extension/dup',
       description: 'extension tool 2',
       inputSchema: { type: 'object', properties: {} },
       handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
-    })).toThrow(/already registered/)
+    }), /already registered/)
     disposable.dispose()
   })
 
   it('rejects extension tools without a name', () => {
-    expect(() => mcp.registerTool({
+    assert.throws(() => mcp.registerTool({
       name: '',
       description: 'missing name',
       inputSchema: { type: 'object' },
       handler: () => ({ content: [] })
-    })).toThrow('Tool name is required')
+    }), new RegExp('Tool name is required'))
   })
 
   it('keeps extension tools across server restarts', async () => {
@@ -266,10 +256,10 @@ describe('mcp service', () => {
       handler: () => ({ content: [{ type: 'text', text: 'ok' }] })
     })
     await mcp.start()
-    expect(mcp.status().tools).toContain('extension/persist')
+    assert.ok(mcp.status().tools.includes('extension/persist'))
     mcp.stop()
     await mcp.start()
-    expect(mcp.status().tools).toContain('extension/persist')
+    assert.ok(mcp.status().tools.includes('extension/persist'))
     disposable.dispose()
   })
 })

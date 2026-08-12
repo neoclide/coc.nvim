@@ -1,15 +1,16 @@
 'use strict'
-import { describe, expect, it } from 'vitest'
+import { describe, it } from 'node:test'
+import assert from 'node:assert/strict'
 import { encodeMessage, FrameSplitter } from '../../mcp/framing'
 
 describe('mcp framing', () => {
   it('should encode a message as a single newline-delimited line', () => {
     let buf = encodeMessage({ jsonrpc: '2.0', id: 1, method: 'ping' })
-    expect(buf.toString('utf8')).toBe('{"jsonrpc":"2.0","id":1,"method":"ping"}\n')
+    assert.strictEqual(buf.toString('utf8'), '{"jsonrpc":"2.0","id":1,"method":"ping"}\n')
   })
 
   it('rejects values that JSON cannot serialize', () => {
-    expect(() => encodeMessage(undefined)).toThrow('Unable to serialize message to JSON')
+    assert.throws(() => encodeMessage(undefined), /Unable to serialize message to JSON/)
   })
 
   it('should split frames arriving in separate chunks', () => {
@@ -21,8 +22,8 @@ describe('mcp framing', () => {
     for (let i = 0; i < buf.length; i++) {
       splitter.push(buf.subarray(i, i + 1))
     }
-    expect(errors).toEqual([])
-    expect(frames).toEqual([{ jsonrpc: '2.0', id: 1, method: 'ping' }])
+    assert.deepStrictEqual(errors, [])
+    assert.deepStrictEqual(frames, [{ jsonrpc: '2.0', id: 1, method: 'ping' }])
   })
 
   it('should handle multiple frames in one chunk and skip empty lines', () => {
@@ -30,10 +31,10 @@ describe('mcp framing', () => {
     let errors: any[] = []
     let splitter = new FrameSplitter(1024, msg => frames.push(msg), err => errors.push(err))
     splitter.push(Buffer.from('\n{"jsonrpc":"2.0","id":1,"method":"ping"}\n\n{"jsonrpc":"2.0","id":2,"method":"ping"}\n'))
-    expect(errors).toEqual([])
-    expect(frames.length).toBe(2)
-    expect(frames[0].id).toBe(1)
-    expect(frames[1].id).toBe(2)
+    assert.deepStrictEqual(errors, [])
+    assert.strictEqual(frames.length, 2)
+    assert.strictEqual(frames[0].id, 1)
+    assert.strictEqual(frames[1].id, 2)
   })
 
   it('accepts string chunks and ignores empty or disposed input', () => {
@@ -43,7 +44,7 @@ describe('mcp framing', () => {
     splitter.push('{"id":1}\n')
     splitter.dispose()
     splitter.push('{"id":2}\n')
-    expect(frames).toEqual([{ id: 1 }])
+    assert.deepStrictEqual(frames, [{ id: 1 }])
   })
 
   it('should report JSON parse errors with the raw line', () => {
@@ -51,9 +52,9 @@ describe('mcp framing', () => {
     let errors: any[] = []
     let splitter = new FrameSplitter(1024, msg => frames.push(msg), err => errors.push(err))
     splitter.push(Buffer.from('{"jsonrpc":"2.0","id":3,"method":"ping"\n'))
-    expect(frames).toEqual([])
-    expect(errors.length).toBe(1)
-    expect(errors[0].raw).toContain('"id":3')
+    assert.deepStrictEqual(frames, [])
+    assert.strictEqual(errors.length, 1)
+    assert.ok(errors[0].raw.includes('"id":3'))
   })
 
   it('should report oversized frames', () => {
@@ -61,9 +62,9 @@ describe('mcp framing', () => {
     let errors: any[] = []
     let splitter = new FrameSplitter(16, msg => frames.push(msg), err => errors.push(err))
     splitter.push(Buffer.from(JSON.stringify({ value: 'x'.repeat(100) }) + '\n'))
-    expect(frames).toEqual([])
-    expect(errors.length).toBe(1)
-    expect(errors[0].message).toContain('exceeds')
+    assert.deepStrictEqual(frames, [])
+    assert.strictEqual(errors.length, 1)
+    assert.ok(errors[0].message.includes('exceeds'))
   })
 
   it('should drop buffered data when no newline arrives beyond the limit', () => {
@@ -71,8 +72,8 @@ describe('mcp framing', () => {
     let errors: any[] = []
     let splitter = new FrameSplitter(16, msg => frames.push(msg), err => errors.push(err))
     splitter.push(Buffer.from('x'.repeat(20)))
-    expect(errors.length).toBe(1)
-    expect(frames).toEqual([])
+    assert.strictEqual(errors.length, 1)
+    assert.deepStrictEqual(frames, [])
   })
 
   it('preserves multibyte characters split at every byte boundary', () => {
@@ -84,8 +85,8 @@ describe('mcp framing', () => {
       let splitter = new FrameSplitter(1024, m => frames.push(m), err => errors.push(err))
       splitter.push(buf.subarray(0, split))
       splitter.push(buf.subarray(split))
-      expect(errors, `split at ${split}`).toEqual([])
-      expect(frames, `split at ${split}`).toEqual([msg])
+      assert.deepStrictEqual(errors, [], `split at ${split}`)
+      assert.deepStrictEqual(frames, [msg], `split at ${split}`)
     }
   })
 
@@ -95,8 +96,8 @@ describe('mcp framing', () => {
     // 8 multibyte chars: 8 code units but 24 bytes, above the 16-byte limit
     let splitter = new FrameSplitter(16, m => frames.push(m), err => errors.push(err))
     splitter.push(encodeMessage({ value: '你'.repeat(8) }))
-    expect(frames).toEqual([])
-    expect(errors.length).toBe(1)
-    expect(errors[0].message).toContain('exceeds')
+    assert.deepStrictEqual(frames, [])
+    assert.strictEqual(errors.length, 1)
+    assert.ok(errors[0].message.includes('exceeds'))
   })
 })

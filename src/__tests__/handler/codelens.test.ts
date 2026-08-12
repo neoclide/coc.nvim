@@ -1,5 +1,5 @@
-import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CodeLens, Command, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { getCurrentPlugin } from '../../attach'
+import * as shared from '../sharedUtil'
 import commands from '../../commands'
 import events from '../../events'
 import CodeLensBuffer, { getCommandText, getCommands, getTextAlign } from '../../handler/codelens/buffer'
@@ -7,30 +7,28 @@ import CodeLensHandler from '../../handler/codelens/index'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import helper from '../helper'
+import { Neovim } from '@chemzqm/neovim'
+import { CancellationToken, CodeLens, Command, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { afterEach, before, beforeEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+
 
 let nvim: Neovim
 let codeLens: CodeLensHandler
 let disposables: Disposable[] = []
 let srcId: number
 
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
+before(async () => {
+  nvim = workspace.nvim
   srcId = await nvim.createNamespace('coc-codelens')
-  codeLens = helper.plugin.getHandler().codeLens
+  codeLens = getCurrentPlugin().getHandler().codeLens
 })
 
 beforeEach(() => {
-  helper.updateConfiguration('codeLens.enable', true)
-})
-
-afterAll(async () => {
-  await helper.shutdown()
+  shared.updateConfiguration('codeLens.enable', true)
 })
 
 afterEach(async () => {
-  await helper.reset()
   disposeAll(disposables)
 })
 
@@ -46,105 +44,107 @@ async function createBufferWithCodeLens(): Promise<CodeLensBuffer> {
       return codeLens
     }
   }))
-  let doc = await helper.createDocument('e.js')
+  let doc = await shared.createDocument('e.js')
   await nvim.call('setline', [1, ['a', 'b', 'c']])
   await doc.synchronize()
   await codeLens.checkProvider()
   return codeLens.buffers.getItem(doc.bufnr)
 }
 
+afterEach(editorReset)
+
 describe('codeLenes feature', () => {
-  it('should get text align', async () => {
-    expect(getTextAlign(undefined)).toBe('above')
-    expect(getTextAlign('top')).toBe('above')
-    expect(getTextAlign('eol')).toBe('after')
-    expect(getTextAlign('right_align')).toBe('right')
+  it('should get text align', async t => {
+    assert.strictEqual(getTextAlign(undefined), 'above')
+    assert.strictEqual(getTextAlign('top'), 'above')
+    assert.strictEqual(getTextAlign('eol'), 'after')
+    assert.strictEqual(getTextAlign('right_align'), 'right')
   })
 
-  it('should not throw when srcId not exists', async () => {
+  it('should not throw when srcId not exists', async t => {
     let doc = await workspace.document
     let item = codeLens.buffers.getItem(doc.bufnr)
     item.clear()
     await item.doAction(0)
   })
 
-  it('should invoke codeLenes action', async () => {
-    let fn = vi.fn()
+  it('should invoke codeLenes action', async t => {
+    let fn = t.mock.fn()
     disposables.push(commands.registerCommand('__save', (...args) => {
       fn(...args)
     }))
     await createBufferWithCodeLens()
-    await helper.doAction('codeLensAction')
+    await shared.doAction('codeLensAction')
     await nvim.call('cursor', [1, 1])
-    expect(fn).toHaveBeenCalledWith(1, 2, 3)
+    assert.deepStrictEqual(fn.mock.calls[0].arguments, [1, 2, 3])
     await nvim.command('normal! G')
-    await helper.doAction('codeLensAction')
+    await shared.doAction('codeLensAction')
   })
 
-  it('should toggle codeLens display', async () => {
+  it('should toggle codeLens display', async t => {
     await codeLens.toggle(999)
-    let line = await helper.getCmdline()
-    expect(line).toMatch('not exists')
+    let line = await shared.getCmdline()
+    assert.match(line, new RegExp('not exists'))
     await createBufferWithCodeLens()
     await commands.executeCommand('document.toggleCodeLens')
     let doc = await workspace.document
     let res = await doc.buffer.getExtMarks(srcId, 0, -1, { details: true })
-    expect(res.length).toBe(0)
+    assert.strictEqual(res.length, 0)
     await commands.executeCommand('document.toggleCodeLens')
-    await helper.waitValue(async () => {
+    await shared.waitValue(async () => {
       let res = await doc.buffer.getExtMarks(srcId, 0, -1, { details: true })
       return res.length > 0
     }, true)
   })
 
-  it('should return codeLenes when resolve not exists', async () => {
+  it('should return codeLenes when resolve not exists', async t => {
     let codeLens = CodeLens.create(Range.create(0, 0, 1, 1))
     let resolved = await languages.resolveCodeLens(codeLens, CancellationToken.None)
-    expect(resolved).toBeDefined()
+    assert.notStrictEqual(resolved, undefined)
   })
 
-  it('should do codeLenes request and resolve codeLenes', async () => {
+  it('should do codeLenes request and resolve codeLenes', async t => {
     let buf = await createBufferWithCodeLens()
     let doc = await workspace.document
-    await helper.waitValue(async () => {
+    await shared.waitValue(async () => {
       let codelens = buf.currentCodeLens
       return Array.isArray(codelens) && codelens[0].command != null
     }, true)
     let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
-    expect(markers.length).toBe(1)
+    assert.strictEqual(markers.length, 1)
     let codeLenes = buf.currentCodeLens
     await languages.resolveCodeLens(codeLenes[0], CancellationToken.None)
   })
 
-  it('should refresh on empty changes', async () => {
+  it('should refresh on empty changes', async t => {
     await createBufferWithCodeLens()
     let doc = await workspace.document
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await doc.synchronize()
     let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
-    expect(markers.length).toBeGreaterThan(0)
+    assert.ok(markers.length > 0)
   })
 
-  it('should work with empty codeLens', async () => {
+  it('should work with empty codeLens', async t => {
     disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
       provideCodeLenses: () => {
         return []
       }
     }))
-    let doc = await helper.createDocument('t.js')
+    let doc = await shared.createDocument('t.js')
     let buf = codeLens.buffers.getItem(doc.bufnr)
     let codelens = buf.currentCodeLens
-    expect(codelens).toBeUndefined()
+    assert.strictEqual(codelens, undefined)
   })
 
-  it('should change codeLenes position', async () => {
-    helper.updateConfiguration('codeLens.position', 'eol')
+  it('should change codeLenes position', async t => {
+    shared.updateConfiguration('codeLens.position', 'eol')
     let bufnr = await nvim.call('bufnr', ['%']) as number
     let item = codeLens.buffers.getItem(bufnr)
-    expect(item.config.position).toBe('eol')
+    assert.strictEqual(item.config.position, 'eol')
   })
 
-  it('should refresh codeLens on CursorHold', async () => {
+  it('should refresh codeLens on CursorHold', async t => {
     disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
       provideCodeLenses: document => {
         let n = document.lineCount
@@ -158,19 +158,19 @@ describe('codeLenes feature', () => {
         return arr
       }
     }))
-    let doc = await helper.createDocument('example.js')
+    let doc = await shared.createDocument('example.js')
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await doc.synchronize()
     await events.fire('CursorHold', [doc.bufnr])
-    await helper.waitValue(async () => {
+    await shared.waitValue(async () => {
       let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
       return markers.length
     }, 3)
-    helper.updateConfiguration('codeLens.enable', false)
+    shared.updateConfiguration('codeLens.enable', false)
     await events.fire('CursorHold', [doc.bufnr])
   })
 
-  it('should cancel codeLenes request on document change', async () => {
+  it('should cancel codeLenes request on document change', async t => {
     let cancelled = false
     let started = false
     disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
@@ -201,13 +201,13 @@ describe('codeLenes feature', () => {
         return codeLens
       }
     }))
-    let doc = await helper.createDocument('codelens.js')
-    await helper.waitValue(() => started, true)
+    let doc = await shared.createDocument('codelens.js')
+    await shared.waitValue(() => started, true)
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'a\nb\nc')])
-    expect(cancelled).toBe(true)
+    assert.strictEqual(cancelled, true)
   })
 
-  it('should resolve on CursorMoved', async () => {
+  it('should resolve on CursorMoved', { timeout: 10000 }, async t => {
     disposables.push(languages.registerCodeLensProvider([{ language: 'javascript' }], {
       provideCodeLenses: () => {
         return [{
@@ -221,7 +221,7 @@ describe('codeLenes feature', () => {
         return codeLens
       }
     }))
-    let doc = await helper.createDocument('example.js')
+    let doc = await shared.createDocument('example.js')
     await nvim.call('cursor', [1, 1])
     let arr = new Array(200)
     arr.fill('')
@@ -231,14 +231,14 @@ describe('codeLenes feature', () => {
     await nvim.call('cursor', [190, 1])
     await events.fire('CursorMoved', [doc.bufnr, [190, 1], false])
     let bufnr = doc.bufnr
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       let buf = codeLens.buffers.getItem(bufnr)
       return buf && buf.currentCodeLens && buf.currentCodeLens[0].command != null
     }, true)
-  }, 10000)
+  })
 
-  it('should use picker for multiple codeLenses', async () => {
-    let fn = vi.fn()
+  it('should use picker for multiple codeLenses', async t => {
+    let fn = t.mock.fn()
     let resolved = false
     disposables.push(commands.registerCommand('__save', (...args) => {
       fn(...args)
@@ -258,22 +258,22 @@ describe('codeLenes feature', () => {
         }]
       }
     }))
-    let doc = await helper.createDocument('example.js')
+    let doc = await shared.createDocument('example.js')
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await doc.synchronize()
     await codeLens.checkProvider()
-    await helper.waitValue(() => {
+    await shared.waitValue(() => {
       return resolved
     }, true)
-    let p = helper.doAction('codeLensAction')
-    await helper.waitPrompt()
+    let p = shared.doAction('codeLensAction')
+    await shared.waitPrompt()
     await nvim.input('<cr>')
     await p
-    expect(fn).toHaveBeenCalledWith(1, 2, 3)
+    assert.deepStrictEqual(fn.mock.calls[0].arguments, [1, 2, 3])
   })
 
-  it('should show tooltip in codeLens picker', async () => {
-    let fn = vi.fn()
+  it('should show tooltip in codeLens picker', async t => {
+    let fn = t.mock.fn()
     disposables.push(commands.registerCommand('__save', () => {
       fn()
     }))
@@ -291,29 +291,29 @@ describe('codeLenes feature', () => {
         }]
       }
     }))
-    let doc = await helper.createDocument('example.js')
+    let doc = await shared.createDocument('example.js')
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await doc.synchronize()
     await codeLens.checkProvider()
-    await helper.waitValue(async () => {
+    await shared.waitValue(async () => {
       let buf = codeLens.buffers.getItem(doc.bufnr)
       let lenses = buf.currentCodeLens
       return Array.isArray(lenses) && lenses.length >= 2
     }, true)
-    let p = helper.doAction('codeLensAction')
-    await helper.waitPrompt()
-    let win = await helper.getFloat()
-    expect(win).toBeDefined()
-    let lines = await helper.getWinLines(win.id)
-    expect(lines.join('\n')).toMatch(/save the file/)
-    expect(lines.join('\n')).toMatch(/delete the file/)
+    let p = shared.doAction('codeLensAction')
+    await shared.waitPrompt()
+    let win = await shared.getFloat()
+    assert.notStrictEqual(win, undefined)
+    let lines = await shared.getWinLines(win.id)
+    assert.match(lines.join('\n'), /save the file/)
+    assert.match(lines.join('\n'), /delete the file/)
     await nvim.input('<cr>')
     await p
   })
 
-  it('should refresh for failed codeLens request', async () => {
+  it('should refresh for failed codeLens request', async t => {
     let called = 0
-    let fn = vi.fn()
+    let fn = t.mock.fn()
     disposables.push(commands.registerCommand('__save', (...args) => {
       fn(...args)
     }))
@@ -340,23 +340,29 @@ describe('codeLenes feature', () => {
         }]
       }
     }))
-    let doc = await helper.createDocument('example.js')
-    await helper.waitValue(() => codeLens.buffers.getItem(doc.buffer.id) != null, true)
+    let doc = await shared.createDocument('example.js')
+    // Wait for the initial debounced fetch, not only BufferSync creation.
+    // Otherwise checkProvider() can become the first fetch and the test never
+    // exercises recovery from the provider's initial null result.
+    await shared.waitValue(() => {
+      let item = codeLens.buffers.getItem(doc.buffer.id)
+      return called === 1 && item?.currentCodeLens?.length === 1
+    }, true)
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await codeLens.checkProvider()
     let markers = await doc.buffer.getExtMarks(srcId, 0, -1)
-    expect(markers.length).toBeGreaterThan(0)
+    assert.ok(markers.length > 0)
     let codeLensBuffer = codeLens.buffers.getItem(doc.buffer.id)
     await codeLensBuffer.forceFetch()
-    await helper.waitValue(() => codeLensBuffer.currentCodeLens.length > 1, true)
+    await shared.waitValue(() => codeLensBuffer.currentCodeLens.length > 1, true)
     let curr = codeLensBuffer.currentCodeLens
-    expect(curr.length).toBeGreaterThan(1)
+    assert.ok(curr.length > 1)
   })
 
-  it('should use custom separator & position', async () => {
-    helper.updateConfiguration('codeLens.separator', '|')
-    helper.updateConfiguration('codeLens.position', 'eol')
-    let doc = await helper.createDocument('example.js')
+  it('should use custom separator & position', async t => {
+    shared.updateConfiguration('codeLens.separator', '|')
+    shared.updateConfiguration('codeLens.position', 'eol')
+    let doc = await shared.createDocument('example.js')
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await doc.synchronize()
     disposables.push(languages.registerCodeLensProvider([{ language: '*' }], {
@@ -370,28 +376,28 @@ describe('codeLenes feature', () => {
         }]
       }
     }))
-    await helper.wait(20)
+    await shared.wait(20)
     await codeLens.checkProvider()
     let res = await doc.buffer.getExtMarks(srcId, 0, -1, { details: true })
-    expect(res.length).toBe(1)
+    assert.strictEqual(res.length, 1)
   })
 
-  it('should get commands from codeLenses', async () => {
-    expect(getCommands(1, undefined)).toEqual([])
+  it('should get commands from codeLenses', async t => {
+    assert.deepStrictEqual(getCommands(1, undefined), [])
     let codeLenses = [CodeLens.create(Range.create(0, 0, 0, 0))]
-    expect(getCommands(0, codeLenses)).toEqual([])
+    assert.deepStrictEqual(getCommands(0, codeLenses), [])
     codeLenses = [CodeLens.create(Range.create(0, 0, 1, 0)), CodeLens.create(Range.create(2, 0, 3, 0))]
     codeLenses[0].command = Command.create('save', '__save')
-    expect(getCommands(0, codeLenses).length).toEqual(1)
+    assert.deepStrictEqual(getCommands(0, codeLenses).length, 1)
   })
 
-  it('should get command text with tooltip', () => {
+  it('should get command text with tooltip', t => {
     let cmd = Command.create('save', '__save')
-    expect(getCommandText(cmd)).toBe('save')
+    assert.strictEqual(getCommandText(cmd), 'save')
     cmd.tooltip = 'save the file'
-    expect(getCommandText(cmd)).toBe('save - save the file')
+    assert.strictEqual(getCommandText(cmd), 'save - save the file')
     cmd.title = 's'
     cmd.tooltip = 't'.repeat(100)
-    expect(getCommandText(cmd).endsWith('...')).toBe(true)
+    assert.strictEqual(getCommandText(cmd).endsWith('...'), true)
   })
 })

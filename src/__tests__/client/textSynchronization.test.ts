@@ -1,3 +1,4 @@
+import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
@@ -10,10 +11,12 @@ import Document from '../../model/document'
 import { TextDocumentContentChange } from '../../types'
 import { remove } from '../../util/fs'
 import workspace from '../../workspace'
-import helper from '../helper'
+import { afterEach, before, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+
 
 function createClient(documentSelector: DocumentSelector | undefined | null | LanguageClientOptions, middleware: Middleware = {}, opts: any = {}): LanguageClient {
-  const serverModule = path.join(__dirname, './server/testDocuments.js')
+  const serverModule = path.join(import.meta.dirname, './server/testDocuments.js')
   const serverOptions: ServerOptions = {
     run: { module: serverModule, transport: TransportKind.ipc },
     debug: { module: serverModule, transport: TransportKind.ipc, options: { execArgv: ['--nolazy', '--inspect=6014'] } }
@@ -33,17 +36,8 @@ function createClient(documentSelector: DocumentSelector | undefined | null | La
 }
 
 let nvim: Neovim
-beforeAll(async () => {
-  await helper.setup()
+before(async () => {
   nvim = workspace.nvim
-})
-
-afterEach(async () => {
-  await helper.reset()
-})
-
-afterAll(async () => {
-  await helper.shutdown()
 })
 
 async function loadBuffer(filepath: string): Promise<Document> {
@@ -66,39 +60,41 @@ async function loadBuffer(filepath: string): Promise<Document> {
   }
 }
 
+afterEach(editorReset)
+
 describe('TextDocumentSynchronization', () => {
   describe('DidOpenTextDocumentFeature', () => {
-    it('should register with empty documentSelector', async () => {
+    it('should register with empty documentSelector', async t => {
       let client = createClient(undefined)
       await client.start()
       let feature = client.getFeature(DidOpenTextDocumentNotification.method)
       feature.register({ id: crypto.randomUUID(), registerOptions: { documentSelector: null } })
       let res = await client.sendRequest('getLastOpen')
-      expect(res).toBe(null)
+      assert.strictEqual(res, null)
       let docs = feature.openDocuments
-      expect(docs).toBeDefined()
+      assert.notStrictEqual(docs, undefined)
       await client.stop()
     })
 
-    it('should send event on document create', async () => {
+    it('should send event on document create', async t => {
       let client = createClient([{ language: 'vim' }])
       await client.start()
       let uri = URI.file(path.join(os.tmpdir(), 't.vim'))
       let doc = await workspace.loadFile(uri.toString())
-      expect(doc.languageId).toBe('vim')
+      assert.strictEqual(doc.languageId, 'vim')
       let res = await client.sendRequest('getLastOpen') as any
-      expect(res.uri).toBe(doc.uri)
-      expect(res.version).toBe(doc.version)
+      assert.strictEqual(res.uri, doc.uri)
+      assert.strictEqual(res.version, doc.version)
       await client.stop()
     })
 
-    it('should use languageIdMap for languageId on open', async () => {
+    it('should use languageIdMap for languageId on open', async t => {
       let client = createClient({
         documentSelector: [{ language: 'vim' }],
         languageIdMap: { 't.vim': 'myvim', [path.join(os.tmpdir(), 'full.vim')]: 'fullvim' }
       })
       let sent: DidOpenTextDocumentParams | undefined
-      let spy = vi.spyOn(client, 'sendNotification').mockImplementation((_type, params) => {
+      let spy = t.mock.method(client, 'sendNotification', (_type, params) => {
         sent = params as DidOpenTextDocumentParams
         return Promise.resolve()
       })
@@ -108,31 +104,30 @@ describe('TextDocumentSynchronization', () => {
         sent = undefined
         let doc = TextDocument.create(URI.file(filepath).toString(), 'vim', 1, '')
         let provider = feature.getProvider(doc)
-        expect(provider).toBeDefined()
+        assert.notStrictEqual(provider, undefined)
         await provider.send(doc)
-        expect(sent).toBeDefined()
+        assert.notStrictEqual(sent, undefined)
         return [doc, sent]
       }
       try {
         let [doc, params] = await sendOpen(path.join(os.tmpdir(), 't.vim'))
-        expect(doc.languageId).toBe('vim')
-        expect(params.textDocument.uri).toBe(doc.uri)
-        expect(params.textDocument.languageId).toBe('myvim')
+        assert.strictEqual(doc.languageId, 'vim')
+        assert.strictEqual(params.textDocument.uri, doc.uri)
+        assert.strictEqual(params.textDocument.languageId, 'myvim')
         // full path key
         let [fullDoc, fullParams] = await sendOpen(path.join(os.tmpdir(), 'full.vim'))
-        expect(fullParams.textDocument.uri).toBe(fullDoc.uri)
-        expect(fullParams.textDocument.languageId).toBe('fullvim')
+        assert.strictEqual(fullParams.textDocument.uri, fullDoc.uri)
+        assert.strictEqual(fullParams.textDocument.languageId, 'fullvim')
         // unmatched file keeps original languageId
         let [otherDoc, otherParams] = await sendOpen(path.join(os.tmpdir(), 'other.vim'))
-        expect(otherParams.textDocument.uri).toBe(otherDoc.uri)
-        expect(otherParams.textDocument.languageId).toBe('vim')
+        assert.strictEqual(otherParams.textDocument.uri, otherDoc.uri)
+        assert.strictEqual(otherParams.textDocument.languageId, 'vim')
       } finally {
         feature.dispose()
-        spy.mockRestore()
       }
     })
 
-    it('should work with middleware', async () => {
+    it('should work with middleware', async t => {
       let called = false
       let throwError = false
       let client = createClient({
@@ -148,19 +143,19 @@ describe('TextDocumentSynchronization', () => {
       await client.start()
       let uri = URI.file(path.join(os.tmpdir(), 't.js'))
       let doc = await workspace.loadFile(uri.toString())
-      expect(doc.languageId).toBe('javascript')
+      assert.strictEqual(doc.languageId, 'javascript')
       let feature = client.getFeature(DidOpenTextDocumentNotification.method)
       feature.register({ id: crypto.randomUUID(), registerOptions: { documentSelector: [{ language: 'javascript' }] } })
       let res = await client.sendRequest('getLastOpen') as any
-      expect(res.uri).toBe(doc.uri)
-      expect(called).toBe(true)
+      assert.strictEqual(res.uri, doc.uri)
+      assert.strictEqual(called, true)
       throwError = true
       uri = URI.file(path.join(os.tmpdir(), 'a.js'))
       await workspace.loadFile(uri.toString())
       await client.stop()
     })
 
-    it('should delayOpenNotifications', async () => {
+    it('should delayOpenNotifications', async t => {
       let uri = URI.file(path.join(os.tmpdir(), 'x.vim'))
       await workspace.loadFile(uri.toString())
       let loaded: Set<string> = new Set()
@@ -188,7 +183,7 @@ describe('TextDocumentSynchronization', () => {
       let feature = client.getFeature(DidOpenTextDocumentNotification.method) as any
       let filepath = path.join(os.tmpdir(), 't.vim')
       let doc = await loadBuffer(filepath)
-      expect(loaded.has(filepath)).toBe(false)
+      assert.strictEqual(loaded.has(filepath), false)
       let opened = waitForOpen(filepath)
       await nvim.command(`b ${doc.bufnr}`)
       await opened
@@ -196,11 +191,11 @@ describe('TextDocumentSynchronization', () => {
       filepath = path.join(os.tmpdir(), 'p.vim')
       doc = await loadBuffer(filepath)
       await feature.sendPendingOpenNotifications(doc.uri)
-      expect(loaded.has(filepath)).toBe(false)
+      assert.strictEqual(loaded.has(filepath), false)
       await feature.callback(doc.textDocument)
       await feature.callback(TextDocument.create('untitled:///1', 'tex', 1, ''))
       await feature.sendPendingOpenNotifications()
-      expect(loaded.has(filepath)).toBe(true)
+      assert.strictEqual(loaded.has(filepath), true)
       throwError = true
       feature._pendingOpenNotifications.set(doc.uri, doc.textDocument)
       opened = waitForOpen(filepath)
@@ -211,22 +206,22 @@ describe('TextDocumentSynchronization', () => {
   })
 
   describe('DidCloseTextDocumentFeature', () => {
-    it('should send close event', async () => {
+    it('should send close event', async t => {
       let uri = URI.file(path.join(os.tmpdir(), 'close.vim'))
       let doc = await workspace.loadFile(uri.toString())
       let client = createClient([{ language: 'vim' }])
       await client.start()
       await workspace.nvim.command(`bd! ${doc.bufnr}`)
-      await helper.waitValue(async () => {
+      await shared.waitValue(async () => {
         let res = await client.sendRequest('getLastClose') as any
         return res != null && res.uri === doc.uri
       }, true)
       let res = await client.sendRequest('getLastClose') as any
-      expect(res.uri).toBe(doc.uri)
+      assert.strictEqual(res.uri, doc.uri)
       await client.stop()
     })
 
-    it('should unregister document selector', async () => {
+    it('should unregister document selector', async t => {
       let called = false
       let client = createClient([{ language: 'javascript' }], {
         didClose: (e, next) => {
@@ -243,20 +238,19 @@ describe('TextDocumentSynchronization', () => {
       feature.register(options)
       let uri = URI.file(path.join(os.tmpdir(), 'close.vim'))
       await workspace.loadFile(uri.toString())
-      await helper.wait(20)
+      await shared.wait(20)
       feature.unregister('unknown')
-      let spy = vi.spyOn(client, 'sendNotification').mockReturnValue(Promise.reject(new Error('myerror')))
+      let spy = t.mock.method(client, 'sendNotification', () => Promise.reject(new Error('myerror')))
       feature.unregister(id)
-      spy.mockRestore()
       let res = await client.sendRequest('getLastClose') as any
-      expect(res).toBeNull()
-      expect(called).toBe(true)
+      assert.strictEqual(res, null)
+      assert.strictEqual(called, true)
       await client.stop()
     })
   })
 
   describe('DidChangeTextDocumentFeature', () => {
-    it('should send full change event', async () => {
+    it('should send full change event', async t => {
       let called = false
       let throwError = false
       let client = createClient([{ language: 'vim' }], {
@@ -271,40 +265,40 @@ describe('TextDocumentSynchronization', () => {
       let doc = await workspace.loadFile(uri.toString())
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'bar')])
       let res = await client.sendRequest('getLastChange') as any
-      expect(res.text).toBe('bar\n')
-      expect(called).toBe(true)
+      assert.strictEqual(res.text, 'bar\n')
+      assert.strictEqual(called, true)
       throwError = true
       await doc.applyEdits([TextEdit.replace(Range.create(0, 0, 0, 3), '')])
       await client.stop()
     })
 
-    it('should send incremental change event', async () => {
+    it('should send incremental change event', async t => {
       let client = createClient([{ scheme: 'lsptest' }])
-      expect(client.isSynced('untitled:///1')).toBe(false)
+      assert.strictEqual(client.isSynced('untitled:///1'), false)
       await client.start()
       await client.sendNotification('registerDocumentSync')
       let feature = client.getFeature(DidChangeTextDocumentNotification.method)
       feature.register({ registerOptions: {} } as any)
       let textDocument = TextDocument.create('untitled:///1', 'x', 1, '')
-      expect(feature.getProvider(textDocument)).toBeUndefined()
+      assert.strictEqual(feature.getProvider(textDocument), undefined)
       let called = false
       feature.onNotificationSent(() => {
         called = true
       })
-      let doc = await helper.createDocument(`${crypto.randomUUID()}.vim`)
-      await helper.waitValue(() => {
+      let doc = await shared.createDocument(`${crypto.randomUUID()}.vim`)
+      await shared.waitValue(() => {
         return client.isSynced(doc.uri)
       }, true)
       await nvim.call('setline', [1, 'bar'])
       await doc.patchChange()
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return called
       }, true)
       let res = await client.sendRequest('getLastChange') as any
-      expect(res.uri).toBe(doc.uri)
-      expect(res.text).toBe('bar\n')
+      assert.strictEqual(res.uri, doc.uri)
+      assert.strictEqual(res.text, 'bar\n')
       let provider = feature.getProvider(doc.textDocument)
-      expect(provider).toBeDefined()
+      assert.notStrictEqual(provider, undefined)
       await provider.send({
         contentChanges: [],
         textDocument: { uri: doc.uri, version: doc.version },
@@ -317,7 +311,7 @@ describe('TextDocumentSynchronization', () => {
       await client.stop()
     })
 
-    it('should keep notification emitters working after dispose', async () => {
+    it('should keep notification emitters working after dispose', async t => {
       let client = createClient([{ scheme: 'lsptest' }])
       await client.start()
       await client.sendNotification('registerDocumentSync')
@@ -333,8 +327,8 @@ describe('TextDocumentSynchronization', () => {
         called++
         resolveChange()
       })
-      let doc = await helper.createDocument(`${crypto.randomUUID()}.vim`)
-      await helper.waitValue(() => {
+      let doc = await shared.createDocument(`${crypto.randomUUID()}.vim`)
+      await shared.waitValue(() => {
         return client.isSynced(doc.uri)
       }, true)
       await nvim.call('setline', [1, 'bar'])
@@ -345,7 +339,7 @@ describe('TextDocumentSynchronization', () => {
       feature.dispose()
       // The built-in feature instances are reused across client restarts, so
       // dispose must re-create the emitters like the base feature does.
-      expect(feature._onNotificationSent).not.toBe(oldEmitter)
+      assert.notStrictEqual(feature._onNotificationSent, oldEmitter)
       feature.register({
         id: crypto.randomUUID(),
         registerOptions: { documentSelector: [{ language: 'vim' }], syncKind: TextDocumentSyncKind.Incremental }
@@ -365,7 +359,7 @@ describe('TextDocumentSynchronization', () => {
       await client.stop()
     })
 
-    it('should not send change event when syncKind is none', async () => {
+    it('should not send change event when syncKind is none', async t => {
       let client = createClient([{ scheme: 'lsptest' }], {}, { none: true })
       await client.start()
       await client.sendNotification('registerDocumentSync')
@@ -373,7 +367,7 @@ describe('TextDocumentSynchronization', () => {
       let doc = await workspace.document
 
       let feature = client.getFeature(DidChangeTextDocumentNotification.method)
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return feature.getProvider(doc.textDocument) != null
       }, true)
       let provider = feature.getProvider(doc.textDocument)
@@ -388,13 +382,13 @@ describe('TextDocumentSynchronization', () => {
         bufnr: doc.bufnr
       } as any)
       let res = await client.sendRequest('getLastChange') as any
-      expect(res.text).toBe('\n')
+      assert.strictEqual(res.text, '\n')
       await client.stop()
     })
   })
 
   describe('WillSaveFeature', () => {
-    it('should will save event', async () => {
+    it('should will save event', async t => {
       let called = false
       let client = createClient([{ language: 'vim' }], {
         willSave: (e, next) => {
@@ -410,12 +404,12 @@ describe('TextDocumentSynchronization', () => {
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'bar')])
       let feature = client.getFeature(WillSaveTextDocumentNotification.method)
       let provider = feature.getProvider(doc.textDocument)
-      expect(provider).toBeDefined()
+      assert.notStrictEqual(provider, undefined)
       await provider.send({ document: doc.textDocument, bufnr: doc.bufnr, reason: TextDocumentSaveReason.Manual, waitUntil: () => {} })
       let res = await client.sendRequest('getLastWillSave') as any
-      expect(res.uri).toBe(doc.uri)
+      assert.strictEqual(res.uri, doc.uri)
       await client.stop()
-      expect(called).toBe(true)
+      assert.strictEqual(called, true)
       if (fs.existsSync(fsPath)) {
         fs.unlinkSync(fsPath)
       }
@@ -423,7 +417,7 @@ describe('TextDocumentSynchronization', () => {
   })
 
   describe('WillSaveWaitUntilFeature', () => {
-    it('should send will save until request', async () => {
+    it('should send will save until request', async t => {
       let client = createClient([{ scheme: 'lsptest' }])
       await client.start()
       await client.sendNotification('registerDocumentSync')
@@ -433,14 +427,14 @@ describe('TextDocumentSynchronization', () => {
       let doc = await workspace.document
       let feature = client.getFeature(WillSaveTextDocumentNotification.method)
       feature.register({ registerOptions: {} } as any)
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return feature.getProvider(doc.textDocument) != null
       }, true)
       let waitFeature = client.getFeature(WillSaveTextDocumentWaitUntilRequest.method)
       waitFeature.register({ registerOptions: {} } as any)
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'x')])
       nvim.command('w', true)
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return doc.getDocumentContent()
       }, 'abcx\n')
       await client.sendNotification('unregisterDocumentSync')
@@ -448,7 +442,7 @@ describe('TextDocumentSynchronization', () => {
       await remove(fsPath)
     })
 
-    it('should not throw on response error', async () => {
+    it('should not throw on response error', async t => {
       let called = false
       let resolveCalled: () => void
       let p = new Promise<void>(resolve => {
@@ -465,7 +459,7 @@ describe('TextDocumentSynchronization', () => {
       await client.sendNotification('registerDocumentSync')
       let fsPath = path.join(os.tmpdir(), `${crypto.randomUUID()}-error.vim`)
       let uri = URI.file(fsPath)
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         let feature = client.getFeature(DidOpenTextDocumentNotification.method)
         let provider = feature.getProvider(TextDocument.create(uri.toString(), 'vim', 1, ''))
         return provider != null
@@ -478,17 +472,17 @@ describe('TextDocumentSynchronization', () => {
       await client.stop()
     })
 
-    it('should unregister event handler', async () => {
+    it('should unregister event handler', async t => {
       let client = createClient(null)
       await client.start()
       await client.sendNotification('registerDocumentSync')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         let feature = client.getFeature(DidOpenTextDocumentNotification.method)
         let provider = feature.getProvider(TextDocument.create('file:///f.vim', 'vim', 1, ''))
         return provider != null
       }, true)
       await client.sendNotification('unregisterDocumentSync')
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         let feature = client.getFeature(DidOpenTextDocumentNotification.method)
         let provider = feature.getProvider(TextDocument.create('file:///f.vim', 'vim', 1, ''))
         return provider == null
@@ -498,7 +492,7 @@ describe('TextDocumentSynchronization', () => {
   })
 
   describe('DidSaveTextDocumentFeature', () => {
-    it('should send did save notification', async () => {
+    it('should send did save notification', async t => {
       let called = false
       let client = createClient([{ language: 'vim' }], {
         didSave: (e, next) => {
@@ -513,11 +507,11 @@ describe('TextDocumentSynchronization', () => {
       let doc = await workspace.document
       await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'bar')])
       nvim.command('w', true)
-      await helper.waitValue(() => {
+      await shared.waitValue(() => {
         return called
       }, true)
       let res = await client.sendRequest('getLastWillSave') as any
-      expect(res.uri).toBe(doc.uri)
+      assert.strictEqual(res.uri, doc.uri)
       await client.stop()
       fs.unlinkSync(fsPath)
     })

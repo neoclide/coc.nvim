@@ -3,6 +3,7 @@ import os from 'os'
 import { ParseError } from 'jsonc-parser'
 import { addToValueTree, toValuesTree, convertErrors, convertTarget, expand, expandObject, getConfigurationValue, getDefaultValue, mergeChanges, mergeConfigProperties, overrideIdentifiersFromKey, removeFromValueTree, scopeToOverrides, toJSONObject } from '../../configuration/util'
 import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../configuration/types'
+import { describe, it, test } from 'node:test'
 
 describe('Configuration utils', () => {
   it('convert parse errors', () => {
@@ -10,48 +11,48 @@ describe('Configuration utils', () => {
     let errors: ParseError[] = []
     errors.push({ error: 2, length: 10, offset: 1 })
     let arr = convertErrors(content, errors)
-    expect(arr.length).toBe(1)
+    assert.strictEqual(arr.length, 1)
   })
 
   it('get default value', () => {
-    expect(getDefaultValue(undefined)).toBeNull()
-    expect(getDefaultValue('string')).toBe('')
-    expect(getDefaultValue(['string'])).toBe('')
-    expect(getDefaultValue('boolean')).toBe(false)
-    expect(getDefaultValue('integer')).toBe(0)
-    expect(getDefaultValue('number')).toBe(0)
-    expect(getDefaultValue('array')).toEqual([])
-    expect(getDefaultValue('object')).toEqual({})
+    assert.strictEqual(getDefaultValue(undefined), null)
+    assert.strictEqual(getDefaultValue('string'), '')
+    assert.strictEqual(getDefaultValue(['string']), '')
+    assert.strictEqual(getDefaultValue('boolean'), false)
+    assert.strictEqual(getDefaultValue('integer'), 0)
+    assert.strictEqual(getDefaultValue('number'), 0)
+    assert.deepStrictEqual(getDefaultValue('array'), [])
+    assert.deepStrictEqual(getDefaultValue('object'), {})
   })
 
   it('should expand', () => {
-    expect(expand('${userHome}')).toBe(os.homedir())
-    expect(expand('${cwd}')).toBe(process.cwd())
-    expect(expand('${env:NODE_ENV}')).toBe('test')
-    expect(expand('${env:NOT_EXISTS}')).toBe('${env:NOT_EXISTS}')
-    expect(expandObject('${env:NODE_ENV}')).toBe('test')
-    expect(expandObject(undefined)).toBe(undefined)
+    assert.strictEqual(expand('${userHome}'), os.homedir())
+    assert.strictEqual(expand('${cwd}'), process.cwd())
+    assert.strictEqual(expand('${env:NODE_ENV}'), 'test')
+    assert.strictEqual(expand('${env:NOT_EXISTS}'), '${env:NOT_EXISTS}')
+    assert.strictEqual(expandObject('${env:NODE_ENV}'), 'test')
+    assert.strictEqual(expandObject(undefined), undefined)
     let obj = {
       list: ['${env:NODE_ENV}', '', 1],
       val: '${env:NODE_ENV}'
     }
     let res = expandObject(obj)
-    expect(res).toEqual({ list: ['test', '', 1], val: 'test' })
+    assert.deepStrictEqual(res, { list: ['test', '', 1], val: 'test' })
   })
 
   it('should convertTarget', () => {
-    expect(convertTarget(ConfigurationUpdateTarget.Global)).toBe(ConfigurationTarget.User)
-    expect(convertTarget(ConfigurationUpdateTarget.Workspace)).toBe(ConfigurationTarget.Workspace)
-    expect(convertTarget(ConfigurationUpdateTarget.WorkspaceFolder)).toBe(ConfigurationTarget.WorkspaceFolder)
+    assert.strictEqual(convertTarget(ConfigurationUpdateTarget.Global), ConfigurationTarget.User)
+    assert.strictEqual(convertTarget(ConfigurationUpdateTarget.Workspace), ConfigurationTarget.Workspace)
+    assert.strictEqual(convertTarget(ConfigurationUpdateTarget.WorkspaceFolder), ConfigurationTarget.WorkspaceFolder)
   })
 
   it('should scopeToOverrides', () => {
-    expect(scopeToOverrides(null)).toBeUndefined()
+    assert.strictEqual(scopeToOverrides(null), undefined)
   })
 
   it('should get overrideIdentifiersFromKey', () => {
     let res = overrideIdentifiersFromKey('[ ]')
-    expect(res).toEqual([])
+    assert.deepStrictEqual(res, [])
   })
 
   it('should merge properties', () => {
@@ -61,7 +62,7 @@ describe('Configuration utils', () => {
       "x.y.b": "y",
       "x.t": "z"
     })
-    expect(res).toEqual({
+    assert.deepStrictEqual(res, {
       foo: 'bar', x: { y: { a: 'x', b: 'y' }, t: 'z' }
     })
   })
@@ -71,7 +72,9 @@ describe('Configuration utils', () => {
       'x.y.z': '${env:NODE_ENV}',
       env: '${env:NODE_ENV}'
     }, () => {}, true)
-    expect(res).toEqual({
+    // toValuesTree builds null-prototype objects; deepEqual (like Vitest
+    // toEqual) ignores prototypes while deepStrictEqual does not.
+    assert.deepEqual(res, {
       x: {
         y: {
           z: 'test'
@@ -81,32 +84,32 @@ describe('Configuration utils', () => {
     })
   })
 
-  it('should addToValueTree conflict #1', () => {
-    let fn = vi.fn()
+  it('should addToValueTree conflict #1', t => {
+    let fn = t.mock.fn()
     let obj = { x: 66 }
     addToValueTree(obj, 'x.y', '3', () => {
       fn()
     }, true)
     addToValueTree(obj, 'x.y', '3', () => {})
-    expect(fn).toHaveBeenCalled()
+    assert.ok(fn.mock.callCount() > 0)
   })
 
-  it('should addToValueTree conflict #2', () => {
-    let fn = vi.fn()
+  it('should addToValueTree conflict #2', t => {
+    let fn = t.mock.fn()
     addToValueTree(undefined, 'x', '3', () => {
       fn()
     })
     addToValueTree(undefined, 'x', '3', () => {})
-    expect(fn).toHaveBeenCalled()
+    assert.ok(fn.mock.callCount() > 0)
   })
 
-  it('should addToValueTree conflict #3', () => {
+  it('should addToValueTree conflict #3', t => {
     let obj = { x: true }
-    let fn = vi.fn()
+    let fn = t.mock.fn()
     addToValueTree(obj, 'x.y', ['foo'], () => {
       fn()
     })
-    expect(fn).toHaveBeenCalled()
+    assert.ok(fn.mock.callCount() > 0)
   })
 
   it('removeFromValueTree: remove a non existing key', () => {
@@ -221,14 +224,14 @@ describe('Configuration utils', () => {
       bar: [1, 2]
     }
     let res = getConfigurationValue(root, 'foo.from.to', 1)
-    expect(res).toBe(2)
+    assert.strictEqual(res, 2)
     res = getConfigurationValue(root, 'foo.from', 1)
-    expect(res).toEqual({ to: 2 })
+    assert.deepStrictEqual(res, { to: 2 })
   })
 
   it('should get json object', () => {
     let obj = [{ x: 1 }, { y: 2 }]
-    expect(toJSONObject(obj)).toEqual(obj)
+    assert.deepEqual(toJSONObject(obj), obj)
   })
 })
 

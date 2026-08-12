@@ -16,7 +16,8 @@
     "module": "es2022",
     "moduleResolution": "bundler",
     "lib": ["es2020", "es2021", "es2022", "esnext.disposable"],
-    "types": ["node", "vitest/globals"],
+    "types": ["node"],
+    "checkJs": false,
     "declaration": false,
     "resolveJsonModule": true,
     "esModuleInterop": true,
@@ -25,5 +26,5 @@
     "plugins": []
   },
   "include": ["src"],
-  "exclude": ["typings", "build", "node_modules", "**/node_modules/*"]
+  "exclude": ["typings", "build", "node_modules", "**/node_modules/*", "scripts/test/*.mjs"]
 }

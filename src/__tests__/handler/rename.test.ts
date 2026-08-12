@@ -1,21 +1,25 @@
-import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
-import { TextDocument } from 'vscode-languageserver-textdocument'
+import { getCurrentPlugin } from '../../attach'
+import * as shared from '../sharedUtil'
 import commands from '../../commands'
 import Rename from '../../handler/rename'
 import languages from '../../languages'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import helper from '../helper'
+import { Neovim } from '@chemzqm/neovim'
+import { CancellationToken, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { TextDocument } from 'vscode-languageserver-textdocument'
+import type RenameType from '../../handler/rename'
+import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+
 
 let nvim: Neovim
 let disposables: Disposable[] = []
-let rename: Rename
+let rename: RenameType
 
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-  rename = helper.plugin.getHandler().rename
+before(async () => {
+  nvim = workspace.nvim
+  rename = getCurrentPlugin().getHandler().rename
 })
 
 function getWordRangeAtPosition(doc: TextDocument, position: Position): Range | null {
@@ -88,103 +92,100 @@ beforeEach(() => {
   }))
 })
 
-afterAll(async () => {
-  await helper.shutdown()
-})
-
 afterEach(async () => {
-  await helper.reset()
   disposeAll(disposables)
   disposables = []
 })
 
+afterEach(editorReset)
+
 describe('rename handler', () => {
   describe('getWordEdit', () => {
-    it('should not throw when provider not found', async () => {
-      await helper.edit()
-      let res = await helper.doAction('getWordEdit')
-      expect(res).toBe(null)
+    it('should not throw when provider not found', async t => {
+      await shared.edit()
+      let res = await shared.doAction('getWordEdit')
+      assert.strictEqual(res, null)
     })
 
-    it('should use document symbols when prepare failed', async () => {
-      let doc = await helper.createDocument('t.js')
+    it('should use document symbols when prepare failed', async t => {
+      let doc = await shared.createDocument('t.js')
       await nvim.setLine('a')
       await doc.synchronize()
       let res = await rename.getWordEdit()
-      expect(res != null).toBe(true)
+      assert.strictEqual(res != null, true)
     })
 
-    it('should return workspace edit', async () => {
-      let doc = await helper.createDocument('t.js')
+    it('should return workspace edit', async t => {
+      let doc = await shared.createDocument('t.js')
       await nvim.setLine('foo foo')
       await doc.synchronize()
       let res = await rename.getWordEdit()
-      expect(res).toBeDefined()
-      expect(res.changes[doc.uri].length).toBe(2)
+      assert.notStrictEqual(res, undefined)
+      assert.strictEqual(res.changes[doc.uri].length, 2)
     })
 
-    it('should extract words from buffer', async () => {
-      let doc = await helper.createDocument('t')
+    it('should extract words from buffer', async t => {
+      let doc = await shared.createDocument('t')
       await nvim.setLine('你 你 你')
       await doc.synchronize()
       let res = await rename.getWordEdit()
-      expect(res).toBeDefined()
-      expect(res.changes[doc.uri].length).toBe(3)
+      assert.notStrictEqual(res, undefined)
+      assert.strictEqual(res.changes[doc.uri].length, 3)
     })
   })
 
   describe('rename', () => {
-    it('should throw when provider not found', async () => {
-      await helper.edit()
-      await expect(helper.doAction('rename', 'foo')).rejects.toThrow(Error)
+    it('should throw when provider not found', async t => {
+      await shared.edit()
+      await assert.rejects(shared.doAction('rename', 'foo'), Error)
     })
 
-    it('should return false for invalid position', async () => {
-      let doc = await helper.createDocument('t.js')
+    it('should return false for invalid position', async t => {
+      let doc = await shared.createDocument('t.js')
       let res = await commands.executeCommand('editor.action.rename', [doc.uri, Position.create(0, 0)])
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
-    it('should use newName from placeholder', async () => {
-      let doc = await helper.createDocument('t.js')
+    it('should use newName from placeholder', async t => {
+      let doc = await shared.createDocument('t.js')
       await nvim.setLine('foo foo foo')
       let p = commands.executeCommand('editor.action.rename', doc.uri, Position.create(0, 0))
-      await helper.waitFloat()
+      await shared.waitFloat()
       await nvim.input('<C-u>')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('bar')
       await nvim.input('<cr>')
       await p
       let line = await nvim.line
-      expect(line).toBe('bar bar bar')
+      assert.strictEqual(line, 'bar bar bar')
     })
 
-    it('should renameCurrentWord by cursors', async () => {
+    it('should renameCurrentWord by cursors', async t => {
       await commands.executeCommand('document.renameCurrentWord')
-      let line = await helper.getCmdline()
-      expect(line).toMatch('Invalid position')
-      let doc = await helper.createDocument('t.js')
+      let line = await shared.getCmdline()
+      assert.match(line, new RegExp('Invalid position'))
+      let doc = await shared.createDocument('t.js')
       await nvim.setLine('foo foo foo')
       await commands.executeCommand('document.renameCurrentWord')
       let ns = await nvim.createNamespace('coc-cursors')
       let markers = await doc.buffer.getExtMarks(ns, 0, -1)
-      expect(markers.length).toBe(3)
+      assert.strictEqual(markers.length, 3)
     })
 
-    it('should return false for empty name', async () => {
-      helper.updateConfiguration('coc.preferences.renameFillCurrent', false)
-      await helper.createDocument('t.js')
+    it('should return false for empty name', async t => {
+      shared.updateConfiguration('coc.preferences.renameFillCurrent', false)
+      await shared.createDocument('t.js')
       await nvim.setLine('foo foo foo')
       let p = rename.rename()
-      await helper.waitFloat()
+      await shared.waitFloat()
       await nvim.input('<C-u>')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('<cr>')
       let res = await p
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
-    it('should not throw when provideRenameEdits throws', async () => {
+    it('should not throw when provideRenameEdits throws', async t => {
       disposables.push(languages.registerRenameProvider([{ language: '*' }], {
         provideRenameEdits: () => {
           throw new Error('error')
@@ -192,10 +193,10 @@ describe('rename handler', () => {
       }))
       let doc = await workspace.document
       let res = await languages.provideRenameEdits(doc.textDocument, Position.create(0, 0), 'newName', CancellationToken.None)
-      expect(res).toBeNull()
+      assert.strictEqual(res, null)
     })
 
-    it('should use newName from range', async () => {
+    it('should use newName from range', async t => {
       disposables.push(languages.registerRenameProvider([{ language: '*' }], {
         provideRenameEdits: (doc, position: Position, newName: string) => {
           let range = getWordRangeAtPosition(doc, position)
@@ -217,20 +218,20 @@ describe('rename handler', () => {
           return range ? range : null
         }
       }))
-      await helper.createDocument()
+      await shared.createDocument()
       await nvim.setLine('foo foo foo')
       let p = rename.rename()
-      await helper.waitFloat()
+      await shared.waitFloat()
       await nvim.input('<C-u>')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('bar')
       await nvim.input('<cr>')
       let res = await p
-      expect(res).toBe(true)
-      await helper.waitFor('getline', ['.'], 'bar bar bar')
+      assert.strictEqual(res, true)
+      await shared.waitFor('getline', ['.'], 'bar bar bar')
     })
 
-    it('should use newName from cword', async () => {
+    it('should use newName from cword', async t => {
       disposables.push(languages.registerRenameProvider([{ language: '*' }], {
         provideRenameEdits: (doc, position: Position, newName: string) => {
           let range = getWordRangeAtPosition(doc, position)
@@ -248,36 +249,36 @@ describe('rename handler', () => {
           return undefined
         }
       }))
-      await helper.createDocument()
+      await shared.createDocument()
       await nvim.setLine('foo foo foo')
       let p = rename.rename()
-      await helper.waitFloat()
+      await shared.waitFloat()
       await nvim.input('<C-u>')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('bar')
       await nvim.input('<cr>')
       let res = await p
-      expect(res).toBe(true)
+      assert.strictEqual(res, true)
       let line = await nvim.getLine()
-      expect(line).toBe('bar bar bar')
+      assert.strictEqual(line, 'bar bar bar')
     })
 
-    it('should return false when result is empty', async () => {
+    it('should return false when result is empty', async t => {
       disposables.push(languages.registerRenameProvider([{ language: '*' }], {
         provideRenameEdits: () => {
           return null
         }
       }))
-      await helper.createDocument()
+      await shared.createDocument()
       await nvim.setLine('foo foo foo')
       let p = rename.rename()
-      await helper.waitFloat()
+      await shared.waitFloat()
       await nvim.input('<C-u>')
-      await helper.wait(20)
+      await shared.wait(20)
       await nvim.input('bar')
       await nvim.input('<cr>')
       let res = await p
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
   })
 })

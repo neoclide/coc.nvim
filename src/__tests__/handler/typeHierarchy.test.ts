@@ -1,33 +1,31 @@
-import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, TypeHierarchyItem, Disposable, Range, SymbolKind, Position, SymbolTag } from 'vscode-languageserver-protocol'
-import { URI } from 'vscode-uri'
+import { getCurrentPlugin } from '../../attach'
+import * as shared from '../sharedUtil'
 import languages, { ProviderName } from '../../languages'
 import TypeHierarchyHandler from '../../handler/typeHierarchy'
 import { addChildren } from '../../tree/LocationsDataProvider'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import helper, { createTmpFile } from '../helper'
+import { Neovim } from '@chemzqm/neovim'
+import { CancellationToken, TypeHierarchyItem, Disposable, Range, SymbolKind, Position, SymbolTag } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
+import { afterEach, before, beforeEach, describe, it } from 'node:test'
+import assert from 'node:assert/strict'
+
 
 let nvim: Neovim
 let disposables: Disposable[] = []
 let handler: TypeHierarchyHandler
-beforeAll(async () => {
-  await helper.setup()
-  nvim = helper.nvim
-  handler = helper.plugin.getHandler().typeHierarchy
-})
-
-afterAll(async () => {
-  await helper.shutdown()
+before(async () => {
+  nvim = workspace.nvim
+  handler = getCurrentPlugin().getHandler().typeHierarchy
 })
 
 beforeEach(async () => {
-  await helper.createDocument()
+  await shared.createDocument()
 })
 
 afterEach(async () => {
   disposeAll(disposables)
-  await helper.reset()
 })
 
 function createItem(name: string, kind?: SymbolKind, uri?: string, range?: Range): TypeHierarchyItem {
@@ -45,13 +43,13 @@ const token = CancellationToken.None
 
 describe('TypeHierarchy', () => {
   describe('TypeHierarchyManager', () => {
-    it('should return false when provider not exists', async () => {
+    it('should return false when provider not exists', async t => {
       let doc = await workspace.document
       let res = languages.hasProvider(ProviderName.TypeHierarchy, doc.textDocument)
-      expect(res).toBe(false)
+      assert.strictEqual(res, false)
     })
 
-    it('should return merged results', async () => {
+    it('should return merged results', async t => {
       disposables.push(languages.registerTypeHierarchyProvider([{ language: '*' }], {
         prepareTypeHierarchy: () => {
           return null
@@ -87,19 +85,19 @@ describe('TypeHierarchy', () => {
       }))
       let doc = await workspace.document
       let res = await languages.prepareTypeHierarchy(doc.textDocument, position, token)
-      expect(res.length).toBe(3)
+      assert.strictEqual(res.length, 3)
     })
 
-    it('should return empty array when provider not found', async () => {
+    it('should return empty array when provider not found', async t => {
       let item = createItem('foo')
       let res: any
       res = await languages.provideTypeHierarchySupertypes(item, token)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
       res = await languages.provideTypeHierarchySubtypes(item, token)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
     })
 
-    it('should return subtypes and supertypes', async () => {
+    it('should return subtypes and supertypes', async t => {
       disposables.push(languages.registerTypeHierarchyProvider([{ language: '*' }], {
         prepareTypeHierarchy: () => {
           return [createItem('b')]
@@ -115,14 +113,14 @@ describe('TypeHierarchy', () => {
       let res = await languages.prepareTypeHierarchy(doc.textDocument, position, token)
       let arr: any[]
       arr = await languages.provideTypeHierarchySubtypes(res[0], token)
-      expect(arr.length).toBe(1)
-      expect(arr[0].source).toBeDefined()
+      assert.strictEqual(arr.length, 1)
+      assert.notStrictEqual(arr[0].source, undefined)
       arr = await languages.provideTypeHierarchySupertypes(res[0], token)
-      expect(arr.length).toBe(1)
-      expect(arr[0].source).toBeDefined()
+      assert.strictEqual(arr.length, 1)
+      assert.notStrictEqual(arr[0].source, undefined)
     })
 
-    it('should not throw when prepareTypeHierarchy throws', async () => {
+    it('should not throw when prepareTypeHierarchy throws', async t => {
       disposables.push(languages.registerTypeHierarchyProvider([{ language: '*' }], {
         prepareTypeHierarchy: () => {
           throw new Error('my error')
@@ -136,10 +134,10 @@ describe('TypeHierarchy', () => {
       }))
       let doc = await workspace.document
       let res = await languages.prepareTypeHierarchy(doc.textDocument, position, token)
-      expect(res).toEqual([])
+      assert.deepStrictEqual(res, [])
     })
 
-    it('should return empty supertypes and supertypes', async () => {
+    it('should return empty supertypes and supertypes', async t => {
       disposables.push(languages.registerTypeHierarchyProvider([{ language: '*' }], {
         prepareTypeHierarchy: () => {
           return [createItem('b')]
@@ -155,29 +153,29 @@ describe('TypeHierarchy', () => {
       let res = await languages.prepareTypeHierarchy(doc.textDocument, position, token)
       let arr: any[]
       arr = await languages.provideTypeHierarchySubtypes(res[0], token)
-      expect(arr).toEqual([])
+      assert.deepStrictEqual(arr, [])
       arr = await languages.provideTypeHierarchySupertypes(res[0], token)
-      expect(arr).toEqual([])
+      assert.deepStrictEqual(arr, [])
     })
   })
 
   describe('TypeHierarchyHandler', () => {
-    it('should add children', async () => {
+    it('should add children', async t => {
       let item = createItem('foo')
       addChildren(item, undefined)
-      expect(item['children']).toBeUndefined()
+      assert.strictEqual(item['children'], undefined)
       addChildren(item, [], CancellationToken.Cancelled)
-      expect(item['children']).toBeUndefined()
+      assert.strictEqual(item['children'], undefined)
     })
 
-    it('should throw when provider not exist', async () => {
+    it('should throw when provider not exist', async t => {
       let fn = async () => {
         await handler.showTypeHierarchyTree('supertypes')
       }
-      await expect(fn()).rejects.toThrow(Error)
+      await assert.rejects(fn(), Error)
     })
 
-    it('should show warning when prepare return empty', async () => {
+    it('should show warning when prepare return empty', async t => {
       disposables.push(languages.registerTypeHierarchyProvider([{ language: '*' }], {
         prepareTypeHierarchy() {
           return null
@@ -189,15 +187,15 @@ describe('TypeHierarchy', () => {
           return []
         }
       }))
-      let plugin = helper.plugin
+      let plugin = getCurrentPlugin()
       await plugin.cocAction('showSuperTypes')
       await nvim.command('echo ""')
       await plugin.cocAction('showSubTypes')
-      let line = await helper.getCmdline()
-      expect(line).toMatch('Unable')
+      let line = await shared.getCmdline()
+      assert.match(line, new RegExp('Unable'))
     })
 
-    it('should invoke super types and sub types action', async () => {
+    it('should invoke super types and sub types action', async t => {
       let doc = await workspace.document
       disposables.push(languages.registerTypeHierarchyProvider([{ language: '*' }], {
         prepareTypeHierarchy() {
@@ -211,23 +209,23 @@ describe('TypeHierarchy', () => {
         }
       }))
       await handler.showTypeHierarchyTree('supertypes')
-      await helper.waitFor('getline', [2], '- c foo')
+      await shared.waitFor('getline', [2], '- c foo')
       await nvim.command('exe 2')
       await nvim.input('<tab>')
-      await helper.waitPrompt()
+      await shared.waitPrompt()
       await nvim.input('4')
-      await helper.waitFor('getline', [1], 'Sub types')
+      await shared.waitFor('getline', [1], 'Sub types')
       await nvim.input('<tab>')
-      await helper.waitPrompt()
+      await shared.waitPrompt()
       await nvim.input('3')
-      await helper.waitFor('getline', [1], 'Super types')
+      await shared.waitFor('getline', [1], 'Super types')
     })
 
-    it('should render description and support default action', async () => {
+    it('should render description and support default action', async t => {
       let doc = await workspace.document
       let bufnr = doc.bufnr
       await doc.buffer.setLines(['foo'], { start: 0, end: -1, strictIndexing: false })
-      let fsPath = await createTmpFile('foo\nbar\ncontent\n')
+      let fsPath = await shared.createTmpFile('foo\nbar\ncontent\n')
       let uri = URI.file(fsPath).toString()
       disposables.push(languages.registerTypeHierarchyProvider([{ language: '*' }], {
         prepareTypeHierarchy() {
@@ -246,24 +244,24 @@ describe('TypeHierarchy', () => {
       await handler.showTypeHierarchyTree('supertypes')
       let buf = await nvim.buffer
       let lines = await buf.lines
-      expect(lines).toEqual([
+      assert.deepStrictEqual(lines, [
         'Super types',
         '- c foo',
         '  + c bar Detail'
       ])
       await nvim.command('exe 3')
       await nvim.input('t')
-      await helper.waitFor('getline', ['.'], '  - c bar Detail')
+      await shared.waitFor('getline', ['.'], '  - c bar Detail')
       await nvim.input('<cr>')
-      await helper.waitFor('expand', ['%:p'], fsPath)
+      await shared.waitFor('expand', ['%:p'], fsPath)
       let res = await nvim.call('coc#cursor#position')
-      expect(res).toEqual([1, 0])
+      assert.deepStrictEqual(res, [1, 0])
       let matches = await nvim.call('getmatches') as any[]
-      expect(matches.length).toBe(1)
+      assert.strictEqual(matches.length, 1)
       await nvim.command(`b ${bufnr}`)
-      await helper.waitValue(async () => (await nvim.call('getmatches') as any[]).length, 0)
+      await shared.waitValue(async () => (await nvim.call('getmatches') as any[]).length, 0)
       matches = await nvim.call('getmatches') as any[]
-      expect(matches.length).toBe(0)
+      assert.strictEqual(matches.length, 0)
       await nvim.command(`wincmd o`)
     })
   })

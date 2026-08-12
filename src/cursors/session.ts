@@ -225,7 +225,6 @@ export default class CursorSession {
    */
   public cancel(): void {
     if (!this.activated) return
-    logger.debug('cursors cancel')
     let buffer = this.doc.buffer
     this.activated = false
     this.ranges = []

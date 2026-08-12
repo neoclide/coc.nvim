@@ -5,6 +5,8 @@ import { DidChangeWorkspaceFoldersParams, Disposable } from 'vscode-languageserv
 import { URI } from 'vscode-uri'
 import { BaseLanguageClient, MessageTransports } from '../../language-client/client'
 import { WorkspaceFoldersFeature } from '../../language-client/workspaceFolders'
+import { describe, test } from 'node:test'
+import type { TestContext } from 'node:test'
 
 class TestLanguageClient extends BaseLanguageClient {
   protected createMessageTransports(): Promise<MessageTransports> {
@@ -29,11 +31,11 @@ class TestWorkspaceFoldersFeature extends WorkspaceFoldersFeature {
   }
 }
 
-function testEvent(initial: MaybeFolders, then: MaybeFolders, added: proto.WorkspaceFolder[], removed: proto.WorkspaceFolder[]) {
+function testEvent(t: TestContext, initial: MaybeFolders, then: MaybeFolders, added: proto.WorkspaceFolder[], removed: proto.WorkspaceFolder[]) {
   const client = new TestLanguageClient('foo', 'bar', {})
 
   let arg: any
-  let spy = vi.spyOn(client, 'sendNotification').mockImplementation((_p1, p2) => {
+  let spy = t.mock.method(client, 'sendNotification', (_p1: any, p2: any) => {
     arg = p2
     return Promise.resolve()
   })
@@ -43,17 +45,17 @@ function testEvent(initial: MaybeFolders, then: MaybeFolders, added: proto.Works
   feature.initializeWithFolders(initial)
   feature.sendInitialEvent(then)
 
-  expect(spy).toHaveBeenCalled()
-  expect(spy).toHaveBeenCalledTimes(1)
+  assert.ok(spy.mock.callCount() > 0)
+  assert.strictEqual(spy.mock.callCount(), 1)
   const notification: DidChangeWorkspaceFoldersParams = arg
   assert.deepEqual(notification.event.added, added)
   assert.deepEqual(notification.event.removed, removed)
 }
 
-function testNoEvent(initial: MaybeFolders, then: MaybeFolders) {
+function testNoEvent(t: TestContext, initial: MaybeFolders, then: MaybeFolders) {
   const client = new TestLanguageClient('foo', 'bar', {})
 
-  let spy = vi.spyOn(client, 'sendNotification').mockImplementation(() => {
+  let spy = t.mock.method(client, 'sendNotification', () => {
     return Promise.resolve()
   })
 
@@ -61,7 +63,7 @@ function testNoEvent(initial: MaybeFolders, then: MaybeFolders) {
 
   feature.initializeWithFolders(initial)
   feature.sendInitialEvent(then)
-  expect(spy).toHaveBeenCalledTimes(0)
+  assert.strictEqual(spy.mock.callCount(), 0)
 }
 
 describe('Workspace Folder Feature Tests', () => {
@@ -70,36 +72,36 @@ describe('Workspace Folder Feature Tests', () => {
   const addedProto = { uri: 'file://foo/added', name: 'addedName' }
   const removedProto = { uri: 'file://xox/removed', name: 'removedName' }
 
-  test('remove/add', async () => {
+  test('remove/add', async t => {
     assert.ok(!MessageTransports.is({}))
-    testEvent([removedFolder], [addedFolder], [addedProto], [removedProto])
+    testEvent(t, [removedFolder], [addedFolder], [addedProto], [removedProto])
   })
 
-  test('remove', async () => {
-    testEvent([removedFolder], [], [], [removedProto])
+  test('remove', async t => {
+    testEvent(t, [removedFolder], [], [], [removedProto])
   })
 
-  test('remove2', async () => {
-    testEvent([removedFolder], undefined, [], [removedProto])
+  test('remove2', async t => {
+    testEvent(t, [removedFolder], undefined, [], [removedProto])
   })
 
-  test('add', async () => {
-    testEvent([], [addedFolder], [addedProto], [])
+  test('add', async t => {
+    testEvent(t, [], [addedFolder], [addedProto], [])
   })
 
-  test('add2', async () => {
-    testEvent(undefined, [addedFolder], [addedProto], [])
+  test('add2', async t => {
+    testEvent(t, undefined, [addedFolder], [addedProto], [])
   })
 
-  test('noChange1', async () => {
-    testNoEvent([addedFolder, removedFolder], [addedFolder, removedFolder])
+  test('noChange1', async t => {
+    testNoEvent(t, [addedFolder, removedFolder], [addedFolder, removedFolder])
   })
 
-  test('noChange2', async () => {
-    testNoEvent([], [])
+  test('noChange2', async t => {
+    testNoEvent(t, [], [])
   })
 
-  test('noChange3', async () => {
-    testNoEvent(undefined, undefined)
+  test('noChange3', async t => {
+    testNoEvent(t, undefined, undefined)
   })
 })

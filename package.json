@@ -7,7 +7,7 @@
     "coc-mcp": "bin/coc-mcp.js"
   },
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=24.12.0"
   },
   "type": "commonjs",
   "scripts": {
@@ -15,8 +15,9 @@
     "lint:typecheck": "tsc -p tsconfig.json",
     "build": "node esbuild.js",
     "watch": "node esbuild.js --watch",
-    "test": "vitest run",
-    "test-build": "vitest run --coverage",
+    "test": "node scripts/test/cli.mjs",
+    "test:unit": "node scripts/test/cli.mjs --unit",
+    "test:coverage": "node --enable-source-maps --experimental-test-coverage scripts/test/cli.mjs --coverage",
     "prepare": "node esbuild.js"
   },
   "repository": {
@@ -36,22 +37,19 @@
     "@types/debounce": "^1.2.4",
     "@types/fb-watchman": "^2.0.6",
     "@types/follow-redirects": "^1.14.4",
-    "@types/node": "^20.19.39",
+    "@types/node": "^24.13",
     "@types/semver": "^7.7.1",
     "@types/unidecode": "^1.1.0",
     "@types/which": "^3.0.4",
     "@types/yauzl": "^3.4.0",
-    "@vitest/coverage-v8": "^4.1.10",
     "esbuild": "^0.28.2",
     "oxlint": "^1.75.0",
     "oxlint-tsgolint": "^7.0.2001",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.10",
     "vscode-languageserver": "^10.1.0"
   },
   "dependencies": {
     "@chemzqm/neovim": "^6.4.0",
-    "@msgpack/msgpack": "^3.1.3",
     "ansi-styles": "^6.2.3",
     "bytes": "^3.1.2",
     "cli-table": "^0.3.11",
@@ -80,6 +78,7 @@
     "yauzl": "^3.4.0"
   },
   "allowScripts": {
-    "fsevents@2.3.3": true
+    "fsevents@2.3.3": true,
+    "esbuild@0.28.2": true
   }
 }

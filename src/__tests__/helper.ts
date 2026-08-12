@@ -20,7 +20,7 @@ import { equals } from '../util/object'
 import { terminate } from '../util/processes'
 import type { Workspace } from '../workspace'
 import type { TreeNode } from '../tree/BasicDataProvider'
-const vimrc = path.resolve(__dirname, 'vimrc')
+const vimrc = path.resolve(import.meta.dirname, 'vimrc')
 
 export interface CursorPosition {
   bufnum: number
@@ -97,7 +97,7 @@ export class Helper extends EventEmitter {
 
   public async setup(init = true): Promise<Plugin> {
     let proc = this.proc = cp.spawn(process.env.NVIM_COMMAND ?? 'nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
-      cwd: __dirname
+      cwd: import.meta.dirname
     })
     proc.unref()
     let plugin = this.plugin = attach({ proc })
@@ -134,7 +134,7 @@ export class Helper extends EventEmitter {
     let address = await this.listenOnVim(server)
     let proc = this.proc = cp.spawn(process.env.VIM_COMMAND ?? 'vim', ['--clean', '--not-a-term', '-u', vimrc], {
       stdio: 'pipe',
-      cwd: __dirname,
+      cwd: import.meta.dirname,
       env: {
         COC_NVIM_REMOTE_ADDRESS: address,
         ...process.env
@@ -278,7 +278,7 @@ export class Helper extends EventEmitter {
 
   public async edit(file?: string): Promise<Buffer> {
     if (!file || !path.isAbsolute(file)) {
-      file = path.join(__dirname, file ? file : `${crypto.randomUUID()}`)
+      file = path.join(import.meta.dirname, file ? file : `${crypto.randomUUID()}`)
     }
     let escaped = await this.nvim.call('fnameescape', file) as string
     await this.nvim.command(`edit ${escaped}`)
