@@ -38,7 +38,7 @@ function serializeData(data) {
 
 async function main() {
   const records = await requestCompiledRecords(files)
-  initializeTestHooks(records)
+  initializeTestHooks(records, undefined, undefined, testNamePattern)
   const abort = new AbortController()
   const timeoutTimer = setTimeout(() => abort.abort(), shardTimeoutMs)
   timeoutTimer.unref?.()

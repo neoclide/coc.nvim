@@ -13,8 +13,56 @@ const TEST_TS_RE = new RegExp(
   `^file://${projectRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/src/__tests__/.*\\.ts$`
 )
 const sessionKey = 'coc-test/edit_session'
+const nodeTestKey = 'coc-test/node-test'
 const compiled = new Map()
 let initialized = false
+
+/**
+ * node:test's run({files, isolation: 'none'}) ignores testNamePatterns, so
+ * when a -t pattern is given we intercept `node:test` imports and wrap
+ * describe/it/test to skip non-matching names (matched against the full
+ * hierarchical name, same as the CLI's --test-name-pattern).
+ */
+function filteredNodeTestSource(pattern) {
+  return `
+const pattern = new RegExp(${JSON.stringify(pattern)})
+const nodeTest = process.getBuiltinModule('node:test')
+const stack = []
+function fullName(name) {
+  return stack.length === 0 ? name : stack.join(' > ') + ' > ' + name
+}
+function wrappedTest(fn) {
+  return function (...args) {
+    const name = typeof args[0] === 'string' ? args[0] : typeof args[1] === 'string' ? args[1] : ''
+    if (name && !pattern.test(fullName(name))) return
+    return fn.apply(this, args)
+  }
+}
+function wrappedDescribe(fn) {
+  return function (...args) {
+    const name = typeof args[0] === 'string' ? args[0] : typeof args[1] === 'string' ? args[1] : ''
+    if (name) stack.push(name)
+    try {
+      return fn.apply(this, args)
+    } finally {
+      if (name) stack.pop()
+    }
+  }
+}
+export const test = wrappedTest(nodeTest.test)
+export const it = wrappedTest(nodeTest.it)
+export const describe = wrappedDescribe(nodeTest.describe)
+export const before = nodeTest.before
+export const after = nodeTest.after
+export const beforeEach = nodeTest.beforeEach
+export const afterEach = nodeTest.afterEach
+export const skip = nodeTest.skip
+export const todo = nodeTest.todo
+export const mock = nodeTest.mock
+export const run = nodeTest.run
+export default nodeTest
+`
+}
 
 function setupTestEnvironment(editor) {
   if (globalThis.__TEST__ !== undefined) return
@@ -58,19 +106,22 @@ function srcKeyFor(resolved) {
  * entry or dependency. Records are passed directly by the execution endpoint;
  * no process-global handoff is used.
  */
-export function initializeTestHooks(records, editor, sessionSource) {
+export function initializeTestHooks(records, editor, sessionSource, namePattern) {
   if (initialized) throw new Error('coc-test: test hooks already initialized')
   initialized = true
   for (const record of records) compiled.set(record.url, record)
   setupTestEnvironment(editor)
-  registerTestHooks(sessionSource)
+  registerTestHooks(sessionSource, namePattern)
 }
 
-function registerTestHooks(sessionSource) {
+function registerTestHooks(sessionSource, namePattern) {
   registerHooks({
     resolve(specifier, context, nextResolve) {
       if (specifier === sessionKey) {
         return {url: 'coc-test:edit_session', shortCircuit: true}
+      }
+      if (namePattern && specifier === 'node:test') {
+        return {url: nodeTestKey, shortCircuit: true}
       }
       if (specifier.startsWith('coc-bundle:')) {
         return {url: specifier, shortCircuit: true}
@@ -127,6 +178,13 @@ function registerTestHooks(sessionSource) {
         return {
           format: 'module',
           source: sessionSource ?? '',
+          shortCircuit: true,
+        }
+      }
+      if (url === nodeTestKey) {
+        return {
+          format: 'module',
+          source: filteredNodeTestSource(namePattern),
           shortCircuit: true,
         }
       }
