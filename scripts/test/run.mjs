@@ -93,7 +93,6 @@ export async function runUnit(
   {
     lane = 'unit',
     concurrency = 6,
-    coverage = false,
     testNamePattern,
     forceExit = false,
     shardTimeoutMs = 5 * 60 * 1000,
@@ -118,7 +117,6 @@ export async function runUnit(
   if (lane === 'unit') {
     return await runUnitThreads(files, {
       concurrency,
-      coverage,
       testNamePattern,
       forceExit,
       shardTimeoutMs,
@@ -130,7 +128,6 @@ export async function runUnit(
   }
   return await runEditorProcesses(files, {
     concurrency,
-    coverage,
     testNamePattern,
     forceExit,
     shardTimeoutMs,
@@ -143,12 +140,11 @@ export async function runUnit(
 
 async function runEditorProcesses(
   files,
-  {concurrency, coverage, testNamePattern, forceExit, shardTimeoutMs, testTimeout, onProgress, onFailure, onOutput}
+  {concurrency, testNamePattern, forceExit, shardTimeoutMs, testTimeout, onProgress, onFailure, onOutput}
 ) {
   const started = performance.now()
   const results = await runProcessPool(files, concurrency, (file, index, signal) => {
     return runEditorProcess(file, index, signal, {
-      coverage,
       testNamePattern,
       forceExit,
       shardTimeoutMs,
@@ -162,7 +158,6 @@ async function runEditorProcesses(
   const stats = {passed: 0, failed: 0, skipped: 0, todo: 0, failures: [], diagnostics: []}
   const timings = {}
   const leafStats = {}
-  const coverageSummaries = []
   let timedOut = false
   for (const result of results) {
     stats.passed += result.stats.passed
@@ -173,14 +168,12 @@ async function runEditorProcesses(
     stats.diagnostics.push(...result.stats.diagnostics)
     Object.assign(timings, result.timings)
     Object.assign(leafStats, result.leafStats)
-    if (result.coverage) coverageSummaries.push(result.coverage)
     timedOut ||= result.timedOut
   }
   return {
     stats,
     timings,
     leafStats,
-    coverage: coverageSummaries.length > 0 ? coverageSummaries : undefined,
     timedOut,
     durationMs: Math.round(performance.now() - started),
   }
@@ -190,7 +183,7 @@ function runEditorProcess(
   file,
   id,
   signal,
-  {coverage, testNamePattern, forceExit, shardTimeoutMs, testTimeout, onProgress, onFailure, onOutput}
+  {testNamePattern, forceExit, shardTimeoutMs, testTimeout, onProgress, onFailure, onOutput}
 ) {
   return new Promise((resolve, reject) => {
     // The child's own 20s shard timeout aborts node:test, but a test stuck on
@@ -247,7 +240,6 @@ function runEditorProcess(
       },
       timings: {[file]: 0},
       leafStats: {[file]: {passed: 0, failed: 0}},
-      coverage: undefined,
       timedOut: true,
     })
     const onAbort = () => {
@@ -316,7 +308,7 @@ function runEditorProcess(
     if (!editor) throw new Error(`coc-test: editor kind not found for ${file}`)
     send({
       type: 'run',
-      options: {file, editor, coverage, testNamePattern, shardTimeoutMs, testTimeout},
+      options: {file, editor, testNamePattern, shardTimeoutMs, testTimeout},
     })
   })
 }
@@ -325,7 +317,6 @@ async function runUnitThreads(
   files,
   {
     concurrency,
-    coverage,
     testNamePattern,
     forceExit,
     shardTimeoutMs,
@@ -356,7 +347,6 @@ async function runUnitThreads(
     while (next < batches.length) {
       const index = next++
       results[index] = await runUnitWorker(batches[index], index, {
-        coverage,
         testNamePattern,
         forceExit,
         shardTimeoutMs,
@@ -372,7 +362,6 @@ async function runUnitThreads(
   const stats = {passed: 0, failed: 0, skipped: 0, todo: 0, failures: [], diagnostics: []}
   const timings = {}
   const leafStats = {}
-  const coverageSummaries = []
   let timedOut = false
   for (const result of results) {
     stats.passed += result.stats.passed
@@ -383,14 +372,12 @@ async function runUnitThreads(
     stats.diagnostics.push(...result.stats.diagnostics)
     Object.assign(timings, result.timings)
     Object.assign(leafStats, result.leafStats)
-    if (result.coverage) coverageSummaries.push(result.coverage)
     timedOut ||= result.timedOut
   }
   return {
     stats,
     timings,
     leafStats,
-    coverage: coverageSummaries.length > 0 ? coverageSummaries : undefined,
     timedOut,
     durationMs: Math.round(performance.now() - started),
   }
@@ -400,7 +387,6 @@ function runUnitWorker(
   files,
   id,
   {
-    coverage,
     testNamePattern,
     forceExit,
     shardTimeoutMs,
@@ -412,7 +398,7 @@ function runUnitWorker(
 ) {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./unit-worker.mjs', import.meta.url), {
-      workerData: {files, coverage, testNamePattern, shardTimeoutMs, testTimeout},
+      workerData: {files, testNamePattern, shardTimeoutMs, testTimeout},
       env: {...process.env, NODE_COMPILE_CACHE: compileCacheDir},
     })
     let result

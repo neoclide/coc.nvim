@@ -78,7 +78,7 @@ jobs:
           NVIM_COMMAND: ${{ steps.nvim.outputs.executable }}
           COVERAGE_ARGS: ${{ matrix.versions.neovim == 'stable' && '--coverage' || '' }}
         run: |
-          node --enable-source-maps --experimental-test-coverage scripts/test/cli.mjs -j 2 $COVERAGE_ARGS
+          node --enable-source-maps scripts/test/cli.mjs -j 2 $COVERAGE_ARGS
 
       - name: Codecov
         uses: codecov/codecov-action@v6

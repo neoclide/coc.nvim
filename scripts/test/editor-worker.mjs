@@ -12,7 +12,7 @@ process.once('message', message => {
 })
 
 async function main(options) {
-  const {file, editor, coverage, testNamePattern, shardTimeoutMs, testTimeout} = options
+  const {file, editor, testNamePattern, shardTimeoutMs, testTimeout} = options
   const {records, editorSessionSource} = await requestCompiledRecords([file])
   initializeTestHooks(records, editor, editorSessionSource, testNamePattern)
   const abort = new AbortController()
@@ -24,16 +24,12 @@ async function main(options) {
     cwd: projectRoot,
     files: [file],
     timeout: testTimeout,
-    coverage,
     testNamePatterns: testNamePattern ? [new RegExp(testNamePattern)] : undefined,
     signal: abort.signal,
-    coverageIncludeGlobs: coverage ? ['src/**/*.ts', '.cache/coc-test/bundle.js'] : undefined,
-    coverageExcludeGlobs: coverage ? ['src/__tests__/**', '**/*.test.ts', '**/*.d.ts', '**/*.json'] : undefined,
   })
   const stats = {passed: 0, failed: 0, skipped: 0, todo: 0, failures: [], diagnostics: []}
   const leafStats = {[file]: {passed: 0, failed: 0}}
   const captured = []
-  let coverageSummary
   let suiteFailures = 0
   let durationMs = 0
   process.send?.({type: 'progress', file, state: {status: 'running', durationMs: 0}})
@@ -65,9 +61,6 @@ async function main(options) {
         break
       case 'test:todo':
         stats.todo++
-        break
-      case 'test:coverage':
-        coverageSummary = data?.summary
         break
       case 'test:diagnostic':
         if (!/^(tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) /.test(data.message)) {
@@ -108,7 +101,6 @@ async function main(options) {
       stats,
       timings: {[file]: roundedDuration},
       leafStats,
-      coverage: coverageSummary,
       timedOut: abort.signal.aborted,
     },
   }, () => process.disconnect?.())

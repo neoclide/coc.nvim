@@ -1,17 +1,16 @@
 'use strict'
 
 /**
- * Fallback coverage builder used when node:test's own summary() throws.
+ * Builds the coverage summary from the raw V8 coverage files written by every
+ * child process/worker via NODE_V8_COVERAGE.
  *
- * node:test aggregates the raw V8 coverage files written by every child
- * process/worker into one summary. If any of those files is truncated — a
- * test process killed on timeout can leave a partial JSON (upstream
- * nodejs/node#29865) — the whole summary() call fails and run() returns no
- * coverage at all. The raw files still exist (node:test copies them back to
- * NODE_V8_COVERAGE before deleting its temp dir), so this module rebuilds
- * the summary from them, skipping unparseable files. Only the bundle script
- * is source-mapped (that is where all src/*.ts coverage lives); everything
- * else is dropped because the report only keeps src/**\/*.ts anyway.
+ * node:test's own per-worker coverage summary is unreliable for worker threads
+ * (a large esbuild enum IIFE collapses to a single V8 block and loses most of
+ * its lines), so the runner reports coverage from these raw files instead.
+ * Truncated files — a test process killed on timeout can leave a partial JSON
+ * (upstream nodejs/node#29865) — are skipped. Only the bundle script is
+ * source-mapped (that is where all src/*.ts coverage lives); everything else
+ * is dropped because the report only keeps src/**\/*.ts anyway.
  */
 
 import fs from 'node:fs'
@@ -170,13 +169,6 @@ function mapRangeToLines(range, lines) {
   return {lines: mappedLines, ignoredLines}
 }
 
-function entryToOffset(entry, lines) {
-  const line = Math.max(entry.originalLine, 0)
-  const mappedLine = lines[line]
-  if (!mappedLine) return -1
-  return Math.min(mappedLine.startOffset + entry.originalColumn, mappedLine.endOffset)
-}
-
 const sourceLines = new Map()
 
 function getLines(fileUrl, source) {
@@ -238,22 +230,31 @@ function mapBundleScript(coverage, bundleUrl) {
         const {startOffset, endOffset, count} = range
         const {lines} = mapRangeToLines(range, executedLines)
         if (lines.length === 0) continue
-        let startEntry = sourceMap.findEntry(lines[0].line - 1, Math.max(0, startOffset - lines[0].startOffset))
-        const endEntry = sourceMap.findEntry(lines[lines.length - 1].line - 1, (endOffset - lines[lines.length - 1].startOffset) - 1)
-        if (!startEntry.originalSource && endEntry.originalSource &&
-          lines[0].line === 1 && startOffset === 0 && lines[0].startOffset === 0) {
-          const first = sourceMap.mappings[0]
-          startEntry = {originalSource: first[2], originalLine: first[3], originalColumn: first[4]}
+        // esbuild maps an enum IIFE's opening and closing brackets back to
+        // the declaration line, so a single V8 block spanning the whole body
+        // would collapse to that one source line if we only trusted the first
+        // and last offsets. Derive the covered source range from each executed
+        // generated line instead so every inlined member line is counted.
+        let sourceUrl
+        let minLine = Infinity
+        let maxLine = -1
+        for (const line of lines) {
+          const entry = sourceMap.findEntry(line.line - 1, 0)
+          if (!entry.originalSource) continue
+          if (!sourceUrl) sourceUrl = entry.originalSource
+          else if (sourceUrl !== entry.originalSource) continue
+          if (entry.originalLine < minLine) minLine = entry.originalLine
+          if (entry.originalLine > maxLine) maxLine = entry.originalLine
         }
-        if (!startEntry.originalSource || startEntry.originalSource !== endEntry.originalSource) continue
-        newUrl ??= startEntry.originalSource
-        const mappedLines = getLines(newUrl)
+        if (!sourceUrl || minLine === Infinity || maxLine < 0) continue
+        newUrl ??= sourceUrl
+        const mappedLines = getLines(sourceUrl)
         if (!mappedLines) continue
-        const mappedStartOffset = entryToOffset(startEntry, mappedLines)
-        const mappedEndOffset = entryToOffset(endEntry, mappedLines) + 1
-        if (mappedStartOffset < 0 || mappedEndOffset < 1) continue
-        for (let l = startEntry.originalLine; l <= endEntry.originalLine; l++) mappedLines[l].count = count
-        newRanges.push({startOffset: mappedStartOffset, endOffset: mappedEndOffset, count})
+        const mappedStartOffset = mappedLines[minLine]?.startOffset
+        const mappedEndOffset = mappedLines[maxLine]?.endOffset
+        if (mappedStartOffset == null || mappedEndOffset == null) continue
+        for (let l = minLine; l <= maxLine; l++) mappedLines[l].count = count
+        newRanges.push({startOffset: mappedStartOffset, endOffset: mappedEndOffset + 1, count})
       }
       if (!newUrl || newRanges.length === 0) continue
       result.push({url: newUrl, functionName, ranges: newRanges, isBlockCoverage})
