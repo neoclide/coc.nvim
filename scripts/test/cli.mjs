@@ -101,9 +101,10 @@ const lanes = values.unit ? ['unit'] : ['unit', 'nvim', 'vim']
 const testNamePattern = values['test-name-pattern']
 
 // Unit tests get all CPU cores in phase 1; editor lanes are capped at 8
-// (measured sweet spot) in phase 2. -j overrides both.
+// (measured sweet spot) in phase 2. -j overrides both, and CI pins editor
+// concurrency through COC_TEST_EDITOR_JOBS to avoid oversubscribed runners.
 const unitJobs = Math.max(1, Number(values.jobs) || os.cpus().length)
-const editorJobs = Math.max(1, Number(values.jobs) || Math.min(8, os.cpus().length - 1))
+const editorJobs = Math.max(1, Number(values.jobs) || Number(process.env.COC_TEST_EDITOR_JOBS) || Math.min(8, os.cpus().length - 1))
 const LANE_TEST_TIMEOUT = {unit: 3000, nvim: 5000, vim: 5000}
 const LANE_SHARD_TIMEOUT = {unit: 5 * 60 * 1000, nvim: 15 * 60 * 1000, vim: 15 * 60 * 1000}
 
