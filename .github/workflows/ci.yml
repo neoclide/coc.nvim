@@ -80,7 +80,6 @@ jobs:
         env:
           VIM_COMMAND: ${{ steps.vim.outputs.executable }}
           NVIM_COMMAND: ${{ steps.nvim.outputs.executable }}
-          COC_TEST_EDITOR_JOBS: '2'
         run: |
           npm run test:coverage
 
