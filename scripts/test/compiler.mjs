@@ -6,8 +6,6 @@ import {VIM_TESTS} from './discover.mjs'
 import {projectRoot as defaultProjectRoot} from './paths.mjs'
 
 const REQUIRES_DIRECT = new Set([
-  'src/__tests__/unit/factory.test.ts',
-  'src/__tests__/unit/modules-util.test.ts',
   'src/__tests__/handler/workspace.test.ts',
 ])
 
@@ -22,23 +20,13 @@ function laneForFile(root, file) {
   return 'nvim'
 }
 
-function editorLifecycleSource(editor) {
-  const banner = `import { after as __cocAfter } from 'node:test'
-import { start as __cocStart, reset as __cocReset, stop as __cocStop } from 'coc-test/edit_session'
-globalThis.editorReset = __cocReset
-await __cocStart(${JSON.stringify(editor)})
-`
-  const footer = `
-__cocAfter(async () => { await __cocStop() }, { timeout: 10000 })
-`
-  return {banner, footer}
-}
-
-function testGlobalsSource() {
-  return `import assert from 'node:assert/strict'
+const TEST_GLOBALS_SOURCE = `import assert from 'node:assert/strict'
 import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
 `
-}
+
+const EDITOR_TEARDOWN_SOURCE = `
+after(async () => { await globalThis.editorStop?.() }, {timeout: 500})
+`
 
 function rewriteInlineSourceMap(output, root) {
   const match = output.match(/sourceMappingURL=data:application\/json;base64,([A-Za-z0-9+/=]+)/)
@@ -129,7 +117,6 @@ export class TestCompiler {
     const started = performance.now()
     const lane = isEntry ? laneForFile(this.projectRoot, file) : undefined
     const editor = lane === 'vim' ? 'vim' : lane === 'nvim' ? 'nvim' : undefined
-    const lifecycle = editor ? editorLifecycleSource(editor) : undefined
     const result = await build({
       entryPoints: [file],
       bundle: false,
@@ -142,8 +129,8 @@ export class TestCompiler {
       sourcemap: 'inline',
       sourcesContent: true,
       tsconfig: path.join(this.projectRoot, 'tsconfig.test.json'),
-      banner: {js: `${testGlobalsSource()}${lifecycle?.banner ?? ''}`},
-      footer: lifecycle ? {js: lifecycle.footer} : undefined,
+      banner: {js: TEST_GLOBALS_SOURCE},
+      footer: editor ? {js: EDITOR_TEARDOWN_SOURCE} : undefined,
       logLevel: 'silent',
     })
     const outputFile = result.outputFiles.find(output => output.path.endsWith('.js')) ?? result.outputFiles[0]

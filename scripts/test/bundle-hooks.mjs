@@ -12,7 +12,6 @@ const require = createRequire(import.meta.url)
 const TEST_TS_RE = new RegExp(
   `^file://${projectRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/src/__tests__/.*\\.ts$`
 )
-const sessionKey = 'coc-test/edit_session'
 const nodeTestKey = 'coc-test/node-test'
 const compiled = new Map()
 let initialized = false
@@ -108,20 +107,17 @@ function srcKeyFor(resolved) {
  * entry or dependency. Records are passed directly by the execution endpoint;
  * no process-global handoff is used.
  */
-export function initializeTestHooks(records, editor, sessionSource, namePattern) {
+export function initializeTestHooks(records, editor, namePattern) {
   if (initialized) throw new Error('coc-test: test hooks already initialized')
   initialized = true
   for (const record of records) compiled.set(record.url, record)
   setupTestEnvironment(editor)
-  registerTestHooks(sessionSource, namePattern)
+  registerTestHooks(namePattern)
 }
 
-function registerTestHooks(sessionSource, namePattern) {
+function registerTestHooks(namePattern) {
   registerHooks({
     resolve(specifier, context, nextResolve) {
-      if (specifier === sessionKey) {
-        return {url: 'coc-test:edit_session', shortCircuit: true}
-      }
       if (namePattern && specifier === 'node:test') {
         return {url: nodeTestKey, shortCircuit: true}
       }
@@ -176,13 +172,6 @@ function registerTestHooks(sessionSource, namePattern) {
       return nextResolve(specifier, context)
     },
     load(url, context, nextLoad) {
-      if (url === 'coc-test:edit_session') {
-        return {
-          format: 'module',
-          source: sessionSource ?? '',
-          shortCircuit: true,
-        }
-      }
       if (url === nodeTestKey) {
         return {
           format: 'module',
