@@ -5,10 +5,6 @@ import {fileURLToPath, pathToFileURL} from 'node:url'
 import {VIM_TESTS} from './discover.mjs'
 import {projectRoot as defaultProjectRoot} from './paths.mjs'
 
-const REQUIRES_DIRECT = new Set([
-  'src/__tests__/handler/workspace.test.ts',
-])
-
 function toPosix(value) {
   return value.split(path.sep).join('/')
 }
@@ -136,10 +132,6 @@ export class TestCompiler {
     const outputFile = result.outputFiles.find(output => output.path.endsWith('.js')) ?? result.outputFiles[0]
     let source = rewriteInlineSourceMap(outputFile.text, this.projectRoot)
     const rel = toPosix(path.relative(this.projectRoot, file))
-    if (REQUIRES_DIRECT.has(rel)) {
-      source = "import { createRequire } from 'node:module';const require = createRequire(import.meta.url);" + source
-    }
-
     const output = Object.values(result.metafile.outputs)[0]
     const directDependencies = []
     for (const item of output?.imports ?? []) {
