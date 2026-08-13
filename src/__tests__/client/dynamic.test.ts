@@ -12,8 +12,6 @@ import { ClientState } from '../../language-client'
 import { SemanticTokensFeature } from '../../language-client/semanticTokens'
 import type { TextDocumentContentProviderShape } from '../../language-client/textDocumentContent'
 import workspace from '../../workspace'
-import { afterEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 import { createDynamicServer } from './server/inProcessDynamicServer'
 
 

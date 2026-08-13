@@ -11,8 +11,6 @@ import { lspQueryCache } from '../../mcp/tools/lsp'
 import { CancellationToken } from '../../util/protocol'
 import window from '../../window'
 import workspace from '../../workspace'
-import { after, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let tmpdir: string

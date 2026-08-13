@@ -10,8 +10,6 @@ import workspace from '../../workspace'
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Range, SymbolInformation, SymbolKind } from 'vscode-languageserver-protocol'
 import Parser from './parser'
-import { afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let nvim: Neovim

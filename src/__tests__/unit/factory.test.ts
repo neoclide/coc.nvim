@@ -2,8 +2,6 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { createExtension } from '../../util/factory'
-import { after, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 const Module = require('module')
 

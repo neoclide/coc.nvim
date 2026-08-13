@@ -2,8 +2,7 @@ import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import OutputChannel from '../../model/outputChannel'
-import { before, describe, test } from 'node:test'
-import assert from 'node:assert/strict'
+import { test } from 'node:test'
 
 let nvim: Neovim
 before(async () => {

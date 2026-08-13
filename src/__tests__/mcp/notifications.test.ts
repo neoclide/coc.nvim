@@ -18,8 +18,6 @@ import events from '../../events'
 import window from '../../window'
 import workspace from '../../workspace'
 import { TestClient } from './testClient'
-import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let disposables: { dispose(): void }[] = []
 let tmpdir: string

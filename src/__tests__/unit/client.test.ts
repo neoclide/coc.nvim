@@ -1,8 +1,6 @@
 import { PassThrough } from 'stream'
 import { attach } from '@chemzqm/neovim'
 import { nullLogger } from '@chemzqm/neovim/lib/utils/logger'
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 function createClient() {
   let reader = new PassThrough()

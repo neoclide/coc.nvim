@@ -25,8 +25,6 @@ import { DocumentSymbol, Location, Range, SymbolKind } from 'vscode-languageserv
 import { URI } from 'vscode-uri'
 import which from 'which'
 import type ListSessionType from '../../list/session'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let items: ListItem[] = []

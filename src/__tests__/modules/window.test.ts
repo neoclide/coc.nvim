@@ -11,8 +11,6 @@ import { TreeItem, TreeItemCollapsibleState } from '../../tree'
 import { disposeAll } from '../../util'
 import window, { Window } from '../../window'
 import workspace from '../../workspace'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let disposables: Disposable[] = []

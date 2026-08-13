@@ -6,8 +6,6 @@ import path from 'path'
 import { McpServer } from '../../mcp/server'
 import { McpTool, ToolRegistry } from '../../mcp/tools'
 import { TestClient } from '../mcp/testClient'
-import { after, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 function echoTool(): McpTool {
   return {

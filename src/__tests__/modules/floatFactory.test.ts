@@ -5,8 +5,6 @@ import events from '../../events'
 import FloatFactoryImpl from '../../model/floatFactory'
 import snippetManager from '../../snippets/manager'
 import { Documentation } from '../../types'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let floatFactory: FloatFactoryImpl

@@ -6,8 +6,6 @@ import { ToolRegistry } from '../../mcp/tools'
 import { createWorkspaceTools } from '../../mcp/tools/workspace'
 import { collectEditUris, errorResult, globVariants, textContent, textResult, toFsPath, toUri } from '../../mcp/tools/util'
 import { CancellationToken } from '../../util/protocol'
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 describe('mcp workspace tools', () => {
   it('workspace/info returns editor state without a running nvim', async () => {

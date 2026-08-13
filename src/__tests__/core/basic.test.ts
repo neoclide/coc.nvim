@@ -21,8 +21,6 @@ import { CancellationToken, Disposable, Emitter } from 'vscode-languageserver-pr
 import { Position, Range } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import type TerminalsType from '../../core/terminals'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let nvim: Neovim

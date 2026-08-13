@@ -5,8 +5,6 @@ import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import { Emitter, Event, NotificationHandler, WorkDoneProgressBegin, WorkDoneProgressEnd, WorkDoneProgressReport } from 'vscode-languageserver-protocol'
 import { ProgressContext, ProgressPart } from '../../language-client/progressPart'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 type ProgressType = WorkDoneProgressBegin | WorkDoneProgressReport | WorkDoneProgressEnd
 

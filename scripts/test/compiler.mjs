@@ -34,6 +34,12 @@ __cocAfter(async () => { await __cocStop() }, { timeout: 10000 })
   return {banner, footer}
 }
 
+function testGlobalsSource() {
+  return `import assert from 'node:assert/strict'
+import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
+`
+}
+
 function rewriteInlineSourceMap(output, root) {
   const match = output.match(/sourceMappingURL=data:application\/json;base64,([A-Za-z0-9+/=]+)/)
   if (!match) return output
@@ -136,7 +142,7 @@ export class TestCompiler {
       sourcemap: 'inline',
       sourcesContent: true,
       tsconfig: path.join(this.projectRoot, 'tsconfig.test.json'),
-      banner: lifecycle ? {js: lifecycle.banner} : undefined,
+      banner: {js: `${testGlobalsSource()}${lifecycle?.banner ?? ''}`},
       footer: lifecycle ? {js: lifecycle.footer} : undefined,
       logLevel: 'silent',
     })

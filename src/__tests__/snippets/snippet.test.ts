@@ -1,6 +1,5 @@
 import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
-import * as assert from 'assert'
 import path from 'path'
 import { CancellationToken, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { Position, Range } from 'vscode-languageserver-types'
@@ -15,7 +14,6 @@ import { padZero, parseComments, parseCommentstring, SnippetVariableResolver } f
 import { UltiSnippetOption } from '../../types'
 import { getEnd } from '../../util/position'
 import workspace from '../../workspace'
-import { before, describe, it } from 'node:test'
 
 let nvim: Neovim
 before(async () => {

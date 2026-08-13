@@ -1,8 +1,6 @@
 import * as shared from '../sharedUtil'
 'use strict'
 import fs from 'fs'
-import assert from 'node:assert/strict'
-import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
 import os from 'os'
 import path from 'path'
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-types'

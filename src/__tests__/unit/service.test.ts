@@ -9,8 +9,7 @@ import mcp from '../../mcp'
 import { McpServer } from '../../mcp/server'
 import workspace from '../../workspace'
 import { TestClient } from '../mcp/testClient'
-import { after, afterEach, describe, it, test } from 'node:test'
-import assert from 'node:assert/strict'
+import { test } from 'node:test'
 
 // no-isolate worker threads share one process pid and the default COC_MCP_DIR,
 // so a concurrent mcp.stop() in a sibling test (e.g. exit.test) can delete the

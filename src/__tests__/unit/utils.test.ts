@@ -1,4 +1,3 @@
-import assert from 'assert'
 import { spawn } from 'child_process'
 import { NotificationType, NotificationType1, RequestType, RequestType1 } from 'vscode-languageserver-protocol'
 import { checkProcessDied, handleChildProcessStartError } from '../../language-client/index'

@@ -12,8 +12,6 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import { Position, Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let nvim: Neovim

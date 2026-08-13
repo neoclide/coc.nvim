@@ -1,13 +1,10 @@
-import workspace from '../../workspace'
-import * as shared from '../sharedUtil'
-'use strict'
+import { Neovim } from '@chemzqm/neovim'
 import Prompt from '../../list/prompt'
 import { IList, ListOptions } from '../../list/types'
-import Worker from '../../list/worker'
-import { Neovim } from '@chemzqm/neovim'
 import type WorkerType from '../../list/worker'
-import { before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import Worker from '../../list/worker'
+import workspace from '../../workspace'
+'use strict'
 
 
 let nvim: Neovim

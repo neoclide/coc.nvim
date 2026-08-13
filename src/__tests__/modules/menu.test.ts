@@ -3,8 +3,6 @@ import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import Menu, { isMenuItem, toIndexText } from '../../model/menu'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let menu: Menu

@@ -3,8 +3,6 @@ import os from 'os'
 import path from 'path'
 import { createLogger, emptyFile, getTimestamp, logger, resolveLogFilepath } from '../../logger/index'
 import { DEFAULT_LOG_LEVEL, FileLogger, format, LogLevel, stringifyLogLevel, textToLogLevel, toThreeDigits, toTwoDigits } from '../../logger/log'
-import { afterEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let filepath: string
 afterEach(() => {

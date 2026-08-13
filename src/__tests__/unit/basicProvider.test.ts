@@ -5,8 +5,6 @@ import { HistoryInput } from '../../tree/filter'
 import BasicDataProvider, { TreeNode } from '../../tree/BasicDataProvider'
 import { disposeAll } from '../../util'
 import { createNode, createNodes, CustomNode, NodeDef } from './testUtils'
-import { afterEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let disposables: Disposable[] = []
 

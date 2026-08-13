@@ -11,8 +11,6 @@ import { Neovim, Window } from '@chemzqm/neovim'
 import EventEmitter from 'events'
 import path from 'path'
 import { Range } from 'vscode-languageserver-types'
-import { after, afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let nvim: Neovim

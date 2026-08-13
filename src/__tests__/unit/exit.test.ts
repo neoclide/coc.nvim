@@ -1,5 +1,3 @@
-import { afterEach, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 import { EXIT_TIMEOUT, gracefulExit, registerExitHandlers, setExitHook } from '../../exit'
 import mcp from '../../mcp'
 import services from '../../services'

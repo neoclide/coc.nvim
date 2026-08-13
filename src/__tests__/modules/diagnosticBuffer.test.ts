@@ -5,8 +5,6 @@ import { DiagnosticBuffer } from '../../diagnostic/buffer'
 import { DidChangeTextDocumentParams } from '../../types'
 import workspace from '../../workspace'
 import { URI } from 'vscode-uri'
-import { afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let nvim: Neovim
 async function createDiagnosticBuffer(): Promise<DiagnosticBuffer> {

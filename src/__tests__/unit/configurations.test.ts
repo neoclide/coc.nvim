@@ -13,8 +13,6 @@ import { remove } from '../../util/fs'
 import { waitValue } from './testUtils'
 import { resourceLanguageSettingsSchemaId } from '../../configuration/registry'
 import { CONFIG_FILE_NAME } from '../../util/constants'
-import { afterEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 const workspaceConfigFile = path.resolve(import.meta.dirname, `../sample/.vim/${CONFIG_FILE_NAME}`)
 

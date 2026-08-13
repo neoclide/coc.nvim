@@ -13,8 +13,6 @@ import workspace from '../../workspace'
 import window from '../../window'
 import { createNodes } from '../unit/testUtils'
 import type { NodeDef } from '../unit/testUtils'
-import { afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -637,7 +635,7 @@ describe('TreeView', () => {
       await nvim.input('<esc>')
       await shared.wait(20)
       await nvim.input('<tab>')
-      await shared.wait(10)
+      await shared.waitFloat()
       await nvim.input('<cr>')
       await shared.waitValue(() => {
         return called

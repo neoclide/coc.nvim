@@ -2,8 +2,6 @@ import { marked, Renderer as MarkedRenderer } from 'marked'
 import Renderer, { bulletPointLine, fixHardReturn, generateTableRow, identify, numberedLine, toSpaces, toSpecialSpaces } from '../../markdown/renderer'
 import * as styles from '../../markdown/styles'
 import { parseAnsiHighlights, AnsiResult } from '../../util/ansiparse'
-import { afterEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 marked.setOptions({
   renderer: new Renderer() as MarkedRenderer,

@@ -1,7 +1,5 @@
 import { getHighlightItems, toFiletype, parseMarkdown, parseDocuments } from '../../markdown/index'
 import { Documentation } from '../../types'
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 describe('getHighlightItems', () => {
   it('should convert filetype', () => {

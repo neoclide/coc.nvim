@@ -11,8 +11,6 @@ import { CodeAction, CodeActionKind, Disposable, DocumentSymbol, Range, SymbolKi
 import { ProviderResult } from '../../provider'
 import Parser from './parser'
 import type SymbolsType from '../../handler/symbols/index'
-import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let nvim: Neovim

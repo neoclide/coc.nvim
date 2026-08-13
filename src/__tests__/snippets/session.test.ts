@@ -7,8 +7,6 @@ import { UltiSnippetContext } from '../../snippets/util'
 import { Disposable, disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let disposables: Disposable[] = []

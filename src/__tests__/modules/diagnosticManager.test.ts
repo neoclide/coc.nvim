@@ -32,8 +32,6 @@ import commands from '../../commands'
 import workspace from '../../workspace'
 import fs from 'fs'
 import { DidChangeTextDocumentParams } from '../../types'
-import { afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let nvim: Neovim
 function createDiagnostic(msg: string, range?: Range, severity?: DiagnosticSeverity): Diagnostic {

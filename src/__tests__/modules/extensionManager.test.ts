@@ -14,8 +14,6 @@ import { writeJson } from '../../util/fs'
 import { deepIterate } from '../../util/object'
 import { Registry } from '../../util/registry'
 import workspace from '../../workspace'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let disposables: Disposable[] = []
 let nvim: Neovim

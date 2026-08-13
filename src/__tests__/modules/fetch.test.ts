@@ -11,8 +11,6 @@ import { promisify } from 'util'
 import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import download, { getEtag, getExtname } from '../../model/download'
 import fetch, { getAgent, getDataType, getRequestModule, getSystemProxyURI, getText, request, resolveRequestOptions, toPort, toURL } from '../../model/fetch'
-import { after, afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 process.env.NO_PROXY = '*'
 let port: number

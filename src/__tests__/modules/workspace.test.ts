@@ -1,8 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import cp from 'child_process'
 import fs from 'fs'
-import assert from 'node:assert/strict'
-import { afterEach, before, describe, it } from 'node:test'
 import os from 'os'
 import path from 'path'
 import { Disposable } from 'vscode-languageserver-protocol'

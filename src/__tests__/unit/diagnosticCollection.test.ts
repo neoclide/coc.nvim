@@ -1,7 +1,5 @@
 import DiagnosticCollection from '../../diagnostic/collection'
 import { Diagnostic, DiagnosticSeverity, DiagnosticTag, Range } from 'vscode-languageserver-types'
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 function createDiagnostic(msg: string, range?: Range): Diagnostic {
   range = range ? range : Range.create(0, 0, 0, 1)

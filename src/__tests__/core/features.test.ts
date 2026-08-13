@@ -18,8 +18,6 @@ import { Disposable, Location, Position, Range, WorkspaceFolder, WorkspaceFolder
 import { URI } from 'vscode-uri'
 import type ConfigurationsType from '../../configuration/index'
 import type WorkspaceFolderControllerType from '../../core/workspaceFolder'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let editors: Editors

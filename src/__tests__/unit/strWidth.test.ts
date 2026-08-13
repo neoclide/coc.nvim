@@ -1,5 +1,3 @@
-import { before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 import { initStrWidthWasm, StrWidth, StrWidthWasi } from '../../model/strwidth'
 
 let api: StrWidthWasi

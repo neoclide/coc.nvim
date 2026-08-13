@@ -36,8 +36,6 @@ import type { SortMethod as SortMethodType } from '../../completion/types'
 import type { PumItems as PumItemsType } from '../../completion/pum'
 import type SourceClassType from '../../completion/source'
 import type { WordsSource as WordsSourceType } from '../../snippets/util'
-import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let nvim: Neovim

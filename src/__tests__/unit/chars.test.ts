@@ -1,8 +1,6 @@
 import { CancellationTokenSource, Range } from 'vscode-languageserver-protocol'
 import { Chars, IntegerRanges, detectLanguage, getCharCode, parseSegments, sameScope, splitKeywordOption } from '../../model/chars'
 import { makeLine } from './testUtils'
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 describe('funcs', () => {
   it('should splitKeywordsOptions', () => {

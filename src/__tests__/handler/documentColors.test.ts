@@ -12,8 +12,6 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Color, ColorInformation, ColorPresentation, Disposable, Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import path from 'path'
-import { afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let nvim: Neovim

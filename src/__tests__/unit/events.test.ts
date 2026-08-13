@@ -2,8 +2,6 @@ import { CancellationTokenSource, Disposable } from 'vscode-languageserver-proto
 import events from '../../events'
 import { disposeAll, wait } from '../../util'
 import { CancellationError } from '../../util/errors'
-import { afterEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 const disposables: Disposable[] = []
 afterEach(async () => {

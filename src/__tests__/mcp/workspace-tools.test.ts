@@ -16,8 +16,7 @@ import {
 import { CancellationToken } from '../../util/protocol'
 import { which } from '../../util/node'
 import workspace from '../../workspace'
-import { after, before, beforeEach, describe, it, mock } from 'node:test'
-import assert from 'node:assert/strict'
+import { mock } from 'node:test'
 
 let tmpdir: string
 const token = CancellationToken.None

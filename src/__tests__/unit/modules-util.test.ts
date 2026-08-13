@@ -1,5 +1,4 @@
 import style from 'ansi-styles'
-import * as assert from 'assert'
 import cp, { spawn } from 'child_process'
 import fs from 'fs'
 import os from 'os'
@@ -38,7 +37,7 @@ import * as textedits from '../../util/textedit'
 import { createTiming } from '../../util/timing'
 import StatusLine, { frames } from '../../model/status'
 import { waitValue } from './testUtils'
-import { after, before, describe, it, test } from 'node:test'
+import { test } from 'node:test'
 
 function createTextDocument(lines: string[]): LinesTextDocument {
   return new LinesTextDocument('file://a', 'txt', 1, lines, 1, true)
@@ -194,9 +193,8 @@ console.warn('warn')`, sandbox)
     fs.writeFileSync(filename, 'module.exports = {y: 1}', 'utf8')
     sandbox = factory.createSandbox(filename, emptyLogger, 'hook')
     exports = sandbox.require(filename)
-    // sandbox.require returns a VM-realm object whose prototype differs;
-    // deepEqual (like Vitest toEqual) ignores prototypes.
-    assert.deepEqual(exports, { y: 1 })
+    // Copy the VM-realm object into this realm before comparing it strictly.
+    assert.deepStrictEqual({ ...exports }, { y: 1 })
     fs.rmSync(filename, { force: true })
   })
 })

@@ -8,8 +8,6 @@ import TextRange from '../../cursors/textRange'
 import { getChange, getDelta, getVisualRanges, isSurroundChange, isTextChange, splitRange, SurroundChange, TextChange } from '../../cursors/util'
 import window from '../../window'
 import workspace from '../../workspace'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let cursors: Cursors

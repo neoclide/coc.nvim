@@ -8,8 +8,6 @@ import * as vsTypes from 'vscode-languageserver-types'
 import * as exportObj from '../../index'
 import type Plugin from '../../plugin'
 import workspace from '../../workspace'
-import { before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 interface TypingEnumMember {
   name: string

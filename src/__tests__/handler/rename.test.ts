@@ -9,8 +9,6 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import type RenameType from '../../handler/rename'
-import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let nvim: Neovim

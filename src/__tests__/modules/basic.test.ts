@@ -14,8 +14,6 @@ import Notification from '../../model/notification'
 import ProgressNotification from '../../model/progress'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import { afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let disposables: Disposable[] = []

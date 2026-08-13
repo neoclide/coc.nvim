@@ -14,8 +14,6 @@ import {
   writeInstanceFile
 } from '../../mcp/auth'
 import type { DiscoveryInfo } from '../../mcp/auth'
-import { after, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let dir: string
 
