@@ -19,6 +19,7 @@ describe('expandVariables', () => {
     // workspace/file vars require ctx
     assert.strictEqual(expandVariables('${workspaceFolder}'), '${workspaceFolder}')
     assert.strictEqual(expandVariables('${file}'), '${file}')
+    assert.strictEqual(expandVariables('${fileBasenameNoExtension}'), '${fileBasenameNoExtension}')
   })
 
   it('expands with a context', () => {

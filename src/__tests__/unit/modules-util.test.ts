@@ -16,6 +16,7 @@ import { filter, forEach, map, YieldOptions } from '../../util/async'
 import * as color from '../../util/color'
 import { pluginRoot } from '../../util/constants'
 import { getSymbolKind } from '../../util/convert'
+import Terminals from '../../core/terminals'
 import * as diff from '../../util/diff'
 import * as errors from '../../util/errors'
 import * as extension from '../../util/extensionRegistry'
@@ -35,6 +36,7 @@ import { Sequence } from '../../util/sequence'
 import * as strings from '../../util/string'
 import * as textedits from '../../util/textedit'
 import { createTiming } from '../../util/timing'
+import StatusLine, { frames } from '../../model/status'
 import { waitValue } from './testUtils'
 import { after, before, describe, it, test } from 'node:test'
 
@@ -936,6 +938,22 @@ describe('lodash', () => {
 describe('color', () => {
   it('should check dark color', () => {
     assert.strictEqual(color.isDark(Color.create(0.03, 0.01, 0.01, 0)), true)
+    assert.strictEqual(color.isDark(Color.create(1, 1, 1, 1)), false)
+  })
+})
+
+describe('status and terminal lifecycle', () => {
+  it('disposes and resets without a Neovim instance', () => {
+    const status = new StatusLine()
+    assert.ok(Array.isArray(frames))
+    assert.ok(frames.length > 0)
+    status.reset()
+    status.dispose()
+
+    const terminals = new Terminals()
+    assert.deepStrictEqual(terminals.terminals, [])
+    terminals.reset()
+    terminals.dispose()
   })
 })
 
