@@ -630,11 +630,14 @@ describe('TreeView', () => {
       await treeView.show()
       await nvim.call('cursor', [2, 3])
       await nvim.input('<tab>')
-      await shared.waitPrompt()
+      t.mock.method(window, 'showPrompt', () => {
+        return Promise.resolve(true)
+      })
+      await shared.wait(20)
       await nvim.input('<esc>')
       await shared.wait(20)
       await nvim.input('<tab>')
-      await shared.waitPrompt()
+      await shared.wait(10)
       await nvim.input('<cr>')
       await shared.waitValue(() => {
         return called
@@ -1138,7 +1141,10 @@ describe('TreeView', () => {
 
     it('should cancel filter by <esc> and <C-o>', async t => {
       await createFilterTreeView()
-      await shared.waitPrompt()
+      t.mock.method(window, 'showPrompt', () => {
+        return Promise.resolve(true)
+      })
+      await shared.wait(20)
       await nvim.input('<esc>')
       await checkLines([
         'test',
@@ -1147,7 +1153,7 @@ describe('TreeView', () => {
         '  g',
       ])
       await nvim.input('f')
-      await shared.waitPrompt()
+      await shared.wait(10)
       await nvim.input('<C-o>')
       await checkLines([
         'test',

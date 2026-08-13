@@ -73,6 +73,8 @@ function setupTestEnvironment(editor) {
   // Unit tests use os.tmpdir()/coc-test for scratch files; runner state stays
   // under the separate coc-test-native base.
   const dataHome = path.join(os.tmpdir(), 'coc-test-native', editor ?? 'unit', `${process.pid}-${threadId}`)
+  const tmpdir = process.env.TMPDIR = path.join(dataHome, 'tmp')
+  fs.mkdirSync(tmpdir, {recursive: true})
   fs.mkdirSync(path.join(dataHome, 'mcp'), {recursive: true})
   fs.mkdirSync(path.join(dataHome, 'vimconfig'), {recursive: true})
   process.env.NODE_ENV = 'test'

@@ -14,7 +14,7 @@ import path from 'path'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import { CreateFile, DeleteFile, Position, Range, RenameFile, SnippetTextEdit, StringValue, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
+import { TestContext, after, afterEach, before, beforeEach, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 
 
@@ -516,7 +516,7 @@ describe('applyEdits()', () => {
   })
 
   it('should should support annotations', async t => {
-    async function assertEdit(confirm: boolean, description: string | undefined): Promise<void> {
+    async function assertEdit(t: TestContext, confirm: boolean, description: string | undefined): Promise<void> {
       let doc = await shared.createDocument(crypto.randomUUID())
       let edit: WorkspaceEdit = {
         documentChanges: [
@@ -554,8 +554,8 @@ describe('applyEdits()', () => {
         assert.strictEqual(content, '\n')
       }
     }
-    await assertEdit(true, 'description')
-    await assertEdit(false, undefined)
+    await assertEdit(t, true, 'description')
+    await assertEdit(t, false, undefined)
   })
 })
 

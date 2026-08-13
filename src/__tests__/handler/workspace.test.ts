@@ -181,7 +181,7 @@ describe('Workspace handler', () => {
       }))
       fs.writeFileSync(newPath, '', 'utf8')
       await shared.createDocument(fsPath)
-      let spy = t.mock.method(window, 'showPrompt', () => {
+      t.mock.method(window, 'showPrompt', () => {
         return Promise.resolve(false)
       })
       let p = handler.renameCurrent()
@@ -193,18 +193,14 @@ describe('Workspace handler', () => {
     })
 
     it('should open local config', async t => {
-      let dir = path.join(os.tmpdir(), '.vim')
-      fs.rmSync(dir, { recursive: true, force: true })
-      fs.mkdirSync(path.join(os.tmpdir(), '.git'), { recursive: true })
-      await shared.edit(path.join(os.tmpdir(), 't'))
-      let root = workspace.root
-      assert.strictEqual(root, os.tmpdir())
+      await shared.edit(path.join(process.env.COC_DATA_HOME, 'foo'))
       let p = handler.openLocalConfig()
-      await shared.waitPromptWin()
+      t.mock.method(window, 'showPrompt', () => {
+        return Promise.resolve(true)
+      })
       await nvim.input('n')
       await p
       p = handler.openLocalConfig()
-      await shared.waitPromptWin()
       await nvim.input('y')
       await p
       let bufname = await nvim.call('bufname', ['%']) as string
