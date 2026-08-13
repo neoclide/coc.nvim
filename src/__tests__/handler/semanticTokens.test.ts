@@ -7,6 +7,7 @@ import path from 'path'
 import { CancellationToken, CancellationTokenSource, Disposable, Position, Range, SemanticTokensLegend, TextEdit } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import commandManager from '../../commands'
+import { CompleteOption } from '../../completion/types'
 import events from '../../events'
 import SemanticTokensBuffer, { NAMESPACE, toHighlightPart } from '../../handler/semanticTokens/buffer'
 import SemanticTokens from '../../handler/semanticTokens/index'
@@ -764,6 +765,58 @@ describe('semanticTokens', () => {
       await curr.requestAllHighlights(CancellationToken.None, false)
       let markers = await buf.getExtMarks(ns, 0, -1, {})
       assert.ok(markers.length > 0)
+    })
+  })
+
+  describe('completing', () => {
+    function createOption(bufnr: number): CompleteOption {
+      return {
+        position: Position.create(0, 0),
+        bufnr,
+        line: 'fn main() {',
+        col: 0,
+        input: '',
+        filetype: 'rust',
+        filepath: '',
+        word: '',
+        followWord: '',
+        colnr: 1,
+        linenr: 1,
+        changedtick: 1
+      }
+    }
+
+    it('should skip onChange highlight while completing', async t => {
+      await createRustBuffer()
+      let doc = await workspace.document
+      let item = semanticTokens.getItem(doc.bufnr)
+      assert.notStrictEqual(item, undefined)
+      let spy = t.mock.method(item, 'doHighlight')
+      // Normal document change triggers highlight
+      item.onChange()
+      assert.strictEqual(spy.mock.callCount(), 1)
+      // Document change while completing should be skipped
+      await events.fire('CompleteStart', [createOption(doc.bufnr)])
+      assert.strictEqual(events.completing, true)
+      item.onChange()
+      assert.strictEqual(spy.mock.callCount(), 1)
+      await events.fire('CompleteDone', [{}, 1, doc.bufnr])
+    })
+
+    it('should refresh highlight on CompleteDone', async t => {
+      await createRustBuffer()
+      let doc = await workspace.document
+      let item = semanticTokens.getItem(doc.bufnr)
+      assert.notStrictEqual(item, undefined)
+      let spy = t.mock.method(item, 'doHighlight')
+      await events.fire('CompleteStart', [createOption(doc.bufnr)])
+      // Change during completing is skipped
+      item.onChange()
+      assert.strictEqual(spy.mock.callCount(), 0)
+      // CompleteDone should re-highlight the buffer
+      await events.fire('CompleteDone', [{}, 1, doc.bufnr])
+      assert.strictEqual(events.completing, false)
+      assert.strictEqual(spy.mock.callCount(), 1)
     })
   })
 

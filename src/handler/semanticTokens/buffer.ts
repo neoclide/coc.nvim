@@ -15,6 +15,7 @@ import { toNumber } from '../../util/numbers'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../../util/protocol'
 import { bytes, isHighlightGroupCharCode, toText } from '../../util/string'
 import window from '../../window'
+import events from '../../events'
 import workspace from '../../workspace'
 const logger = createLogger('semanticTokens-buffer')
 const yieldEveryMilliseconds = getConditionValue(15, 5)
@@ -118,6 +119,7 @@ export default class SemanticTokensBuffer implements SyncItem {
   }
 
   public onChange(): void {
+    if (events.completing) return
     // need debounce for document synchronize
     this.doHighlight().catch(onUnexpectedError)
   }

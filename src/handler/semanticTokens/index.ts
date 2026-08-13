@@ -77,6 +77,10 @@ export default class SemanticTokens {
         }
       }
     }, null, this.disposables)
+    events.on('CompleteDone', async (_item, _line, bufnr) => {
+      let item = this.highlighters.getItem(bufnr)
+      if (item) await item.doHighlight()
+    }, null, this.disposables)
     events.on('BufWinEnter', async (bufnr: number, winid: number) => {
       let item = this.highlighters.getItem(bufnr)
       if (item) await item.onShown(winid)
