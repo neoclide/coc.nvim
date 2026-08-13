@@ -136,15 +136,20 @@ export function globVariants(pattern: string): string[] {
   let staticPart = metaIdx === -1 ? pattern : pattern.slice(0, metaIdx)
   let rest = metaIdx === -1 ? '' : pattern.slice(metaIdx)
   let trimmed = staticPart.replace(/[\\/]+$/, '')
-  let staticDir = trimmed === '' ? staticPart : path.dirname(trimmed)
-  let base = trimmed === '' ? '' : path.basename(trimmed)
+  // The static part ends with a separator for "dir/**" globs: the last
+  // component is a complete directory, so resolve it as well (a glob through
+  // a symlink such as "link/**" needs a variant for the target path).
+  // Otherwise the last component is a filename fragment like "link*" and only
+  // its parent directory can be resolved.
+  let dirPrefix = metaIdx > 0 && /[\\/]/.test(pattern[metaIdx - 1])
+  let staticDir = dirPrefix ? trimmed : (trimmed === '' ? staticPart : path.dirname(trimmed))
+  let base = dirPrefix ? '' : (trimmed === '' ? '' : path.basename(trimmed))
   let resolved = realFsPath(staticDir)
   if (resolved !== staticDir) {
     let joined = base ? path.join(resolved, base) : resolved
     if (rest) {
       // "dir/**" needs a separator, "secret*" does not
-      let sepNeeded = metaIdx > 0 && /[\\/]/.test(pattern[metaIdx - 1])
-      variants.push(joined + (sepNeeded ? '/' : '') + rest)
+      variants.push(joined + (dirPrefix ? '/' : '') + rest)
     } else {
       variants.push(joined)
     }
