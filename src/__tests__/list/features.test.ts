@@ -11,8 +11,8 @@ import { getExtensionPrefix, getExtensionPriority, sortExtensionItem } from '../
 import { mruScore } from '../../list/source/lists'
 import { contentToItems, getFilterText, loadCtagsSymbols, symbolsToListItems } from '../../list/source/outline'
 import { sortSymbolItems, toTargetLocation } from '../../list/source/symbols'
-import { IList, ListContext, ListItem, ListTask } from '../../list/types'
-import { convertItemLabel, indexOf, parseInput, toInputs } from '../../list/worker'
+import { IList, ListContext, ListItem, ListOptions, ListTask } from '../../list/types'
+import Worker, { convertItemLabel, indexOf, parseInput, toInputs } from '../../list/worker'
 import { disposeAll } from '../../util'
 import { os, path } from '../../util/node'
 import window from '../../window'
@@ -534,6 +534,60 @@ describe('list worker', () => {
     await shared.waitValue(() => {
       return manager.isActivated
     }, false)
+  })
+
+  function createWorker(loadItems: IList['loadItems']): Worker {
+    let prompt = new Prompt(nvim)
+    let options: ListOptions = {
+      position: 'bottom',
+      reverse: false,
+      input: '',
+      ignorecase: false,
+      interactive: true,
+      sort: true,
+      mode: 'insert',
+      matcher: 'fuzzy',
+      autoPreview: false,
+      numberSelect: false,
+      noQuit: false,
+      first: false
+    }
+    let list = {
+      name: 'test',
+      actions: [],
+      defaultAction: 'open',
+      loadItems
+    } as IList
+    return new Worker(list, prompt, options)
+  }
+
+  it('resets loading and token when loadItems rejects', async t => {
+    let worker = createWorker(() => Promise.reject(new Error('boom')))
+    await assert.rejects(worker.loadItems({} as any), new RegExp('boom'))
+    assert.strictEqual(worker.isLoading, false)
+    assert.strictEqual((worker as any).tokenSource, null)
+  })
+
+  it('a stale cancelled request cannot clobber the state of a newer request', async t => {
+    let calls = 0
+    let resolveFirst: (v: any) => void = () => {}
+    let worker = createWorker(() => {
+      calls++
+      if (calls === 1) {
+        return new Promise(resolve => {
+          resolveFirst = resolve
+        })
+      }
+      return Promise.reject(new Error('second boom'))
+    })
+    let first = worker.loadItems({} as any)
+    worker.stop()
+    await assert.rejects(worker.loadItems({} as any), new RegExp('second boom'))
+    assert.strictEqual(worker.isLoading, false)
+    resolveFirst([{ label: 'x' }])
+    await first
+    assert.strictEqual(worker.isLoading, false)
+    assert.strictEqual(calls, 2)
   })
 })
 
