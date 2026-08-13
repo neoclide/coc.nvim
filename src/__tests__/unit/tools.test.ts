@@ -1,6 +1,10 @@
 'use strict'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { ToolRegistry } from '../../mcp/tools'
 import { createWorkspaceTools } from '../../mcp/tools/workspace'
+import { collectEditUris, errorResult, globVariants, textContent, textResult, toFsPath, toUri } from '../../mcp/tools/util'
 import { CancellationToken } from '../../util/protocol'
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
@@ -30,6 +34,69 @@ describe('mcp workspace tools', () => {
     let tool = tools.find(t => t.name === 'workspace/configuration')!
     let result = await tool.handler({ key: 'mcp.notARealKey' }, { token: CancellationToken.None })
     assert.strictEqual(result.structuredContent.value, undefined)
+  })
+})
+
+describe('mcp tool utilities', () => {
+  it('builds results and normalizes uris', () => {
+    assert.deepStrictEqual(textResult('hello'), {
+      content: [{ type: 'text', text: 'hello' }]
+    })
+    assert.deepStrictEqual(textResult('hello', { ok: true }), {
+      content: [{ type: 'text', text: 'hello' }],
+      structuredContent: { ok: true }
+    })
+    assert.deepStrictEqual(textContent('hello'), { type: 'text', text: 'hello' })
+    assert.deepStrictEqual(errorResult('boom'), {
+      content: [{ type: 'text', text: 'boom' }],
+      isError: true
+    })
+
+    const input = path.join(process.cwd(), 'src')
+    const uri = toUri(input)
+    assert.ok(uri.startsWith('file://'))
+    assert.strictEqual(toFsPath(uri), input)
+    assert.strictEqual(toUri('https://example.com/a'), 'https://example.com/a')
+  })
+
+  it('collects edit uris and adds symlink glob variants', (t) => {
+    const uris = collectEditUris({
+      changes: {
+        'file:///a.ts': [],
+        'file:///b.ts': []
+      },
+      documentChanges: [
+        { textDocument: { uri: 'file:///c.ts' } },
+        { uri: 'file:///d.ts' },
+        { oldUri: 'file:///e.ts', newUri: 'file:///f.ts' },
+        null
+      ]
+    })
+    assert.deepStrictEqual(uris, [
+      'file:///a.ts',
+      'file:///b.ts',
+      'file:///c.ts',
+      'file:///d.ts',
+      'file:///e.ts',
+      'file:///f.ts'
+    ])
+
+    if (process.platform === 'win32') {
+      t.skip('symlink test is posix-only')
+      return
+    }
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-glob-'))
+    const target = path.join(root, 'real')
+    const link = path.join(root, 'link')
+    fs.mkdirSync(target)
+    fs.symlinkSync(target, link, 'dir')
+    const variants = globVariants(link + '/**')
+    assert.strictEqual(variants[0], link + '/**')
+    assert.strictEqual(
+      variants[1],
+      path.join(fs.realpathSync(path.dirname(link)), path.basename(link)) + path.sep + '**'
+    )
+    fs.rmSync(root, {recursive: true, force: true})
   })
 })
 

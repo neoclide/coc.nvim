@@ -146,6 +146,29 @@ test('DefaultErrorHandler restart budget', () => {
   assert.ok(res.message.includes('crashed 3 times'))
 })
 
+test('DefaultErrorHandler reports crashes through output channel', () => {
+  let appended = ''
+  let handler = new DefaultErrorHandler('test', 1, {
+    appendLine: (value: string) => {
+      appended = value
+    }
+  } as any)
+  handler.milliseconds = 60 * 1000
+  handler.closed()
+  let res = handler.closed()
+  assert.strictEqual(res.action, CloseAction.DoNotRestart)
+  assert.match(appended, /server crashed 2 times/)
+})
+
+test('DefaultErrorHandler restarts after the crash budget window', async () => {
+  let handler = new DefaultErrorHandler('test', 1)
+  handler.closed()
+  handler.milliseconds = 1
+  await wait(20)
+  let res = handler.closed()
+  assert.strictEqual(res.action, CloseAction.Restart)
+})
+
 test('Delayer', () => {
   let count = 0
   let factory = () => {

@@ -17,6 +17,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {projectRoot} from './paths.mjs'
+import ts from 'typescript'
 
 const kCoverageFileRegex = /^coverage-\d+-\d{13}-\d+\.json$/
 const kLineEndingRegex = /\r?\n$/u
@@ -129,6 +130,25 @@ class SourceMap {
   }
 }
 
+const executableLinesBySource = new Map()
+const collectedSourceMaps = new WeakSet()
+
+function collectExecutableLines(sourceMap) {
+  if (collectedSourceMaps.has(sourceMap)) return
+  collectedSourceMaps.add(sourceMap)
+  for (const mapping of sourceMap.mappings) {
+    if (mapping.length < 6) continue
+    const source = mapping[2]
+    if (!source) continue
+    let lines = executableLinesBySource.get(source)
+    if (!lines) {
+      lines = new Set()
+      executableLinesBySource.set(source, lines)
+    }
+    lines.add(mapping[3] + 1)
+  }
+}
+
 class CoverageLine {
   constructor(line, startOffset, src, length = src?.length) {
     const newlineLength = src == null ? 0 : (kLineEndingRegex.exec(src)?.[0].length ?? 0)
@@ -180,8 +200,10 @@ function getLines(fileUrl, source) {
     return
   }
   let offset = 0
+  const executableLines = executableLinesBySource.get(fileUrl)
   const lines = source.split(kLineSplitRegex).map((text, i) => {
     const coverageLine = new CoverageLine(i + 1, offset, text)
+    if (executableLines) coverageLine.ignore = !executableLines.has(i + 1)
     offset += text.length
     return coverageLine
   })
@@ -215,10 +237,11 @@ function mapBundleScript(coverage, bundleUrl) {
     offset += length + 1
     return coverageLine
   })
+  const sourceMap = sourceMapFor(data)
+  collectExecutableLines(sourceMap)
   if (data.sourcesContent != null) {
     for (let j = 0; j < data.sources.length; j++) getLines(data.sources[j], data.sourcesContent[j])
   }
-  const sourceMap = sourceMapFor(data)
   const result = []
   for (const script of coverage.result) {
     if (script.url !== bundleUrl) continue
@@ -313,6 +336,75 @@ function isSrcFile(absPath) {
   return true
 }
 
+function isStringLiteralExpression(statement) {
+  return ts.isExpressionStatement(statement) &&
+    (ts.isStringLiteral(statement.expression) || ts.isNoSubstitutionTemplateLiteral(statement.expression))
+}
+
+function hasModifier(node, kind) {
+  return node.modifiers?.some(modifier => modifier.kind === kind) ?? false
+}
+
+function isEmittedStatement(statement) {
+  if (isStringLiteralExpression(statement)) return false
+  if (ts.isImportDeclaration(statement)) {
+    const clause = statement.importClause
+    if (!clause || clause.isTypeOnly) return false
+    if (clause.name && !clause.isTypeOnly) return true
+    if (clause.namedBindings) {
+      if (ts.isNamespaceImport(clause.namedBindings)) return false
+      if (ts.isNamedImports(clause.namedBindings)) {
+        return clause.namedBindings.elements.some(element => !element.isTypeOnly)
+      }
+    }
+    return false
+  }
+  if (ts.isImportEqualsDeclaration(statement)) return !statement.isTypeOnly
+  if (ts.isExportDeclaration(statement)) {
+    if (statement.isTypeOnly) return false
+    if (statement.exportClause) {
+      if (ts.isNamedExports(statement.exportClause)) {
+        return statement.exportClause.elements.some(element => !element.isTypeOnly)
+      }
+      return true
+    }
+    return true
+  }
+  if (ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement)) return false
+  if (ts.isModuleDeclaration(statement)) {
+    if (hasModifier(statement, ts.SyntaxKind.DeclareKeyword)) return false
+    if (statement.body && ts.isModuleBlock(statement.body)) return true
+    if (statement.body && ts.isModuleDeclaration(statement.body)) return isEmittedStatement(statement.body)
+    return false
+  }
+  if (ts.isEmptyStatement(statement)) return false
+  return true
+}
+
+/**
+ * Returns true for source files whose top-level statements are all erased at
+ * compile time (interfaces, type aliases, type-only imports/exports, declare
+ * namespaces). Those files have no runtime code and must not contribute
+ * uncovered lines to the coverage report.
+ */
+function isTypeOnlySource(absPath) {
+  const text = fs.readFileSync(absPath, 'utf8')
+  const sourceFile = ts.createSourceFile(absPath, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+  for (const statement of sourceFile.statements) {
+    if (isEmittedStatement(statement)) return false
+  }
+  return true
+}
+
+const typeOnlySourceCache = new Map()
+
+function isTypeOnlySourceCached(absPath) {
+  if (!typeOnlySourceCache.has(absPath)) {
+    typeOnlySourceCache.set(absPath, isTypeOnlySource(absPath))
+  }
+  return typeOnlySourceCache.get(absPath)
+}
+
 /**
  * Rebuilds the per-file coverage summary from the raw V8 coverage files
  * node:test copied into `rawDir`. Returns an array shaped like
@@ -332,7 +424,10 @@ export function buildSummaryFromRawDir(rawDir) {
       continue
     }
     for (const fn of mapBundleScript(coverage, bundleUrl)) {
-      if (!fn.url.startsWith('file:') || !isSrcFile(fileURLToPath(fn.url))) continue
+      if (!fn.url.startsWith('file:')) continue
+      const absPath = fileURLToPath(fn.url)
+      if (!isSrcFile(absPath)) continue
+      if (isTypeOnlySourceCached(absPath)) continue
       let entry = merged.get(fn.url)
       if (!entry) {
         entry = {url: fn.url, functions: []}

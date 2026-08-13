@@ -63,6 +63,26 @@ describe('mcp server lifecycle', () => {
     server.dispose()
   })
 
+  it('exposes server metadata and status', () => {
+    assert.strictEqual(server.authRequired, true)
+    assert.strictEqual(server.timeout, 1000)
+    assert.strictEqual(server.readTimeout, 15_000)
+    assert.strictEqual(server.maxInFlight, 16)
+    assert.strictEqual(server.maxRequestsPerSecond, 60)
+    assert.strictEqual(server.serverInfo().name, 'coc.nvim')
+    assert.strictEqual(server.capabilities().tools.listChanged, true)
+    const status = server.status()
+    assert.strictEqual(status.running, true)
+    assert.strictEqual(status.transport, 'tcp')
+    assert.strictEqual(Array.isArray(status.clients), true)
+    assert.deepStrictEqual(status.tools.sort(), ['boom', 'echo', 'fail'])
+  })
+
+  it('ignores cancelling requests without an id', () => {
+    server.cancelRequest({pending: new Map()} as any, null)
+    server.cancelRequest({pending: new Map()} as any, 1)
+  })
+
   async function authClient(): Promise<TestClient> {
     let client = new TestClient(address.port)
     let auth = await client.request(0, 'coc/auth', { token: 'test-token', clientInfo: { name: 'test', version: '1' } })
@@ -81,6 +101,22 @@ describe('mcp server lifecycle', () => {
     client.notify('notifications/initialized')
     return client
   }
+
+  it('reports client name, version and pid in status', async () => {
+    let client = new TestClient(address.port)
+    await client.request(0, 'coc/auth', { token: 'test-token', clientInfo: { name: 'status-test', version: '9', pid: 123 } })
+    await client.request(1, 'initialize', {
+      protocolVersion: '2025-06-18',
+      capabilities: {},
+      clientInfo: { name: 'status-test', version: '9', pid: 123 }
+    })
+    client.notify('notifications/initialized')
+    let status = server.status()
+    let found = status.clients.find((item: any) => item.name === 'status-test')
+    assert.strictEqual(found.version, '9')
+    assert.strictEqual(found.pid, 123)
+    client.close()
+  })
 
   it('rejects unix transport without a socket path', async () => {
     let invalid = new McpServer({
