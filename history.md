@@ -2,6 +2,10 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-14
+
+- Break Change: minimal node version changed from 20.19.0 to 22.15.0.
+
 ## 2026-08-13
 
 - Migrate the test suite from Vitest to the Node native test runner

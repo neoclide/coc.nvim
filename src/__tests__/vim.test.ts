@@ -569,7 +569,7 @@ describe('client API', () => {
     let dir = path.join(os.tmpdir(), `coc node check-${crypto.randomUUID()}`)
     fs.mkdirSync(dir, { recursive: true })
     let node = path.join(dir, 'my node')
-    fs.writeFileSync(node, '#!/bin/sh\necho "v20.19.0"\n', { mode: 0o755 })
+    fs.writeFileSync(node, '#!/bin/sh\necho "v22.15.0"\n', { mode: 0o755 })
     let saved = await nvim.eval('exists("g:coc_node_path") ? g:coc_node_path : ""') as string
     try {
       let code = [

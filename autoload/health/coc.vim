@@ -56,9 +56,9 @@ function! s:checkEnvironment() abort
   if empty(ms)
     let valid = 0
     call s:report_error('Unable to detect version of node, make sure your node executable is http://nodejs.org/')
-  elseif str2nr(ms[1]) < 20 || (str2nr(ms[1]) == 20 && str2nr(ms[2]) < 19)
+  elseif str2nr(ms[1]) < 22 || (str2nr(ms[1]) == 22 && str2nr(ms[2]) < 15)
     let valid = 0
-    call s:report_warn('Node.js version '.trim(output).' < 20.19.0, please upgrade node.js')
+    call s:report_warn('Node.js version '.trim(output).' < 22.15.0, please upgrade node.js')
   endif
   if valid
     call s:report_ok('Environment check passed')

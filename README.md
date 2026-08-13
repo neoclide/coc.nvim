@@ -29,7 +29,7 @@ _Custom popup menu with snippet support_
 
 Make sure you use Vim >= 9.0.0438 or Neovim >= 0.8.0.
 
-Install [Node.js](https://nodejs.org/en/download/) >= 20.19.0:
+Install [Node.js](https://nodejs.org/en/download/) >= 22.15.0:
 
 ```bash
 curl -sL install-node.vercel.app/lts | bash

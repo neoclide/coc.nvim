@@ -114,7 +114,7 @@ REQUIREMENTS						*coc-requirements*
 
 Neovim >= 0.8.0 or Vim >= 9.0.0438.
 
-NodeJS https://nodejs.org/ >= 20.19.0.
+NodeJS https://nodejs.org/ >= 22.15.0.
 
 For Neovim users, run |:checkhealth| to check for issues with your
 environment.
