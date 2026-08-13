@@ -9,7 +9,7 @@ import { createLogger } from '../logger'
 import type Document from '../model/document'
 import { defaultValue, disposeAll, getConditionValue, pariedCharacters } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
-import { onUnexpectedError } from '../util/errors'
+import { shouldIgnore } from '../util/errors'
 import * as Is from '../util/is'
 import { debounce } from '../util/node'
 import { toNumber } from '../util/numbers'
@@ -224,7 +224,6 @@ export class Completion implements Disposable {
       doc,
       this.config,
       sourceList)
-    events.completing = true
     void events.fire('CompleteStart', [option])
     complete.onDidRefresh(async () => {
       if (complete.isEmpty) {
@@ -409,7 +408,7 @@ export class Completion implements Disposable {
     if (!this.complete) return
     const { linenr, bufnr } = this.complete.option
     this._onFinish(CompleteFinishKind.Normal, close)
-    events.fire('CompleteDone', [{}, linenr, bufnr]).catch(onUnexpectedError)
+    void events.fire('CompleteDone', [{}, linenr, bufnr])
   }
 
   private _onFinish(kind: CompleteFinishKind, close: boolean) {
@@ -417,7 +416,6 @@ export class Completion implements Disposable {
     let inserted = kind === CompleteFinishKind.Confirm || this.popupEvent?.inserted
     if (inserted) this.addMruItem()
     let doc = this.complete.document
-    events.completing = false
     this.cancel()
     doc._forceSync()
     if (close) this.nvim.call('coc#pum#_close', [], true)
@@ -431,9 +429,15 @@ export class Completion implements Disposable {
     const option = complete.option
     this._onFinish(kind, close)
     if (resolved && kind == CompleteFinishKind.Confirm) {
-      await this.confirmCompletion(resolved.source, resolved.item, option)
+      try {
+        await this.confirmCompletion(resolved.source, resolved.item, option)
+      } catch (e) {
+        if (!shouldIgnore(e)) {
+          logger.error('Error on confirm completion:', e)
+        }
+      }
     }
-    events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item), option.linenr, option.bufnr]).catch(onUnexpectedError)
+    void events.fire('CompleteDone', [toCompleteDoneItem(item, resolved?.item), option.linenr, option.bufnr])
   }
 
   private async confirmCompletion(source: ISource, item: CompleteItem, option: CompleteOption): Promise<void> {

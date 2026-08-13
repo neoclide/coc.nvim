@@ -14,6 +14,7 @@ import { SnippetString } from '../../snippets/string'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
+import completion from '../../completion'
 
 let nvim: Neovim
 let doc: Document
@@ -80,7 +81,7 @@ describe('snippet provider', () => {
       await nvim.input('t')
       let s = snippetManager.session
       await doc.patchChange()
-      events.completing = false
+      completion.cancelAndClose()
       await s.onCompleteDone()
       line = await nvim.line
       assert.strictEqual(line, 'Ftft')

@@ -2,6 +2,7 @@ import { getCurrentPlugin } from '../../attach'
 import * as shared from '../sharedUtil'
 import commands from '../../commands'
 import sources from '../../completion/sources'
+import completion from '../../completion'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem } from '../../completion/types'
 import events from '../../events'
 import InlineCompletion, { checkInsertedAtBeginning, formatInsertText, getInserted, getInsertText, getPumInserted, InlineSession } from '../../handler/inline'
@@ -114,6 +115,7 @@ describe('InlineCompletion', () => {
       await inlineCompletion.accept(doc.bufnr)
       let line = await nvim.line
       assert.strictEqual(line, 'bar()')
+      completion.cancelAndClose()
     })
 
     it('should accept snippet inlineCompletion on pum navigate', async t => {

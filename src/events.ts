@@ -74,7 +74,9 @@ export enum EventName {
   WinClosed = 'WinClosed',
   BufWinLeave = 'BufWinLeave',
   ModeChanged = 'ModeChanged',
-  Message = 'Message'
+  Message = 'Message',
+  CompleteDone = 'CompleteDone',
+  CompleteStart = 'CompleteStart'
 }
 
 export type BufEvents = 'BufHidden' | 'BufEnter' | 'BufRename'
@@ -189,15 +191,6 @@ class Events {
       clearTimeout(timer)
     }
   }
-  /**
-   * @internal
-   */
-
-  public set completing(completing: boolean) {
-    this._completing = completing
-    this._pumVisible = completing
-    this._pumInserted = false
-  }
 
   public get completing(): boolean {
     return this._completing
@@ -277,6 +270,14 @@ class Events {
         this._insertMode = false
         this._pumVisible = false
         this._recentInserts = []
+        break
+      case EventName.CompleteStart:
+        this._completing = true
+        this._pumInserted = false
+        break
+      case EventName.CompleteDone:
+        this._completing = false
+        this._pumInserted = false
         break
       case EventName.CursorHoldI:
       case EventName.CursorMovedI:
