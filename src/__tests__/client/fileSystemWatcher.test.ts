@@ -5,8 +5,6 @@ import { URI } from 'vscode-uri'
 import { asRelativePattern } from '../../language-client/fileSystemWatcher'
 import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from '../../language-client/index'
 import { IFileSystemWatcher } from '../../types'
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 function createClient(fileEvents: IFileSystemWatcher | IFileSystemWatcher[] | undefined, middleware: Middleware = {}): LanguageClient {

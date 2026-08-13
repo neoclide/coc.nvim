@@ -4,8 +4,6 @@ import os from 'os'
 import path from 'path'
 import { checkPath, collectEditUris, errorResult, folderPaths, globMatch, globVariants, textResult, toFsPath, toUri } from '../../mcp/tools/util'
 import workspace from '../../workspace'
-import { after, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let tmpdir: string
 let allowedDir: string

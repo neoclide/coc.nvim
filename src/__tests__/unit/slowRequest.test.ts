@@ -1,8 +1,6 @@
 'use strict'
 import { BaseLanguageClient, MessageTransports } from '../../language-client/client'
 import { OutputChannel } from '../../types'
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 class RecordingChannel implements OutputChannel {
   public content = ''

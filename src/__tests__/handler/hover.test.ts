@@ -9,8 +9,6 @@ import { CancellationToken, Disposable, Hover, MarkedString, MarkupKind, Positio
 import { URI } from 'vscode-uri'
 import { Documentation } from '../../types'
 import type HoverHandlerType from '../../handler/hover'
-import { afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 // Editor runtime bundle: same module instances the session was created from.
 

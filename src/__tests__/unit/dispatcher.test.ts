@@ -5,8 +5,6 @@ import * as P from '../../mcp/protocol'
 import { McpServer } from '../../mcp/server'
 import { Session } from '../../mcp/session'
 import { ToolRegistry } from '../../mcp/tools'
-import { afterEach, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 describe('mcp dispatcher', () => {
   let socket: Socket

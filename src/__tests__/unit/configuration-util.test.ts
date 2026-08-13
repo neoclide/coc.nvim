@@ -1,9 +1,8 @@
-import * as assert from 'assert'
 import os from 'os'
 import { ParseError } from 'jsonc-parser'
 import { addToValueTree, toValuesTree, convertErrors, convertTarget, expand, expandObject, getConfigurationValue, getDefaultValue, mergeChanges, mergeConfigProperties, overrideIdentifiersFromKey, removeFromValueTree, scopeToOverrides, toJSONObject } from '../../configuration/util'
 import { ConfigurationTarget, ConfigurationUpdateTarget } from '../../configuration/types'
-import { describe, it, test } from 'node:test'
+import { test } from 'node:test'
 
 describe('Configuration utils', () => {
   it('convert parse errors', () => {
@@ -72,16 +71,15 @@ describe('Configuration utils', () => {
       'x.y.z': '${env:NODE_ENV}',
       env: '${env:NODE_ENV}'
     }, () => {}, true)
-    // toValuesTree builds null-prototype objects; deepEqual (like Vitest
-    // toEqual) ignores prototypes while deepStrictEqual does not.
-    assert.deepEqual(res, {
-      x: {
-        y: {
+    const nullObject = <T extends object>(value: T): T => Object.assign(Object.create(null), value)
+    assert.deepStrictEqual(res, nullObject({
+      x: nullObject({
+        y: nullObject({
           z: 'test'
-        }
-      },
+        })
+      }),
       env: 'test'
-    })
+    }))
   })
 
   it('should addToValueTree conflict #1', t => {
@@ -231,7 +229,7 @@ describe('Configuration utils', () => {
 
   it('should get json object', () => {
     let obj = [{ x: 1 }, { y: 2 }]
-    assert.deepEqual(toJSONObject(obj), obj)
+    assert.deepStrictEqual(toJSONObject(obj), obj.map(value => Object.assign(Object.create(null), value)))
   })
 })
 

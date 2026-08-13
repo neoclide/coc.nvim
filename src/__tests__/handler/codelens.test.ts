@@ -9,8 +9,6 @@ import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CodeLens, Command, Disposable, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
-import { afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let nvim: Neovim

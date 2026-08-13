@@ -7,8 +7,6 @@ import QuickPick from '../../model/quickpick'
 import { QuickPickItem } from '../../types'
 import { disposeAll } from '../../util'
 import window from '../../window'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 export type Item = QuickPickItem | string
 
 let nvim: Neovim

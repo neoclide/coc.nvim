@@ -6,8 +6,6 @@ import { McpServer } from '../../mcp/server'
 import { McpTool, ToolRegistry } from '../../mcp/tools'
 import { encodeMessage } from '../../mcp/framing'
 import { TestClient } from '../mcp/testClient'
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 async function authInit(client: TestClient): Promise<void> {
   await client.request(0, 'coc/auth', { token: 'sec-token' })

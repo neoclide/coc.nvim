@@ -8,8 +8,6 @@ import { disposeAll } from '../../util'
 import { Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import { Disposable } from 'vscode-languageserver-protocol'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let labels: string[] = []

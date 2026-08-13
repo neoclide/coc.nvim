@@ -9,8 +9,6 @@ import languages from '../../languages'
 import { createDocumentTools } from '../../mcp/tools/document'
 import { CancellationToken } from '../../util/protocol'
 import workspace from '../../workspace'
-import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let disposables: { dispose(): void }[] = []
 let tmpdir: string

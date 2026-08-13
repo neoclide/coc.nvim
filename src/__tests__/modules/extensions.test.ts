@@ -11,8 +11,6 @@ import { Disposable, disposeAll } from '../../util'
 import { writeFile, writeJson } from '../../util/fs'
 import window from '../../window'
 import workspace from '../../workspace'
-import { afterEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let tmpfolder: string
 let disposables: Disposable[] = []

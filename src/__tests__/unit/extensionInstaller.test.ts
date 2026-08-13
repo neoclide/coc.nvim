@@ -5,8 +5,6 @@ import { PassThrough } from 'stream'
 import child_process from 'child_process'
 import { getDependencies, getExtensionDependencies, Info, Installer, isNpmCommand, isYarn, registryUrl } from '../../extension/installer'
 import { remove } from '../../util/fs'
-import { afterEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 const rcfile = path.join(os.tmpdir(), '.npmrc')
 let tmpfolder: string

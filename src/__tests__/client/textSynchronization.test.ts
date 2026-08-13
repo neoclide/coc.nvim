@@ -11,8 +11,6 @@ import Document from '../../model/document'
 import { TextDocumentContentChange } from '../../types'
 import { remove } from '../../util/fs'
 import workspace from '../../workspace'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 function createClient(documentSelector: DocumentSelector | undefined | null | LanguageClientOptions, middleware: Middleware = {}, opts: any = {}): LanguageClient {

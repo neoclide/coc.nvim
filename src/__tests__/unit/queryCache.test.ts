@@ -1,7 +1,5 @@
 'use strict'
-import { describe, it } from 'node:test'
 import { QueryCache } from '../../mcp/tools/queryCache'
-import assert from 'node:assert/strict'
 
 describe('mcp QueryCache', () => {
   it('returns cached values within the ttl', t => {

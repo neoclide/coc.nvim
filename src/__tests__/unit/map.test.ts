@@ -1,6 +1,5 @@
-import * as assert from 'assert'
 import { LinkedMap, LRUCache, Touch } from '../../util/map'
-import { describe, test } from 'node:test'
+import { test } from 'node:test'
 
 describe('Map', () => {
 

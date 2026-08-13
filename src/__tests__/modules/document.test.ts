@@ -12,8 +12,6 @@ import { Disposable, disposeAll } from '../../util'
 import { applyEdits, filterSortEdits } from '../../util/textedit'
 import events from '../../events'
 import workspace from '../../workspace'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let nvim: Neovim
 

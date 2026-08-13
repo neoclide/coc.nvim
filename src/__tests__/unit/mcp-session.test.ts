@@ -1,7 +1,5 @@
 'use strict'
 import type { Socket } from 'net'
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 import { Session } from '../../mcp/session'
 
 function createSocket(t: any, overrides: Record<string, unknown> = {}): Socket {

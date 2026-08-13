@@ -1,5 +1,3 @@
-import { afterEach, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 import Memos from '../../model/memos'
 import os from 'os'
 import path from 'path'

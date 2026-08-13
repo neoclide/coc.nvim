@@ -15,8 +15,6 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Disposable, InlineCompletionContext, InlineCompletionItem, InlineCompletionTriggerKind, InlineValueText, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import type CommandsHandlerType from '../../handler/commands'
 import type SelectionRangeType from '../../handler/selectionRange'
-import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let nvim: Neovim

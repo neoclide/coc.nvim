@@ -1,8 +1,6 @@
 import { matchScoreWithPositions } from '../../completion/match'
 import { FuzzyMatch, matchSpansReverse, FuzzyWasi, initFuzzyWasm } from '../../model/fuzzyMatch'
 import { getCharCodes } from '../../util/fuzzy'
-import { before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 describe('FuzzyMatch', () => {
   let api: FuzzyWasi

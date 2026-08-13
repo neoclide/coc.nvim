@@ -10,8 +10,6 @@ import { BackgroundScheduler, DiagnosticRequestor, DocumentPullStateTracker, Pul
 import { CancellationError } from '../../util/errors'
 import window from '../../window'
 import workspace from '../../workspace'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 

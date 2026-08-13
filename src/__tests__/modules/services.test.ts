@@ -14,8 +14,6 @@ import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import events from '../../events'
 import window from '../../window'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let disposables: Disposable[] = []

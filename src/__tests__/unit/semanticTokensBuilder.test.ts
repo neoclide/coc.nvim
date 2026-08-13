@@ -1,5 +1,4 @@
-import { describe, it, test } from 'node:test'
-import assert from 'node:assert/strict'
+import { test } from 'node:test'
 import { SemanticTokensBuilder } from '../../model/semanticTokensBuilder'
 import { Range, SemanticTokensLegend } from 'vscode-languageserver-protocol'
 

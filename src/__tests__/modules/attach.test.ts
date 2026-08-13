@@ -5,8 +5,7 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import { after, afterEach, before, beforeEach, describe, it, mock } from 'node:test'
-import assert from 'node:assert/strict'
+import { mock } from 'node:test'
 
 let nvim: Neovim
 let disposables: Disposable[] = []

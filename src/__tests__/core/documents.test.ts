@@ -13,8 +13,6 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import { LocationLink, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import type DocumentsType from '../../core/documents'
-import { after, afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let documents: DocumentsType

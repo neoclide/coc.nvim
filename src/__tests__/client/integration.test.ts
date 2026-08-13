@@ -1,5 +1,4 @@
 import * as shared from '../sharedUtil'
-import * as assert from 'assert'
 import cp, { ChildProcess } from 'child_process'
 import fs from 'fs'
 import os from 'os'
@@ -19,7 +18,6 @@ import * as extension from '../../util/extensionRegistry'
 import { Registry } from '../../util/registry'
 import window from '../../window'
 import workspace from '../../workspace'
-import { afterEach, describe, it } from 'node:test'
 import { createEventServer } from './server/inProcessEventServer'
 
 let disposables: Disposable[] = []

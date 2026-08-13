@@ -16,8 +16,6 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import type ConfigurationsType from '../../configuration/index'
 import type WorkspaceFolderControllerType from '../../core/workspaceFolder'
-import { after, afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let server: net.Server

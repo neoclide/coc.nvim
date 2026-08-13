@@ -2,8 +2,6 @@ import { Duplex } from 'stream'
 import { createProtocolConnection, ProgressType, DocumentSymbolParams, DocumentSymbolRequest, InitializeParams, InitializeRequest, InitializeResult, ProtocolConnection, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol/node'
 import { SymbolInformation, SymbolKind } from 'vscode-languageserver-types'
 import { NullLogger } from '../../language-client/client'
-import { afterEach, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 class TestStream extends Duplex {
   public _write(chunk: string, _encoding: string, done: () => void): void {

@@ -5,8 +5,6 @@ import { CancellationTokenSource } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import Picker, { toPickerItems } from '../../model/picker'
 import { QuickPickItem } from '../../types'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let picker: Picker

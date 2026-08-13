@@ -2,8 +2,6 @@ import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import { TerminalModel } from '../../model/terminal'
-import { after, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 let nvim: Neovim
 let terminal: TerminalModel

@@ -42,8 +42,6 @@ import {
 } from '../../mcp/tools/lsp'
 import { CancellationToken, CancellationTokenSource } from '../../util/protocol'
 import workspace from '../../workspace'
-import { after, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 describe('mcp lsp helpers', () => {
   before(() => {

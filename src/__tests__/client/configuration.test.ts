@@ -5,8 +5,6 @@ import { URI } from 'vscode-uri'
 import { SyncConfigurationFeature } from '../../language-client/configuration'
 import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from '../../language-client/index'
 import workspace from '../../workspace'
-import { after, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 function createClient(section: string | string[] | undefined, middleware: Middleware = {}, opts: Partial<LanguageClientOptions> = {}): LanguageClient {

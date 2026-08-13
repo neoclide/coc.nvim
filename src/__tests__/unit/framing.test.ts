@@ -1,6 +1,4 @@
 'use strict'
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 import { encodeMessage, FrameSplitter } from '../../mcp/framing'
 
 describe('mcp framing', () => {

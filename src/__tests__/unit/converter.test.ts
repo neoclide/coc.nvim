@@ -1,5 +1,3 @@
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 import { CompletionTriggerKind, Position, TextDocumentItem, TextDocumentSaveReason } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'

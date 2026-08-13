@@ -1,6 +1,5 @@
 import { isWhitespaceAtPos, fuzzyScore, isSeparatorAtPos, isPatternInWord, createMatches, FuzzyScorer, fuzzyScoreGraceful, fuzzyScoreGracefulAggressive, anyScore, nextTypoPermutation } from '../../util/filter'
-import * as assert from 'assert'
-import { describe, test } from 'node:test'
+import { test } from 'node:test'
 
 describe('filter functions', () => {
   function assertMatches(pattern: string, word: string, decoratedWord: string | undefined, filter: FuzzyScorer, opts: { patternPos?: number; wordPos?: number; firstMatchCanBeWeak?: boolean } = {}) {

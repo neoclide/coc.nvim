@@ -3,8 +3,7 @@ import os from 'os'
 import path from 'path'
 import DB from '../../model/db'
 import Mru from '../../model/mru'
-import { after, afterEach, before, describe, it, test } from 'node:test'
-import assert from 'node:assert/strict'
+import { test } from 'node:test'
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mru-'))
 
 let db: DB

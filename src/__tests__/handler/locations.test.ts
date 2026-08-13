@@ -9,8 +9,6 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, Disposable, Location, LocationLink, Position, Range } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import type LocationHandlerType from '../../handler/locations'
-import { after, afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let nvim: Neovim

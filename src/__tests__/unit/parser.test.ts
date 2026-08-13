@@ -1,8 +1,7 @@
 /* eslint-disable */
-import * as assert from 'assert'
 import { EvalKind } from '../../snippets/eval'
 import { Choice, CodeBlock, ConditionMarker, ConditionString, FormatString, getPlaceholderId, Marker, mergeTexts, Placeholder, Scanner, SnippetParser, Text, TextmateSnippet, TokenType, Transform, transformEscapes, Variable } from '../../snippets/parser'
-import { describe, test } from 'node:test'
+import { test } from 'node:test'
 
 describe('SnippetParser', () => {
 
@@ -272,7 +271,7 @@ describe('SnippetParser', () => {
     let [, placeholder] = new SnippetParser().parse('foo${1:bar\\}${2:foo}}').children
     let { children } = (<Placeholder>placeholder)
 
-    assert.equal((<Placeholder>placeholder).index, '1')
+    assert.equal((<Placeholder>placeholder).index, 1)
     assert.ok(children[0] instanceof Text)
     assert.equal(children[0].toString(), 'bar}')
     assert.ok(children[1] instanceof Placeholder)
@@ -785,8 +784,8 @@ describe('SnippetParser', () => {
     assert.equal(marker[2].toString(), ')')
 
     const placeholder = <Placeholder>marker[1]
-    assert.equal(placeholder, false)
-    assert.equal(placeholder.index, '1')
+    assert.ok(placeholder)
+    assert.equal(placeholder.index, 1)
     assert.equal(placeholder.children.length, 3)
     assert.ok(placeholder.children[0] instanceof Text)
     assert.ok(placeholder.children[1] instanceof Variable)
@@ -828,7 +827,7 @@ describe('SnippetParser', () => {
     assert.equal(children[3].children.length, 1)
     assert.notEqual((<Placeholder>children[3]).transform, undefined)
     let transform = (<Placeholder>children[3]).transform
-    assert.equal(transform.regexp, '/\\s:=(.*)/')
+    assert.strictEqual(transform.regexp.source, '\\s:=(.*)')
     assert.equal(transform.children.length, 2)
     assert.ok(transform.children[0] instanceof FormatString)
     assert.equal((<FormatString>transform.children[0]).index, 1)
@@ -887,13 +886,13 @@ describe('SnippetParser', () => {
 
     const [, p1, , p2] = new SnippetParser().parse('errorContext: `${1:err}`, error:$1').children
 
-    assert.equal((<Placeholder>p1).index, '1')
-    assert.equal((<Placeholder>p1).children.length, '1')
-    assert.equal((<Text>(<Placeholder>p1).children[0]), 'err')
+    assert.equal((<Placeholder>p1).index, 1)
+    assert.equal((<Placeholder>p1).children.length, 1)
+    assert.equal((<Text>(<Placeholder>p1).children[0]).toString(), 'err')
 
-    assert.equal((<Placeholder>p2).index, '1')
-    assert.equal((<Placeholder>p2).children.length, '1')
-    assert.equal((<Text>(<Placeholder>p2).children[0]), 'err')
+    assert.equal((<Placeholder>p2).index, 1)
+    assert.equal((<Placeholder>p2).children.length, 1)
+    assert.equal((<Text>(<Placeholder>p2).children[0]).toString(), 'err')
   })
 
   test('Parser, default placeholder values and one transform', () => {
@@ -902,14 +901,14 @@ describe('SnippetParser', () => {
 
     const [, p3, , p4] = new SnippetParser().parse('errorContext: `${1:err}`, error:${1/err/ok/}').children
 
-    assert.equal((<Placeholder>p3).index, '1')
-    assert.equal((<Placeholder>p3).children.length, '1')
-    assert.equal((<Text>(<Placeholder>p3).children[0]), 'err')
+    assert.equal((<Placeholder>p3).index, 1)
+    assert.equal((<Placeholder>p3).children.length, 1)
+    assert.equal((<Text>(<Placeholder>p3).children[0]).toString(), 'err')
     assert.equal((<Placeholder>p3).transform, undefined)
 
-    assert.equal((<Placeholder>p4).index, '1')
-    assert.equal((<Placeholder>p4).children.length, '1')
-    assert.equal((<Text>(<Placeholder>p4).children[0]), 'ok')
+    assert.equal((<Placeholder>p4).index, 1)
+    assert.equal((<Placeholder>p4).children.length, 1)
+    assert.equal((<Text>(<Placeholder>p4).children[0]).toString(), 'ok')
     assert.notEqual((<Placeholder>p4).transform, undefined)
   })
 
@@ -972,15 +971,15 @@ describe('SnippetParser', () => {
 
     assert.equal(snippet.placeholders.length, 3)
     let [first, second] = snippet.placeholders
-    assert.equal(first.index, '1')
-    assert.equal(second.index, '2')
+    assert.equal(first.index, 1)
+    assert.equal(second.index, 2)
     assert.ok(second.parent === first)
     assert.ok(first.parent === snippet)
 
     snippet = new SnippetParser().parse('${VAR:default${1:value}}$0', true)
     assert.equal(snippet.placeholders.length, 2)
       ;[first] = snippet.placeholders
-    assert.equal(first.index, '1')
+    assert.equal(first.index, 1)
 
     assert.ok(snippet.children[0] instanceof Variable)
     assert.ok(first.parent === snippet.children[0])
@@ -1177,11 +1176,11 @@ describe('TextmateSnippet', () => {
 
     assert.equal(snippet.placeholders.length, 3)
     const [, second] = snippet.placeholders
-    assert.equal(second.index, '2')
+    assert.equal(second.index, 2)
 
     const enclosing = snippet.enclosingPlaceholders(second)
     assert.equal(enclosing.length, 1)
-    assert.equal(enclosing[0].index, '1')
+    assert.equal(enclosing[0].index, 1)
     let marker = snippet.placeholders.find(o => o.index == 2)
     let nested = new SnippetParser().parse('ddd$1eee', false)
     let err
@@ -1198,7 +1197,7 @@ describe('TextmateSnippet', () => {
 
     assert.equal(snippet.placeholders.length, 3)
     const [, second] = snippet.placeholders
-    assert.equal(second.index, '2')
+    assert.equal(second.index, 2)
 
     let nested = new SnippetParser().parse('dddeee$0', true)
     snippet.replace(second, nested.children)

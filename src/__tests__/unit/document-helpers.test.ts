@@ -11,8 +11,6 @@ import {
   toTextEdits,
   windowToRangeText
 } from '../../mcp/tools/document'
-import { after, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 describe('mcp document helpers', () => {
   let tmpdir: string

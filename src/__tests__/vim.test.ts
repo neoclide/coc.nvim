@@ -16,8 +16,6 @@ import type { VirtualTextItem } from '../handler/inlayHint/buffer'
 import languages from '../languages'
 import { sameFile } from '../util/fs'
 import workspace from '../workspace'
-import { afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 function disposeAll(disposables: Disposable[]): void {
   while (disposables.length) {

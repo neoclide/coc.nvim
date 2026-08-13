@@ -8,8 +8,6 @@ import workspace from '../../workspace'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, TypeHierarchyItem, Disposable, Range, SymbolKind, Position, SymbolTag } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
-import { afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let nvim: Neovim

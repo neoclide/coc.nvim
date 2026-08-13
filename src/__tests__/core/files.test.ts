@@ -14,8 +14,7 @@ import path from 'path'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import { CreateFile, DeleteFile, Position, Range, RenameFile, SnippetTextEdit, StringValue, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { TestContext, after, afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
+import { TestContext } from 'node:test'
 
 
 let nvim: Neovim

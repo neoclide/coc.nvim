@@ -7,8 +7,6 @@ import path from 'path'
 import { FrameSplitter } from '../../mcp/framing'
 import { McpServer } from '../../mcp/server'
 import { ToolRegistry } from '../../mcp/tools'
-import { after, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 const bridgePath = path.resolve(import.meta.dirname, '../../../bin/coc-mcp.js')
 

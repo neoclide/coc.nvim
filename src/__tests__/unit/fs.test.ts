@@ -5,8 +5,6 @@ import os from 'os'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { CancellationToken, CancellationTokenSource, Range } from 'vscode-languageserver-protocol'
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 export function wait(ms: number): Promise<void> {
   return new Promise(resolve => {

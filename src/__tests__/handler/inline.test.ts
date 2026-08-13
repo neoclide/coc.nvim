@@ -12,8 +12,6 @@ import workspace from '../../workspace'
 import type { Mock } from 'node:test'
 import { FormattingOptions, InlineCompletionItem, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import { Neovim } from '@chemzqm/neovim'
-import { afterEach, before, beforeEach, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let nvim: Neovim

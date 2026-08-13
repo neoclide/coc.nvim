@@ -14,8 +14,6 @@ import window from '../../window'
 import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CompletionTriggerKind, Disposable } from 'vscode-languageserver-protocol'
 import { ApplyKind, CompletionItem, CompletionItemApplyKinds, CompletionItemKind, CompletionList, InsertReplaceEdit, InsertTextFormat, InsertTextMode, Position, Range, TextEdit } from 'vscode-languageserver-types'
-import { afterEach, before, describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 
 let nvim: Neovim

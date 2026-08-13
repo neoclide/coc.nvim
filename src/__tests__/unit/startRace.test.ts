@@ -5,8 +5,6 @@ import { BaseLanguageClient, MessageTransports, NullLogger, State } from '../../
 import { StaticFeature } from '../../language-client/features'
 import { CloseAction, ErrorHandler } from '../../language-client/utils/errorHandler'
 import { OutputChannel } from '../../types'
-import { describe, it } from 'node:test'
-import assert from 'node:assert/strict'
 
 class TestStream extends Duplex {
   public _write(chunk: string, _encoding: string, done: () => void): void {

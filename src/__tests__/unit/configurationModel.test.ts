@@ -1,4 +1,3 @@
-import * as assert from 'assert'
 import { join } from 'path'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
@@ -12,7 +11,7 @@ import { mergeChanges } from '../../configuration/util'
 import { disposeAll } from '../../util'
 import { IJSONContributionRegistry, Extensions as JSONExtensions } from '../../util/jsonRegistry'
 import { Registry } from '../../util/registry'
-import { after, describe, test } from 'node:test'
+import { test } from 'node:test'
 
 describe('ConfigurationRegistry', () => {
   let disposables: Disposable[] = []
