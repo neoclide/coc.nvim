@@ -608,7 +608,10 @@ describe('list insert mappings', () => {
   it('should select action for visual selected items', async t => {
     await manager.start(['--normal', 'location'])
     await manager.session.ui.ready
-    await shared.waitPrompt()
+    t.mock.method(window, 'showPrompt', () => {
+      return Promise.resolve(true)
+    })
+    await shared.wait(10)
     await nvim.input('V')
     await shared.waitFor('mode', [], /v/i)
     await nvim.input('2')

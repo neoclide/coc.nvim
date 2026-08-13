@@ -309,12 +309,11 @@ describe('ExtensionManager', () => {
       disposables.push(Disposable.create(() => {
         documents.buffers.delete(bufnr)
       }))
-      ;(documents as any)._onDidOpenTextDocument.fire(doc)
+        ; (documents as any)._onDidOpenTextDocument.fire(doc)
       await shared.waitValue(() => ext.isActive, true)
       assert.strictEqual(ext.isActive, true)
       ext = await createExtension(manager, 'onFileSystem:zip')
       await shared.waitValue(() => ext.isActive, true)
-      assert.strictEqual(ext.isActive, true)
     })
   })
 
@@ -673,11 +672,11 @@ describe('ExtensionManager', () => {
       let fn = async () => {
         await item.extension.activate()
       }
-      await assert.rejects(fn(), )
+      await assert.rejects(fn(),)
       fn = async () => {
         item.extension.exports
       }
-      await assert.rejects(fn(), )
+      await assert.rejects(fn(),)
     })
 
     it('should catch error on deactivate', async t => {
@@ -741,7 +740,7 @@ describe('ExtensionManager', () => {
       assert.strictEqual(item.extension.isActive, true)
     })
 
-  it('should toggle local extension', async t => {
+    it('should toggle local extension', async t => {
       tmpfolder = createFolder()
       let folder = path.join(tmpfolder, 'local')
       createExtension(folder, { name: 'local', main: 'entry.js', engines: { coc: '>=0.0.1' } })

@@ -105,7 +105,7 @@ const editorJobs = Math.max(1, Number(values.jobs) || Math.min(8, os.cpus().leng
 const LANE_TEST_TIMEOUT = {unit: 3000, nvim: 5000, vim: 5000}
 // Editor files normally finish in seconds; 20s bounds a hung file (stuck
 // session start or teardown) instead of holding a pool slot for 15 minutes.
-const LANE_SHARD_TIMEOUT = {unit: 5 * 60 * 1000, nvim: 20 * 1000, vim: 20 * 1000}
+const LANE_SHARD_TIMEOUT = {unit: 10 * 1000, nvim: 20 * 1000, vim: 20 * 1000}
 
 async function loadTimings() {
   try {
@@ -199,10 +199,10 @@ const unitFiles = runnableByLane.unit
   .map(file => file.file)
 const unitPromise = lanes.includes('unit') && unitFiles.length > 0
   ? runLane('unit', {
-      files: unitFiles,
-      jobs: unitJobs,
-      reporter,
-    })
+    files: unitFiles,
+    jobs: unitJobs,
+    reporter,
+  })
   : Promise.resolve(null)
 
 const editorLanes = lanes.filter(lane => lane !== 'unit')
@@ -213,10 +213,10 @@ const editorFiles = editorLanes
   .map(file => file.file)
 const editorPromise = editorLanes.length > 0 && editorFiles.length > 0
   ? runLane(editorLanes[0], {
-      files: editorFiles,
-      jobs: editorJobs,
-      reporter,
-    })
+    files: editorFiles,
+    jobs: editorJobs,
+    reporter,
+  })
   : Promise.resolve(null)
 
 // Wait for both phases so a failing pool never orphans the other lane's
@@ -228,31 +228,31 @@ if (laneError) throw laneError.reason
 if (unitResult.value) await collect('unit', unitResult.value, unitFiles.length)
 if (editorResult.value) {
   const result = editorResult.value
-    // Split the aggregate result back into per-lane summaries from the
-    // per-file completion statuses.
-    timings = await persistTimings(timings, result)
-    for (const lane of editorLanes) {
-      let passed = 0
-      let laneFailed = 0
-      for (const file of runnableByLane[lane]) {
-        const counts = result.leafStats[file.file]
-        if (counts) {
-          passed += counts.passed
-          laneFailed += counts.failed
-        }
+  // Split the aggregate result back into per-lane summaries from the
+  // per-file completion statuses.
+  timings = await persistTimings(timings, result)
+  for (const lane of editorLanes) {
+    let passed = 0
+    let laneFailed = 0
+    for (const file of runnableByLane[lane]) {
+      const counts = result.leafStats[file.file]
+      if (counts) {
+        passed += counts.passed
+        laneFailed += counts.failed
       }
-      laneResults.push({
-        lane,
-        durationMs: result.durationMs,
-        result: {passed, failed: laneFailed, skipped: 0},
-        files: runnableByLane[lane].length,
-      })
-      failed += laneFailed
     }
-    for (const message of result.stats.diagnostics) {
-      reporter.error(`[test] ${message}`)
-    }
-    finalFailures.push(...result.stats.failures)
+    laneResults.push({
+      lane,
+      durationMs: result.durationMs,
+      result: {passed, failed: laneFailed, skipped: 0},
+      files: runnableByLane[lane].length,
+    })
+    failed += laneFailed
+  }
+  for (const message of result.stats.diagnostics) {
+    reporter.error(`[test] ${message}`)
+  }
+  finalFailures.push(...result.stats.failures)
 }
 reporter.finish()
 

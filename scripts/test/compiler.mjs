@@ -26,20 +26,7 @@ function editorLifecycleSource(editor) {
   const banner = `import { after as __cocAfter } from 'node:test'
 import { start as __cocStart, reset as __cocReset, stop as __cocStop } from 'coc-test/edit_session'
 globalThis.editorReset = __cocReset
-let __cocStartTimer
-try {
-  await Promise.race([
-    __cocStart(${JSON.stringify(editor)}),
-    new Promise((_, reject) => {
-      __cocStartTimer = setTimeout(() => reject(new Error('edit_session start timeout after 15s')), 15000)
-    })
-  ])
-} catch (error) {
-  await __cocStop()
-  throw error
-} finally {
-  clearTimeout(__cocStartTimer)
-}
+await __cocStart(${JSON.stringify(editor)})
 `
   const footer = `
 __cocAfter(async () => { await __cocStop() }, { timeout: 10000 })
