@@ -27,14 +27,6 @@ process.once('exit', () => {
   fs.rmSync(compileCacheDir, {recursive: true, force: true})
 })
 
-// Read once in the main process; every worker/editor child receives the
-// source with its compiled records instead of re-reading editor-session.mjs
-// from disk.
-const editorSessionSource = fs.readFileSync(
-  path.join(projectRoot, 'scripts', 'test', 'editor-session.mjs'),
-  'utf8'
-)
-
 function relPath(absPath) {
   // Relative inputs are relative to projectRoot (the run cwd); resolve them
   // against it explicitly so the mapping also works when the parent process
@@ -266,7 +258,6 @@ function runEditorProcess(
             send({
               type: 'compiled',
               records: testCompiler.recordsFor(message.files),
-              editorSessionSource,
             })
           } catch (error) {
             processError = error
@@ -406,8 +397,7 @@ function runUnitWorker(
       switch (message.type) {
         case 'request-compiled':
           // Send this worker only the entries assigned to it and their
-          // transitive src/__tests__ dependencies; unit tests never import
-          // coc-test/edit_session, so the session source is not sent here.
+          // transitive src/__tests__ dependencies.
           worker.postMessage({type: 'compiled', records: testCompiler.recordsFor(message.files)})
           break
         case 'progress':

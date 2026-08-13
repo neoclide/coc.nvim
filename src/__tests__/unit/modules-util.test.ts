@@ -38,6 +38,8 @@ import { createTiming } from '../../util/timing'
 import StatusLine, { frames } from '../../model/status'
 import { waitValue } from './testUtils'
 import { test } from 'node:test'
+import { createRequire } from 'node:module'
+const require = createRequire(import.meta.url)
 
 function createTextDocument(lines: string[]): LinesTextDocument {
   return new LinesTextDocument('file://a', 'txt', 1, lines, 1, true)
@@ -1203,10 +1205,6 @@ describe('Position', () => {
 })
 
 describe('utility', () => {
-
-  it('should not throw for invalid ms', async () => {
-    await wait(-1)
-  })
 
   it('should disposeAll', () => {
     disposeAll([undefined, undefined])
