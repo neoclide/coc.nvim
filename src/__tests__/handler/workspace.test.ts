@@ -193,6 +193,7 @@ describe('Workspace handler', () => {
     })
 
     it('should open local config', async t => {
+      workspace.workspaceFolderControl.addWorkspaceFolder(process.env.COC_DATA_HOME, true)
       await shared.edit(path.join(process.env.COC_DATA_HOME, 'foo'))
       let p = handler.openLocalConfig()
       t.mock.method(window, 'showPrompt', () => {

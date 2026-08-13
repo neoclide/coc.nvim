@@ -52,6 +52,8 @@ async function create(items: string[] | VimCompleteItem[], trigger = true, conf?
     await shared.waitFor('mode', [], 'i')
   }
   if (trigger) {
+    let bufnr = await nvim.call('bufnr', ['%']) as number
+    await shared.waitValue(() => workspace.isAttached(bufnr) && events.bufnr == bufnr, true)
     triggerCompletion(name)
     await shared.waitPopup()
   }
