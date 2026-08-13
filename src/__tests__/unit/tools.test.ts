@@ -94,7 +94,7 @@ describe('mcp tool utilities', () => {
     assert.strictEqual(variants[0], link + '/**')
     assert.strictEqual(
       variants[1],
-      path.join(fs.realpathSync(path.dirname(link)), path.basename(link)) + path.sep + '**'
+      path.join(fs.realpathSync(link), '**')
     )
     fs.rmSync(root, {recursive: true, force: true})
   })
