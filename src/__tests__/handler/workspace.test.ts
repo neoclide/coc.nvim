@@ -15,6 +15,8 @@ import snippetManager from '../../snippets/manager'
 import { disposeAll } from '../../util'
 import window from '../../window'
 import workspace from '../../workspace'
+import { createRequire } from 'node:module'
+const require = createRequire(import.meta.url)
 
 let nvim: Neovim
 let handler: WorkspaceHandler
