@@ -37,6 +37,10 @@ Notable changes of coc.nvim:
   `ERR_REQUIRE_ESM`, CJS dynamic `import()` of ESM works, and ESM reload
   creates a fresh context, caches and namespace. coc.nvim now starts Node
   with `--experimental-vm-modules` automatically.
+- Package `exports` resolution prefers a `coc.nvim` condition over `require`
+  and `import` (Node matches exports keys in object order, so the coc-specific
+  build wins only when checked first); nested conditions prefer `node` and
+  `require`.
 - Migrate extension loading to a per-extension VM loader: every extension now
   owns its own `vm.Context` and module cache, CommonJS modules execute through
   `vm.compileFunction` with an extension-local synchronous `require`, and

@@ -90,6 +90,91 @@ function isBuiltin(request: string): boolean {
 }
 
 /**
+ * Locate the node_modules package directory for a bare package request by
+ * walking up from the parent module.
+ */
+function findPackageDir(parentFile: string, request: string): string | undefined {
+  let name = request.startsWith('@') ? request.split('/').slice(0, 2).join('/') : request.split('/')[0]
+  let dir = path.dirname(parentFile)
+  while (true) {
+    let candidate = path.join(dir, 'node_modules', name)
+    if (fs.existsSync(path.join(candidate, 'package.json'))) {
+      return candidate
+    }
+    let parent = path.dirname(dir)
+    if (parent === dir) return undefined
+    dir = parent
+  }
+}
+
+function pickCocNvimTarget(target: any): string | undefined {
+  if (typeof target === 'string') return target
+  if (Array.isArray(target)) {
+    for (let i = 0; i < target.length; i++) {
+      let res = pickCocNvimTarget(target[i])
+      if (res) {
+        return res
+      }
+    }
+    return undefined
+  }
+  if (target !== null && typeof target === 'object') {
+    if (target['coc.nvim'] !== undefined) {
+      // The coc.nvim branch can itself be a nested conditions object; prefer
+      // the node / require conditions like the surrounding resolver.
+      return pickNestedTarget(target['coc.nvim'])
+    }
+  }
+  return undefined
+}
+
+function pickNestedTarget(target: any): string | undefined {
+  if (typeof target === 'string') return target
+  if (Array.isArray(target)) {
+    for (let i = 0; i < target.length; i++) {
+      let res = pickNestedTarget(target[i])
+      if (res) return res
+    }
+    return undefined
+  }
+  if (target !== null && typeof target === 'object') {
+    for (let key of ['node', 'require', 'import', 'default']) {
+      if (target[key] !== undefined) {
+        let res = pickNestedTarget(target[key])
+        if (res) return res
+      }
+    }
+  }
+  return undefined
+}
+
+/**
+ * If the package's `exports` map exposes a `coc.nvim` condition, return that
+ * target before Node's own condition matching runs. Node matches exports keys
+ * in object order, so a plain conditions-set entry cannot outrank an earlier
+ * `require` / `import` key; this pre-check makes the coc-specific build win.
+ */
+function resolveCocNvimExport(packageDir: string, subpath: string): string | undefined {
+  let pkg: any
+  try {
+    pkg = JSON.parse(fs.readFileSync(path.join(packageDir, 'package.json'), 'utf8'))
+  } catch (e) {
+    return undefined
+  }
+  let exportsField = pkg.exports
+  if (exportsField === null || typeof exportsField !== 'object' || Array.isArray(exportsField)) {
+    return undefined
+  }
+  // A flat conditions object (keys like import/require/coc.nvim) is the
+  // package-root target itself; subpath-keyed maps use their own entry.
+  let target = subpath === '.'
+    ? exportsField['.'] ?? exportsField['./'] ?? exportsField
+    : exportsField[subpath]
+  if (target === undefined) return undefined
+  return pickCocNvimTarget(target)
+}
+
+/**
  * One shared resolver for both `require` and `import` modes, backed by Node's
  * own resolution primitives. `import` mode uses the `import` export condition,
  * `require` mode uses the `require` condition.
@@ -103,11 +188,24 @@ export function resolveExtensionModule(
   if (request === 'coc.nvim') return { type: 'coc-api', id: 'coc.nvim' }
   if (isBuiltin(request)) return { type: 'builtin', id: request }
   let parentFile = parentIdentifier.startsWith('file://') ? fileURLToPath(parentIdentifier) : parentIdentifier
+  // A `coc.nvim` export condition wins over every other exports key.
+  let packageDir = findPackageDir(parentFile, request)
+  if (packageDir) {
+    let name = request.startsWith('@') ? request.split('/').slice(0, 2).join('/') : request.split('/')[0]
+    let subpath = request === name ? '.' : './' + request.slice(name.length + 1)
+    let cocTarget = resolveCocNvimExport(packageDir, subpath)
+    if (cocTarget) {
+      let filename = tryRealpath(path.join(packageDir, cocTarget))
+      if (fs.existsSync(filename)) {
+        return { type: 'file', filename, format: resolveModuleFormat(filename) }
+      }
+    }
+  }
   let record = new Module(parentFile)
   record.filename = parentFile
   record.id = parentFile
   record.paths = Module._nodeModulePaths(path.dirname(parentFile))
-  let conditions = mode === 'import' ? new Set(['node', 'import']) : new Set(['node', 'require'])
+  let conditions = mode === 'import' ? new Set(['coc.nvim', 'node', 'import']) : new Set(['coc.nvim', 'node', 'require'])
   let filename = Module._resolveFilename(request, record, false, { conditions })
   let normalized = tryRealpath(filename)
   return { type: 'file', filename: normalized, format: resolveModuleFormat(normalized) }
