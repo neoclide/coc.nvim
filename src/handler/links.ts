@@ -216,7 +216,16 @@ class LinkBuffer implements SyncItem {
   }
 
   public async getLinks(): Promise<void> {
-    if (!this.hasProvider || !this.config.enable || this.currentVersion === this.doc.version) return
+    if (!this.hasProvider) {
+      // Drop cached links once their provider is gone; resolving a link
+      // against a disposed provider fails on the stale source id.
+      if (this.links.length > 0) {
+        this.links = []
+        this.clearHighlight()
+      }
+      return
+    }
+    if (!this.config.enable || this.currentVersion === this.doc.version) return
     this.currentVersion = this.doc.version
 
     this.cancel()
