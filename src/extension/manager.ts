@@ -9,7 +9,6 @@ import { splitArray, toArray } from '../util/array'
 import { configHome, dataHome } from '../util/constants'
 import { onUnexpectedError } from '../util/errors'
 import { Extensions as ExtensionsInfo, IExtensionRegistry, IStringDictionary, getProperties } from '../util/extensionRegistry'
-import { ExtensionExport, createExtension } from '../util/factory'
 import { isDirectory, loadJson, remove, statAsync, watchFile } from '../util/fs'
 import * as Is from '../util/is'
 import type { IJSONSchema } from '../util/jsonSchema'
@@ -24,7 +23,7 @@ import workspace from '../workspace'
 import { ExtensionApiFactory } from './apiFactory'
 import { ExtensionModuleCache } from './moduleCache'
 import { CocModuleInterceptor } from './moduleInterceptor'
-import { loadExtensionModule } from './moduleLoader'
+import { ExtensionExports, loadExtensionModule } from './moduleLoader'
 import { ExtensionPathIndex, createModuleDescription } from './pathIndex'
 import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, validExtensionFolder } from './stat'
 
@@ -132,11 +131,6 @@ export class ExtensionManager {
    * callers from unknown ones.
    */
   private readonly cocRoot = path.resolve(__dirname)
-  /**
-   * Temporary development switch to compare implementations (see migration
-   * plan §15). Must be removed once the native loader is validated.
-   */
-  private readonly nativeLoader = process.env.COC_EXTENSION_LOADER !== 'legacy'
 
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
@@ -147,7 +141,6 @@ export class ExtensionManager {
 
   private ensureInterceptor(): void {
     if (this.interceptor) return
-    if (!this.nativeLoader) return
     this.apiFactory.initialize(require('../index'))
     this.interceptor = new CocModuleInterceptor(this.extensionPathIndex, this.apiFactory, this.cocRoot)
     this.interceptor.install()
@@ -505,7 +498,7 @@ export class ExtensionManager {
     let filename = path.join(root, packageJSON.main || 'index.js')
     let extensionPath = extensionType === ExtensionType.SingleFile ? filename : root
     let exports: any
-    let ext: ExtensionExport
+    let ext: ExtensionExports
     this.extensionPathIndex.add(createModuleDescription(id, root, filename))
     let subscriptions: Disposable[] = []
     const timing = createTiming(`activate ${id}`, 5000)
@@ -518,12 +511,10 @@ export class ExtensionManager {
             let isEmpty = typeof packageJSON.engines.coc === 'undefined'
             if (isEmpty || !fs.existsSync(filename)) {
               ext = { activate: () => {}, deactivate: null }
-            } else if (this.nativeLoader) {
+            } else {
               let desc = createModuleDescription(id, root, filename)
               this.moduleCache.clear(desc, this.cocRoot)
               ext = loadExtensionModule(desc)
-            } else {
-              ext = createExtension(id, filename, isEmpty)
             }
             let context = {
               subscriptions,

@@ -138,4 +138,34 @@ describe('loadExtensionModule', () => {
     let ext = loadExtensionModule(desc)
     assert.strictEqual(ext.activate!(undefined), 'a')
   })
+
+  it('should load a valid extension after a failed one', () => {
+    let folder = createFolder()
+    let bad = writeEntry(folder, "throw new Error('boom')", 'bad.js')
+    let good = writeEntry(folder, "exports.activate = () => ({ hello: 'world' })", 'good.js')
+    let badDesc = createModuleDescription('bad', folder, bad)
+    let goodDesc = createModuleDescription('good', folder, good)
+    assert.throws(() => loadExtensionModule(badDesc), (err: Error) => {
+      assert.match(String((err as any).cause), /boom/)
+      return true
+    })
+    let ext = loadExtensionModule(goodDesc)
+    assert.deepStrictEqual(ext.activate!(undefined), { hello: 'world' })
+  })
+
+  it('should load an extension entry through a symlinked root', () => {
+    let folder = createFolder()
+    let real = path.join(folder, 'real')
+    let linked = path.join(folder, 'linked')
+    fs.mkdirSync(real, { recursive: true })
+    let entry = writeEntry(real, "exports.activate = () => ({ symlink: true })")
+    try {
+      fs.symlinkSync(real, linked, 'dir')
+    } catch (e) {
+      return
+    }
+    let desc = createModuleDescription('sym', linked, path.join(linked, 'index.js'))
+    let ext = loadExtensionModule(desc)
+    assert.deepStrictEqual(ext.activate!(undefined), { symlink: true })
+  })
 })

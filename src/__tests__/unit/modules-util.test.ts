@@ -3,7 +3,6 @@ import cp, { spawn } from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import vm from 'vm'
 import { AnnotatedTextEdit, CancellationToken, CancellationTokenSource, ChangeAnnotation, Color, Position, Range, SymbolKind, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import { ConfigurationScope } from '../../configuration/types'
 import { LinesTextDocument } from '../../model/textdocument'
@@ -19,7 +18,6 @@ import Terminals from '../../core/terminals'
 import * as diff from '../../util/diff'
 import * as errors from '../../util/errors'
 import * as extension from '../../util/extensionRegistry'
-import * as factory from '../../util/factory'
 import * as fuzzy from '../../util/fuzzy'
 import * as Is from '../../util/is'
 import { Extensions, IJSONContributionRegistry } from '../../util/jsonRegistry'
@@ -38,8 +36,6 @@ import { createTiming } from '../../util/timing'
 import StatusLine, { frames } from '../../model/status'
 import { waitValue } from './testUtils'
 import { test } from 'node:test'
-import { createRequire } from 'node:module'
-const require = createRequire(import.meta.url)
 
 function createTextDocument(lines: string[]): LinesTextDocument {
   return new LinesTextDocument('file://a', 'txt', 1, lines, 1, true)
@@ -48,158 +44,6 @@ function createTextDocument(lines: string[]): LinesTextDocument {
 function toEdit(sl, sc, el, ec, text): TextEdit {
   return TextEdit.replace(Range.create(sl, sc, el, ec), text)
 }
-
-let logfile = path.join(os.tmpdir(), 'log_test.js')
-before(() => {
-  let code = `const {wait, nvim} = require('coc.nvim')
-console.log('log')
-console.debug('debug')
-console.info('info')
-console.error('error')
-console.warn('warn')
-module.exports = () => {
-  return {wait, nvim}
-}`
-  fs.writeFileSync(logfile, code, 'utf8')
-})
-
-after(() => {
-  fs.unlinkSync(logfile)
-})
-
-describe('factory', () => {
-  after(() => {
-    global.__TEST__ = true
-  })
-
-  const emptyLogger: factory.ILogger = {
-    log: () => {},
-    info: () => {},
-    error: () => {},
-    debug: () => {},
-    warn: () => {},
-    trace: () => {},
-    fatal: () => {},
-    mark: () => {}
-  }
-
-  it('should create logger', t => {
-    let fn = t.mock.fn()
-    const sandbox = factory.createSandbox(logfile, {
-      log: () => {
-        fn()
-      },
-      info: () => {
-        fn()
-      },
-      error: () => {
-        fn()
-      },
-      debug: () => {
-        fn()
-      },
-      warn: () => {
-        fn()
-      },
-      trace: () => {
-      },
-      fatal: () => {
-      },
-      mark: () => {
-      }
-    })
-    vm.runInContext(`
-console.log('log')
-console.debug('debug')
-console.info('info')
-console.error('error')
-console.warn('warn')`, sandbox)
-    assert.ok(fn.mock.callCount() > 0)
-  })
-
-  it('should create console', () => {
-    let res = factory.createConsole({ x: 1 }, {} as any)
-    assert.deepStrictEqual(res, { x: 1 })
-    let called = false
-    let val = 1
-    res = factory.createConsole({
-      warn: () => {
-      },
-      custom: () => {
-        val = 2
-      }
-    }, {
-      warn: () => {
-        called = true
-      }
-    } as any)
-      ; (res as any).custom()
-      ; (res as Console).warn()
-    assert.strictEqual(val, 1)
-    assert.strictEqual(called, true)
-  })
-
-  it('should copy properties', () => {
-    let obj = factory.copyGlobalProperties({} as any, global)
-    assert.strictEqual(typeof obj['fetch'], 'function')
-  })
-
-  it('should not throw process.chdir', () => {
-    const sandbox = factory.createSandbox(logfile, emptyLogger)
-    let res = vm.runInContext(`process.chdir()`, sandbox)
-    assert.strictEqual(res, undefined)
-  })
-
-  it('should throw with umask', () => {
-    const sandbox = factory.createSandbox(logfile, emptyLogger)
-    let res = vm.runInContext(`process.umask()`, sandbox)
-    assert.strictEqual(typeof res, 'number')
-    let err
-    try {
-      res = vm.runInContext(`process.umask(18)`, sandbox)
-    } catch (e) {
-      err = e
-    }
-    assert.notStrictEqual(err, undefined)
-  })
-
-  it('should throw with process.exit', () => {
-    const sandbox = factory.createSandbox(logfile, emptyLogger)
-    let err
-    try {
-      vm.runInContext(`process.exit()`, sandbox)
-    } catch (e) {
-      err = e
-    }
-    assert.notStrictEqual(err, undefined)
-  })
-
-  it('should get module prototype', () => {
-    const Module = require('module')
-    assert.notStrictEqual(factory.getProtoWithCompile(Module as any), undefined)
-    function fn() {}
-    assert.throws(() => {
-      factory.getProtoWithCompile(fn)
-    }, Error)
-    fn.prototype._compile = () => {}
-    assert.notStrictEqual(factory.getProtoWithCompile(fn), undefined)
-  })
-
-  it('should clear the cache', () => {
-    const Module = require('module')
-    let filename = path.join(os.tmpdir(), 'cache_test.js')
-    fs.writeFileSync(filename, 'module.exports = {x: 1}', 'utf8')
-    let sandbox = factory.createSandbox(filename, emptyLogger, 'hook')
-    let exports = sandbox.require(filename)
-    delete Module._cache[require.resolve(filename)]
-    fs.writeFileSync(filename, 'module.exports = {y: 1}', 'utf8')
-    sandbox = factory.createSandbox(filename, emptyLogger, 'hook')
-    exports = sandbox.require(filename)
-    // Copy the VM-realm object into this realm before comparing it strictly.
-    assert.deepStrictEqual({ ...exports }, { y: 1 })
-    fs.rmSync(filename, { force: true })
-  })
-})
 
 describe('platform', () => {
   it('should get platform', () => {

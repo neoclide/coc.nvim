@@ -22,7 +22,6 @@ export const VIM_TESTS = [
  */
 export const ISOLATED_UNIT_TESTS = [
   'src/__tests__/unit/configurationModel.test.ts',
-  'src/__tests__/unit/factory.test.ts',
   'src/__tests__/unit/moduleInterceptor.test.ts',
 ]
 
