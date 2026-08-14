@@ -3,22 +3,32 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { PassThrough } from 'stream'
 import { DidChangeTextDocumentNotification, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DocumentSelector, Position, Range, TextDocumentSaveReason, TextDocumentSyncKind, TextEdit, WillSaveTextDocumentNotification, WillSaveTextDocumentWaitUntilRequest } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
-import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from '../../language-client/index'
+import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions } from '../../language-client/index'
 import Document from '../../model/document'
 import { TextDocumentContentChange } from '../../types'
 import { remove } from '../../util/fs'
 import workspace from '../../workspace'
+import { createInProcessTestDocumentsServer } from './server/inProcessTestDocumentsServer'
 
+/**
+ * Starts the testDocuments server in-process over a duplex stream pair
+ * instead of forking a child process (see inProcessTestDocumentsServer.ts).
+ */
+function inProcessServer(): ServerOptions {
+  return async () => {
+    let serverInput = new PassThrough()
+    let serverOutput = new PassThrough()
+    createInProcessTestDocumentsServer(serverInput, serverOutput)
+    return { reader: serverOutput, writer: serverInput }
+  }
+}
 
 function createClient(documentSelector: DocumentSelector | undefined | null | LanguageClientOptions, middleware: Middleware = {}, opts: any = {}): LanguageClient {
-  const serverModule = path.join(import.meta.dirname, './server/testDocuments.js')
-  const serverOptions: ServerOptions = {
-    run: { module: serverModule, transport: TransportKind.ipc },
-    debug: { module: serverModule, transport: TransportKind.ipc, options: { execArgv: ['--nolazy', '--inspect=6014'] } }
-  }
+  const serverOptions: ServerOptions = inProcessServer()
   if (documentSelector === undefined) documentSelector = [{ scheme: 'file' }]
   const clientOptions: LanguageClientOptions = {
     documentSelector: Array.isArray(documentSelector) ? documentSelector : undefined,
