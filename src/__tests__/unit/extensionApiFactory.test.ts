@@ -50,9 +50,8 @@ describe('ExtensionApiFactory', () => {
     factory.initialize(core)
     let apiA = factory.getApi(description('a', '/ext/a')) as any
     let apiB = factory.getApi(description('b', '/ext/b')) as any
-    assert.strictEqual(apiA.workspace, core.workspace)
-    assert.strictEqual(apiA.workspace, apiB.workspace)
     // Registration surfaces are per-extension facades now.
+    assert.notStrictEqual(apiA.workspace, apiB.workspace)
     assert.notStrictEqual(apiA.commands, apiB.commands)
     assert.notStrictEqual(apiA.events, apiB.events)
     assert.notStrictEqual(apiA.languages, apiB.languages)
@@ -113,5 +112,65 @@ describe('ExtensionApiFactory', () => {
     let provider = { provideHover() {} }
     api.languages.registerHoverProvider('javascript', provider)
     assert.strictEqual(getExtensionId(provider), 'a')
+  })
+
+  it('should tag event handlers registered through once', () => {
+    let factory = new ExtensionApiFactory<object, object>()
+    let core = { events: { once(event: string, handler: Function) {} } }
+    factory.initialize(core)
+    let api = factory.getApi(description('a', '/ext/a')) as any
+    let handler = () => {}
+    api.events.once('Ready', handler)
+    assert.strictEqual(getExtensionId(handler), 'a')
+  })
+
+  it('should tag command objects registered through register', () => {
+    let factory = new ExtensionApiFactory<object, object>()
+    let core = { commands: { register(command: object) {} } }
+    factory.initialize(core)
+    let api = factory.getApi(description('a', '/ext/a')) as any
+    let command = { id: 'a.cmd', execute() {} }
+    api.commands.register(command)
+    assert.strictEqual(getExtensionId(command), 'a')
+  })
+
+  it('should wrap workspace onDid listeners with the extension id', () => {
+    let factory = new ExtensionApiFactory<object, object>()
+    let captured: Function | undefined
+    let core = {
+      workspace: {
+        onDidOpenTextDocument(listener: Function) {
+          captured = listener
+        }
+      }
+    }
+    factory.initialize(core)
+    let api = factory.getApi(description('a', '/ext/a')) as any
+    let listener = () => {
+      throw new Error('workspace boom')
+    }
+    api.workspace.onDidOpenTextDocument(listener)
+    assert.ok(captured)
+    assert.throws(() => (captured as Function)(), /\[extension: a\] workspace boom/)
+  })
+
+  it('should wrap workspace keymap callbacks with the extension id', () => {
+    let factory = new ExtensionApiFactory<object, object>()
+    let captured: Function | undefined
+    let core = {
+      workspace: {
+        registerKeymap(modes: string[], key: string, fn: Function) {
+          captured = fn
+        }
+      }
+    }
+    factory.initialize(core)
+    let api = factory.getApi(description('a', '/ext/a')) as any
+    let fn = () => {
+      throw new Error('keymap boom')
+    }
+    api.workspace.registerKeymap(['n'], 'k', fn)
+    assert.ok(captured)
+    assert.throws(() => (captured as Function)(), /\[extension: a\] keymap boom/)
   })
 })

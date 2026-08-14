@@ -82,7 +82,16 @@ export function installEsmHooks(
       if (!ctx) {
         throw new Error('Cannot resolve "coc.nvim" API owner: extension loader is not initialized')
       }
-      const filename = fileURLToPath(parentUrl)
+      let filename: string
+      try {
+        filename = fileURLToPath(parentUrl)
+      } catch (e) {
+        throw new Error(
+          'Cannot resolve "coc.nvim" API owner.\n\n' +
+          `Importer:\n  ${parentUrl}\n\n` +
+          'The importing module is not a file module.'
+        )
+      }
       const { id, api } = findOwner(filename, ctx)
       const url = virtualUrl(id)
       registry().set(url, api)

@@ -31,3 +31,36 @@ export function setExtensionId(target: unknown, extensionId: string): void {
     }
   }
 }
+
+/**
+ * Wrap a callback so thrown or rejected errors are prefixed with the owning
+ * extension id. Used for callbacks whose invocation site is outside
+ * coc.nvim's own error handling (for example protocol `Event` listeners).
+ */
+export function wrapCallbackWithExtension<T extends (...args: any[]) => any>(
+  callback: T,
+  extensionId: string
+): T {
+  const wrapped = function (this: unknown, ...args: any[]) {
+    try {
+      const res = (callback as (...a: any[]) => any).apply(this, args)
+      if (res != null && typeof (res as unknown as Promise<unknown>).then === 'function') {
+        return Promise.resolve(res).catch(e => {
+          throw prefixExtensionError(e, extensionId)
+        })
+      }
+      return res
+    } catch (e) {
+      throw prefixExtensionError(e, extensionId)
+    }
+  } as T
+  setExtensionId(wrapped, extensionId)
+  return wrapped
+}
+
+function prefixExtensionError(error: unknown, extensionId: string): unknown {
+  if (error instanceof Error && !error.message.startsWith('[extension:')) {
+    error.message = `[extension: ${extensionId}] ${error.message}`
+  }
+  return error
+}

@@ -91,10 +91,9 @@ export class ExtensionPathIndex {
 
   public findByFile(filename: string): ExtensionModuleDescription | undefined {
     for (const entry of this.entries) {
-      if (isInside(entry.realRoot, filename)) return entry
-    }
-    for (const entry of this.entries) {
-      if (isInside(entry.root, filename)) return entry
+      if (isInside(entry.realRoot, filename) || isInside(entry.root, filename)) {
+        return entry
+      }
     }
     return undefined
   }

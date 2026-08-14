@@ -177,13 +177,14 @@ export default class Complete {
         resolve()
       })
       timer = setTimeout(() => {
-        let names = Array.from(remains).map(n => {
+        let names = Array.from(remains)
+        let attributed = names.map(n => {
           let extension = extensionsBySource.get(n)
           return extension ? `${n} (${extension})` : n
         })
         disposable.dispose()
         tokenSource.cancel()
-        logger.warn(`Completion timeout after ${this.timeout}ms`, names)
+        logger.warn(`Completion timeout after ${this.timeout}ms`, attributed)
         this.nvim.setVar(`coc_timeout_sources`, names, true)
         resolve()
       }, this.timeout)

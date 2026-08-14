@@ -50,4 +50,21 @@ describe('extension callback attribution', () => {
     }
   })
 
+  it('should attribute errors from Command objects registered via register', () => {
+    let id = uniqueId()
+    let command = {
+      id,
+      execute() {
+        throw new Error('command object boom')
+      }
+    }
+    setExtensionId(command, 'coc-attr')
+    commandsManager.register(command, false)
+    try {
+      assert.throws(() => commandsManager.executeCommand(id), /\[extension: coc-attr\] command object boom/)
+    } finally {
+      commandsManager.unregister(id)
+    }
+  })
+
 })

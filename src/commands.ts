@@ -43,7 +43,7 @@ class CommandItem implements Disposable, Command {
   }
 
   private withExtension(e: any): any {
-    let extensionId = getExtensionId(this.impl)
+    let extensionId = getExtensionId(this.impl) || getExtensionId(this.thisArg)
     if (extensionId && e instanceof Error && !e.message.startsWith('[extension:')) {
       e.message = `[extension: ${extensionId}] ${e.message}`
     }

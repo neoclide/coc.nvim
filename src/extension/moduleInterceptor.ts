@@ -14,13 +14,16 @@ type ModuleWithLoad = typeof Module & {
 const NodeModule = Module as ModuleWithLoad
 
 /**
- * Process-wide `Module._load` wrapper that maps `require("coc.nvim")` to the
- * API of the importing extension.
+ * `Module._load` wrapper that maps `require("coc.nvim")` to the API of the
+ * importing extension.
  *
  * Only the exact request `coc.nvim` is special-cased; every other request
- * delegates to Node's original loader. The wrapper is installed once for the
- * process lifetime and is never nested by reloads. Unknown importers fail
- * with a diagnostic error instead of silently receiving an arbitrary API.
+ * delegates to Node's original loader. Production runs exactly one
+ * `ExtensionManager`, so one wrapper is installed for the process lifetime;
+ * each manager installs its own wrapper and chains to any previous one, so
+ * the most recently installed wrapper owns `coc.nvim` resolution. Extension
+ * reloads never install another wrapper. Unknown importers fail with a
+ * diagnostic error instead of silently receiving an arbitrary API.
  */
 export class CocModuleInterceptor<TCoreApi extends object, TExtensionApi extends object> {
   private installed = false

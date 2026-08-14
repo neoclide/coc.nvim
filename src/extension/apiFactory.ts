@@ -1,5 +1,5 @@
 'use strict'
-import { setExtensionId } from '../util/extensionId'
+import { setExtensionId, wrapCallbackWithExtension } from '../util/extensionId'
 import type { ExtensionModuleDescription } from './pathIndex'
 
 /**
@@ -65,7 +65,7 @@ export function createExtensionApi<TCoreApi extends object>(
   }
   if (wrapped.events) {
     wrapped.events = wrapApiObject(wrapped.events, extensionId, name => {
-      return name === 'on'
+      return name === 'on' || name === 'once'
     })
   }
   if (wrapped.languages) {
@@ -73,13 +73,22 @@ export function createExtensionApi<TCoreApi extends object>(
       return name.startsWith('register')
     })
   }
+  if (wrapped.workspace) {
+    wrapped.workspace = wrapApiObject(wrapped.workspace, extensionId, name => {
+      return name.startsWith('onDid') || name.startsWith('onWill') ||
+        name === 'registerKeymap' || name === 'registerExprKeymap' ||
+        name === 'registerInsertKeymap' || name === 'registerLocalKeymap' ||
+        name === 'registerBufferSync'
+    }, 'wrap')
+  }
   return api
 }
 
 function wrapApiObject<T extends object>(
   obj: T,
   extensionId: string,
-  isRegistration: (name: string) => boolean
+  isRegistration: (name: string) => boolean,
+  mode: 'tag' | 'wrap' = 'tag'
 ): T {
   if (obj == null || typeof obj !== 'object') return obj
   return new Proxy(obj, {
@@ -91,8 +100,14 @@ function wrapApiObject<T extends object>(
       if (typeof value !== 'function') return value
       if (isRegistration(prop)) {
         return (...args: any[]) => {
-          for (const arg of args) {
-            if (!Array.isArray(arg)) setExtensionId(arg, extensionId)
+          for (let i = 0; i < args.length; i++) {
+            const arg = args[i]
+            if (Array.isArray(arg)) continue
+            if (mode === 'wrap' && typeof arg === 'function') {
+              args[i] = wrapCallbackWithExtension(arg, extensionId)
+            } else {
+              setExtensionId(arg, extensionId)
+            }
           }
           return value.apply(target, args)
         }
