@@ -22,6 +22,7 @@ export function setExtensionId(target: unknown, extensionId: string): void {
     try {
       Object.defineProperty(target, extensionIdSymbol, {
         value: extensionId,
+        enumerable: false,
         configurable: true,
         writable: true
       })
