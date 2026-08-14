@@ -5,6 +5,23 @@ Notable changes of coc.nvim:
 ## 2026-08-14
 
 - Break Change: minimal node version changed from 20.19.0 to 22.15.0.
+- Migrate extension loading from the VM sandbox to Node.js native CommonJS
+  loading: extension entries now execute through `require()`, `coc.nvim`
+  never patches `Module.prototype._compile`, and `vm.runInContext()` based
+  execution is removed.
+- `require("coc.nvim")` now resolves to a per-extension top-level API object
+  instead of the shared core module: different extensions receive different
+  top-level objects while shared services such as `workspace` remain shared
+  underneath. The same extension receives a stable API object within one
+  activation; reload re-creates it.
+- Extensions now share the JavaScript Realm with coc.nvim core
+  (`globalThis`, `process`, constructors). The loader is intentionally not a
+  security sandbox; unknown callers of `require("coc.nvim")` fail with a
+  diagnostic error instead of receiving an arbitrary API.
+- Extension reload clears only modules owned by the reloaded extension;
+  coc.nvim core and unrelated extension modules stay cached. CommonJS
+  extension reload semantics are preserved; native ESM extension support is
+  planned as a separate follow-up.
 
 ## 2026-08-13
 
