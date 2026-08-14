@@ -9,7 +9,7 @@ import { splitArray, toArray } from '../util/array'
 import { configHome, dataHome } from '../util/constants'
 import { onUnexpectedError } from '../util/errors'
 import { Extensions as ExtensionsInfo, IExtensionRegistry, IStringDictionary, getProperties } from '../util/extensionRegistry'
-import { ExtensionExport, createExtension } from '../util/factory'
+import { ExtensionExport, createExtension, disposeExtension } from '../extension/loader'
 import { isDirectory, loadJson, remove, statAsync, watchFile } from '../util/fs'
 import * as Is from '../util/is'
 import type { IJSONSchema } from '../util/jsonSchema'
@@ -341,6 +341,7 @@ export class ExtensionManager {
       this.extensions.delete(id)
       this._onDidUnloadExtension.fire(id)
     }
+    disposeExtension(id)
   }
 
   public async reloadExtension(id: string): Promise<void> {

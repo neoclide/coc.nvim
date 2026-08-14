@@ -6,6 +6,23 @@ Notable changes of coc.nvim:
 
 - Break Change: minimal node version changed from 20.19.0 to 22.15.0.
 
+## 2026-08-15
+
+- Migrate extension loading to a per-extension VM loader: every extension now
+  owns its own `vm.Context` and module cache, CommonJS modules execute through
+  `vm.compileFunction` with an extension-local synchronous `require`, and
+  coc.nvim no longer patches `Module.prototype._compile`, wraps module sources
+  with `Module.wrap`, or executes extension code with `vm.runInContext()`.
+- Extension reload creates a fresh context and module cache: old global state
+  disappears and entry/dependencies re-execute, while other extensions are
+  untouched. Failed modules are removed from the cache and module graph and
+  are re-executed on the next load.
+- `require("coc.nvim")` resolves to a stable per-extension API object;
+  `require("process")` and `require("node:process")` return the sandbox
+  process facade (the same object as the global `process`) with exit/kill/etc.
+  stubbed, and mutable `require.cache`/`require.extensions` are no longer
+  exposed to extensions.
+
 ## 2026-08-13
 
 - Migrate the test suite from Vitest to the Node native test runner

@@ -17,12 +17,11 @@ export const VIM_TESTS = [
 ]
 
 /**
- * Unit files that mutate process-global singletons (configuration registry,
- * factory sandbox) must not share a worker with other files.
+ * Unit files that mutate process-global singletons (configuration registry)
+ * must not share a worker with other files.
  */
 export const ISOLATED_UNIT_TESTS = [
   'src/__tests__/unit/configurationModel.test.ts',
-  'src/__tests__/unit/factory.test.ts',
 ]
 
 /**
