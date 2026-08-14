@@ -5,7 +5,10 @@ import sources from '../../completion/sources'
 import { CompleteOption, CompleteResult, ExtendedCompleteItem, ISource, SourceConfig, SourceType, VimCompleteItem } from '../../completion/types'
 import { WordDistance } from '../../completion/wordDistance'
 import events from '../../events'
+import languages from '../../languages'
+import { CompletionItemProvider } from '../../provider'
 import { disposeAll, waitWithToken } from '../../util'
+import { setExtensionId } from '../../util/extensionId'
 import { byteLength } from '../../util/string'
 import workspace from '../../workspace'
 import { Neovim } from '@chemzqm/neovim'
@@ -179,6 +182,34 @@ describe('completion', () => {
       }))
       await nvim.input('if')
       await shared.waitFor('eval', ["get(g:,'coc_timeout_sources','')"], ['timeout'])
+    })
+
+    it('should attribute timeout sources to the owning extension', async t => {
+      shared.updateConfiguration('suggest.timeout', 30)
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: (_doc, _pos, token) => new Promise(resolve => {
+          let timer = setTimeout(() => resolve({ items: [{ label: 'foo' }], isIncomplete: false }), 200)
+          token.onCancellationRequested(() => clearTimeout(timer))
+        })
+      }
+      setExtensionId(provider, 'coc-timeout-ext')
+      disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
+      await nvim.input('if')
+      await shared.waitFor('eval', ["get(g:,'coc_timeout_sources','')"], ['foo'])
+    })
+
+    it('should recover from a source that throws synchronously', async t => {
+      let provider: CompletionItemProvider = {
+        provideCompletionItems: () => {
+          throw new Error('provider boom')
+        }
+      }
+      setExtensionId(provider, 'coc-err-ext')
+      disposables.push(languages.registerCompletionItemProvider('foo', 'f', null, provider))
+      await nvim.input('if')
+      await shared.waitValue(() => events.completing, false)
+      let cmdline = await shared.getCmdline()
+      assert.strictEqual(cmdline.includes('error'), false)
     })
 
     it('should change default sort method', { timeout: 10000 }, async t => {

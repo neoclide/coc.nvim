@@ -7,6 +7,8 @@ import type { ExtensionModuleDescription } from './pathIndex'
 
 const logger = createLogger('extension-loader')
 
+const noopActivate = (): unknown => undefined
+
 export interface ExtensionExports {
   activate: (context: unknown) => unknown
   deactivate?: () => unknown
@@ -91,18 +93,14 @@ export function normalizeExtensionExports(raw: unknown): ExtensionExports {
         typeof (defaultExport as { activate?: unknown }).activate === 'function') {
         return Object.assign({}, namespace, defaultExport) as ExtensionExports
       }
-      return { activate: () => {} }
+      return { activate: noopActivate }
     }
-    const exported = raw
-    if (typeof exported === 'function') {
-      return { activate: exported as (context: unknown) => unknown }
-    }
-    const activate = (exported as { activate?: unknown }).activate
+    const activate = (raw as { activate?: unknown }).activate
     if (typeof activate === 'function') {
-      return Object.assign({}, exported) as ExtensionExports
+      return Object.assign({}, raw) as ExtensionExports
     }
   }
-  return { activate: () => {} }
+  return { activate: noopActivate }
 }
 
 /**

@@ -116,6 +116,13 @@ describe('normalizeExtensionExports', () => {
     let res = normalizeExtensionExports(ns)
     assert.strictEqual(typeof res.activate, 'function')
   })
+
+  it('should return no-op activate for ESM default non-object exports', () => {
+    let ns = { default: 'text' }
+    Object.defineProperty(ns, Symbol.toStringTag, { value: 'Module' })
+    let res = normalizeExtensionExports(ns)
+    assert.strictEqual(typeof res.activate, 'function')
+  })
 })
 
 describe('getModuleType', () => {
@@ -195,6 +202,22 @@ describe('loadExtensionModule', () => {
       assert.match(String((err as any).cause), /entry boom/)
       return true
     })
+  })
+
+  it('should rethrow ExtensionLoadError thrown by a CommonJS entry', () => {
+    let folder = createFolder()
+    let inner = new ExtensionLoadError('inner', '/ext/inner', { cause: new Error('inner boom') })
+    ;(globalThis as any).__cocLoaderTestError = inner
+    let entry = writeEntry(folder, 'throw globalThis.__cocLoaderTestError')
+    let desc = createModuleDescription('rethrow-cjs', folder, entry)
+    try {
+      assert.throws(() => loadExtensionModule(desc), err => {
+        assert.strictEqual(err, inner)
+        return true
+      })
+    } finally {
+      delete (globalThis as any).__cocLoaderTestError
+    }
   })
 
   it('should preserve dependency error as cause', () => {
@@ -283,5 +306,21 @@ describe('loadExtensionModule', () => {
       assert.match(String((err as any).cause), /esm boom/)
       return true
     })
+  })
+
+  it('should rethrow ExtensionLoadError thrown by an ESM entry', async () => {
+    let folder = createFolder()
+    let inner = new ExtensionLoadError('inner-esm', '/ext/inner', { cause: new Error('esm inner boom') })
+    ;(globalThis as any).__cocLoaderTestError = inner
+    let entry = writeEntry(folder, 'throw globalThis.__cocLoaderTestError', 'index.mjs')
+    let desc = createModuleDescription('rethrow-esm', folder, entry, 'module')
+    try {
+      await assert.rejects(() => loadExtensionModuleAsync(desc), err => {
+        assert.strictEqual(err, inner)
+        return true
+      })
+    } finally {
+      delete (globalThis as any).__cocLoaderTestError
+    }
   })
 })

@@ -74,14 +74,21 @@ function createExtensionApi<TCoreApi extends object>(
     })
   }
   if (wrapped.workspace) {
-    wrapped.workspace = wrapApiObject(wrapped.workspace, extensionId, name => {
-      return name.startsWith('onDid') || name.startsWith('onWill') ||
-        name === 'registerKeymap' || name === 'registerExprKeymap' ||
-        name === 'registerInsertKeymap' || name === 'registerLocalKeymap' ||
-        name === 'registerBufferSync'
-    }, 'wrap')
+    wrapped.workspace = wrapApiObject(wrapped.workspace, extensionId, isWorkspaceRegistration, 'wrap')
   }
   return api
+}
+
+const WORKSPACE_REGISTRATION_METHODS = new Set([
+  'registerKeymap',
+  'registerExprKeymap',
+  'registerInsertKeymap',
+  'registerLocalKeymap',
+  'registerBufferSync'
+])
+
+function isWorkspaceRegistration(name: string): boolean {
+  return name.startsWith('onDid') || name.startsWith('onWill') || WORKSPACE_REGISTRATION_METHODS.has(name)
 }
 
 function wrapApiObject<T extends object>(

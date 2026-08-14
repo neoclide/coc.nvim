@@ -154,6 +154,26 @@ describe('ExtensionApiFactory', () => {
     assert.throws(() => (captured as Function)(), /\[extension: a\] workspace boom/)
   })
 
+  it('should wrap workspace onWill listeners with the extension id', () => {
+    let factory = new ExtensionApiFactory<object, object>()
+    let captured: Function | undefined
+    let core = {
+      workspace: {
+        onWillSaveTextDocument(listener: Function) {
+          captured = listener
+        }
+      }
+    }
+    factory.initialize(core)
+    let api = factory.getApi(description('a', '/ext/a')) as any
+    let listener = () => {
+      throw new Error('onWill boom')
+    }
+    api.workspace.onWillSaveTextDocument(listener)
+    assert.ok(captured)
+    assert.throws(() => (captured as Function)(), /\[extension: a\] onWill boom/)
+  })
+
   it('should wrap workspace keymap callbacks with the extension id', () => {
     let factory = new ExtensionApiFactory<object, object>()
     let captured: Function | undefined
@@ -172,5 +192,35 @@ describe('ExtensionApiFactory', () => {
     api.workspace.registerKeymap(['n'], 'k', fn)
     assert.ok(captured)
     assert.throws(() => (captured as Function)(), /\[extension: a\] keymap boom/)
+  })
+
+  it('should tolerate non-object registration surfaces', () => {
+    let factory = new ExtensionApiFactory<object, object>()
+    let core: any = { commands: 1, events: 'text', languages: false, workspace: true }
+    factory.initialize(core)
+    let api = factory.getApi(description('a', '/ext/a')) as any
+    assert.strictEqual(api.commands, 1)
+    assert.strictEqual(api.events, 'text')
+    assert.strictEqual(api.languages, false)
+    assert.strictEqual(api.workspace, true)
+  })
+
+  it('should proxy non-string property access to the shared target', () => {
+    let factory = new ExtensionApiFactory<object, object>()
+    let symbol = Symbol('custom')
+    let core: any = { commands: { registerCommand() {}, [symbol]: 42 } }
+    factory.initialize(core)
+    let api = factory.getApi(description('a', '/ext/a')) as any
+    assert.strictEqual(api.commands[symbol], 42)
+  })
+
+  it('should bind non-registration methods to the shared target', () => {
+    let factory = new ExtensionApiFactory<object, object>()
+    let commands = { registerCommand() {}, dispose() { return this } }
+    let core: any = { commands }
+    factory.initialize(core)
+    let api = factory.getApi(description('a', '/ext/a')) as any
+    let bound = api.commands.dispose
+    assert.strictEqual(bound(), commands)
   })
 })
