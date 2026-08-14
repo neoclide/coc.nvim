@@ -13,7 +13,6 @@ import type READLINE from 'readline'
 import type SEMVER from 'semver'
 import type UNIDECODE from 'unidecode'
 import { inspect, promisify, stripVTControlCharacters } from 'util'
-import type VM from 'vm'
 import type WHICH from 'which'
 
 export const fs = require('fs') as typeof FS
@@ -29,9 +28,7 @@ export const glob = require('glob') as typeof GLOB
 export const { minimatch } = require('minimatch') as typeof Minimatch
 export const which = require('which') as typeof WHICH
 export const semver = require('semver') as typeof SEMVER
-export const vm = require('vm') as typeof VM
 export const net = require('net') as typeof NET
 export const fastDiff = require('fast-diff') as typeof FASTDIFF
 export const unidecode = require('unidecode') as typeof UNIDECODE
 export { inspect, promisify }
-

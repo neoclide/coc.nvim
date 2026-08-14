@@ -33,6 +33,12 @@ export function errorResult(message: string): McpToolResult {
 }
 
 /**
+ * Schema fragments shared by tool definitions.
+ */
+export const uriProperty = { uri: { type: 'string' } } as const
+export const countProperty = { count: { type: 'integer' } } as const
+
+/**
  * Normalize a file URI or absolute path to a file URI string.
  */
 export function toUri(input: string): string {

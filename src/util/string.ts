@@ -219,6 +219,10 @@ export function isAlphabet(code: number): boolean {
   return false
 }
 
+export function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 export function doEqualsIgnoreCase(a: string, b: string, stopAt = a.length): boolean {
   if (typeof a !== 'string' || typeof b !== 'string') {
     return false

@@ -1,6 +1,7 @@
 'use strict'
 import { toObject } from '../util/object'
 import { MarkedOptions } from 'marked'
+import { escapeRegExp } from '../util/string'
 /**
  * Renderer for convert markdown to terminal string
  */
@@ -179,11 +180,6 @@ export function generateTableRow(text: string, escape: ((str: string) => string)
     data.push(parsed.splice(0, parsed.length - 1))
   })
   return data
-}
-
-function escapeRegExp(str: string): string {
-  // eslint-disable-next-line no-useless-escape
-  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&')
 }
 
 function unescapeEntities(html: string): string {

@@ -17,7 +17,7 @@ export function assert(condition: boolean): void {
   }
 }
 
-export const disconnectedText = 'transport disconnected'
+const disconnectedText = 'transport disconnected'
 
 /**
  * This error indicates a bug.

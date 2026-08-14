@@ -3,9 +3,10 @@ import { URI } from 'vscode-uri'
 import RelativePatternImpl from '../../model/relativePattern'
 import services from '../../services'
 import { child_process, fs, which } from '../../util/node'
+import { escapeRegExp } from '../../util/string'
 import workspace from '../../workspace'
 import type { McpTool, McpToolResult } from './index'
-import { checkPath, collectEditUris, errorResult, textResult, toFsPath } from './util'
+import { checkPath, collectEditUris, countProperty, errorResult, textResult, toFsPath, uriProperty } from './util'
 
 /**
  * Workspace tools: editor state, configuration, file search and file
@@ -97,10 +98,6 @@ export function searchWithRg(pattern: string, args: any, root: string, maxResult
       resolve(results)
     })
   })
-}
-
-export function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 export async function searchWithJs(pattern: string, args: any, root: string, maxResults: number): Promise<SearchMatch[]> {
@@ -277,7 +274,7 @@ export function createWorkspaceTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          count: { type: 'integer' },
+          ...countProperty,
           engine: { type: 'string' },
           matches: {
             type: 'array',
@@ -335,13 +332,13 @@ export function createWorkspaceTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          count: { type: 'integer' },
+          ...countProperty,
           files: {
             type: 'array',
             items: {
               type: 'object',
               properties: {
-                uri: { type: 'string' },
+                ...uriProperty,
                 filepath: { type: 'string' }
               }
             }
@@ -469,7 +466,7 @@ export function createWorkspaceTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           filepath: { type: 'string' },
           created: { type: 'boolean' }
         }

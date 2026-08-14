@@ -9,7 +9,7 @@ import { readFileLines } from '../../util/fs'
 import { fs } from '../../util/node'
 import workspace from '../../workspace'
 import { McpTool, ToolContext } from './index'
-import { checkPath, errorResult, resolveDocument, textResult, toFsPath, toUri } from './util'
+import { checkPath, countProperty, errorResult, resolveDocument, textResult, toFsPath, toUri, uriProperty } from './util'
 const logger = createLogger('mcp-document')
 
 const MAX_READ_BYTES = 2 * 1024 * 1024
@@ -131,7 +131,7 @@ export function createDocumentTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           version: { type: 'integer' },
           changedtick: { type: 'integer' },
           languageId: { type: 'string' },
@@ -200,7 +200,7 @@ export function createDocumentTools(): McpTool[] {
       inputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           startLine: { type: 'integer', default: 0 },
           endLine: { type: 'integer', description: 'Exclusive end line; defaults to the last line.' },
           maxLines: { type: 'integer', default: 5000 }
@@ -209,7 +209,7 @@ export function createDocumentTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           startLine: { type: 'integer' },
           endLine: { type: 'integer' },
           fromBuffer: { type: 'boolean' },
@@ -246,7 +246,7 @@ export function createDocumentTools(): McpTool[] {
       inputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           version: { type: 'integer', description: 'Document version from document/read; checked for optimistic concurrency.' },
           edits: {
             type: 'array',
@@ -274,7 +274,7 @@ export function createDocumentTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           applied: { type: 'boolean' },
           target: { type: 'string' },
           editCount: { type: 'integer' },
@@ -322,13 +322,13 @@ export function createDocumentTools(): McpTool[] {
       inputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' }
+          ...uriProperty
         }
       },
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           saved: { type: 'boolean' },
           version: { type: 'integer' }
         }
@@ -353,7 +353,7 @@ export function createDocumentTools(): McpTool[] {
       inputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           range: {
             type: 'object',
             properties: {
@@ -366,7 +366,7 @@ export function createDocumentTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           formatted: { type: 'boolean' },
           editCount: { type: 'integer' },
           version: { type: 'integer' }
@@ -417,7 +417,7 @@ export function createDocumentTools(): McpTool[] {
                 {
                   type: 'object',
                   properties: {
-                    uri: { type: 'string' },
+                    ...uriProperty,
                     line: { type: 'integer' },
                     col: { type: 'integer' }
                   },
@@ -431,7 +431,7 @@ export function createDocumentTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          count: { type: 'integer' },
+          ...countProperty,
           files: { type: 'array' }
         }
       },

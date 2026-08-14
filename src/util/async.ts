@@ -1,14 +1,7 @@
+import { waitImmediate } from './index'
 import { CancellationToken } from '../util/protocol'
 
 const defaultYieldTimeout = 15
-
-function waitImmediate(): Promise<void> {
-  return new Promise(resolve => {
-    setImmediate(() => {
-      resolve(undefined)
-    })
-  })
-}
 
 class Timer {
 

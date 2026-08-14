@@ -42,7 +42,7 @@ export interface ToolInfo {
   annotations?: ToolAnnotations
 }
 
-export function toToolInfo(tool: McpTool): ToolInfo {
+function toToolInfo(tool: McpTool): ToolInfo {
   let info: ToolInfo = {
     name: tool.name,
     description: tool.description,

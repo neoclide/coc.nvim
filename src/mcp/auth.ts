@@ -36,7 +36,7 @@ export function getMcpDir(): string {
   return process.env.COC_MCP_DIR || path.join(os.homedir(), '.coc', 'mcp')
 }
 
-export function getInstancesDir(mcpDir: string = getMcpDir()): string {
+function getInstancesDir(mcpDir: string = getMcpDir()): string {
   return mcpDir
 }
 

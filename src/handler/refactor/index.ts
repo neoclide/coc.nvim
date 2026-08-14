@@ -7,7 +7,7 @@ import events from '../../events'
 import languages, { ProviderName } from '../../languages'
 import { disposeAll } from '../../util'
 import { getFileLineCount } from '../../util/fs'
-import { compareRangesUsingStarts } from '../../util/position'
+import { adjustRange, compareRangesUsingStarts } from '../../util/position'
 import { Disposable, Emitter, Event } from '../../util/protocol'
 import { emptyWorkspaceEdit } from '../../util/textedit'
 import workspace from '../../workspace'
@@ -223,9 +223,4 @@ export default class Refactor {
     this.buffers.clear()
     disposeAll(this.disposables)
   }
-}
-
-function adjustRange(range: Range, offset: number): Range {
-  let { start, end } = range
-  return Range.create(start.line - offset, start.character, end.line - offset, end.character)
 }

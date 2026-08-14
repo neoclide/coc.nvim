@@ -27,7 +27,7 @@ import { equals } from '../../util/object'
 import workspace from '../../workspace'
 import { McpTool, McpToolResult, ToolContext } from './index'
 import { QueryCache } from './queryCache'
-import { collectEditUris, errorResult, resolveDocument, textResult } from './util'
+import { collectEditUris, countProperty, errorResult, resolveDocument, textResult, uriProperty } from './util'
 const logger = createLogger('mcp-lsp')
 
 const MAX_RESULTS_HARD_LIMIT = 1000
@@ -97,7 +97,7 @@ interface PositionedDoc {
   error?: string
 }
 
-export async function resolvePositionedDoc(args: any): Promise<PositionedDoc> {
+async function resolvePositionedDoc(args: any): Promise<PositionedDoc> {
   let ref = await resolveDocument(args?.uri, true)
   if (ref.error) return { doc: undefined, uri: ref.uri, error: ref.error }
   let doc = ref.doc!
@@ -164,7 +164,7 @@ export function configuredServiceId(doc: Document): string | undefined {
  * only; without a mapping nothing is touched. The setter is idempotent and
  * re-sending `$/setTrace` is avoided once the trace is already off.
  */
-export function disableLanguageTrace(doc: Document): void {
+function disableLanguageTrace(doc: Document): void {
   let serviceId = configuredServiceId(doc)
   if (!serviceId) return
   let service = services.getService(serviceId)
@@ -209,7 +209,7 @@ async function withQueryCache<T>(variant: string, doc: Document, pos: Position |
   return result
 }
 
-export function invalidateLspQueryCache(uri: string): void {
+function invalidateLspQueryCache(uri: string): void {
   lspQueryCache.deleteUri(uri)
 }
 
@@ -339,7 +339,7 @@ export function withServiceLimit<T>(serviceId: string, limit: number, fn: () => 
  * aggregation. Returns an error string when the service is missing or the
  * request failed.
  */
-export async function serviceCall(
+async function serviceCall(
   serviceId: string,
   method: string,
   params: any,
@@ -408,7 +408,7 @@ export const LOCATION_QUERIES: Record<string, LocationQuery> = {
   }
 }
 
-export function referencesQuery(includeDeclaration: boolean): LocationQuery {
+function referencesQuery(includeDeclaration: boolean): LocationQuery {
   return {
     provider: ProviderName.Reference,
     label: 'References',
@@ -458,7 +458,7 @@ export async function getLocationResult(
  * Shared location result body (truncated, uri + range only) used by the
  * individual tools and lsp/batch.
  */
-export async function locationResultBody(
+async function locationResultBody(
   doc: Document,
   pos: Position,
   serviceId: string | undefined,
@@ -473,7 +473,7 @@ export async function locationResultBody(
   return { count: limited.total, returned: items.length, truncated: limited.truncated, locations: items }
 }
 
-export async function locationTool(
+async function locationTool(
   args: any,
   context: ToolContext,
   query: LocationQuery,
@@ -637,7 +637,7 @@ export const BATCH_METHODS: string[] = [
 
 export const BATCH_POSITION_METHODS = new Set<string>(BATCH_METHODS.filter(m => m !== 'document_symbols'))
 
-export async function runBatchMethod(
+async function runBatchMethod(
   method: string,
   doc: Document,
   pos: Position | null,
@@ -810,7 +810,7 @@ export function symbolKindName(kind: any): string | undefined {
   return undefined
 }
 
-export async function getCodeActionList(args: any, context: ToolContext): Promise<{ doc?: Document, range?: Range, actions: CodeAction[], error?: string }> {
+async function getCodeActionList(args: any, context: ToolContext): Promise<{ doc?: Document, range?: Range, actions: CodeAction[], error?: string }> {
   let ref = await resolveDocument(args?.uri, true)
   if (ref.error) return { actions: [], error: ref.error }
   let doc = ref.doc!
@@ -836,7 +836,7 @@ export function positionInputSchema(extra?: Record<string, any>): Record<string,
   return {
     type: 'object',
     properties: {
-      uri: { type: 'string' },
+      ...uriProperty,
       position: { $ref: '#/definitions/Position' },
       maxResults: { type: 'integer', minimum: 1, maximum: MAX_RESULTS_HARD_LIMIT, description: 'Maximum number of results to return (default 200).' },
       ...extra
@@ -849,7 +849,7 @@ export function locationOutputSchema(locations?: Record<string, any>): Record<st
   return {
     type: 'object',
     properties: {
-      uri: { type: 'string' },
+      ...uriProperty,
       position: { type: 'object' },
       count: { type: 'integer', description: 'Total number of results found.' },
       returned: { type: 'integer', description: 'Number of results returned, may be less than count when truncated.' },
@@ -868,7 +868,7 @@ export function createLspTools(): McpTool[] {
       inputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           position: { $ref: '#/definitions/Position' },
         },
         required: ['position']
@@ -876,9 +876,9 @@ export function createLspTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           position: { type: 'object' },
-          count: { type: 'integer' },
+          ...countProperty,
           hovers: {
             type: 'array',
             items: {
@@ -912,7 +912,7 @@ export function createLspTools(): McpTool[] {
       inputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           position: { $ref: '#/definitions/Position' },
         },
         required: ['position']
@@ -920,7 +920,7 @@ export function createLspTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           position: { type: 'object' },
           activeSignature: { type: 'integer' },
           activeParameter: { type: 'integer' },
@@ -957,14 +957,14 @@ export function createLspTools(): McpTool[] {
       inputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           maxResults: { type: 'integer', minimum: 1, maximum: MAX_RESULTS_HARD_LIMIT, description: 'Maximum number of symbols to return (default 500).' },
         }
       },
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           count: { type: 'integer', description: 'Total number of symbols found.' },
           returned: { type: 'integer', description: 'Number of symbols returned, may be less than count when truncated.' },
           truncated: { type: 'boolean', description: 'True when results were truncated to the maxResults limit.' },
@@ -1037,7 +1037,7 @@ export function createLspTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           position: { type: 'object' },
           count: { type: 'integer', description: 'Total number of results found.' },
           returned: { type: 'integer', description: 'Number of results returned, may be less than count when truncated.' },
@@ -1047,7 +1047,7 @@ export function createLspTools(): McpTool[] {
             items: {
               type: 'object',
               properties: {
-                uri: { type: 'string' },
+                ...uriProperty,
                 range: { type: 'object' }
               }
             }
@@ -1102,7 +1102,7 @@ export function createLspTools(): McpTool[] {
       inputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           position: { $ref: '#/definitions/Position' },
           methods: {
             type: 'array',
@@ -1118,7 +1118,7 @@ export function createLspTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           position: { type: 'object' },
           results: { type: 'object' }
         }
@@ -1160,7 +1160,7 @@ export function createLspTools(): McpTool[] {
       inputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           range: { $ref: '#/definitions/Range' },
           maxResults: { type: 'integer', minimum: 1, maximum: MAX_RESULTS_HARD_LIMIT, description: 'Maximum number of diagnostics to return (default 100).' },
         }
@@ -1168,7 +1168,7 @@ export function createLspTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           count: { type: 'integer', description: 'Total number of diagnostics found.' },
           returned: { type: 'integer', description: 'Number of diagnostics returned, may be less than count when truncated.' },
           truncated: { type: 'boolean', description: 'True when results were truncated to the maxResults limit.' },
@@ -1200,7 +1200,7 @@ export function createLspTools(): McpTool[] {
       inputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           range: { $ref: '#/definitions/Range' },
           kind: { type: 'string', description: 'Optional CodeActionKind filter, e.g. "source.organizeImports".' },
           maxResults: { type: 'integer', minimum: 1, maximum: MAX_RESULTS_HARD_LIMIT, description: 'Maximum number of actions to return (default 100).' },
@@ -1209,7 +1209,7 @@ export function createLspTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           count: { type: 'integer', description: 'Total number of actions found.' },
           returned: { type: 'integer', description: 'Number of actions returned, may be less than count when truncated.' },
           truncated: { type: 'boolean', description: 'True when results were truncated to the maxResults limit.' },
@@ -1247,7 +1247,7 @@ export function createLspTools(): McpTool[] {
       inputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           range: { $ref: '#/definitions/Range' },
           kind: { type: 'string' },
           title: { type: 'string', description: 'Exact action title to apply.' },
@@ -1257,7 +1257,7 @@ export function createLspTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           title: { type: 'string' },
           applied: { type: 'boolean' },
           actions: { type: 'array', items: { type: 'string' } }
@@ -1305,7 +1305,7 @@ export function createLspTools(): McpTool[] {
       inputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           position: { $ref: '#/definitions/Position' },
           newName: { type: 'string' },
           preview: { type: 'boolean', default: false },
@@ -1315,7 +1315,7 @@ export function createLspTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          uri: { type: 'string' },
+          ...uriProperty,
           preview: { type: 'boolean' },
           applied: { type: 'boolean' },
           newName: { type: 'string' },
@@ -1469,7 +1469,7 @@ export function createLspTools(): McpTool[] {
       outputSchema: {
         type: 'object',
         properties: {
-          count: { type: 'integer' },
+          ...countProperty,
           services: {
             type: 'array',
             items: {

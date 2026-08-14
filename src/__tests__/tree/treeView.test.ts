@@ -11,7 +11,7 @@ import TreeView from '../../tree/TreeView'
 import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import window from '../../window'
-import { createNodes } from '../unit/testUtils'
+import { createNode, createNodes } from '../unit/testUtils'
 import type { NodeDef } from '../unit/testUtils'
 
 let nvim: Neovim
@@ -35,14 +35,6 @@ afterEach(async () => {
   // next test: treeView.dispose() bwipeout's its (unlisted) buffer via
   // notification, while reset's %bwipeout! skips unlisted buffers.
 })
-
-function createNode(label: string, children?: TreeNode[], key?: string, tooltip?: string): TreeNode {
-  let res: TreeNode = { label }
-  if (children) res.children = children
-  if (tooltip) res.tooltip = tooltip
-  if (key) res.key = key
-  return res
-}
 
 function createTreeView(defs: NodeDef[], opts: Partial<TreeViewOptions<TreeNode>> = {}, providerOpts: Partial<ProviderOptions<TreeNode>> = {}) {
   nodes = createNodes(defs)

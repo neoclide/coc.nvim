@@ -6,13 +6,13 @@ import path from 'path'
 import { URI } from 'vscode-uri'
 import {
   createWorkspaceTools,
-  escapeRegExp,
   findRg,
   getConfigValue,
   parseRgLine,
   searchWithJs,
   searchWithRg
 } from '../../mcp/tools/workspace'
+import { escapeRegExp } from '../../util/string'
 import { CancellationToken } from '../../util/protocol'
 import { which } from '../../util/node'
 import workspace from '../../workspace'

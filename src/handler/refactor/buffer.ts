@@ -13,7 +13,7 @@ import { omit } from '../../util/lodash'
 import { Mutex } from '../../util/mutex'
 import { fastDiff, path } from '../../util/node'
 import { equals } from '../../util/object'
-import { adjustRangePosition, emptyRange } from '../../util/position'
+import { adjustRange, adjustRangePosition, emptyRange } from '../../util/position'
 import { Disposable } from '../../util/protocol'
 import { byteLength } from '../../util/string'
 import { getChangedLineCount, lineCountChange } from '../../util/textedit'
@@ -625,11 +625,6 @@ export default class RefactorBuffer {
     this._disposed = true
     disposeAll(this.disposables)
   }
-}
-
-function adjustRange(range: Range, offset: number): Range {
-  let { start, end } = range
-  return Range.create(start.line - offset, start.character, end.line - offset, end.character)
 }
 
 export function fixChangeParams(e: DidChangeTextDocumentParams): DidChangeTextDocumentParams {

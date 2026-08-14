@@ -1,22 +1,16 @@
 import { pluginRoot } from '../util/constants'
-import { fs, path } from '../util/node'
+import { path } from '../util/node'
+import { initWasm, WasiExports } from './wasm'
 
-export interface StrWidthWasi {
+export interface StrWidthWasi extends WasiExports {
   strWidth: (textPtr: number) => number
   setAmbw: (ambiguousAsDouble: number) => void
-  malloc: (size: number) => number
-  free: (ptr: number) => void
-  memory: {
-    buffer: ArrayBuffer
-  }
 }
 
 const wasmPath = path.join(pluginRoot, 'bin/strwidth.wasm')
 
 export async function initStrWidthWasm(): Promise<StrWidthWasi> {
-  const buffer = await fs.promises.readFile(wasmPath)
-  const res = await global.WebAssembly.instantiate(buffer, { env: {} })
-  return res.instance.exports as StrWidthWasi
+  return initWasm(wasmPath) as Promise<StrWidthWasi>
 }
 let instance: StrWidth
 

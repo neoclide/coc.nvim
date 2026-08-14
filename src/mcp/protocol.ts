@@ -12,7 +12,7 @@
 export const PROTOCOL_VERSION = '2025-06-18'
 export const SUPPORTED_PROTOCOL_VERSIONS: readonly string[] = ['2025-11-25', '2025-06-18', '2024-11-05']
 
-export const PROTOCOL_VERSION_2024_11_05 = '2024-11-05'
+const PROTOCOL_VERSION_2024_11_05 = '2024-11-05'
 
 /**
  * Structured tool output (`structuredContent` in CallToolResult) was added
@@ -52,7 +52,6 @@ export const NOTIFICATION_TOOLS_LIST_CHANGED = 'notifications/tools/list_changed
 
 // MCP logging
 export const METHOD_LOGGING_SET_LEVEL = 'logging/setLevel'
-export const NOTIFICATION_MESSAGE = 'notifications/message'
 
 // MCP roots
 export const METHOD_ROOTS_LIST = 'roots/list'
@@ -62,13 +61,11 @@ export const NOTIFICATION_ROOTS_LIST_CHANGED = 'notifications/roots/list_changed
 export const NOTIFICATION_CANCELLED = 'notifications/cancelled'
 export const NOTIFICATION_PROGRESS = 'notifications/progress'
 
-// Resources/prompts are not implemented in Phase 1 but kept for capability
+// Resources are not implemented in Phase 1 but kept for capability
 // negotiation and clear -32601 responses.
 export const METHOD_RESOURCES_LIST = 'resources/list'
 export const METHOD_RESOURCES_READ = 'resources/read'
 export const METHOD_RESOURCES_TEMPLATES_LIST = 'resources/templates/list'
-export const METHOD_PROMPTS_LIST = 'prompts/list'
-export const METHOD_PROMPTS_GET = 'prompts/get'
 
 // coc.nvim extensions (custom transport extension, documented in .codex/mcp.md)
 export const METHOD_COC_AUTH = 'coc/auth'

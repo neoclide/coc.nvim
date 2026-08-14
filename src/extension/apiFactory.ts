@@ -49,7 +49,7 @@ export class ExtensionApiFactory<TCoreApi extends object, TExtensionApi extends 
   }
 }
 
-export function createExtensionApi<TCoreApi extends object>(
+function createExtensionApi<TCoreApi extends object>(
   extension: ExtensionModuleDescription,
   coreApi: TCoreApi
 ): object {

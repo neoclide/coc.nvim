@@ -1,16 +1,12 @@
 import { AnsiHighlight } from '../types'
 import { pluginRoot } from '../util/constants'
 import { anyScore, fuzzyScore, FuzzyScore, fuzzyScoreGracefulAggressive, FuzzyScoreOptions, FuzzyScorer } from '../util/filter'
-import { fs, path } from '../util/node'
+import { path } from '../util/node'
 import { bytes } from '../util/string'
+import { initWasm, WasiExports } from './wasm'
 
-export interface FuzzyWasi {
+export interface FuzzyWasi extends WasiExports {
   fuzzyMatch: (textPtr: number, patternPtr: number, resultPtr: number, matchSeq: 0 | 1) => number
-  malloc: (size: number) => number
-  free: (ptr: number) => void
-  memory: {
-    buffer: ArrayBuffer
-  }
 }
 
 export type FuzzyKind = 'normal' | 'aggressive' | 'any'
@@ -30,9 +26,7 @@ export interface MatchHighlights {
 const wasmFile = path.join(pluginRoot, 'bin/fuzzy.wasm')
 
 export async function initFuzzyWasm(): Promise<FuzzyWasi> {
-  const buffer = await fs.promises.readFile(wasmFile)
-  const res = await global.WebAssembly.instantiate(buffer, { env: {} })
-  return res.instance.exports as FuzzyWasi
+  return initWasm(wasmFile) as Promise<FuzzyWasi>
 }
 
 /**

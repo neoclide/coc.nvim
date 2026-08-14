@@ -113,6 +113,14 @@ export function adjustRangePosition(range: Range, position: Position): Range {
   return Range.create(start.line + line, character + start.character, end.line + line, endCharacter)
 }
 
+/**
+ * Adjust range by line offset, used by refactor handlers.
+ */
+export function adjustRange(range: Range, offset: number): Range {
+  let { start, end } = range
+  return Range.create(start.line - offset, start.character, end.line - offset, end.character)
+}
+
 export function lineInRange(line: number, range: Range): boolean {
   let { start, end } = range
   return line >= start.line && line <= end.line
