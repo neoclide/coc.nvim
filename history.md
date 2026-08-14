@@ -21,7 +21,14 @@ Notable changes of coc.nvim:
 - Extension reload clears only modules owned by the reloaded extension;
   coc.nvim core and unrelated extension modules stay cached. CommonJS
   extension reload semantics are preserved; native ESM extension support is
-  planned as a separate follow-up.
+  added with the follow-up below.
+- Add native ESM extension support: entries with `.mjs` extension or a
+  `"type": "module"` package field load through `import()` instead of
+  `require()`, and `import ... from "coc.nvim"` resolves to the importing
+  extension's API through Node module hooks. ESM extensions may export
+  `activate` as a named export, a default function, or a default object with
+  `activate`/`deactivate`. Reload re-activates an ESM extension but does not
+  re-execute its module code; restart coc.nvim to apply code changes.
 
 ## 2026-08-13
 

@@ -21,9 +21,10 @@ import { createTiming } from '../util/timing'
 import window from '../window'
 import workspace from '../workspace'
 import { ExtensionApiFactory } from './apiFactory'
+import { installEsmHooks } from './esmHook'
 import { ExtensionModuleCache } from './moduleCache'
 import { CocModuleInterceptor } from './moduleInterceptor'
-import { ExtensionExports, loadExtensionModule } from './moduleLoader'
+import { ExtensionExports, getModuleType, loadExtensionModuleAsync } from './moduleLoader'
 import { ExtensionPathIndex, createModuleDescription } from './pathIndex'
 import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, validExtensionFolder } from './stat'
 
@@ -144,6 +145,7 @@ export class ExtensionManager {
     this.apiFactory.initialize(require('../index'))
     this.interceptor = new CocModuleInterceptor(this.extensionPathIndex, this.apiFactory, this.cocRoot)
     this.interceptor.install()
+    installEsmHooks(this.extensionPathIndex, this.apiFactory, this.cocRoot)
   }
 
   public activateExtensions(): Promise<PromiseSettledResult<void>[]> {
@@ -371,6 +373,9 @@ export class ExtensionManager {
     if (!item || item.type == ExtensionType.Internal) {
       throw new Error(`Extension ${id} not registered`)
     }
+    if (getModuleType(item.extension.packageJSON, item.filepath) === 'module') {
+      logger.warn(`ESM extension ${id} reload does not re-execute module code; restart coc.nvim to apply code changes`)
+    }
     if (item.type == ExtensionType.SingleFile) {
       await this.loadExtensionFile(item.filepath)
     } else {
@@ -499,7 +504,8 @@ export class ExtensionManager {
     let extensionPath = extensionType === ExtensionType.SingleFile ? filename : root
     let exports: any
     let ext: ExtensionExports
-    this.extensionPathIndex.add(createModuleDescription(id, root, filename))
+    let desc = createModuleDescription(id, root, filename, getModuleType(packageJSON, filename))
+    this.extensionPathIndex.add(desc)
     let subscriptions: Disposable[] = []
     const timing = createTiming(`activate ${id}`, 5000)
     let extension: Extension<API> = {
@@ -512,9 +518,8 @@ export class ExtensionManager {
             if (isEmpty || !fs.existsSync(filename)) {
               ext = { activate: () => {}, deactivate: null }
             } else {
-              let desc = createModuleDescription(id, root, filename)
               this.moduleCache.clear(desc, this.cocRoot)
-              ext = loadExtensionModule(desc)
+              ext = await loadExtensionModuleAsync(desc)
             }
             let context = {
               subscriptions,

@@ -692,6 +692,39 @@ describe('ExtensionManager', () => {
       // Other extension module cache is untouched.
       assert.ok(Object.keys(require.cache).some(key => key.endsWith(path.join('node_modules', 'other', 'index.js'))))
     })
+
+    it('should activate ESM extension and keep module code cached on reload', async t => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+      let name = `esm-${crypto.randomUUID().slice(0, 8)}`
+      let extFolder = path.join(tmpfolder, 'node_modules', name)
+      fs.mkdirSync(extFolder, { recursive: true })
+      fs.writeFileSync(path.join(extFolder, 'package.json'), JSON.stringify({
+        name,
+        main: 'index.js',
+        type: 'module',
+        engines: { coc: '>=0.0.1' }
+      }), 'utf8')
+      fs.writeFileSync(path.join(extFolder, 'index.js'), [
+        "import api, { workspace } from 'coc.nvim'",
+        "import { depApi } from './dep.mjs'",
+        "let count = 0",
+        "export function activate() { count++; return { count, same: api === depApi, hasWorkspace: typeof workspace === 'object' } }"
+      ].join('\n'), 'utf8')
+      fs.writeFileSync(path.join(extFolder, 'dep.mjs'), "import api from 'coc.nvim'\nexport const depApi = api", 'utf8')
+      await manager.loadExtension(extFolder)
+      await manager.activate(name)
+      let res1 = manager.getExtension(name).extension.exports as any
+      assert.strictEqual(res1.count, 1)
+      assert.strictEqual(res1.same, true)
+      assert.strictEqual(res1.hasWorkspace, true)
+      await manager.reloadExtension(name)
+      await manager.activate(name)
+      let res2 = manager.getExtension(name).extension.exports as any
+      // ESM modules are not re-executed by reload (restart required), but
+      // activate() re-runs against the cached module.
+      assert.strictEqual(res2.count, 2)
+    })
   })
 
   describe('registerExtension()', () => {

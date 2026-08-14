@@ -2,7 +2,7 @@ import { createRequire } from 'node:module'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { ExtensionLoadError, loadExtensionModule, normalizeExtensionExports } from '../../extension/moduleLoader'
+import { ExtensionLoadError, getModuleType, loadExtensionModule, loadExtensionModuleAsync, normalizeExtensionExports } from '../../extension/moduleLoader'
 import { createModuleDescription } from '../../extension/pathIndex'
 
 let folders: string[] = []
@@ -64,6 +64,55 @@ describe('normalizeExtensionExports', () => {
     let res = normalizeExtensionExports({ activate: 42 })
     assert.strictEqual(typeof res.activate, 'function')
     assert.strictEqual(res.deactivate, undefined)
+  })
+
+  it('should treat ESM default function export as activate', () => {
+    let fn = () => {}
+    let ns = { default: fn }
+    Object.defineProperty(ns, Symbol.toStringTag, { value: 'Module' })
+    let res = normalizeExtensionExports(ns)
+    assert.strictEqual(res.activate, fn)
+  })
+
+  it('should treat ESM default object export with activate as activate', () => {
+    let activate = () => {}
+    let deactivate = () => {}
+    let ns = { default: { activate, deactivate } }
+    Object.defineProperty(ns, Symbol.toStringTag, { value: 'Module' })
+    let res = normalizeExtensionExports(ns)
+    assert.strictEqual(res.activate, activate)
+    assert.strictEqual(res.deactivate, deactivate)
+  })
+
+  it('should treat ESM named activate export as activate', () => {
+    let activate = () => {}
+    let ns = { activate }
+    Object.defineProperty(ns, Symbol.toStringTag, { value: 'Module' })
+    let res = normalizeExtensionExports(ns)
+    assert.strictEqual(res.activate, activate)
+  })
+
+  it('should return no-op activate for ESM namespace without activate', () => {
+    let ns = { default: {} }
+    Object.defineProperty(ns, Symbol.toStringTag, { value: 'Module' })
+    let res = normalizeExtensionExports(ns)
+    assert.strictEqual(typeof res.activate, 'function')
+  })
+})
+
+describe('getModuleType', () => {
+  it('should detect by file extension', () => {
+    assert.strictEqual(getModuleType({}, '/ext/index.mjs'), 'module')
+    assert.strictEqual(getModuleType({}, '/ext/index.cjs'), 'commonjs')
+    assert.strictEqual(getModuleType({}, '/ext/index.js'), 'commonjs')
+  })
+
+  it('should detect by package.json type for .js entries', () => {
+    assert.strictEqual(getModuleType({ type: 'module' }, '/ext/index.js'), 'module')
+    assert.strictEqual(getModuleType({ type: 'commonjs' }, '/ext/index.js'), 'commonjs')
+    assert.strictEqual(getModuleType(undefined, '/ext/index.js'), 'commonjs')
+    // explicit extension wins over package type
+    assert.strictEqual(getModuleType({ type: 'module' }, '/ext/index.cjs'), 'commonjs')
   })
 })
 
@@ -167,5 +216,32 @@ describe('loadExtensionModule', () => {
     let desc = createModuleDescription('sym', linked, path.join(linked, 'index.js'))
     let ext = loadExtensionModule(desc)
     assert.deepStrictEqual(ext.activate!(undefined), { symlink: true })
+  })
+
+  it('should load an ESM entry through native import', async () => {
+    let folder = createFolder()
+    let entry = writeEntry(folder, "export function activate() { return { esm: true } }", 'index.mjs')
+    let desc = createModuleDescription('esm', folder, entry, 'module')
+    let ext = await loadExtensionModuleAsync(desc)
+    assert.deepStrictEqual(ext.activate!(undefined), { esm: true })
+  })
+
+  it('should load an ESM default function entry', async () => {
+    let folder = createFolder()
+    let entry = writeEntry(folder, "export default function activate() { return { esm: true } }", 'index.mjs')
+    let desc = createModuleDescription('esm-default', folder, entry, 'module')
+    let ext = await loadExtensionModuleAsync(desc)
+    assert.deepStrictEqual(ext.activate!(undefined), { esm: true })
+  })
+
+  it('should preserve ESM entry error as cause', async () => {
+    let folder = createFolder()
+    let entry = writeEntry(folder, "throw new Error('esm boom')", 'index.mjs')
+    let desc = createModuleDescription('esm-throw', folder, entry, 'module')
+    await assert.rejects(() => loadExtensionModuleAsync(desc), (err: Error) => {
+      assert.ok(err instanceof ExtensionLoadError)
+      assert.match(String((err as any).cause), /esm boom/)
+      return true
+    })
   })
 })
