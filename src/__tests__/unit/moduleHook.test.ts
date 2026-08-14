@@ -233,3 +233,53 @@ describe('coc.nvim ESM hooks', () => {
     assert.strictEqual(dep, path.join(extDir, 'dep.mjs'))
   })
 })
+
+describe('coc.nvim hook edge cases', () => {
+  it('should tolerate parentless requires and unknown importers', () => {
+    let folder = createFolder()
+    let dep = writeModule(folder, 'dep.js', "module.exports = { ok: true }")
+    let outside = path.join(folder, 'outside')
+    let unknown = writeModule(outside, 'unknown.js', "module.exports = require('./dep')")
+    writeModule(outside, 'dep.js', "module.exports = { ok: true }")
+    setup(folder, { workspace: {} }, path.join(folder, 'core'))
+    let { Module } = require('node:module')
+    let parentless = new Module('probe')
+    // A dependency require without a file parent still resolves normally.
+    assert.deepStrictEqual(parentless.require(dep), { ok: true })
+    // "coc.nvim" without a parent cannot be attributed to an owner.
+    assert.throws(() => parentless.require('coc.nvim'), /parent module is missing/)
+    // An unknown importer's dependency is not tracked as external.
+    assert.deepStrictEqual(require(unknown), { ok: true })
+  })
+
+  it('should reject non-file importers while tracking their builtin and data-url deps', async () => {
+    let folder = createFolder()
+    let extDir = path.join(folder, 'ext')
+    let id = `esm-data-${++counter}`
+    let dataModule = 'data:text/javascript,' + encodeURIComponent("import 'node:fs'\nimport 'coc.nvim'")
+    let entry = writeModule(extDir, 'index.mjs', `import ${JSON.stringify(dataModule)}\nexport const ok = 1`)
+    let { index } = setup(folder)
+    index.update([createModuleDescription(id, extDir, entry, 'module')])
+    await assert.rejects(() => import(pathToFileURL(entry).href), /The importing module is not a file module/)
+  })
+
+  it('should skip reserved and invalid keys in ESM named exports', async () => {
+    let folder = createFolder()
+    let extDir = path.join(folder, 'ext')
+    let id = `esm-keys-${++counter}`
+    let entry = writeModule(extDir, 'index.mjs', [
+      "import api, { workspace, status } from 'coc.nvim'",
+      "export const result = { same: workspace === api.workspace, status }"
+    ].join('\n'))
+    let api = {
+      workspace: { name: 'core-workspace' },
+      status: 'ready',
+      default: { bogus: true },
+      'not-valid': true
+    }
+    let { index } = setup(folder, api)
+    index.update([createModuleDescription(id, extDir, entry, 'module')])
+    let mod = await import(pathToFileURL(entry).href) as any
+    assert.deepStrictEqual(mod.result, { same: true, status: 'ready' })
+  })
+})

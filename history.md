@@ -34,8 +34,6 @@ Notable changes of coc.nvim:
   re-execute its module code; restart coc.nvim to apply code changes.
 - Resolve both `require("coc.nvim")` and `import ... from "coc.nvim"` through
   `node:module` `registerHooks` instead of patching `Module._load`. The
-  CommonJS and ESM interceptor paths are unified into one process-wide hook;
-  `Module._load` is no longer modified.
 - Attribute extension callback errors to the owning plugin: the per-extension
   API object tags command handlers, event listeners and language providers
   with the extension id, so command errors are prefixed with
