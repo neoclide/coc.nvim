@@ -6,6 +6,7 @@ import path from 'path'
 import * as ts from 'typescript'
 import * as vsTypes from 'vscode-languageserver-types'
 import { Disposable } from 'vscode-languageserver-protocol'
+import { SHARED_VALUE_EXPORTS, WRAPPED_SINGLETONS } from '../../extension/facade'
 import * as exportObj from '../../index'
 import events from '../../events'
 import type Plugin from '../../plugin'
@@ -116,6 +117,20 @@ describe('Plugin', () => {
 })
 
 describe('exports', () => {
+  it('should classify every runtime export in the facade lists', () => {
+    let unclassified = Object.keys(exportObj).filter(k => {
+      if (k === 'default') return false
+      if ((WRAPPED_SINGLETONS as readonly string[]).includes(k)) return false
+      if ((SHARED_VALUE_EXPORTS as readonly string[]).includes(k)) return false
+      return k !== 'nvim'
+    })
+    assert.deepStrictEqual(
+      unclassified,
+      [],
+      `src/index.ts export(s) missing from WRAPPED_SINGLETONS / SHARED_VALUE_EXPORTS: ${unclassified.join(', ')}`
+    )
+  })
+
   it('should exports all types from vscode-languageserver-types', t => {
     // TODO: LanguageKind added in 3.18, we didn't use this yet
     // TODO: CodeActionTag added in 3.18, but prpoposed

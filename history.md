@@ -2,6 +2,14 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-15
+
+- Upgrade extension loader:
+    - No longer modify Module.prototype._compile
+    - Plugins use an enhanced console, including consoles imported via require
+    - Support loading ESM-format plugins; requires the node flag --experimental-vm-modules at startup, added by default
+    - Plugins use an encapsulated standalone runtime API, and extensionId is included when registering callback functions for easy tracking
+
 ## 2026-08-14
 
 - Break Change: minimal node version changed from 20.19.0 to 22.15.0.

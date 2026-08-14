@@ -276,10 +276,11 @@ class Events {
         this._completing = true
         this._pumInserted = false
         break
-      case EventName.CompleteDone:
+      case EventName.CompleteDone: {
         this._completing = false
         this._pumInserted = false
         break
+      }
       case EventName.CursorHoldI:
       case EventName.CursorMovedI:
         this._bufnr = args[0]
@@ -383,7 +384,11 @@ class Events {
           if (traceSlow) {
             timer = setTimeout(() => {
               let extensionId = getExtensionId(fn)
-              logger.warn(`Slow "${event}" handler detected${extensionId ? ` [extension: ${extensionId}]` : ''}`, fn['stack'])
+              let suffix = ''
+              if (extensionId) {
+                suffix = ` [extension: ${extensionId}]`
+              }
+              logger.warn(`Slow "${event}" handler detected${suffix}`, fn['stack'])
             }, this.timeout)
           }
           try {
@@ -391,7 +396,11 @@ class Events {
           } catch (e) {
             if (!shouldIgnore(e)) {
               let extensionId = getExtensionId(fn)
-              logger.error(`Error on event: ${event}${extensionId ? ` [extension: ${extensionId}]` : ''}`, e, fn['stack'])
+              let suffix = ''
+              if (extensionId) {
+                suffix = ` [extension: ${extensionId}]`
+              }
+              logger.error(`Error on event: ${event}${suffix}`, e, fn['stack'])
             }
           }
           clearTimeout(timer)

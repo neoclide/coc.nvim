@@ -222,7 +222,10 @@ function isRegistrationMethod(singletonName: string, name: string): boolean {
     return name === 'create' || name === 'createDiagnosticCollection'
   }
   if (singletonName === 'workspace') {
-    return name.startsWith('onDid') || name.startsWith('onWill') || WORKSPACE_REGISTRATION_METHODS.has(name)
+    if (name.startsWith('onDid')) return true
+    if (name.startsWith('onWill')) return true
+    if (WORKSPACE_REGISTRATION_METHODS.has(name)) return true
+    return false
   }
   return false
 }

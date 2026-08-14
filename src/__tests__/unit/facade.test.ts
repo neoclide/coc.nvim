@@ -32,6 +32,24 @@ function createMockCore(): any {
         listeners.push(fn)
         return Disposable.create(() => {})
       },
+      registerExprKeymap: (mode: any, key: string, fn: Function) => {
+        listeners.push(fn)
+        return Disposable.create(() => {})
+      },
+      registerInsertKeymap: (key: string, fn: Function) => {
+        listeners.push(fn)
+        return Disposable.create(() => {})
+      },
+      registerLocalKeymap: (bufnr: any, mode: any, key: string, fn: Function) => {
+        listeners.push(fn)
+        return Disposable.create(() => {})
+      },
+      createFileSystemWatcher: (pattern: any) => Disposable.create(() => {}),
+      getConfiguration: (section: string) => ({ get: () => undefined }),
+      onWillSaveTextDocument: (cb: Function) => {
+        listeners.push(cb)
+        return Disposable.create(() => {})
+      },
       onDidChangeConfiguration: (cb: Function) => {
         listeners.push(cb)
         return Disposable.create(() => {})
@@ -65,12 +83,22 @@ function createMockCore(): any {
       on: (event: string, handler: Function) => {
         listeners.push(handler)
         return Disposable.create(() => {})
+      },
+      once: (event: string, handler: Function) => {
+        listeners.push(handler)
+        return Disposable.create(() => {})
       }
     },
-    sources: { addSource: (src: any) => Disposable.create(() => {}) },
+    sources: {
+      addSource: (src: any) => Disposable.create(() => {}),
+      removeSource: (name: string) => true
+    },
     services: { register: (svc: any) => Disposable.create(() => {}) },
     extensions: { all: [] },
-    diagnosticManager: { create: () => Disposable.create(() => {}) },
+    diagnosticManager: {
+      create: () => Disposable.create(() => {}),
+      createDiagnosticCollection: () => Disposable.create(() => {})
+    },
     listManager: { registerList: (list: any) => Disposable.create(() => {}) },
     snippetManager: {},
     mcp: { status: () => ({}) },
@@ -237,6 +265,31 @@ describe('extension api facade', () => {
     // Symbol property access forwards to the wrapped core object.
     let sym = Symbol('test')
     assert.strictEqual((api.workspace as any)[sym], (core.workspace as any)[sym])
+  })
+
+  it('should wrap additional registration surfaces', () => {
+    let core = createMockCore()
+    let api = createExtensionApi(createContext('plugin-a'), core)
+    let onceHandler = () => {}
+    api.events.once('TextChanged', onceHandler)
+    api.sources.removeSource('src')
+    api.diagnosticManager.createDiagnosticCollection('diag')
+    let expr = () => {}
+    api.workspace.registerExprKeymap('n', 'x', expr)
+    let insert = () => {}
+    api.workspace.registerInsertKeymap('x', insert)
+    let local = () => {}
+    api.workspace.registerLocalKeymap(1, 'n', 'x', local)
+    let willSave = () => {}
+    api.workspace.onWillSaveTextDocument(willSave)
+    let watcher = api.workspace.createFileSystemWatcher('**/*.ts')
+    assert.strictEqual(typeof watcher.dispose, 'function')
+    // Non-registration methods bind through without being wrapped.
+    assert.strictEqual(typeof api.workspace.getConfiguration('x').get, 'function')
+    // All wrapped callbacks carry the extension id (stored by the mock).
+    for (let fn of core.__listeners.slice(-5)) {
+      assert.strictEqual(getExtensionId(fn), 'plugin-a')
+    }
   })
 
   it('should dispose extension-owned registrations on cleanup', () => {

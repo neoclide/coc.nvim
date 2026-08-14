@@ -125,6 +125,9 @@ describe('ExtensionManager', () => {
         await manager.loadExtension(extFolder)
         await manager.activate(name)
         assert.throws(() => commands.executeCommand(`${name}.test`), new RegExp(`\\[extension: ${name}\\] command boom`))
+        // Unloading the extension disposes facade-tracked registrations.
+        await manager.unloadExtension(name)
+        assert.strictEqual(commands.has(`${name}.test`), false)
       } finally {
         if (prev === undefined) {
           delete global.__isMain
