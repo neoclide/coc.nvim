@@ -34,6 +34,24 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Resolve vim cache identity
+        if: matrix.versions.vim != 'nightly'
+        id: vim-cache-id
+        shell: bash
+        env:
+          VIM_VERSION: ${{ matrix.versions.vim }}
+        run: |
+          . /etc/os-release
+          echo "key=vim-install-v1-$RUNNER_OS-$RUNNER_ARCH-$ID-$VERSION_ID-$VIM_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Restore vim installation
+        if: matrix.versions.vim != 'nightly'
+        id: vim-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/vim-${{ matrix.versions.vim }}
+          key: ${{ steps.vim-cache-id.outputs.key }}
+
       - parallel:
         - name: Setup Node.js ${{ matrix.node }}
           uses: actions/setup-node@v6
@@ -47,8 +65,8 @@ jobs:
             python-version: "3.x"
 
         - name: Setup vim
+          if: matrix.versions.vim == 'nightly' || steps.vim-cache.outputs.cache-hit != 'true'
           uses: rhysd/action-setup-vim@v1
-          id: vim
           with:
             version: ${{ matrix.versions.vim }}
 
@@ -61,6 +79,16 @@ jobs:
 
         - name: Setup rg/ctags
           run: sudo apt-get install -y ripgrep exuberant-ctags
+
+      - name: Expose vim
+        id: vim
+        env:
+          VIM_VERSION: ${{ matrix.versions.vim }}
+        run: |
+          vim_bin="$HOME/vim-$VIM_VERSION/bin"
+          test -x "$vim_bin/vim"
+          echo "$vim_bin" >> "$GITHUB_PATH"
+          echo "executable=$vim_bin/vim" >> "$GITHUB_OUTPUT"
 
       - name: Install Dependencies
         run: |
