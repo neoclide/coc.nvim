@@ -367,6 +367,35 @@ describe('ExtensionManager', () => {
       assert.strictEqual(manager.getExtension('coc-ext-main').extension.isActive, true)
     })
 
+    it('should reject when async activate fails', async t => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+      let extFolder = path.join(tmpfolder, 'node_modules', 'async-fail')
+      createExtension(extFolder, {
+        name: 'async-fail',
+        main: 'index.js',
+        engines: { coc: '>=0.0.1' }
+      }, "exports.activate = async () => { throw new Error('async boom') }")
+      await manager.loadExtension(extFolder)
+      await assert.rejects(() => manager.activate('async-fail'), /async boom/)
+      assert.strictEqual(manager.getExtensionState('async-fail'), 'loaded')
+    })
+
+    it('should preserve error realm across activation', async t => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+      let extFolder = path.join(tmpfolder, 'node_modules', 'realm')
+      createExtension(extFolder, {
+        name: 'realm',
+        main: 'index.js',
+        engines: { coc: '>=0.0.1' }
+      }, "exports.activate = () => { throw new TypeError('typed boom') }")
+      await manager.loadExtension(extFolder)
+      await assert.rejects(() => manager.activate('realm'), (e: Error) => {
+        return e instanceof TypeError && e instanceof Error
+      })
+    })
+
     it('should fail when dependency activation fails', async t => {
       tmpfolder = createFolder()
       let manager = create(tmpfolder)
@@ -724,6 +753,65 @@ describe('ExtensionManager', () => {
       // ESM modules are not re-executed by reload (restart required), but
       // activate() re-runs against the cached module.
       assert.strictEqual(res2.count, 2)
+    })
+
+    it('should call deactivate before clearing owned module cache', async t => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+      let extFolder = path.join(tmpfolder, 'node_modules', 'deactivate-order')
+      fs.mkdirSync(extFolder, { recursive: true })
+      fs.writeFileSync(path.join(extFolder, 'package.json'), JSON.stringify({
+        name: 'deactivate-order',
+        main: 'index.js',
+        engines: { coc: '>=0.0.1' }
+      }), 'utf8')
+      fs.writeFileSync(path.join(extFolder, 'state.js'), 'module.exports = { value: 1 }', 'utf8')
+      fs.writeFileSync(path.join(extFolder, 'index.js'), [
+        "require('./state')",
+        "exports.deactivate = () => { global.__deactivateSawCache = Object.keys(require.cache).some(k => k.endsWith('state.js')) }",
+        "exports.activate = () => ({})"
+      ].join('\n'), 'utf8')
+      await manager.loadExtension(extFolder)
+      await manager.activate('deactivate-order')
+      delete global.__deactivateSawCache
+      await manager.reloadExtension('deactivate-order')
+      assert.strictEqual(global.__deactivateSawCache, true)
+      delete global.__deactivateSawCache
+    })
+
+    it('should continue cleanup when deactivate throws on reload', async t => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+      let extFolder = path.join(tmpfolder, 'node_modules', 'deactivate-throw')
+      createExtension(extFolder, {
+        name: 'deactivate-throw',
+        main: 'index.js',
+        engines: { coc: '>=0.0.1' }
+      }, "let count = 0\nmodule.exports = { activate: () => ++count, deactivate: () => { throw new Error('deactivate boom') } }")
+      await manager.loadExtension(extFolder)
+      await manager.activate('deactivate-throw')
+      assert.strictEqual(manager.getExtension('deactivate-throw').extension.exports, 1)
+      await manager.reloadExtension('deactivate-throw')
+      await manager.activate('deactivate-throw')
+      // Module re-executed despite deactivate throwing; cleanup continued.
+      assert.strictEqual(manager.getExtension('deactivate-throw').extension.exports, 1)
+      assert.strictEqual(manager.getExtension('deactivate-throw').extension.isActive, true)
+    })
+
+    it('should leave extension inactive when reload activation fails', async t => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+      let extFolder = path.join(tmpfolder, 'node_modules', 'reload-fail')
+      createExtension(extFolder, {
+        name: 'reload-fail',
+        main: 'index.js',
+        engines: { coc: '>=0.0.1' }
+      }, "exports.activate = () => { throw new Error('activate boom') }")
+      await manager.loadExtension(extFolder)
+      await assert.rejects(() => manager.activate('reload-fail'), /activate boom/)
+      await manager.reloadExtension('reload-fail')
+      await assert.rejects(() => manager.activate('reload-fail'), /activate boom/)
+      assert.strictEqual(manager.getExtensionState('reload-fail'), 'loaded')
     })
   })
 

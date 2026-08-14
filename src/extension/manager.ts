@@ -497,7 +497,6 @@ export class ExtensionManager {
   public async registerExtension(root: string, packageJSON: ExtensionJson, extensionType: ExtensionType, noActive = false): Promise<void> {
     let id = packageJSON.name
     if (this.states.isDisabled(id)) return
-    this.ensureInterceptor()
     let isActive = false
     let result: Promise<API> | undefined
     let filename = path.join(root, packageJSON.main || 'index.js')
@@ -506,6 +505,7 @@ export class ExtensionManager {
     let ext: ExtensionExports
     let desc = createModuleDescription(id, root, filename, getModuleType(packageJSON, filename))
     this.extensionPathIndex.add(desc)
+    this.ensureInterceptor()
     let subscriptions: Disposable[] = []
     const timing = createTiming(`activate ${id}`, 5000)
     let extension: Extension<API> = {
@@ -535,6 +535,7 @@ export class ExtensionManager {
             exports = res
             this._onDidActiveExtension.fire(extension)
             timing.stop()
+            logger.info(`activated extension ${id}`)
             resolve(res)
           } catch (e) {
             logger.error(`Error on active extension ${id}:`, e)

@@ -202,6 +202,15 @@ describe('loadExtensionModule', () => {
     assert.deepStrictEqual(ext.activate!(undefined), { hello: 'world' })
   })
 
+  it('should load an extension that requires JSON', () => {
+    let folder = createFolder()
+    writeEntry(folder, '{ "answer": 42 }', 'data.json')
+    let entry = writeEntry(folder, "let data = require('./data.json')\nexports.activate = () => data")
+    let desc = createModuleDescription('json', folder, entry)
+    let ext = loadExtensionModule(desc)
+    assert.deepStrictEqual(ext.activate!(undefined), { answer: 42 })
+  })
+
   it('should load an extension entry through a symlinked root', () => {
     let folder = createFolder()
     let real = path.join(folder, 'real')

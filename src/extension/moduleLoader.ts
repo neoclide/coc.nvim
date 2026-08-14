@@ -1,6 +1,9 @@
 'use strict'
 import { pathToFileURL } from 'url'
+import { createLogger } from '../logger'
 import type { ExtensionModuleDescription } from './pathIndex'
+
+const logger = createLogger('extension-loader')
 
 export interface ExtensionExports {
   activate: (context: unknown) => unknown
@@ -83,8 +86,11 @@ export function normalizeExtensionExports(raw: unknown): ExtensionExports {
 export function loadExtensionModule(extension: ExtensionModuleDescription): ExtensionExports {
   try {
     const raw = require(extension.entry)
-    return normalizeExtensionExports(raw)
+    const exports = normalizeExtensionExports(raw)
+    logger.info(`load extension ${extension.id} (${extension.moduleType}) from ${extension.entry}`)
+    return exports
   } catch (error) {
+    logger.error(`load extension ${extension.id} (${extension.moduleType}) from ${extension.entry} failed`, error)
     if (error instanceof ExtensionLoadError) throw error
     throw new ExtensionLoadError(extension.id, extension.entry, { cause: error })
   }
@@ -102,10 +108,15 @@ export async function loadExtensionModuleAsync(
   try {
     if (extension.moduleType === 'module') {
       const mod = await import(pathToFileURL(extension.entry).href)
-      return normalizeExtensionExports(mod)
+      const exports = normalizeExtensionExports(mod)
+      logger.info(`load extension ${extension.id} (module) from ${extension.entry}`)
+      return exports
     }
     return loadExtensionModule(extension)
   } catch (error) {
+    if (extension.moduleType === 'module') {
+      logger.error(`load extension ${extension.id} (module) from ${extension.entry} failed`, error)
+    }
     if (error instanceof ExtensionLoadError) throw error
     throw new ExtensionLoadError(extension.id, extension.entry, { cause: error })
   }
