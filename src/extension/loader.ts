@@ -4,6 +4,8 @@ import { fs, path, vm } from '../util/node'
 import type { Context, Module as VMModule } from 'vm'
 import { createExtensionConsole, getConsoleFacade } from './console'
 import type { ExtensionConsoleState } from './console'
+import { createExtensionApi } from './facade'
+import type { ExtensionApiContext } from './facade'
 import {
   loadESMEntry,
   dynamicImportModule,
@@ -415,7 +417,7 @@ export function createExtensionRequire(runtime: ExtensionRuntime, parent: Extens
  * Create an extension runtime: one vm.Context, one CJS cache and one ESM
  * cache.
  */
-export function createExtensionRuntime(id: string, filename: string, api: unknown, logger: ILogger): ExtensionRuntime {
+export function createExtensionRuntime(id: string, filename: string, core: unknown, logger: ILogger): ExtensionRuntime {
   const { console, state } = createExtensionConsole(id, logger)
   const root = path.dirname(filename)
   let realRoot = root
@@ -424,18 +426,29 @@ export function createExtensionRuntime(id: string, filename: string, api: unknow
   } catch (e) {
     // Best effort, keep the resolved path when realpath fails.
   }
+  const apiContext: ExtensionApiContext = {
+    extensionId: id,
+    extensionRoot: realRoot,
+    subscriptions: []
+  }
   const runtime: ExtensionRuntime = {
     id,
     root,
     realRoot,
     entry: filename,
     context: createExtensionContext(id, console),
-    api,
+    api: createExtensionApi(apiContext, core),
     console,
     consoleState: state,
     cjsModules: new Map(),
     esmModules: new Map()
   }
+  Object.defineProperty(runtime, 'apiContext', {
+    value: apiContext,
+    enumerable: false,
+    configurable: true,
+    writable: true
+  })
   return runtime
 }
 
@@ -453,6 +466,13 @@ export function disposeExtension(id: string): void {
     runtime.consoleState.timers.clear()
     runtime.consoleState.counters.clear()
     runtime.consoleState.groupDepth = 0
+    let apiContext = (runtime as any).apiContext as ExtensionApiContext | undefined
+    if (apiContext) {
+      for (let disposable of apiContext.subscriptions) {
+        disposable.dispose()
+      }
+      apiContext.subscriptions.length = 0
+    }
     runtimes.delete(id)
   }
 }

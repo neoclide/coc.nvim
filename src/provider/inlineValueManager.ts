@@ -35,7 +35,7 @@ export default class InlineValueManager extends Manager<InlineValuesProvider> {
         }
       })
     }))
-    this.handleResults(results, 'provideInlineValues')
+    this.handleResults(results, 'provideInlineValues', items)
     return values
   }
 }

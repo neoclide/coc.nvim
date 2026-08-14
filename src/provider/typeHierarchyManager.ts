@@ -44,7 +44,7 @@ export default class TypeHierarchyManager extends Manager<TypeHierarchyProvider>
         }
       })()
     }))
-    this.handleResults(results, 'prepareTypeHierarchy')
+    this.handleResults(results, 'prepareTypeHierarchy', items)
     return hierarchyItems
   }
 

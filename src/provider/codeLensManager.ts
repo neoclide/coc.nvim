@@ -37,7 +37,7 @@ export default class CodeLensManager extends Manager<CodeLensProvider> {
         }
       })
     }))
-    this.handleResults(results, 'provideCodeLenses')
+    this.handleResults(results, 'provideCodeLenses', providers)
     return codeLens
   }
 

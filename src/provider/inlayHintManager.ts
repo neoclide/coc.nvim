@@ -46,7 +46,7 @@ export default class InlayHintManger extends Manager<InlayHintsProvider> {
         inlayHints.push({ providerId: id, ...hint })
       }
     }))
-    this.handleResults(results, 'provideInlayHints', token)
+    this.handleResults(results, 'provideInlayHints', items, token)
     return inlayHints
   }
 

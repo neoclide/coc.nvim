@@ -3,6 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { createLogger } from '../logger'
 import { Autocmd } from '../types'
 import { isFalsyOrEmpty } from '../util/array'
+import { getExtensionId } from '../util/extensionId'
 import { parseExtensionName } from '../util/extensionRegistry'
 import { omit } from '../util/lodash'
 import { CancellationTokenSource, Disposable } from '../util/protocol'
@@ -74,7 +75,13 @@ export default class Autocmds implements Disposable {
       let logError = (e: any) => {
         if (logged) return
         logged = true
-        logger.error(`Error on autocmd "${option.event}"`, args, omit(option, ['callback', 'stack']), e)
+        let extensionId = getExtensionId(option)
+        logger.error(
+          `Error on autocmd "${option.event}"${extensionId ? ` [extension: ${extensionId}]` : ''}`,
+          args,
+          omit(option, ['callback', 'stack']),
+          e
+        )
       }
       try {
         // Handle the callback rejection here: it could settle after the

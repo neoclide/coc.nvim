@@ -41,7 +41,7 @@ export default class DocumentSymbolManager extends Manager<DocumentSymbolProvide
         }
       })
     }))
-    this.handleResults(results, 'provideDocumentSymbols')
+    this.handleResults(results, 'provideDocumentSymbols', [item])
     return symbols
   }
 }

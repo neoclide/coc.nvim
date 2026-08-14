@@ -84,7 +84,7 @@ export default class CodeActionManager extends Manager<CodeActionProvider, Provi
       }
       return fn()
     }))
-    this.handleResults(results, 'provideCodeActions')
+    this.handleResults(results, 'provideCodeActions', providers)
     return res
   }
 
