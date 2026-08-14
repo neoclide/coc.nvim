@@ -33,6 +33,14 @@ describe('register handler', () => {
     assert.strictEqual(fn.mock.callCount(), 1)
   })
 
+  it('should track completing state through CompleteDone', async () => {
+    await events.fire('CompleteStart', [1])
+    assert.strictEqual(events.completing, true)
+    await events.fire('CompleteDone', [{}, 1])
+    assert.strictEqual(events.completing, false)
+    assert.strictEqual(events.pumInserted, false)
+  })
+
   it('should fire visible event once', async t => {
     let fn = t.mock.fn()
     let event

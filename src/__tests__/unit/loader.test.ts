@@ -683,4 +683,19 @@ exports.activate = () => module.require('./dep')`)
       })
     }
   })
+
+  it('should keep the unresolved root when realpath fails', () => {
+    let missing = path.join(os.tmpdir(), `coc-loader-missing-${Date.now()}`, 'index.js')
+    let runtime = createExtensionRuntime('missing-root', missing, {}, consoleLogger)
+    assert.strictEqual(runtime.realRoot, path.dirname(missing))
+  })
+
+  it('should reject ESM entries in createExtension', () => {
+    let folder = createFolder()
+    fs.writeFileSync(path.join(folder, 'index.mjs'), 'export const a = 1')
+    assert.throws(
+      () => createExtension('esm-reject', path.join(folder, 'index.mjs'), false),
+      (err: any) => err.code === 'ERR_REQUIRE_ESM'
+    )
+  })
 })
