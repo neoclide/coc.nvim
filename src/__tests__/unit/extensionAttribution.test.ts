@@ -34,6 +34,26 @@ describe('extension callback attribution', () => {
     }
   })
 
+  it('should preserve a frozen command error as cause', () => {
+    let id = uniqueId()
+    let original = new Error('frozen boom')
+    Object.freeze(original)
+    let impl = () => {
+      throw original
+    }
+    setExtensionId(impl, 'coc-attr')
+    commandsManager.registerCommand(id, impl)
+    try {
+      assert.throws(() => commandsManager.executeCommand(id), err => {
+        assert.match((err as Error).message, /\[extension: coc-attr\] frozen boom/)
+        assert.strictEqual((err as Error & { cause?: unknown }).cause, original)
+        return true
+      })
+    } finally {
+      commandsManager.unregister(id)
+    }
+  })
+
   it('should not prefix errors of untagged commands', () => {
     let id = uniqueId()
     commandsManager.registerCommand(id, () => {

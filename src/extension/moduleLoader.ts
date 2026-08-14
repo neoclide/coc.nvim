@@ -1,6 +1,8 @@
 'use strict'
+import { findPackageJSON } from 'node:module'
 import { pathToFileURL } from 'url'
 import { createLogger } from '../logger'
+import { fs } from '../util/node'
 import type { ExtensionModuleDescription } from './pathIndex'
 
 const logger = createLogger('extension-loader')
@@ -26,7 +28,21 @@ export function getModuleType(
 ): ExtensionModuleDescription['moduleType'] {
   if (entry.endsWith('.mjs')) return 'module'
   if (entry.endsWith('.cjs')) return 'commonjs'
-  return packageJson?.type === 'module' ? 'module' : 'commonjs'
+  const packageType = getNearestPackageType(entry) ?? packageJson?.type
+  return packageType === 'module' ? 'module' : 'commonjs'
+}
+
+function getNearestPackageType(entry: string): string | undefined {
+  try {
+    const packageFile = findPackageJSON(pathToFileURL(entry).href)
+    if (!packageFile) return undefined
+    const packageJson = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
+    return typeof packageJson?.type === 'string' ? packageJson.type : undefined
+  } catch (e) {
+    // Loading reports missing or invalid package metadata with extension
+    // context. Keep the provided package metadata as the fallback here.
+    return undefined
+  }
 }
 
 /**
@@ -62,9 +78,22 @@ export function normalizeExtensionExports(raw: unknown): ExtensionExports {
   }
   if (raw && typeof raw === 'object') {
     const isNamespace = Object.prototype.toString.call(raw) === '[object Module]'
-    const exported = isNamespace && (raw as { default?: unknown }).default !== undefined
-      ? (raw as { default?: unknown }).default
-      : raw
+    if (isNamespace) {
+      const namespace = raw as { activate?: unknown; default?: unknown }
+      if (typeof namespace.activate === 'function') {
+        return Object.assign({}, namespace) as ExtensionExports
+      }
+      const defaultExport = namespace.default
+      if (typeof defaultExport === 'function') {
+        return Object.assign({}, namespace, { activate: defaultExport }) as ExtensionExports
+      }
+      if (defaultExport && typeof defaultExport === 'object' &&
+        typeof (defaultExport as { activate?: unknown }).activate === 'function') {
+        return Object.assign({}, namespace, defaultExport) as ExtensionExports
+      }
+      return { activate: () => {} }
+    }
+    const exported = raw
     if (typeof exported === 'function') {
       return { activate: exported as (context: unknown) => unknown }
     }
@@ -79,9 +108,9 @@ export function normalizeExtensionExports(raw: unknown): ExtensionExports {
 /**
  * Execute an extension entry through Node's native CommonJS loader.
  *
- * The process-wide `Module._load` interceptor must be installed before this
- * is called so `require("coc.nvim")` inside the extension resolves to the
- * owning extension's API.
+ * The process-wide `node:module` hooks must be installed before this is
+ * called so `require("coc.nvim")` inside the extension resolves to the owning
+ * extension's API.
  */
 export function loadExtensionModule(extension: ExtensionModuleDescription): ExtensionExports {
   try {
@@ -99,8 +128,9 @@ export function loadExtensionModule(extension: ExtensionModuleDescription): Exte
 /**
  * Load an extension entry through native Node.js loading, dispatching on the
  * entry's module system. CommonJS entries use `require()`; ESM entries use
- * `import()`. ESM loading requires the process-wide `coc.nvim` ESM hooks to
- * be installed so `import ... from "coc.nvim"` resolves by importer ownership.
+ * `import()`. ESM loading requires the process-wide `coc.nvim` module hooks
+ * to be installed so `import ... from "coc.nvim"` resolves by importer
+ * ownership.
  */
 export async function loadExtensionModuleAsync(
   extension: ExtensionModuleDescription

@@ -92,6 +92,24 @@ describe('normalizeExtensionExports', () => {
     assert.strictEqual(res.activate, activate)
   })
 
+  it('should prefer ESM named activate when default export is invalid', () => {
+    let activate = () => {}
+    let ns = { activate, default: null }
+    Object.defineProperty(ns, Symbol.toStringTag, { value: 'Module' })
+    let res = normalizeExtensionExports(ns)
+    assert.strictEqual(res.activate, activate)
+  })
+
+  it('should preserve named deactivate with an ESM default function', () => {
+    let activate = () => {}
+    let deactivate = () => {}
+    let ns = { default: activate, deactivate }
+    Object.defineProperty(ns, Symbol.toStringTag, { value: 'Module' })
+    let res = normalizeExtensionExports(ns)
+    assert.strictEqual(res.activate, activate)
+    assert.strictEqual(res.deactivate, deactivate)
+  })
+
   it('should return no-op activate for ESM namespace without activate', () => {
     let ns = { default: {} }
     Object.defineProperty(ns, Symbol.toStringTag, { value: 'Module' })
@@ -113,6 +131,19 @@ describe('getModuleType', () => {
     assert.strictEqual(getModuleType(undefined, '/ext/index.js'), 'commonjs')
     // explicit extension wins over package type
     assert.strictEqual(getModuleType({ type: 'module' }, '/ext/index.cjs'), 'commonjs')
+  })
+
+  it('should use the nearest package.json type for nested entries', async () => {
+    let folder = createFolder()
+    let nested = path.join(folder, 'dist')
+    fs.mkdirSync(nested, { recursive: true })
+    fs.writeFileSync(path.join(folder, 'package.json'), JSON.stringify({ type: 'commonjs' }))
+    fs.writeFileSync(path.join(nested, 'package.json'), JSON.stringify({ type: 'module' }))
+    let entry = writeEntry(nested, "await Promise.resolve()\nexport function activate() { return 'nested-esm' }")
+    let moduleType = getModuleType({ type: 'commonjs' }, entry)
+    assert.strictEqual(moduleType, 'module')
+    let ext = await loadExtensionModuleAsync(createModuleDescription('nested-esm', folder, entry, moduleType))
+    assert.strictEqual(ext.activate(undefined), 'nested-esm')
   })
 })
 

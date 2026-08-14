@@ -12,12 +12,15 @@ Notable changes of coc.nvim:
 - `require("coc.nvim")` now resolves to a per-extension top-level API object
   instead of the shared core module: different extensions receive different
   top-level objects while shared services such as `workspace` remain shared
-  underneath. The same extension receives a stable API object within one
-  activation; reload re-creates it.
+  underneath. The same extension receives a stable API object; CommonJS
+  reload re-creates it, while ESM reload retains it with the cached module.
 - Extensions now share the JavaScript Realm with coc.nvim core
   (`globalThis`, `process`, constructors). The loader is intentionally not a
   security sandbox; unknown callers of `require("coc.nvim")` fail with a
   diagnostic error instead of receiving an arbitrary API.
+- Hoisted or workspace dependencies outside an extension root receive the
+  shared core API, avoiding load-order-dependent ownership when a dependency
+  is used by more than one extension.
 - Extension reload clears only modules owned by the reloaded extension;
   coc.nvim core and unrelated extension modules stay cached. CommonJS
   extension reload semantics are preserved; native ESM extension support is
@@ -29,6 +32,10 @@ Notable changes of coc.nvim:
   `activate` as a named export, a default function, or a default object with
   `activate`/`deactivate`. Reload re-activates an ESM extension but does not
   re-execute its module code; restart coc.nvim to apply code changes.
+- Resolve both `require("coc.nvim")` and `import ... from "coc.nvim"` through
+  `node:module` `registerHooks` instead of patching `Module._load`. The
+  CommonJS and ESM interceptor paths are unified into one process-wide hook;
+  `Module._load` is no longer modified.
 - Attribute extension callback errors to the owning plugin: the per-extension
   API object tags command handlers, event listeners and language providers
   with the extension id, so command errors are prefixed with

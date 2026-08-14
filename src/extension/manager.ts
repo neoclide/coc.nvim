@@ -21,11 +21,10 @@ import { createTiming } from '../util/timing'
 import window from '../window'
 import workspace from '../workspace'
 import { ExtensionApiFactory } from './apiFactory'
-import { installEsmHooks } from './esmHook'
 import { ExtensionModuleCache } from './moduleCache'
-import { CocModuleInterceptor } from './moduleInterceptor'
+import { installCocModuleHooks, invalidateExtensionCocModule } from './moduleHook'
 import { ExtensionExports, getModuleType, loadExtensionModuleAsync } from './moduleLoader'
-import { ExtensionPathIndex, createModuleDescription } from './pathIndex'
+import { ExtensionPathIndex, createModuleDescription, type ExtensionModuleDescription } from './pathIndex'
 import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, validExtensionFolder } from './stat'
 
 interface ExportExtension {
@@ -101,6 +100,7 @@ export interface ExtensionItem {
   filepath?: string
   directory: string
   readonly isLocal: boolean
+  readonly moduleType?: ExtensionModuleDescription['moduleType']
 }
 
 const extensionRegistry = Registry.as<IExtensionRegistry>(ExtensionsInfo.ExtensionContribution)
@@ -125,11 +125,11 @@ export class ExtensionManager {
   private readonly extensionPathIndex = new ExtensionPathIndex()
   private readonly apiFactory = new ExtensionApiFactory<object, object>()
   private readonly moduleCache = new ExtensionModuleCache()
-  private interceptor: CocModuleInterceptor<object, object> | undefined
+  private moduleHooksInstalled = false
   /**
    * Directory of the bundled coc.nvim runtime. Core modules live inside it,
-   * so the interceptor can distinguish coc.nvim-owned require("coc.nvim")
-   * callers from unknown ones.
+   * so the module hooks can distinguish coc.nvim-owned `coc.nvim` callers
+   * from unknown ones.
    */
   private readonly cocRoot = path.resolve(__dirname)
 
@@ -140,12 +140,11 @@ export class ExtensionManager {
     this.modulesFolder = path.join(this.folder, 'node_modules')
   }
 
-  private ensureInterceptor(): void {
-    if (this.interceptor) return
+  private ensureModuleHooks(): void {
+    if (this.moduleHooksInstalled) return
     this.apiFactory.initialize(require('../index'))
-    this.interceptor = new CocModuleInterceptor(this.extensionPathIndex, this.apiFactory, this.cocRoot)
-    this.interceptor.install()
-    installEsmHooks(this.extensionPathIndex, this.apiFactory, this.cocRoot)
+    installCocModuleHooks(this.extensionPathIndex, this.apiFactory, this.cocRoot)
+    this.moduleHooksInstalled = true
   }
 
   public activateExtensions(): Promise<PromiseSettledResult<void>[]> {
@@ -359,13 +358,21 @@ export class ExtensionManager {
    */
   public async unloadExtension(id: string): Promise<void> {
     let item = this.extensions.get(id)
+    let moduleType = item?.moduleType
     if (item) {
       await this.deactivate(id)
       this.extensions.delete(id)
       this._onDidUnloadExtension.fire(id)
     }
     this.extensionPathIndex.remove(id)
-    this.apiFactory.delete(id)
+    // Native ESM modules remain cached for the process lifetime. Preserve the
+    // API object they captured so a CJS helper loaded after reload observes
+    // the same API identity. CommonJS modules are reloadable and get a fresh
+    // API object together with their cleared module cache.
+    if (moduleType !== 'module') {
+      this.apiFactory.delete(id)
+      invalidateExtensionCocModule(id)
+    }
   }
 
   public async reloadExtension(id: string): Promise<void> {
@@ -373,7 +380,7 @@ export class ExtensionManager {
     if (!item || item.type == ExtensionType.Internal) {
       throw new Error(`Extension ${id} not registered`)
     }
-    if (getModuleType(item.extension.packageJSON, item.filepath) === 'module') {
+    if (item.moduleType === 'module') {
       logger.warn(`ESM extension ${id} reload does not re-execute module code; restart coc.nvim to apply code changes`)
     }
     if (item.type == ExtensionType.SingleFile) {
@@ -505,7 +512,7 @@ export class ExtensionManager {
     let ext: ExtensionExports
     let desc = createModuleDescription(id, root, filename, getModuleType(packageJSON, filename))
     this.extensionPathIndex.add(desc)
-    this.ensureInterceptor()
+    this.ensureModuleHooks()
     let subscriptions: Disposable[] = []
     const timing = createTiming(`activate ${id}`, 5000)
     let extension: Extension<API> = {
@@ -571,6 +578,7 @@ export class ExtensionManager {
       extension,
       directory: root,
       filepath: filename,
+      moduleType: desc.moduleType,
       events: getEvents(packageJSON.activationEvents),
       deactivate: async () => {
         if (!isActive) return

@@ -58,9 +58,20 @@ export function wrapCallbackWithExtension<T extends (...args: any[]) => any>(
   return wrapped
 }
 
-function prefixExtensionError(error: unknown, extensionId: string): unknown {
-  if (error instanceof Error && !error.message.startsWith('[extension:')) {
-    error.message = `[extension: ${extensionId}] ${error.message}`
+export function prefixExtensionError(error: unknown, extensionId: string): unknown {
+  if (!(error instanceof Error)) return error
+  let originalMessage: string
+  try {
+    originalMessage = error.message
+  } catch (e) {
+    return error
+  }
+  if (typeof originalMessage !== 'string' || originalMessage.startsWith('[extension:')) return error
+  const message = `[extension: ${extensionId}] ${originalMessage}`
+  try {
+    error.message = message
+  } catch (e) {
+    return new Error(message, { cause: error })
   }
   return error
 }

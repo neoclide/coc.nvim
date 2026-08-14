@@ -774,11 +774,14 @@ describe('ExtensionManager', () => {
       }), 'utf8')
       fs.writeFileSync(path.join(extFolder, 'index.js'), [
         "import api, { workspace } from 'coc.nvim'",
+        "import { createRequire } from 'node:module'",
         "import { depApi } from './dep.mjs'",
+        "const require = createRequire(import.meta.url)",
         "let count = 0",
-        "export function activate() { count++; return { count, same: api === depApi, hasWorkspace: typeof workspace === 'object' } }"
+        "export function activate() { count++; return { count, api, cjsApi: count > 1 ? require('./late.cjs') : undefined, same: api === depApi, hasWorkspace: typeof workspace === 'object' } }"
       ].join('\n'), 'utf8')
       fs.writeFileSync(path.join(extFolder, 'dep.mjs'), "import api from 'coc.nvim'\nexport const depApi = api", 'utf8')
+      fs.writeFileSync(path.join(extFolder, 'late.cjs'), "module.exports = require('coc.nvim')", 'utf8')
       await manager.loadExtension(extFolder)
       await manager.activate(name)
       let res1 = manager.getExtension(name).extension.exports as any
@@ -791,6 +794,8 @@ describe('ExtensionManager', () => {
       // ESM modules are not re-executed by reload (restart required), but
       // activate() re-runs against the cached module.
       assert.strictEqual(res2.count, 2)
+      assert.strictEqual(res2.api, res1.api)
+      assert.strictEqual(res2.cjsApi, res2.api)
     })
 
     it('should call deactivate before clearing owned module cache', async t => {
