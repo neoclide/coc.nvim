@@ -2,6 +2,8 @@
 import { createLogger } from '../logger'
 import { fs, path, vm } from '../util/node'
 import type { Context } from 'vm'
+import { createExtensionConsole, getConsoleFacade } from './console'
+import type { ExtensionConsoleState } from './console'
 
 /**
  * Extension loader based on `vm.createContext` + `vm.compileFunction`.
@@ -48,6 +50,8 @@ export interface ExtensionRuntime {
   entry: string
   context: Context
   api: unknown
+  console: Console
+  consoleState: ExtensionConsoleState
   modules: Map<string, ExtensionModule>
 }
 
@@ -106,28 +110,6 @@ export function createProcessFacade(): NodeJS.Process {
   return facade
 }
 
-export function createConsole(con: object, logger: ILogger): object {
-  let result: any = {}
-  let methods = ['debug', 'log', 'info', 'error', 'warn']
-  for (let key of Object.keys(con)) {
-    if (methods.includes(key)) {
-      result[key] = (...args: any[]) => {
-        logger[key].apply(logger, args)
-      }
-    } else {
-      let fn = con[key]
-      if (key !== 'Console' && typeof fn === 'function') {
-        result[key] = () => {
-          logger.warn(`function console.${key} not supported`)
-        }
-      } else {
-        result[key] = fn
-      }
-    }
-  }
-  return result
-}
-
 export function copyGlobalProperties(sandbox: Record<string, unknown>, globalObj: any): Record<string, unknown> {
   // Use Object.keys so `instanceof Error` and `instanceof TypeError` keep
   // working inside the extension realm.
@@ -145,12 +127,12 @@ export function copyGlobalProperties(sandbox: Record<string, unknown>, globalObj
  * Preserves the previous sandbox surface: console forwarding, timers, Buffer,
  * URL APIs, text encoders/decoders, and the process facade.
  */
-export function createExtensionContext(id: string, logger: ILogger): Context {
+export function createExtensionContext(id: string, console: Console): Context {
   const sandbox: Record<string, unknown> = vm.createContext({
+    console,
     Buffer,
     URL: globalThis.URL,
     WebAssembly: globalThis.WebAssembly,
-    console: createConsole(console, logger)
   }, { name: id }) as unknown as Record<string, unknown>
   copyGlobalProperties(sandbox, global)
   sandbox['process'] = createProcessFacade()
@@ -278,6 +260,9 @@ export class ExtensionLoader {
   public loadBuiltin(request: string): unknown {
     if (request === 'process' || request === 'node:process') {
       return (this.runtime.context as any).process
+    }
+    if (request === 'console' || request === 'node:console') {
+      return getConsoleFacade(this.runtime)
     }
     return require(request)
   }
@@ -414,6 +399,7 @@ export function createExtensionRequire(runtime: ExtensionRuntime, parent: Extens
  * Create an extension runtime: one vm.Context and one module cache.
  */
 export function createExtensionRuntime(id: string, filename: string, api: unknown, logger: ILogger): ExtensionRuntime {
+  const { console, state } = createExtensionConsole(id, logger)
   const root = path.dirname(filename)
   let realRoot = root
   try {
@@ -426,8 +412,10 @@ export function createExtensionRuntime(id: string, filename: string, api: unknow
     root,
     realRoot,
     entry: filename,
-    context: createExtensionContext(id, logger),
+    context: createExtensionContext(id, console),
     api,
+    console,
+    consoleState: state,
     modules: new Map()
   }
   return runtime
@@ -443,12 +431,18 @@ export function disposeExtension(id: string): void {
   let runtime = runtimes.get(id)
   if (runtime) {
     runtime.modules.clear()
+    runtime.consoleState.timers.clear()
+    runtime.consoleState.counters.clear()
+    runtime.consoleState.groupDepth = 0
     runtimes.delete(id)
   }
 }
 
 function getLogger(useConsole: boolean, id: string): ILogger {
-  return useConsole ? consoleLogger : createLogger(`extension:${id}`)
+  if (useConsole) {
+    return consoleLogger
+  }
+  return createLogger(`extension:${id}`)
 }
 
 /**
@@ -457,10 +451,7 @@ function getLogger(useConsole: boolean, id: string): ILogger {
  * entry/dependencies, which is what reload depends on.
  */
 export function createExtension(id: string, filename: string, isEmpty: boolean): ExtensionExport {
-  if (isEmpty || !fs.existsSync(filename)) return {
-    activate: () => {},
-    deactivate: null
-  }
+  if (isEmpty || !fs.existsSync(filename)) return { activate: () => {}, deactivate: null }
   disposeExtension(id)
   const logger = getLogger(!global.__isMain && !global.__TEST__, id)
   const api: unknown = global.__isMain === undefined ? {} : require('../index')

@@ -12,7 +12,7 @@ import type PATH from 'path'
 import type READLINE from 'readline'
 import type SEMVER from 'semver'
 import type UNIDECODE from 'unidecode'
-import { inspect, promisify, stripVTControlCharacters } from 'util'
+import { format, inspect, promisify, stripVTControlCharacters } from 'util'
 import type VM from 'vm'
 import type WHICH from 'which'
 
@@ -33,5 +33,4 @@ export const vm = require('vm') as typeof VM
 export const net = require('net') as typeof NET
 export const fastDiff = require('fast-diff') as typeof FASTDIFF
 export const unidecode = require('unidecode') as typeof UNIDECODE
-export { inspect, promisify }
-
+export { format, inspect, promisify }
