@@ -5,11 +5,12 @@ import { createRequire } from 'module'
 import {
   consoleLogger,
   createExtension,
+  createExtensionAsync,
   createExtensionRequire,
   createExtensionRuntime,
   getLoader
 } from '../../extension/loader'
-import type { ExtensionModule } from '../../extension/loader'
+import type { ExtensionCommonJSModule } from '../../extension/loader'
 
 const require = createRequire(import.meta.url)
 const Module = require('module')
@@ -209,15 +210,19 @@ exports.activate = () => {
     let exitFile = path.join(folder, 'exit.js')
     let umaskFile = path.join(folder, 'umask.js')
     let readFile = path.join(folder, 'read.js')
+    let chdirFile = path.join(folder, 'chdir.js')
     fs.writeFileSync(exitFile, `exports.activate = () => { process.exit() }`)
     fs.writeFileSync(umaskFile, `exports.activate = () => { process.umask(18) }`)
     fs.writeFileSync(readFile, `exports.activate = () => { return typeof process.umask() }`)
+    fs.writeFileSync(chdirFile, `exports.activate = () => process.chdir()`)
     let ext = createExtension('facade-exit', exitFile, false)
     assert.throws(() => ext.activate({} as any), /not allowed in extension sandbox/)
     let ext2 = createExtension('facade-umask', umaskFile, false)
     assert.throws(() => ext2.activate({} as any), /read-only/)
     let ext3 = createExtension('facade-read', readFile, false)
     assert.strictEqual(ext3.activate({} as any), 'number')
+    let ext4 = createExtension('facade-chdir', chdirFile, false)
+    assert.strictEqual(ext4.activate({} as any), undefined)
   })
 
   it('should create a fresh context and module cache on reload', () => {
@@ -349,7 +354,7 @@ module.exports = { ok: true }`)
     let runtime = createExtensionRuntime('graph', parent, {}, consoleLogger)
     let loader = getLoader(runtime)
     assert.throws(() => loader.loadJavaScript(parent), /leaf failed/)
-    assert.strictEqual(runtime.modules.size, 0)
+    assert.strictEqual(runtime.cjsModules.size, 0)
     // After the leaf is fixed, loading retries the whole graph.
     fs.writeFileSync(leaf, `module.exports = { ok: true }`)
     let exports: any = loader.loadJavaScript(parent)
@@ -480,7 +485,7 @@ exports.activate = () => module.require('./dep')`)
       let b: any = loader.loadNative(path.join(folder, 'addon.node'))
       assert.strictEqual(a, b)
       assert.strictEqual(a.loaded, fs.realpathSync(native))
-      assert.strictEqual(runtime.modules.size, 1)
+      assert.strictEqual(runtime.cjsModules.size, 1)
     } finally {
       Module._extensions['.node'] = original
     }
@@ -494,7 +499,7 @@ exports.activate = () => module.require('./dep')`)
     let loader = getLoader(runtime)
     // Missing file: realpath and read both fail and nothing stays cached.
     assert.throws(() => loader.loadJavaScript(path.join(folder, 'missing.js')), /ENOENT/)
-    assert.strictEqual(runtime.modules.size, 0)
+    assert.strictEqual(runtime.cjsModules.size, 0)
     // Invalid JSON is wrapped with the module filename.
     fs.writeFileSync(path.join(folder, 'bad.json'), '{ not json')
     assert.throws(() => loader.loadJson(path.join(folder, 'bad.json')), /Error parsing JSON module/)
@@ -502,10 +507,20 @@ exports.activate = () => module.require('./dep')`)
     let exports: any = loader.loadJavaScript(entry)
     assert.strictEqual(exports, 1)
     loader.clear()
-    assert.strictEqual(runtime.modules.size, 0)
+    assert.strictEqual(runtime.cjsModules.size, 0)
   })
 
-  it('should return a no-op extension for empty or missing entries', () => {
+  it('should reject load() of ESM and unsupported module types', () => {
+    let folder = createFolder()
+    let runtime = createExtensionRuntime('load-edges', path.join(folder, 'index.js'), {}, consoleLogger)
+    let loader = getLoader(runtime)
+    fs.writeFileSync(path.join(folder, 'x.mjs'), 'export default 1')
+    assert.throws(() => loader.load(path.join(folder, 'x.mjs')), /require\(\) of ES Module/)
+    fs.writeFileSync(path.join(folder, 'x.xyz'), 'data')
+    assert.throws(() => loader.load(path.join(folder, 'x.xyz')), /Unsupported module type/)
+  })
+
+  it('should return a no-op extension for empty or missing entries', async () => {
     let folder = createFolder()
     let entry = path.join(folder, 'index.js')
     fs.writeFileSync(entry, `exports.activate = () => 'real'`)
@@ -515,6 +530,9 @@ exports.activate = () => module.require('./dep')`)
     let missing = createExtension('missing-ext', path.join(folder, 'not-exists.js'), false)
     assert.strictEqual(typeof missing.activate, 'function')
     assert.strictEqual(missing.deactivate, null)
+    // createExtensionAsync keeps the same empty-entry behavior.
+    let asyncEmpty = await createExtensionAsync('empty-async', entry, true)
+    assert.strictEqual(typeof asyncEmpty.activate, 'function')
   })
 
   it('should return a no-op extension when the entry has no activate', () => {
@@ -540,12 +558,44 @@ exports.activate = () => module.require('./dep')`)
     }
   })
 
-  it('should fail clearly for unsupported module types', () => {
+  it('should inject the real API when running as main', async () => {
+    let folder = createFolder()
+    let entry = path.join(folder, 'index.cjs')
+    fs.writeFileSync(entry, `exports.activate = () => 'main-ok'`)
+    let prev = global.__isMain
+    global.__isMain = true
+    try {
+      let ext = await createExtensionAsync('main-api', entry, false)
+      assert.strictEqual(ext.activate({}), 'main-ok')
+    } finally {
+      if (prev === undefined) {
+        delete global.__isMain
+      } else {
+        global.__isMain = prev
+      }
+    }
+  })
+
+  it('should reject require() of ES modules', () => {
     let folder = createFolder()
     fs.writeFileSync(path.join(folder, 'data.mjs'), `export default 1`)
     let entry = path.join(folder, 'index.js')
     fs.writeFileSync(entry, `require('./data.mjs')`)
-    assert.throws(() => createExtension('mjs', entry, false), /Unsupported module type/)
+    let err: any
+    try {
+      createExtension('mjs', entry, false)
+    } catch (e) {
+      err = e
+    }
+    assert.strictEqual(err.code, 'ERR_REQUIRE_ESM')
+    assert.match(String(err.message), /require\(\) of ES Module/)
+  })
+
+  it('should dispose the runtime when async entry loading fails', async () => {
+    let folder = createFolder()
+    let entry = path.join(folder, 'index.mjs')
+    fs.writeFileSync(entry, `throw new Error('async boom')`)
+    await assert.rejects(createExtensionAsync('async-fail', entry, false), /async boom/)
   })
 
   it('should create extension-local require bound to a parent module', () => {
@@ -553,7 +603,7 @@ exports.activate = () => module.require('./dep')`)
     fs.writeFileSync(path.join(folder, 'dep.js'), `module.exports = 'dep-value'`)
     let entry = path.join(folder, 'index.js')
     let runtime = createExtensionRuntime('req', entry, { api: 1 }, consoleLogger)
-    let parent: ExtensionModule = {
+    let parent: ExtensionCommonJSModule = {
       id: entry,
       filename: entry,
       dirname: folder,

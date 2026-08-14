@@ -9,7 +9,7 @@ import { splitArray, toArray } from '../util/array'
 import { configHome, dataHome } from '../util/constants'
 import { onUnexpectedError } from '../util/errors'
 import { Extensions as ExtensionsInfo, IExtensionRegistry, IStringDictionary, getProperties } from '../util/extensionRegistry'
-import { ExtensionExport, createExtension, disposeExtension } from '../extension/loader'
+import { ExtensionExport, createExtensionAsync, disposeExtension } from '../extension/loader'
 import { isDirectory, loadJson, remove, statAsync, watchFile } from '../util/fs'
 import * as Is from '../util/is'
 import type { IJSONSchema } from '../util/jsonSchema'
@@ -485,7 +485,7 @@ export class ExtensionManager {
           timing.start()
           try {
             let isEmpty = typeof packageJSON.engines.coc === 'undefined'
-            ext = createExtension(id, filename, isEmpty)
+            ext = await createExtensionAsync(id, filename, isEmpty)
             let context = {
               subscriptions,
               extensionPath,

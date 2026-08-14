@@ -1,9 +1,16 @@
 'use strict'
 import { createLogger } from '../logger'
 import { fs, path, vm } from '../util/node'
-import type { Context } from 'vm'
+import type { Context, Module as VMModule } from 'vm'
 import { createExtensionConsole, getConsoleFacade } from './console'
 import type { ExtensionConsoleState } from './console'
+import {
+  loadESMEntry,
+  dynamicImportModule,
+  requireESMError,
+  resolveExtensionModule,
+  resolveModuleFormat
+} from './esm'
 
 /**
  * Extension loader based on `vm.createContext` + `vm.compileFunction`.
@@ -33,14 +40,14 @@ export interface ILogger {
   mark(...args: any[]): void
 }
 
-export interface ExtensionModule {
+export interface ExtensionCommonJSModule {
   id: string
   filename: string
   dirname: string
   exports: unknown
   loaded: boolean
-  parent?: ExtensionModule
-  children: ExtensionModule[]
+  parent?: ExtensionCommonJSModule
+  children: ExtensionCommonJSModule[]
 }
 
 export interface ExtensionRuntime {
@@ -52,7 +59,8 @@ export interface ExtensionRuntime {
   api: unknown
   console: Console
   consoleState: ExtensionConsoleState
-  modules: Map<string, ExtensionModule>
+  cjsModules: Map<string, ExtensionCommonJSModule>
+  esmModules: Map<string, VMModule>
 }
 
 const Module: any = require('module')
@@ -156,7 +164,7 @@ function stripShebang(content: string): string {
 export class ExtensionLoader {
   constructor(public readonly runtime: ExtensionRuntime) {}
 
-  private parents = new WeakMap<ExtensionModule, Set<ExtensionModule>>()
+  private parents = new WeakMap<ExtensionCommonJSModule, Set<ExtensionCommonJSModule>>()
 
   private isBuiltin(request: string): boolean {
     if (request.startsWith('node:')) return true
@@ -171,7 +179,7 @@ export class ExtensionLoader {
     }
   }
 
-  private parentModule(parent: ExtensionModule): any {
+  private parentModule(parent: ExtensionCommonJSModule): any {
     const record = new Module(parent.filename)
     record.filename = parent.filename
     record.id = parent.filename
@@ -182,7 +190,7 @@ export class ExtensionLoader {
   /**
    * Resolve a request against the parent module using Node's resolver.
    */
-  public resolve(request: string, parent: ExtensionModule, options?: any): string {
+  public resolve(request: string, parent: ExtensionCommonJSModule, options?: any): string {
     if (this.isBuiltin(request)) return request
     return Module._resolveFilename(request, this.parentModule(parent), false, options)
   }
@@ -191,7 +199,7 @@ export class ExtensionLoader {
    * Node-compatible `require.resolve.paths` for a request from a parent
    * module. Returns null for builtins, like Node does.
    */
-  public resolvePaths(request: string, parent: ExtensionModule): string[] | null {
+  public resolvePaths(request: string, parent: ExtensionCommonJSModule): string[] | null {
     return Module._resolveLookupPaths(request, this.parentModule(parent))
   }
 
@@ -199,19 +207,24 @@ export class ExtensionLoader {
    * Extension-local require: API injection, builtins, then modules in this
    * runtime.
    */
-  public require(request: string, parent: ExtensionModule): unknown {
+  public require(request: string, parent: ExtensionCommonJSModule): unknown {
     if (request === 'coc.nvim') return this.runtime.api
     if (this.isBuiltin(request)) return this.loadBuiltin(request)
-    let filename = this.resolve(request, parent)
-    return this.load(filename, parent)
+    let resolved = resolveExtensionModule(this.runtime, request, parent.filename, 'require')
+    if (resolved.type === 'file') {
+      if (resolved.format === 'module') throw requireESMError(resolved.filename)
+      return this.load(resolved.filename, parent)
+    }
+    throw new Error(`Unable to require ${request}`)
   }
 
-  public load(filename: string, parent?: ExtensionModule, isMain = false): unknown {
+  public load(filename: string, parent?: ExtensionCommonJSModule, isMain = false): unknown {
     const cacheKey = this.normalizeFilename(filename)
     const ext = path.extname(cacheKey).toLowerCase()
     if (ext === '.json') return this.loadJson(cacheKey, parent)
     if (ext === '.node') return this.loadNative(cacheKey, parent)
     if (ext === '.js' || ext === '.cjs' || ext === '') return this.loadJavaScript(cacheKey, parent)
+    if (ext === '.mjs') throw requireESMError(cacheKey)
     throw new Error(`Unsupported module type "${ext}" for ${cacheKey}`)
   }
 
@@ -219,9 +232,9 @@ export class ExtensionLoader {
    * Load a native addon outside the VM. The addon is dlopen'd by Node and its
    * exports are cached in the runtime module cache.
    */
-  public loadNative(filename: string, parent?: ExtensionModule): unknown {
+  public loadNative(filename: string, parent?: ExtensionCommonJSModule): unknown {
     const cacheKey = this.normalizeFilename(filename)
-    const cached = this.runtime.modules.get(cacheKey)
+    const cached = this.runtime.cjsModules.get(cacheKey)
     if (cached) return cached.exports
     const nodeModule = new Module(cacheKey)
     nodeModule.filename = cacheKey
@@ -240,9 +253,9 @@ export class ExtensionLoader {
   /**
    * Load a JSON module synchronously and cache the parsed value per runtime.
    */
-  public loadJson(filename: string, parent?: ExtensionModule): unknown {
+  public loadJson(filename: string, parent?: ExtensionCommonJSModule): unknown {
     const cacheKey = this.normalizeFilename(filename)
-    const cached = this.runtime.modules.get(cacheKey)
+    const cached = this.runtime.cjsModules.get(cacheKey)
     if (cached) return cached.exports
     const source = fs.readFileSync(cacheKey, 'utf8')
     let value: unknown
@@ -272,9 +285,9 @@ export class ExtensionLoader {
    * execution so circular dependencies observe partial exports; failed
    * modules are removed from the cache and the module graph.
    */
-  public loadJavaScript(filename: string, parent?: ExtensionModule): unknown {
+  public loadJavaScript(filename: string, parent?: ExtensionCommonJSModule): unknown {
     const cacheKey = this.normalizeFilename(filename)
-    const cached = this.runtime.modules.get(cacheKey)
+    const cached = this.runtime.cjsModules.get(cacheKey)
     if (cached) return cached.exports
     const module = this.createModule(cacheKey, parent)
     let source: string
@@ -298,14 +311,17 @@ export class ExtensionLoader {
    * Compile and execute one CommonJS module with `vm.compileFunction` inside
    * the extension context.
    */
-  public compileCommonJS(module: ExtensionModule, source: string): void {
+  public compileCommonJS(module: ExtensionCommonJSModule, source: string): void {
     const code = stripShebang(stripBOM(source))
     const fn = vm.compileFunction(
       code,
       ['exports', 'require', 'module', '__filename', '__dirname'],
       {
         filename: module.filename,
-        parsingContext: this.runtime.context
+        parsingContext: this.runtime.context,
+        importModuleDynamically: (specifier: string) => {
+          return dynamicImportModule(this.runtime, specifier, module.filename)
+        }
       }
     )
     const localRequire = createExtensionRequire(this.runtime, module)
@@ -317,11 +333,11 @@ export class ExtensionLoader {
    * Drop all cached modules of this runtime.
    */
   public clear(): void {
-    this.runtime.modules.clear()
+    this.runtime.cjsModules.clear()
   }
 
-  private createModule(filename: string, parent?: ExtensionModule): ExtensionModule {
-    const module: ExtensionModule = {
+  private createModule(filename: string, parent?: ExtensionCommonJSModule): ExtensionCommonJSModule {
+    const module: ExtensionCommonJSModule = {
       id: filename,
       filename,
       dirname: path.dirname(filename),
@@ -330,7 +346,7 @@ export class ExtensionLoader {
       parent,
       children: []
     }
-    this.runtime.modules.set(filename, module)
+    this.runtime.cjsModules.set(filename, module)
     if (parent) {
       parent.children.push(module)
       let parents = this.parents.get(module)
@@ -343,8 +359,8 @@ export class ExtensionLoader {
     return module
   }
 
-  private failModule(module: ExtensionModule): void {
-    this.runtime.modules.delete(module.filename)
+  private failModule(module: ExtensionCommonJSModule): void {
+    this.runtime.cjsModules.delete(module.filename)
     const parents = this.parents.get(module)
     if (parents) {
       for (const parent of parents) {
@@ -380,7 +396,7 @@ export function getLoader(runtime: ExtensionRuntime): ExtensionLoader {
  * Create the synchronous extension-local require function for one parent
  * module. Repeated `require('coc.nvim')` calls return the same API object.
  */
-export function createExtensionRequire(runtime: ExtensionRuntime, parent: ExtensionModule): any {
+export function createExtensionRequire(runtime: ExtensionRuntime, parent: ExtensionCommonJSModule): any {
   const loader = getLoader(runtime)
   const req: any = (request: string) => {
     return loader.require(request, parent)
@@ -396,7 +412,8 @@ export function createExtensionRequire(runtime: ExtensionRuntime, parent: Extens
 }
 
 /**
- * Create an extension runtime: one vm.Context and one module cache.
+ * Create an extension runtime: one vm.Context, one CJS cache and one ESM
+ * cache.
  */
 export function createExtensionRuntime(id: string, filename: string, api: unknown, logger: ILogger): ExtensionRuntime {
   const { console, state } = createExtensionConsole(id, logger)
@@ -416,7 +433,8 @@ export function createExtensionRuntime(id: string, filename: string, api: unknow
     api,
     console,
     consoleState: state,
-    modules: new Map()
+    cjsModules: new Map(),
+    esmModules: new Map()
   }
   return runtime
 }
@@ -430,7 +448,8 @@ const runtimes = new Map<string, ExtensionRuntime>()
 export function disposeExtension(id: string): void {
   let runtime = runtimes.get(id)
   if (runtime) {
-    runtime.modules.clear()
+    runtime.cjsModules.clear()
+    runtime.esmModules.clear()
     runtime.consoleState.timers.clear()
     runtime.consoleState.counters.clear()
     runtime.consoleState.groupDepth = 0
@@ -445,13 +464,26 @@ function getLogger(useConsole: boolean, id: string): ILogger {
   return createLogger(`extension:${id}`)
 }
 
+function finalizeExports(id: string, defaultImport: any): ExtensionExport {
+  const activate = (defaultImport && defaultImport['activate']) || defaultImport
+  if (typeof activate !== 'function') {
+    disposeExtension(id)
+    return { activate: () => {} }
+  }
+  return typeof defaultImport === 'function' ? { activate } : Object.assign({}, defaultImport)
+}
+
 /**
- * Load an extension entry and normalize its exports. Each call creates a
- * fresh runtime: a new `vm.Context`, a new module cache, and re-executed
- * entry/dependencies, which is what reload depends on.
+ * Synchronously load a CommonJS extension entry. Each call creates a fresh
+ * runtime: a new `vm.Context`, new module caches, and re-executed
+ * entry/dependencies, which is what reload depends on. ESM entries must use
+ * `createExtensionAsync`.
  */
 export function createExtension(id: string, filename: string, isEmpty: boolean): ExtensionExport {
-  if (isEmpty || !fs.existsSync(filename)) return { activate: () => {}, deactivate: null }
+  if (isEmpty || !fs.existsSync(filename)) {
+    return { activate: () => {}, deactivate: null }
+  }
+  if (resolveModuleFormat(filename) === 'module') throw requireESMError(filename)
   disposeExtension(id)
   const logger = getLogger(!global.__isMain && !global.__TEST__, id)
   const api: unknown = global.__isMain === undefined ? {} : require('../index')
@@ -459,13 +491,43 @@ export function createExtension(id: string, filename: string, isEmpty: boolean):
   runtimes.set(id, runtime)
   const loader = getLoader(runtime)
   try {
-    const defaultImport: any = loader.loadJavaScript(runtime.entry)
-    const activate = (defaultImport && defaultImport['activate']) || defaultImport
-    if (typeof activate !== 'function') {
-      disposeExtension(id)
-      return { activate: () => {} }
+    return finalizeExports(id, loader.loadJavaScript(runtime.entry))
+  } catch (e) {
+    disposeExtension(id)
+    throw e
+  }
+}
+
+/**
+ * Load an extension entry of either format. ESM entries are loaded and
+ * evaluated through the VM ESM pipeline.
+ */
+export async function createExtensionAsync(id: string, filename: string, isEmpty: boolean): Promise<ExtensionExport> {
+  if (isEmpty || !fs.existsSync(filename)) return { activate: () => {}, deactivate: null }
+  disposeExtension(id)
+  const logger = getLogger(!global.__isMain && !global.__TEST__, id)
+  let api: unknown
+  if (global.__isMain === undefined) {
+    api = {}
+  } else {
+    api = require('../index')
+  }
+  const runtime = createExtensionRuntime(id, filename, api, logger)
+  runtimes.set(id, runtime)
+  const loader = getLoader(runtime)
+  let defaultImport: any
+  try {
+    if (resolveModuleFormat(filename) === 'module') {
+      defaultImport = await loadESMEntry(runtime, filename)
+    } else {
+      defaultImport = loader.loadJavaScript(filename)
     }
-    return typeof defaultImport === 'function' ? { activate } : Object.assign({}, defaultImport)
+    if (typeof defaultImport === 'object' && defaultImport !== null &&
+        typeof defaultImport['default'] === 'function' &&
+        typeof defaultImport['activate'] !== 'function') {
+      defaultImport = defaultImport['default']
+    }
+    return finalizeExports(id, defaultImport)
   } catch (e) {
     disposeExtension(id)
     throw e

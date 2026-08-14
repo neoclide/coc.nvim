@@ -197,7 +197,7 @@ function runEditorProcess(
       cwd: projectRoot,
       detached: true,
       env: {...process.env, NODE_COMPILE_CACHE: compileCacheDir},
-      execArgv: ['--enable-source-maps'],
+      execArgv: ['--experimental-vm-modules', '--enable-source-maps'],
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     })
     child.stdout.on('data', chunk => onOutput?.('stdout', chunk.toString()))

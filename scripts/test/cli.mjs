@@ -57,15 +57,18 @@ const {values, positionals} = parseArgs({
 })
 
 /**
- * Raw V8 coverage needs --enable-source-maps from process start so the
- * source-map-cache is populated in the coverage JSON, and unit worker threads
- * inherit the parent's execArgv. It cannot be enabled after startup, so when
- * --coverage is requested without it we re-exec ourselves with the flag.
- * Returns the child's exit info when re-executing, null otherwise.
+ * `vm.SourceTextModule`/`vm.SyntheticModule` require --experimental-vm-modules
+ * from process start, and raw V8 coverage needs --enable-source-maps from
+ * process start. Unit workers and editor children inherit execArgv from here,
+ * so when either flag is missing we re-exec ourselves with them. Returns the
+ * child's exit info when re-executing, null otherwise.
  */
-async function reexecWithCoverageFlags() {
-  if (process.execArgv.includes('--enable-source-maps')) return null
-  const child = spawn(process.execPath, [...process.execArgv, '--enable-source-maps', process.argv[1], ...process.argv.slice(2)], {
+async function reexecWithRequiredFlags() {
+  const missing = []
+  if (!process.execArgv.includes('--experimental-vm-modules')) missing.push('--experimental-vm-modules')
+  if (values.coverage && !process.execArgv.includes('--enable-source-maps')) missing.push('--enable-source-maps')
+  if (missing.length === 0) return null
+  const child = spawn(process.execPath, [...process.execArgv, ...missing, process.argv[1], ...process.argv.slice(2)], {
     stdio: 'inherit',
   })
   const {status, signal} = await new Promise(resolve => {
@@ -74,8 +77,8 @@ async function reexecWithCoverageFlags() {
   return signal ? {signal} : {code: status ?? 1}
 }
 
-if (values.coverage && !values.list) {
-  const reexec = await reexecWithCoverageFlags()
+if (!values.list) {
+  const reexec = await reexecWithRequiredFlags()
   if (reexec) {
     if (reexec.signal) process.kill(process.pid, reexec.signal)
     else process.exit(reexec.code)
