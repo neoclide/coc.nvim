@@ -27,7 +27,7 @@ export default class DocumentHighlightManager extends Manager<DocumentHighlightP
         res = await Promise.resolve(item.provider.provideDocumentHighlights(document, position, token))
         if (res != null) break
       } catch (e) {
-        this.handleResults([{ status: 'rejected', reason: e }], 'provideDocumentHighlights')
+        this.handleResults([{ status: 'rejected', reason: e }], 'provideDocumentHighlights', [item])
       }
     }
     return res

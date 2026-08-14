@@ -1,5 +1,6 @@
 import * as shared from '../sharedUtil'
 import { createRequire } from 'node:module'
+import commands from '../../commands'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -394,6 +395,43 @@ describe('ExtensionManager', () => {
       await assert.rejects(() => manager.activate('realm'), (e: Error) => {
         return e instanceof TypeError && e instanceof Error
       })
+    })
+
+    it('should attribute command errors to the registering extension', async t => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+      let name = `cmd-attr-${crypto.randomUUID().slice(0, 8)}`
+      let extFolder = path.join(tmpfolder, 'node_modules', name)
+      createExtension(extFolder, {
+        name,
+        main: 'index.js',
+        engines: { coc: '>=0.0.1' }
+      }, [
+        "const { commands } = require('coc.nvim')",
+        "exports.activate = () => { commands.registerCommand('" + name + ".test', () => { throw new Error('command boom') }) }"
+      ].join('\n'))
+      await manager.loadExtension(extFolder)
+      await manager.activate(name)
+      assert.throws(() => commands.executeCommand(`${name}.test`), new RegExp(`\\[extension: ${name}\\] command boom`))
+    })
+
+    it('should attribute provider registrations to the extension', async t => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+      let name = `provider-attr-${crypto.randomUUID().slice(0, 8)}`
+      let extFolder = path.join(tmpfolder, 'node_modules', name)
+      createExtension(extFolder, {
+        name,
+        main: 'index.js',
+        engines: { coc: '>=0.0.1' }
+      }, [
+        "const { languages } = require('coc.nvim')",
+        "exports.activate = () => { let provider = { provideHover() { return null } }; languages.registerHoverProvider('javascript', provider); return { provider } }"
+      ].join('\n'))
+      await manager.loadExtension(extFolder)
+      await manager.activate(name)
+      let provider = (manager.getExtension(name).extension.exports as any).provider
+      assert.strictEqual(provider['__extensionName'], name)
     })
 
     it('should fail when dependency activation fails', async t => {

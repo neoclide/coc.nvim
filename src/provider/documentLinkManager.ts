@@ -49,7 +49,7 @@ export default class DocumentLinkManager extends Manager<DocumentLinkProvider> {
         })
       }
     }))
-    this.handleResults(results, 'provideDocumentLinks')
+    this.handleResults(results, 'provideDocumentLinks', items)
     return links
   }
 

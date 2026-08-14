@@ -29,6 +29,13 @@ Notable changes of coc.nvim:
   `activate` as a named export, a default function, or a default object with
   `activate`/`deactivate`. Reload re-activates an ESM extension but does not
   re-execute its module code; restart coc.nvim to apply code changes.
+- Attribute extension callback errors to the owning plugin: the per-extension
+  API object tags command handlers, event listeners and language providers
+  with the extension id, so command errors are prefixed with
+  `[extension: <id>]` in messages shown by Vim and provider/event errors and
+  completion timeouts include the extension id in the log. Provider
+  `__extensionName` now comes from the registration owner instead of parsing
+  stack traces.
 
 ## 2026-08-13
 

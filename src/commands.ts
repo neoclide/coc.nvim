@@ -6,6 +6,7 @@ import { createLogger } from './logger'
 import Mru from './model/mru'
 import { toArray } from './util/array'
 import { Extensions as ExtensionsInfo, IExtensionRegistry } from './util/extensionRegistry'
+import { getExtensionId } from './util/extensionId'
 import { Disposable } from './util/protocol'
 import { Registry } from './util/registry'
 import { toText } from './util/string'
@@ -28,7 +29,25 @@ class CommandItem implements Disposable, Command {
 
   public execute(...args: any[]): void | Promise<any> {
     let { impl, thisArg } = this
-    return impl.apply(thisArg, toArray(args))
+    try {
+      let res = impl.apply(thisArg, toArray(args))
+      if (res != null && typeof (res as unknown as Promise<any>).then === 'function') {
+        return Promise.resolve(res).catch(e => {
+          throw this.withExtension(e)
+        })
+      }
+      return res
+    } catch (e) {
+      throw this.withExtension(e)
+    }
+  }
+
+  private withExtension(e: any): any {
+    let extensionId = getExtensionId(this.impl)
+    if (extensionId && e instanceof Error && !e.message.startsWith('[extension:')) {
+      e.message = `[extension: ${extensionId}] ${e.message}`
+    }
+    return e
   }
 
   public dispose(): void {

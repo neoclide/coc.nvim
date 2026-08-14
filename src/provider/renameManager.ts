@@ -32,7 +32,7 @@ export default class RenameManager extends Manager<RenameProvider> {
       try {
         edit = await Promise.resolve(item.provider.provideRenameEdits(document, position, newName, token))
       } catch (e) {
-        this.handleResults([{ status: 'rejected', reason: e }], 'provideRenameEdits')
+        this.handleResults([{ status: 'rejected', reason: e }], 'provideRenameEdits', [item])
       }
       if (edit != null) break
     }

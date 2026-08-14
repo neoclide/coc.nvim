@@ -32,7 +32,7 @@ export default class HoverManager extends Manager<HoverProvider> {
         }
       })
     }))
-    this.handleResults(results, 'provideHover')
+    this.handleResults(results, 'provideHover', items)
     return hovers
   }
 }

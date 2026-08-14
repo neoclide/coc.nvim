@@ -28,7 +28,7 @@ export default class ReferenceManager extends Manager<ReferenceProvider>  {
         this.addLocation(locations, location)
       })
     }))
-    this.handleResults(results, 'provideReferences')
+    this.handleResults(results, 'provideReferences', providers)
     return locations
   }
 }

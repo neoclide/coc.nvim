@@ -209,6 +209,10 @@ export interface ISource<T extends CompleteItem = CompleteItem> {
   filetypes?: string[]
   documentSelector?: DocumentSelector
   filepath?: string
+  /**
+   * Id of the extension that registered the source, when known.
+   */
+  extension?: string
   firstMatch?: boolean
   refresh?(): Promise<void>
   toggle?(): void

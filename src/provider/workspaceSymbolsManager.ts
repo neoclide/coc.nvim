@@ -31,7 +31,7 @@ export default class WorkspaceSymbolManager extends Manager<WorkspaceSymbolProvi
         }
       })
     }))
-    this.handleResults(results, 'provideWorkspaceSymbols')
+    this.handleResults(results, 'provideWorkspaceSymbols', entries)
     return infos
   }
 

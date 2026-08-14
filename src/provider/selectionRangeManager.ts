@@ -37,7 +37,7 @@ export default class SelectionRangeManager extends Manager<SelectionRangeProvide
         }
       })
     }))
-    this.handleResults(results, 'provideSelectionRanges')
+    this.handleResults(results, 'provideSelectionRanges', items)
     if (selectionRangeResult.length === 0) return null
     let selectionRanges = selectionRangeResult[0]
     // concat ranges when possible

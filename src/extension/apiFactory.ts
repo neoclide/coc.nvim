@@ -1,4 +1,5 @@
 'use strict'
+import { setExtensionId } from '../util/extensionId'
 import type { ExtensionModuleDescription } from './pathIndex'
 
 /**
@@ -52,5 +53,51 @@ export function createExtensionApi<TCoreApi extends object>(
   extension: ExtensionModuleDescription,
   coreApi: TCoreApi
 ): object {
-  return Object.assign({}, coreApi)
+  const api = Object.assign({}, coreApi)
+  const wrapped = api as { [key: string]: any }
+  const extensionId = extension.id
+  // Wrap registration surfaces so callbacks are tagged with the owning
+  // extension id. `this` is always bound back to the shared implementation.
+  if (wrapped.commands) {
+    wrapped.commands = wrapApiObject(wrapped.commands, extensionId, name => {
+      return name === 'registerCommand' || name === 'register'
+    })
+  }
+  if (wrapped.events) {
+    wrapped.events = wrapApiObject(wrapped.events, extensionId, name => {
+      return name === 'on'
+    })
+  }
+  if (wrapped.languages) {
+    wrapped.languages = wrapApiObject(wrapped.languages, extensionId, name => {
+      return name.startsWith('register')
+    })
+  }
+  return api
+}
+
+function wrapApiObject<T extends object>(
+  obj: T,
+  extensionId: string,
+  isRegistration: (name: string) => boolean
+): T {
+  if (obj == null || typeof obj !== 'object') return obj
+  return new Proxy(obj, {
+    get(target, prop, receiver) {
+      if (typeof prop !== 'string') {
+        return Reflect.get(target, prop, receiver)
+      }
+      const value = Reflect.get(target, prop, target)
+      if (typeof value !== 'function') return value
+      if (isRegistration(prop)) {
+        return (...args: any[]) => {
+          for (const arg of args) {
+            if (!Array.isArray(arg)) setExtensionId(arg, extensionId)
+          }
+          return value.apply(target, args)
+        }
+      }
+      return value.bind(target)
+    }
+  })
 }

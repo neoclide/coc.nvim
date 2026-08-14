@@ -28,7 +28,7 @@ export default class DefinitionManager extends Manager<DefinitionProvider> {
         this.addLocation(locations, location)
       })
     }))
-    this.handleResults(results, 'provideDefinition')
+    this.handleResults(results, 'provideDefinition', providers)
     return locations
   }
 
@@ -50,7 +50,7 @@ export default class DefinitionManager extends Manager<DefinitionProvider> {
         }
       })
     }))
-    this.handleResults(results, 'provideDefinition')
+    this.handleResults(results, 'provideDefinition', providers)
     return locations
   }
 }

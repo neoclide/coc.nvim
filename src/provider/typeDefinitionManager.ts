@@ -28,7 +28,7 @@ export default class TypeDefinitionManager extends Manager<TypeDefinitionProvide
         this.addLocation(locations, location)
       })
     }))
-    this.handleResults(results, 'provideTypeDefinition')
+    this.handleResults(results, 'provideTypeDefinition', providers)
     return locations
   }
 }

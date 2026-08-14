@@ -63,7 +63,7 @@ export default class InlineCompletionItemManager extends Manager<InlineCompletio
         resolve(undefined)
       })
     }), promise.then(results => {
-      if (!token.isCancellationRequested) this.handleResults(results, 'provideInlineCompletionItems')
+      if (!token.isCancellationRequested) this.handleResults(results, 'provideInlineCompletionItems', providers)
     })]).catch(onUnexpectedError)
     if (disposable) disposable.dispose()
     return items

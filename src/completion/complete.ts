@@ -168,6 +168,7 @@ export default class Complete {
     if (token.isCancellationRequested) return
     this._completing = true
     const remains: Set<string> = new Set(sources.map(s => s.name))
+    const extensionsBySource = new Map(sources.map(s => [s.name, s.extension]))
     let timer: NodeJS.Timeout
     let disposable: Disposable
     let tp = new Promise<void>(resolve => {
@@ -176,7 +177,10 @@ export default class Complete {
         resolve()
       })
       timer = setTimeout(() => {
-        let names = Array.from(remains)
+        let names = Array.from(remains).map(n => {
+          let extension = extensionsBySource.get(n)
+          return extension ? `${n} (${extension})` : n
+        })
         disposable.dispose()
         tokenSource.cancel()
         logger.warn(`Completion timeout after ${this.timeout}ms`, names)
@@ -259,7 +263,7 @@ export default class Complete {
       })
     } catch (err) {
       // this.nvim.echoError(err)
-      logger.error('Complete error:', source.name, err)
+      logger.error(`Complete error:${source.extension ? ` [extension: ${source.extension}]` : ''}`, source.name, err)
     }
     this.completingSources.delete(sourceName)
     return added

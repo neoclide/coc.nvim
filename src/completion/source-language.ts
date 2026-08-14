@@ -10,6 +10,7 @@ import { UltiSnippetOption } from '../types'
 import { pariedCharacters, waitImmediate } from '../util'
 import { isFalsyOrEmpty, toArray } from '../util/array'
 import { CancellationError } from '../util/errors'
+import { getExtensionId } from '../util/extensionId'
 import * as Is from '../util/is'
 import { toObject } from '../util/object'
 import { CancellationToken, CompletionTriggerKind } from '../util/protocol'
@@ -43,7 +44,10 @@ export default class LanguageSource implements ISource<CompletionItem> {
     public readonly allCommitCharacters: string[],
     public readonly priority: number | undefined
   ) {
+    this.extension = getExtensionId(provider)
   }
+
+  public readonly extension?: string
 
   public get enable(): boolean {
     return this._enabled
