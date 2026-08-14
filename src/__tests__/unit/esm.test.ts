@@ -4,7 +4,7 @@ import path from 'path'
 import { pathToFileURL } from 'url'
 import { consoleLogger, createExtensionAsync, createExtensionRuntime, getLoader } from '../../extension/loader'
 import type { ILogger } from '../../extension/loader'
-import { loadESMEntry, resolveModuleFormat } from '../../extension/esm'
+import { loadESMEntry, resolveExtensionModule, resolveModuleFormat } from '../../extension/esm'
 
 let folders: string[] = []
 
@@ -341,6 +341,217 @@ exports.activate = async () => {
     assert.strictEqual(resolveModuleFormat(path.join(folder, 'plain.js')), 'commonjs')
     write(folder, 'package.json', JSON.stringify({ type: 'module' }))
     assert.strictEqual(resolveModuleFormat(path.join(folder, 'plain.js')), 'module')
+  })
+
+  it('should prefer the coc.nvim export condition over require and import', async () => {
+    let folder = createFolder()
+    let pkg = path.join(folder, 'node_modules', 'cond-pkg')
+    fs.mkdirSync(pkg, { recursive: true })
+    write(pkg, 'package.json', JSON.stringify({
+      name: 'cond-pkg',
+      exports: {
+        types: './types.d.ts',
+        import: './esm.mjs',
+        require: './cjs.js',
+        'coc.nvim': './coc.cjs'
+      }
+    }))
+    write(pkg, 'cjs.js', `module.exports = { build: 'cjs' }`)
+    write(pkg, 'esm.mjs', `export const build = 'esm'`)
+    write(pkg, 'coc.cjs', `module.exports = { build: 'coc' }`)
+    write(pkg, 'types.d.ts', `export {}`)
+    // CJS require resolves the coc.nvim build even though `require` appears
+    // earlier in the exports map.
+    write(folder, 'cjs-entry.cjs', `
+const pkg = require('cond-pkg')
+exports.activate = () => pkg.build`)
+    let ext = await createExtensionAsync('coc-exports-cjs', path.join(folder, 'cjs-entry.cjs'), false)
+    assert.strictEqual(ext.activate({}), 'coc')
+    // ESM import resolves the same coc.nvim build through the CJS bridge.
+    write(folder, 'esm-entry.mjs', `
+import pkg from 'cond-pkg'
+export function activate() { return pkg.build }`)
+    let ext2 = await createExtensionAsync('coc-exports-esm', path.join(folder, 'esm-entry.mjs'), false)
+    assert.strictEqual(ext2.activate({}), 'coc')
+  })
+
+  it('should resolve nested coc.nvim export conditions with node priority', () => {
+    let folder = createFolder()
+    let pkg = path.join(folder, 'node_modules', 'cond-pkg')
+    fs.mkdirSync(pkg, { recursive: true })
+    write(pkg, 'package.json', JSON.stringify({
+      name: 'cond-pkg',
+      exports: {
+        require: './cjs.js',
+        'coc.nvim': {
+          node: './coc-node.cjs',
+          default: './coc-default.cjs'
+        }
+      }
+    }))
+    write(pkg, 'cjs.js', `module.exports = {}`)
+    write(pkg, 'coc-node.cjs', `module.exports = {}`)
+    write(pkg, 'coc-default.cjs', `module.exports = {}`)
+    let runtime = createExtensionRuntime('coc-nested', path.join(folder, 'index.js'), {}, consoleLogger)
+    let resolved = resolveExtensionModule(runtime, 'cond-pkg', path.join(folder, 'index.js'), 'require')
+    assert.strictEqual(resolved.type, 'file')
+    assert.strictEqual((resolved as any).filename, fs.realpathSync(path.join(pkg, 'coc-node.cjs')))
+  })
+
+  it('should prefer coc.nvim for subpath exports', () => {
+    let folder = createFolder()
+    let pkg = path.join(folder, 'node_modules', 'cond-pkg')
+    fs.mkdirSync(pkg, { recursive: true })
+    write(pkg, 'package.json', JSON.stringify({
+      name: 'cond-pkg',
+      exports: {
+        '.': { require: './cjs.js' },
+        './sub': {
+          'coc.nvim': './sub-coc.cjs',
+          require: './sub-cjs.js'
+        }
+      }
+    }))
+    write(pkg, 'cjs.js', `module.exports = {}`)
+    write(pkg, 'sub-coc.cjs', `module.exports = {}`)
+    write(pkg, 'sub-cjs.js', `module.exports = {}`)
+    let runtime = createExtensionRuntime('coc-subpath', path.join(folder, 'index.js'), {}, consoleLogger)
+    let resolved = resolveExtensionModule(runtime, 'cond-pkg/sub', path.join(folder, 'index.js'), 'require')
+    assert.strictEqual(resolved.type, 'file')
+    assert.strictEqual((resolved as any).filename, fs.realpathSync(path.join(pkg, 'sub-coc.cjs')))
+  })
+
+  it('should handle scoped packages and array export targets', () => {
+    let folder = createFolder()
+    let pkg = path.join(folder, 'node_modules', '@scope', 'cond-pkg')
+    fs.mkdirSync(pkg, { recursive: true })
+    write(pkg, 'package.json', JSON.stringify({
+      name: '@scope/cond-pkg',
+      exports: {
+        'coc.nvim': ['./first.cjs', './second.cjs'],
+        require: './cjs.js'
+      }
+    }))
+    write(pkg, 'first.cjs', `module.exports = {}`)
+    write(pkg, 'second.cjs', `module.exports = {}`)
+    write(pkg, 'cjs.js', `module.exports = {}`)
+    let runtime = createExtensionRuntime('coc-scoped', path.join(folder, 'index.js'), {}, consoleLogger)
+    let resolved = resolveExtensionModule(runtime, '@scope/cond-pkg', path.join(folder, 'index.js'), 'require')
+    assert.strictEqual(resolved.type, 'file')
+    assert.strictEqual((resolved as any).filename, fs.realpathSync(path.join(pkg, 'first.cjs')))
+    // Nested arrays inside the coc.nvim branch resolve through the first item.
+    write(pkg, 'package.json', JSON.stringify({
+      name: '@scope/cond-pkg',
+      exports: {
+        'coc.nvim': { node: ['./first.cjs', './second.cjs'] },
+        require: './cjs.js'
+      }
+    }))
+    let nested = resolveExtensionModule(runtime, '@scope/cond-pkg', path.join(folder, 'index.js'), 'require')
+    assert.strictEqual((nested as any).filename, fs.realpathSync(path.join(pkg, 'first.cjs')))
+    // An array with no resolvable coc.nvim item falls back to require.
+    write(pkg, 'package.json', JSON.stringify({
+      name: '@scope/cond-pkg',
+      exports: {
+        'coc.nvim': [{ browser: './browser.cjs' }],
+        require: './cjs.js'
+      }
+    }))
+    write(pkg, 'browser.cjs', `module.exports = {}`)
+    let fallback = resolveExtensionModule(runtime, '@scope/cond-pkg', path.join(folder, 'index.js'), 'require')
+    assert.strictEqual((fallback as any).filename, fs.realpathSync(path.join(pkg, 'cjs.js')))
+    // A top-level array target resolves through the item exposing coc.nvim.
+    write(pkg, 'package.json', JSON.stringify({
+      name: '@scope/cond-pkg',
+      exports: {
+        '.': [{ 'coc.nvim': './first.cjs' }, './fallback.js']
+      }
+    }))
+    write(pkg, 'fallback.js', `module.exports = {}`)
+    let arrayTarget = resolveExtensionModule(runtime, '@scope/cond-pkg', path.join(folder, 'index.js'), 'require')
+    assert.strictEqual((arrayTarget as any).filename, fs.realpathSync(path.join(pkg, 'first.cjs')))
+    // An array with no coc.nvim item falls back to its string item.
+    write(pkg, 'package.json', JSON.stringify({
+      name: '@scope/cond-pkg',
+      exports: {
+        '.': [{ browser: './browser.cjs' }, './fallback.js'],
+        require: './cjs.js'
+      }
+    }))
+    let noCoc = resolveExtensionModule(runtime, '@scope/cond-pkg', path.join(folder, 'index.js'), 'require')
+    assert.strictEqual((noCoc as any).filename, fs.realpathSync(path.join(pkg, 'fallback.js')))
+  })
+
+  it('should bail out of the coc.nvim pre-check without a resolvable target', () => {
+    let folder = createFolder()
+    let pkg = path.join(folder, 'node_modules', '@scope', 'cond-pkg')
+    fs.mkdirSync(pkg, { recursive: true })
+    write(pkg, 'package.json', JSON.stringify({
+      name: '@scope/cond-pkg',
+      exports: {
+        '.': [{ browser: './browser.cjs' }, { other: './other.js' }]
+      }
+    }))
+    write(pkg, 'browser.cjs', `module.exports = {}`)
+    write(pkg, 'other.js', `module.exports = {}`)
+    let runtime = createExtensionRuntime('coc-no-target', path.join(folder, 'index.js'), {}, consoleLogger)
+    // No item exposes coc.nvim, so the pre-check bails out and Node's own
+    // exports resolution rejects the package.
+    assert.throws(() => resolveExtensionModule(runtime, '@scope/cond-pkg', path.join(folder, 'index.js'), 'require'))
+  })
+
+  it('should fall back to Node resolution without a coc.nvim export', () => {
+    let folder = createFolder()
+    let pkg = path.join(folder, 'node_modules', 'cond-pkg')
+    fs.mkdirSync(pkg, { recursive: true })
+    write(pkg, 'package.json', JSON.stringify({
+      name: 'cond-pkg',
+      exports: {
+        '.': { require: './cjs.js', import: './esm.mjs' }
+      }
+    }))
+    write(pkg, 'cjs.js', `module.exports = { build: 'cjs' }`)
+    write(pkg, 'esm.mjs', `export const build = 'esm'`)
+    let runtime = createExtensionRuntime('coc-fallback', path.join(folder, 'index.js'), {}, consoleLogger)
+    let resolved = resolveExtensionModule(runtime, 'cond-pkg', path.join(folder, 'index.js'), 'require')
+    assert.strictEqual((resolved as any).filename, fs.realpathSync(path.join(pkg, 'cjs.js')))
+  })
+
+  it('should fall back when coc.nvim branches have no resolvable target', () => {
+    let folder = createFolder()
+    let pkg = path.join(folder, 'node_modules', 'cond-pkg')
+    fs.mkdirSync(pkg, { recursive: true })
+    write(pkg, 'package.json', JSON.stringify({
+      name: 'cond-pkg',
+      exports: {
+        'coc.nvim': { browser: './browser.cjs' },
+        require: './cjs.js'
+      }
+    }))
+    write(pkg, 'browser.cjs', `module.exports = {}`)
+    write(pkg, 'cjs.js', `module.exports = {}`)
+    let runtime = createExtensionRuntime('coc-nested-none', path.join(folder, 'index.js'), {}, consoleLogger)
+    let resolved = resolveExtensionModule(runtime, 'cond-pkg', path.join(folder, 'index.js'), 'require')
+    assert.strictEqual((resolved as any).filename, fs.realpathSync(path.join(pkg, 'cjs.js')))
+    // A subpath missing from exports falls through to Node and fails.
+    write(pkg, 'other.js', `module.exports = {}`)
+    assert.throws(() => resolveExtensionModule(runtime, 'cond-pkg/other', path.join(folder, 'index.js'), 'require'))
+  })
+
+  it('should handle string exports and malformed package.json', () => {
+    let folder = createFolder()
+    let pkg = path.join(folder, 'node_modules', 'cond-pkg')
+    fs.mkdirSync(pkg, { recursive: true })
+    write(pkg, 'package.json', JSON.stringify({ name: 'cond-pkg', exports: './index.js' }))
+    write(pkg, 'index.js', `module.exports = { build: 'string' }`)
+    let runtime = createExtensionRuntime('coc-string-exports', path.join(folder, 'index.js'), {}, consoleLogger)
+    let resolved = resolveExtensionModule(runtime, 'cond-pkg', path.join(folder, 'index.js'), 'require')
+    assert.strictEqual((resolved as any).filename, fs.realpathSync(path.join(pkg, 'index.js')))
+    // Malformed package.json makes the pre-check bail out and Node resolves
+    // through the regular package entry.
+    write(pkg, 'package.json', '{ broken json')
+    let fallback = resolveExtensionModule(runtime, 'cond-pkg', path.join(folder, 'index.js'), 'require')
+    assert.strictEqual(fallback.type, 'file')
   })
 
   it('should cache package type and fall back on invalid package.json', () => {
