@@ -3,10 +3,9 @@ import { Location, LocationLink } from 'vscode-languageserver-types'
 import { createLogger } from '../logger'
 import { LocationWithTarget, TextDocumentMatch } from '../types'
 import { isCancellationError, shouldIgnore } from '../util/errors'
-import { parseExtensionName } from '../util/extensionRegistry'
+import { getExtensionId } from '../util/extensionId'
 import { equals } from '../util/object'
 import { CancellationToken, Disposable } from '../util/protocol'
-import { toText } from '../util/string'
 import workspace from '../workspace'
 import { DocumentSelector } from './index'
 const logger = createLogger('provider-manager')
@@ -16,6 +15,10 @@ export type ProviderItem<T extends object, P = object> = {
   selector: DocumentSelector
   provider: T
   priority?: number
+  /**
+   * Id of the extension that registered the provider, when known.
+   */
+  extension?: string
 } & P
 
 export default class Manager<T extends object, P = object> {
@@ -26,15 +29,12 @@ export default class Manager<T extends object, P = object> {
   }
 
   protected addProvider(item: ProviderItem<T, P>): Disposable {
+    if (!item.extension) {
+      item.extension = getExtensionId(item.provider)
+    }
     if (!item.provider.hasOwnProperty('__extensionName')) {
-      if (!global.__TEST__) Error.captureStackTrace(item)
-      let name: string
       Object.defineProperty(item.provider, '__extensionName', {
-        get: () => {
-          if (name) return name
-          name = parseExtensionName(toText(item['stack']))
-          return name
-        },
+        get: () => item.extension,
         enumerable: true
       })
     }
@@ -44,11 +44,19 @@ export default class Manager<T extends object, P = object> {
     })
   }
 
-  protected handleResults(results: PromiseSettledResult<void>[], name: string, token?: CancellationToken): void {
+  protected handleResults(
+    results: PromiseSettledResult<void>[],
+    name: string,
+    items?: ReadonlyArray<ProviderItem<T, P>>,
+    token?: CancellationToken
+  ): void {
     let serverCancelError: Error
-    results.forEach(res => {
+    results.forEach((res, i) => {
       if (res.status === 'rejected') {
-        if (!shouldIgnore(res.reason)) logger.error(`Provider error on ${name}:`, res.reason)
+        if (!shouldIgnore(res.reason)) {
+          let extension = items?.[i]?.extension
+          logger.error(`Provider error on ${name}${extension ? ` [extension: ${extension}]` : ''}:`, res.reason)
+        }
         if (token && !token.isCancellationRequested && isCancellationError(res.reason)) {
           serverCancelError = res.reason
         }

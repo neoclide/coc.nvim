@@ -8,6 +8,20 @@ Notable changes of coc.nvim:
 
 ## 2026-08-15
 
+- Add a per-extension coc.nvim API facade: every extension runtime receives
+  its own frozen top-level API object. Mutable core singletons (workspace,
+  window, commands, languages, sources, services, extensions,
+  diagnosticManager, listManager, snippetManager, events, mcp) are wrapped so
+  extensions never receive raw manager objects; immutable value exports are
+  shared directly and `nvim` stays a live getter. Mutating one extension's
+  facade cannot affect another extension or coc core.
+- Attribute extension callback errors to the owning plugin: command handlers,
+  event listeners and language providers registered through the facade are
+  tagged with the extension id, so command errors are prefixed with
+  `[extension: <id>]`, event handler errors and slow-handler warnings include
+  the extension id, and provider `__extensionName` now comes from the
+  registration owner instead of parsing stack traces. Extension-owned
+  registrations are disposed with the runtime.
 - Add ESM extension support to the per-extension VM loader: ESM entries and
   imports execute through `vm.SourceTextModule` inside the owning extension
   context, and `coc.nvim`, Node builtins, CommonJS modules and JSON are

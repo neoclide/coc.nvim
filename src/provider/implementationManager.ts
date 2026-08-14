@@ -28,7 +28,7 @@ export default class ImplementationManager extends Manager<ImplementationProvide
         this.addLocation(locations, location)
       })
     }))
-    this.handleResults(results, 'provideImplementations')
+    this.handleResults(results, 'provideImplementations', providers)
     return locations
   }
 }

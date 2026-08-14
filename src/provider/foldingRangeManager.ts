@@ -43,7 +43,7 @@ export default class FoldingRangeManager extends Manager<FoldingRangeProvider>  
         }
       })
     }))
-    this.handleResults(results, 'provideFoldingRanges')
+    this.handleResults(results, 'provideFoldingRanges', items)
     return ranges
   }
 }

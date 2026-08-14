@@ -28,7 +28,7 @@ export default class DeclarationManager extends Manager<DeclarationProvider> {
         this.addLocation(locations, location)
       })
     }))
-    this.handleResults(results, 'provideDeclaration')
+    this.handleResults(results, 'provideDeclaration', providers)
     return locations
   }
 }

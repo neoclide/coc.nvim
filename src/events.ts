@@ -8,6 +8,7 @@ import * as Is from './util/is'
 import { equals } from './util/object'
 import { CancellationToken, Disposable } from './util/protocol'
 import { byteSlice } from './util/string'
+import { extensionIdSymbol, getExtensionId } from './util/extensionId'
 const logger = createLogger('events')
 const debounceTime = getConditionValue(100, 10)
 
@@ -381,13 +382,17 @@ class Events {
           let timer: NodeJS.Timeout
           if (traceSlow) {
             timer = setTimeout(() => {
-              logger.warn(`Slow "${event}" handler detected`, fn['stack'])
+              let extensionId = getExtensionId(fn)
+              logger.warn(`Slow "${event}" handler detected${extensionId ? ` [extension: ${extensionId}]` : ''}`, fn['stack'])
             }, this.timeout)
           }
           try {
             await fn(args)
           } catch (e) {
-            if (!shouldIgnore(e)) logger.error(`Error on event: ${event}`, e, fn['stack'])
+            if (!shouldIgnore(e)) {
+              let extensionId = getExtensionId(fn)
+              logger.error(`Error on event: ${event}${extensionId ? ` [extension: ${extensionId}]` : ''}`, e, fn['stack'])
+            }
           }
           clearTimeout(timer)
         }
@@ -450,6 +455,7 @@ class Events {
       let onFinish = () => {
         if (disposables === true && disposable) disposable.dispose()
       }
+      let extensionId = getExtensionId(handler)
       let wrappedhandler = args => new Promise((resolve, reject) => {
         try {
           Promise.resolve(handler.apply(thisArg ?? null, args)).then(() => {
@@ -465,6 +471,10 @@ class Events {
         }
       })
       if (!global.__TEST__) Error.captureStackTrace(wrappedhandler)
+      Object.defineProperty(wrappedhandler, extensionIdSymbol, {
+        value: extensionId,
+        configurable: true
+      })
       arr.push(wrappedhandler)
       this.handlers.set(event, arr)
       let disposable = Disposable.create(() => {
