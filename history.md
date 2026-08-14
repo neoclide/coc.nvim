@@ -22,6 +22,14 @@ Notable changes of coc.nvim:
   process facade (the same object as the global `process`) with exit/kill/etc.
   stubbed, and mutable `require.cache`/`require.extensions` are no longer
   exposed to extensions.
+- Each extension now owns an independent enhanced `console`: timers
+  (`time`/`timeLog`/`timeEnd`), counters (`count`/`countReset`), groups, `dir`,
+  `table`, `trace`, `assert`, and `clear` are isolated per extension and
+  routed through the extension logger. `require("console")` and
+  `require("node:console")` return a per-extension facade whose top-level
+  methods route to the extension console while the native `Console` class is
+  preserved. Reload discards console state and identity; the process-global
+  console is never modified.
 
 ## 2026-08-13
 

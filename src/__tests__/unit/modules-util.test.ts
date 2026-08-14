@@ -18,7 +18,7 @@ import Terminals from '../../core/terminals'
 import * as diff from '../../util/diff'
 import * as errors from '../../util/errors'
 import * as extension from '../../util/extensionRegistry'
-import { ILogger, createConsole, copyGlobalProperties } from '../../extension/loader'
+import { copyGlobalProperties } from '../../extension/loader'
 import * as fuzzy from '../../util/fuzzy'
 import * as Is from '../../util/is'
 import { Extensions, IJSONContributionRegistry } from '../../util/jsonRegistry'
@@ -48,40 +48,7 @@ function toEdit(sl, sc, el, ec, text): TextEdit {
   return TextEdit.replace(Range.create(sl, sc, el, ec), text)
 }
 
-describe('factory', () => {
-  const emptyLogger: ILogger = {
-    log: () => {},
-    info: () => {},
-    error: () => {},
-    debug: () => {},
-    warn: () => {},
-    trace: () => {},
-    fatal: () => {},
-    mark: () => {}
-  }
-
-  it('should create console', () => {
-    let res = createConsole({ x: 1 }, {} as any)
-    assert.deepStrictEqual(res, { x: 1 })
-    let called = false
-    let val = 1
-    res = createConsole({
-      warn: () => {
-      },
-      custom: () => {
-        val = 2
-      }
-    }, {
-      warn: () => {
-        called = true
-      }
-    } as any)
-      ; (res as any).custom()
-      ; (res as Console).warn()
-    assert.strictEqual(val, 1)
-    assert.strictEqual(called, true)
-  })
-
+describe('extension loader helpers', () => {
   it('should copy properties', () => {
     let obj = copyGlobalProperties({} as any, global)
     assert.strictEqual(typeof obj['fetch'], 'function')

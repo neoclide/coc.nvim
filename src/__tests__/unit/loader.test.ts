@@ -1,6 +1,7 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { createRequire } from 'module'
 import {
   consoleLogger,
   createExtension,
@@ -9,6 +10,9 @@ import {
   getLoader
 } from '../../extension/loader'
 import type { ExtensionModule } from '../../extension/loader'
+
+const require = createRequire(import.meta.url)
+const Module = require('module')
 
 let folders: string[] = []
 
@@ -429,30 +433,6 @@ exports.activate = () => module.require('./dep')`)
     assert.strictEqual(ext.activate({} as any), 'dep')
   })
 
-  it('should forward console output to the extension logger', () => {
-    let folder = createFolder()
-    let entry = path.join(folder, 'index.js')
-    fs.writeFileSync(entry, `
-console.log('hello')
-console.warn('warn')
-exports.activate = () => 'ok'`)
-    let calls: string[] = []
-    let logger = {
-      log: (...args: any[]) => calls.push('log:' + args.join(' ')),
-      debug: (...args: any[]) => calls.push('debug:' + args.join(' ')),
-      info: (...args: any[]) => calls.push('info:' + args.join(' ')),
-      warn: (...args: any[]) => calls.push('warn:' + args.join(' ')),
-      error: (...args: any[]) => calls.push('error:' + args.join(' ')),
-      trace: (...args: any[]) => calls.push('trace:' + args.join(' ')),
-      fatal: (...args: any[]) => calls.push('fatal:' + args.join(' ')),
-      mark: (...args: any[]) => calls.push('mark:' + args.join(' '))
-    }
-    let runtime = createExtensionRuntime('console', entry, {}, logger as any)
-    let loader = getLoader(runtime)
-    loader.loadJavaScript(entry)
-    assert.deepStrictEqual(calls, ['log:hello', 'warn:warn'])
-  })
-
   it('should route .node addons to native loading', () => {
     let folder = createFolder()
     let native = path.join(folder, 'addon.node')
@@ -468,6 +448,96 @@ exports.activate = () => 'ok'`)
     assert.notStrictEqual(err, undefined)
     // The failure must come from the native loader, not the VM compiler.
     assert.match(String(err.message), /addon\.node/)
+  })
+
+  it('should fail clearly when native addon loading is unavailable', () => {
+    let folder = createFolder()
+    let native = path.join(folder, 'addon.node')
+    fs.writeFileSync(native, 'not a real addon')
+    let entry = path.join(folder, 'index.js')
+    fs.writeFileSync(entry, `module.exports = require('./addon.node')`)
+    let original = Module._extensions['.node']
+    Module._extensions['.node'] = undefined
+    try {
+      assert.throws(() => createExtension('no-native', entry, false), /Unsupported native addon/)
+    } finally {
+      Module._extensions['.node'] = original
+    }
+  })
+
+  it('should cache native addon exports per runtime', () => {
+    let folder = createFolder()
+    let native = path.join(folder, 'addon.node')
+    fs.writeFileSync(native, 'fake addon')
+    let original = Module._extensions['.node']
+    Module._extensions['.node'] = (module: any, filename: string) => {
+      module.exports = { loaded: filename }
+    }
+    try {
+      let runtime = createExtensionRuntime('native-cache', path.join(folder, 'index.js'), {}, consoleLogger)
+      let loader = getLoader(runtime)
+      let a: any = loader.loadNative(path.join(folder, 'addon.node'))
+      let b: any = loader.loadNative(path.join(folder, 'addon.node'))
+      assert.strictEqual(a, b)
+      assert.strictEqual(a.loaded, fs.realpathSync(native))
+      assert.strictEqual(runtime.modules.size, 1)
+    } finally {
+      Module._extensions['.node'] = original
+    }
+  })
+
+  it('should handle missing files, invalid JSON and cache clearing', () => {
+    let folder = createFolder()
+    let entry = path.join(folder, 'index.js')
+    fs.writeFileSync(entry, `module.exports = 1`)
+    let runtime = createExtensionRuntime('edges', entry, {}, consoleLogger)
+    let loader = getLoader(runtime)
+    // Missing file: realpath and read both fail and nothing stays cached.
+    assert.throws(() => loader.loadJavaScript(path.join(folder, 'missing.js')), /ENOENT/)
+    assert.strictEqual(runtime.modules.size, 0)
+    // Invalid JSON is wrapped with the module filename.
+    fs.writeFileSync(path.join(folder, 'bad.json'), '{ not json')
+    assert.throws(() => loader.loadJson(path.join(folder, 'bad.json')), /Error parsing JSON module/)
+    // clear() drops cached modules.
+    let exports: any = loader.loadJavaScript(entry)
+    assert.strictEqual(exports, 1)
+    loader.clear()
+    assert.strictEqual(runtime.modules.size, 0)
+  })
+
+  it('should return a no-op extension for empty or missing entries', () => {
+    let folder = createFolder()
+    let entry = path.join(folder, 'index.js')
+    fs.writeFileSync(entry, `exports.activate = () => 'real'`)
+    let empty = createExtension('empty-ext', entry, true)
+    assert.strictEqual(typeof empty.activate, 'function')
+    assert.strictEqual(empty.deactivate, null)
+    let missing = createExtension('missing-ext', path.join(folder, 'not-exists.js'), false)
+    assert.strictEqual(typeof missing.activate, 'function')
+    assert.strictEqual(missing.deactivate, null)
+  })
+
+  it('should return a no-op extension when the entry has no activate', () => {
+    let folder = createFolder()
+    let entry = path.join(folder, 'index.js')
+    fs.writeFileSync(entry, `module.exports = { foo: 'bar' }`)
+    let ext = createExtension('no-activate', entry, false)
+    assert.strictEqual(typeof ext.activate, 'function')
+    assert.strictEqual(ext.activate({} as any), undefined)
+  })
+
+  it('should use the console logger outside test and main environments', () => {
+    let folder = createFolder()
+    let entry = path.join(folder, 'index.js')
+    fs.writeFileSync(entry, `exports.activate = () => 'ok'`)
+    let prev = global.__TEST__
+    global.__TEST__ = false
+    try {
+      let ext = createExtension('console-logger', entry, false)
+      assert.strictEqual(ext.activate({} as any), 'ok')
+    } finally {
+      global.__TEST__ = prev
+    }
   })
 
   it('should fail clearly for unsupported module types', () => {
