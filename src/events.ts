@@ -276,11 +276,10 @@ class Events {
         this._completing = true
         this._pumInserted = false
         break
-      case EventName.CompleteDone: {
+      case EventName.CompleteDone:
         this._completing = false
         this._pumInserted = false
         break
-      }
       case EventName.CursorHoldI:
       case EventName.CursorMovedI:
         this._bufnr = args[0]

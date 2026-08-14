@@ -249,6 +249,29 @@ module.exports = 1`)
     assert.match(calls[3], /unsupported/)
   })
 
+  it('should format table cells and empty tables', () => {
+    let folder = createFolder()
+    let entry = path.join(folder, 'index.js')
+    fs.writeFileSync(entry, `
+console.table([null, undefined, 'str', 1])
+console.table([{ a: { b: 1 } }])
+console.table([{}])
+console.table({})
+const bad = { [Symbol.for('nodejs.util.inspect.custom')]() { throw new Error('boom') } }
+console.table(new Map([['k', bad]]))
+module.exports = 1`)
+    let { logger, calls } = makeLogger()
+    load(entry, logger)
+    assert.match(calls[0], /\(index\)\tValue/)
+    assert.match(calls[0], /0\tnull/)
+    assert.match(calls[0], /1\tundefined/)
+    assert.match(calls[0], /2\tstr/)
+    assert.match(calls[0], /3\t1/)
+    assert.match(calls[1], /0\t\{ b: 1 \}/)
+    assert.deepStrictEqual(calls.slice(2, 4), ['info:(empty table)', 'info:(empty table)'])
+    assert.strictEqual(calls[4], 'info:[object Map]')
+  })
+
   it('should route require("console") through the owning extension console', () => {
     let folder = createFolder()
     let entry = path.join(folder, 'index.js')

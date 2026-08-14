@@ -2,9 +2,10 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { pathToFileURL } from 'url'
+import { vm } from '../../util/node'
 import { consoleLogger, createExtensionAsync, createExtensionRuntime, getLoader } from '../../extension/loader'
 import type { ILogger } from '../../extension/loader'
-import { loadESMEntry, resolveExtensionModule, resolveModuleFormat } from '../../extension/esm'
+import { ensureVMModules, loadESMEntry, resolveExtensionModule, resolveModuleFormat } from '../../extension/esm'
 
 let folders: string[] = []
 
@@ -341,6 +342,16 @@ exports.activate = async () => {
     assert.strictEqual(resolveModuleFormat(path.join(folder, 'plain.js')), 'commonjs')
     write(folder, 'package.json', JSON.stringify({ type: 'module' }))
     assert.strictEqual(resolveModuleFormat(path.join(folder, 'plain.js')), 'module')
+  })
+
+  it('should throw when VM modules are not available', () => {
+    let source = (vm as any).SourceTextModule
+    try {
+      (vm as any).SourceTextModule = undefined
+      assert.throws(() => ensureVMModules(), /VM modules support/)
+    } finally {
+      (vm as any).SourceTextModule = source
+    }
   })
 
   it('should prefer the coc.nvim export condition over require and import', async () => {
