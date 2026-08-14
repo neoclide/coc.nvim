@@ -2,6 +2,38 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-14
+
+- Break Change: minimal node version changed from 20.19.0 to 22.15.0.
+
+## 2026-08-13
+
+- Migrate the test suite from Vitest to the Node native test runner
+  (`node:test`) on Node 24. Tests no longer import Vitest globals; native test
+  globals are injected per file, unit tests live under `src/__tests__/unit`
+  with shared test utilities, and ESM compatibility shims stay local to the
+  test bundle.
+- Rewrite the test runner as `scripts/test/cli.mjs`: unit tests are compiled
+  with esbuild and run from their real `.test.ts` source paths, while editor
+  tests run in per-file nvim/Neovim worker processes. The runner overlaps
+  lanes, caches bundles and compilation, supports `-t` filters under
+  isolation mode, and kills hung editor workers after a graceful timeout.
+- Run client integration tests against in-process fake servers instead of
+  forked child processes, removing several child-process spawns and LSP
+  handshakes (error-handler, initialize-failure, dynamic and pure RPC client
+  tests).
+- Report test coverage from raw V8 files, including type-only coverage, and
+  run coverage only on the stable Neovim job in CI; editor test concurrency is
+  bounded locally and pinned on CI to keep runs deterministic.
+- Stabilize flaky editor tests: wait for echoed messages through a new
+  `Message` event instead of screen scraping, attach the document before
+  completion navigation, guard stale linked-editing provider results, and
+  stabilize runner prompts plus completion/workspace CI tests.
+- Add the `Message` event to `events.on()`, fired when `Notifications` echoes
+  a message, so tests and extensions can observe echoed output reliably.
+- Fix MCP glob variants to resolve symlink tails for directory globs such as
+  `link/**`, so a glob through a symlink also matches the target path.
+
 ## 2026-08-10
 
 - Add `workspace.registerInsertKeymap()` for dynamic insert mappings that

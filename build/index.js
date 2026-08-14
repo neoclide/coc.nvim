@@ -70102,14 +70102,6 @@ var init_events = __esm({
           clearTimeout(timer);
         }
       }
-      /**
-       * @internal
-       */
-      set completing(completing) {
-        this._completing = completing;
-        this._pumVisible = completing;
-        this._pumInserted = false;
-      }
       get completing() {
         return this._completing;
       }
@@ -70180,6 +70172,14 @@ var init_events = __esm({
             this._insertMode = false;
             this._pumVisible = false;
             this._recentInserts = [];
+            break;
+          case "CompleteStart" /* CompleteStart */:
+            this._completing = true;
+            this._pumInserted = false;
+            break;
+          case "CompleteDone" /* CompleteDone */:
+            this._completing = false;
+            this._pumInserted = false;
             break;
           case "CursorHoldI" /* CursorHoldI */:
           case "CursorMovedI" /* CursorMovedI */:
@@ -132631,7 +132631,6 @@ var init_completion2 = __esm({
           this.config,
           sourceList
         );
-        events_default.completing = true;
         void events_default.fire("CompleteStart", [option]);
         complete.onDidRefresh(async () => {
           if (complete.isEmpty) {
@@ -132791,14 +132790,13 @@ var init_completion2 = __esm({
         if (!this.complete) return;
         const { linenr, bufnr } = this.complete.option;
         this._onFinish("" /* Normal */, close);
-        events_default.fire("CompleteDone", [{}, linenr, bufnr]).catch(onUnexpectedError);
+        void events_default.fire("CompleteDone", [{}, linenr, bufnr]);
       }
       _onFinish(kind, close) {
         this.floating.cancel();
         let inserted = kind === "confirm" /* Confirm */ || this.popupEvent?.inserted;
         if (inserted) this.addMruItem();
         let doc = this.complete.document;
-        events_default.completing = false;
         this.cancel();
         doc._forceSync();
         if (close) this.nvim.call("coc#pum#_close", [], true);
@@ -132811,9 +132809,15 @@ var init_completion2 = __esm({
         const option = complete.option;
         this._onFinish(kind, close);
         if (resolved && kind == "confirm" /* Confirm */) {
-          await this.confirmCompletion(resolved.source, resolved.item, option);
+          try {
+            await this.confirmCompletion(resolved.source, resolved.item, option);
+          } catch (e) {
+            if (!shouldIgnore(e)) {
+              logger56.error("Error on confirm completion:", e);
+            }
+          }
         }
-        events_default.fire("CompleteDone", [toCompleteDoneItem(item, resolved?.item), option.linenr, option.bufnr]).catch(onUnexpectedError);
+        void events_default.fire("CompleteDone", [toCompleteDoneItem(item, resolved?.item), option.linenr, option.bufnr]);
       }
       async confirmCompletion(source, item, option) {
         await this.floating.resolveItem(source, item, option, false);
@@ -137926,6 +137930,7 @@ var init_buffer6 = __esm({
     init_protocol();
     init_string();
     init_window();
+    init_events();
     init_workspace();
     logger65 = createLogger("semanticTokens-buffer");
     yieldEveryMilliseconds = getConditionValue(15, 5);
@@ -137986,6 +137991,7 @@ var init_buffer6 = __esm({
         return this.doc.bufnr;
       }
       onChange() {
+        if (events_default.completing) return;
         this.doHighlight().catch(onUnexpectedError);
       }
       onTextChange() {
@@ -138420,6 +138426,10 @@ var init_semanticTokens2 = __esm({
               item.onProviderChange();
             }
           }
+        }, null, this.disposables);
+        events_default.on("CompleteDone", async (_item, _line, bufnr) => {
+          let item = this.highlighters.getItem(bufnr);
+          if (item) await item.doHighlight();
         }, null, this.disposables);
         events_default.on("BufWinEnter", async (bufnr, winid) => {
           let item = this.highlighters.getItem(bufnr);
@@ -140129,7 +140139,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-c3b065c 2026-08-13 13:10:37 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-e259b06 2026-08-14 14:32:22 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
