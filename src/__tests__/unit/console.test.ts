@@ -410,4 +410,50 @@ module.exports = 1`)
     assert.match(calls[8], /^info:t: .*ms$/)
     assert.match(calls[9], /\(index\).*Value/)
   })
+
+  it('should handle empty groups and tables without crashing', () => {
+    let folder = createFolder()
+    let entry = path.join(folder, 'index.js')
+    fs.writeFileSync(entry, `
+console.group()
+console.log('indented')
+console.groupEnd()
+console.groupEnd()
+console.log('flat')
+console.table([])
+console.table(new Map())
+module.exports = 1`)
+    let { logger, calls } = makeLogger()
+    let exports = load(entry, logger).exports
+    assert.strictEqual(exports, 1)
+    assert.deepStrictEqual(calls.slice(0, 3), ['info:  indented', 'info:flat', 'info:(empty table)'])
+  })
+
+  it('should tolerate non-Error logger failures', () => {
+    let folder = createFolder()
+    let entry = path.join(folder, 'index.js')
+    fs.writeFileSync(entry, `
+console.log('boom')
+module.exports = 1`)
+    let throwing: ILogger = {
+      // oxlint-disable-next-line only-throw-error
+      log: () => { throw 'log failed' },
+      // oxlint-disable-next-line only-throw-error
+      trace: () => { throw 'trace failed' },
+      // oxlint-disable-next-line only-throw-error
+      debug: () => { throw 'debug failed' },
+      // oxlint-disable-next-line only-throw-error
+      info: () => { throw 'info failed' },
+      // oxlint-disable-next-line only-throw-error
+      warn: () => { throw 'warn failed' },
+      // oxlint-disable-next-line only-throw-error
+      error: () => { throw 'error failed' },
+      // oxlint-disable-next-line only-throw-error
+      fatal: () => { throw 'fatal failed' },
+      // oxlint-disable-next-line only-throw-error
+      mark: () => { throw 'mark failed' }
+    }
+    let exports = load(entry, throwing).exports
+    assert.strictEqual(exports, 1)
+  })
 })

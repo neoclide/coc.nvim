@@ -213,11 +213,12 @@ export class ExtensionLoader {
     if (request === 'coc.nvim') return this.runtime.api
     if (this.isBuiltin(request)) return this.loadBuiltin(request)
     let resolved = resolveExtensionModule(this.runtime, request, parent.filename, 'require')
-    if (resolved.type === 'file') {
-      if (resolved.format === 'module') throw requireESMError(resolved.filename)
-      return this.load(resolved.filename, parent)
+    if (resolved.type === 'file' && resolved.format === 'module') {
+      throw requireESMError(resolved.filename)
     }
-    throw new Error(`Unable to require ${request}`)
+    // Builtins and coc.nvim are handled above, so resolution always yields a
+    // file module here.
+    return this.load((resolved as any).filename, parent)
   }
 
   public load(filename: string, parent?: ExtensionCommonJSModule, isMain = false): unknown {
@@ -493,6 +494,10 @@ function finalizeExports(id: string, defaultImport: any): ExtensionExport {
   return typeof defaultImport === 'function' ? { activate } : Object.assign({}, defaultImport)
 }
 
+function emptyExtension(): ExtensionExport {
+  return { activate: () => {}, deactivate: null }
+}
+
 /**
  * Synchronously load a CommonJS extension entry. Each call creates a fresh
  * runtime: a new `vm.Context`, new module caches, and re-executed
@@ -501,7 +506,7 @@ function finalizeExports(id: string, defaultImport: any): ExtensionExport {
  */
 export function createExtension(id: string, filename: string, isEmpty: boolean): ExtensionExport {
   if (isEmpty || !fs.existsSync(filename)) {
-    return { activate: () => {}, deactivate: null }
+    return emptyExtension()
   }
   if (resolveModuleFormat(filename) === 'module') throw requireESMError(filename)
   disposeExtension(id)
@@ -523,7 +528,7 @@ export function createExtension(id: string, filename: string, isEmpty: boolean):
  * evaluated through the VM ESM pipeline.
  */
 export async function createExtensionAsync(id: string, filename: string, isEmpty: boolean): Promise<ExtensionExport> {
-  if (isEmpty || !fs.existsSync(filename)) return { activate: () => {}, deactivate: null }
+  if (isEmpty || !fs.existsSync(filename)) return emptyExtension()
   disposeExtension(id)
   const logger = getLogger(!global.__isMain && !global.__TEST__, id)
   let api: unknown

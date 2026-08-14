@@ -48,7 +48,13 @@ function getPackageType(dirname: string): 'module' | 'commonjs' | undefined {
       let type: 'module' | 'commonjs' | undefined
       try {
         let obj = JSON.parse(fs.readFileSync(pkgFile, 'utf8'))
-        type = obj.type === 'module' ? 'module' : obj.type === 'commonjs' ? 'commonjs' : undefined
+        if (obj.type === 'module') {
+          type = 'module'
+        } else if (obj.type === 'commonjs') {
+          type = 'commonjs'
+        } else {
+          type = undefined
+        }
       } catch (e) {
         type = undefined
       }
@@ -103,23 +109,20 @@ export function resolveExtensionModule(
   record.paths = Module._nodeModulePaths(path.dirname(parentFile))
   let conditions = mode === 'import' ? new Set(['node', 'import']) : new Set(['node', 'require'])
   let filename = Module._resolveFilename(request, record, false, { conditions })
-  let normalized = filename
-  try {
-    normalized = fs.realpathSync(filename)
-  } catch (e) {
-    // Keep the resolved path when realpath fails.
-  }
+  let normalized = tryRealpath(filename)
   return { type: 'file', filename: normalized, format: resolveModuleFormat(normalized) }
 }
 
-export function canonicalFileURL(filename: string): string {
-  let normalized = filename
+function tryRealpath(filename: string): string {
   try {
-    normalized = fs.realpathSync(filename)
+    return fs.realpathSync(filename)
   } catch (e) {
-    // Best effort, keep the resolved path when realpath fails.
+    return filename
   }
-  return pathToFileURL(normalized).href
+}
+
+export function canonicalFileURL(filename: string): string {
+  return pathToFileURL(tryRealpath(filename)).href
 }
 
 /**
