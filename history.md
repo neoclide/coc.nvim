@@ -8,6 +8,13 @@ Notable changes of coc.nvim:
 
 ## 2026-08-15
 
+- Add ESM extension support to the per-extension VM loader: ESM entries and
+  imports execute through `vm.SourceTextModule` inside the owning extension
+  context, and `coc.nvim`, Node builtins, CommonJS modules and JSON are
+  bridged with `vm.SyntheticModule`. CJS `require()` of ESM is rejected with
+  `ERR_REQUIRE_ESM`, CJS dynamic `import()` of ESM works, and ESM reload
+  creates a fresh context, caches and namespace. coc.nvim now starts Node
+  with `--experimental-vm-modules` automatically.
 - Migrate extension loading to a per-extension VM loader: every extension now
   owns its own `vm.Context` and module cache, CommonJS modules execute through
   `vm.compileFunction` with an extension-local synchronous `require`, and

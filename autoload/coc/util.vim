@@ -135,7 +135,7 @@ function! coc#util#job_command()
     return
   endif
 
-  let default = ['--no-warnings']
+  let default = ['--no-warnings', '--experimental-vm-modules']
   return [node] + get(g:, 'coc_node_args', default) + [s:root.'/build/index.js']
 endfunction
 
