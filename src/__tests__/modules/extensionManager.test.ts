@@ -1,4 +1,5 @@
 import * as shared from '../sharedUtil'
+import { createRequire } from 'node:module'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -18,6 +19,7 @@ import workspace from '../../workspace'
 let disposables: Disposable[] = []
 let nvim: Neovim
 let tmpfolder: string
+const require = createRequire(import.meta.url)
 before(async () => {
   nvim = workspace.nvim
 })
@@ -644,6 +646,51 @@ describe('ExtensionManager', () => {
       await manager.reloadExtension('name')
       let item = manager.getExtension('name')
       assert.strictEqual(item.extension.isActive, false)
+    })
+
+    it('should re-execute owned modules and recreate api on reload', async t => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+      let extFolder = path.join(tmpfolder, 'node_modules', 'reload-native')
+      fs.mkdirSync(path.join(extFolder, 'node_modules'), { recursive: true })
+      fs.writeFileSync(path.join(extFolder, 'package.json'), JSON.stringify({
+        name: 'reload-native',
+        main: 'index.js',
+        engines: { coc: '>=0.0.1' }
+      }), 'utf8')
+      fs.writeFileSync(path.join(extFolder, 'state.js'), "let count = 0\nmodule.exports = { inc: () => ++count }", 'utf8')
+      fs.writeFileSync(path.join(extFolder, 'index.js'), [
+        "let state = require('./state')",
+        "let api = require('coc.nvim')",
+        "let shared = require('../../shared')",
+        "exports.activate = () => ({ count: state.inc(), shared: shared.inc(), api })"
+      ].join('\n'), 'utf8')
+      fs.writeFileSync(path.join(tmpfolder, 'shared.js'), "let count = 0\nmodule.exports = { inc: () => ++count }", 'utf8')
+      let otherFolder = path.join(tmpfolder, 'node_modules', 'other')
+      createExtension(otherFolder, {
+        name: 'other',
+        main: 'index.js',
+        engines: { coc: '>=0.0.1' }
+      }, "let count = 0\nexports.activate = () => ++count")
+      await manager.loadExtension(otherFolder)
+      await manager.activate('other')
+      assert.strictEqual(manager.getExtension('other').extension.exports, 1)
+      await manager.loadExtension(extFolder)
+      await manager.activate('reload-native')
+      let res1 = manager.getExtension('reload-native').extension.exports as any
+      assert.strictEqual(res1.count, 1)
+      assert.strictEqual(res1.shared, 1)
+      let api1 = res1.api
+      await manager.reloadExtension('reload-native')
+      await manager.activate('reload-native')
+      let res2 = manager.getExtension('reload-native').extension.exports as any
+      // Owned state.js re-executed, external shared module stayed cached.
+      assert.strictEqual(res2.count, 1)
+      assert.strictEqual(res2.shared, 2)
+      // Per-extension api object is recreated on reload.
+      assert.notStrictEqual(res2.api, api1)
+      // Other extension module cache is untouched.
+      assert.ok(Object.keys(require.cache).some(key => key.endsWith(path.join('node_modules', 'other', 'index.js'))))
     })
   })
 

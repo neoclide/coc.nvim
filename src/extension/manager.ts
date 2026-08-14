@@ -14,13 +14,18 @@ import { isDirectory, loadJson, remove, statAsync, watchFile } from '../util/fs'
 import * as Is from '../util/is'
 import type { IJSONSchema } from '../util/jsonSchema'
 import { omit } from '../util/lodash'
-import { path } from '../util/node'
+import { fs, path } from '../util/node'
 import { deepClone, deepIterate, isEmpty } from '../util/object'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import { Registry, convertProperties } from '../util/registry'
 import { createTiming } from '../util/timing'
 import window from '../window'
 import workspace from '../workspace'
+import { ExtensionApiFactory } from './apiFactory'
+import { ExtensionModuleCache } from './moduleCache'
+import { CocModuleInterceptor } from './moduleInterceptor'
+import { loadExtensionModule } from './moduleLoader'
+import { ExtensionPathIndex, createModuleDescription } from './pathIndex'
 import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, validExtensionFolder } from './stat'
 
 interface ExportExtension {
@@ -117,12 +122,35 @@ export class ExtensionManager {
   private _onDidUnloadExtension = new Emitter<string>()
   private singleExtensionsRoot = path.join(configHome, 'coc-extensions')
   private modulesFolder: string
+  private readonly extensionPathIndex = new ExtensionPathIndex()
+  private readonly apiFactory = new ExtensionApiFactory<object, object>()
+  private readonly moduleCache = new ExtensionModuleCache()
+  private interceptor: CocModuleInterceptor<object, object> | undefined
+  /**
+   * Directory of the bundled coc.nvim runtime. Core modules live inside it,
+   * so the interceptor can distinguish coc.nvim-owned require("coc.nvim")
+   * callers from unknown ones.
+   */
+  private readonly cocRoot = path.resolve(__dirname)
+  /**
+   * Temporary development switch to compare implementations (see migration
+   * plan §15). Must be removed once the native loader is validated.
+   */
+  private readonly nativeLoader = process.env.COC_EXTENSION_LOADER !== 'legacy'
 
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
   public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
   constructor(public readonly states: ExtensionStat, private folder: string) {
     this.modulesFolder = path.join(this.folder, 'node_modules')
+  }
+
+  private ensureInterceptor(): void {
+    if (this.interceptor) return
+    if (!this.nativeLoader) return
+    this.apiFactory.initialize(require('../index'))
+    this.interceptor = new CocModuleInterceptor(this.extensionPathIndex, this.apiFactory, this.cocRoot)
+    this.interceptor.install()
   }
 
   public activateExtensions(): Promise<PromiseSettledResult<void>[]> {
@@ -341,6 +369,8 @@ export class ExtensionManager {
       this.extensions.delete(id)
       this._onDidUnloadExtension.fire(id)
     }
+    this.extensionPathIndex.remove(id)
+    this.apiFactory.delete(id)
   }
 
   public async reloadExtension(id: string): Promise<void> {
@@ -469,12 +499,14 @@ export class ExtensionManager {
   public async registerExtension(root: string, packageJSON: ExtensionJson, extensionType: ExtensionType, noActive = false): Promise<void> {
     let id = packageJSON.name
     if (this.states.isDisabled(id)) return
+    this.ensureInterceptor()
     let isActive = false
     let result: Promise<API> | undefined
     let filename = path.join(root, packageJSON.main || 'index.js')
     let extensionPath = extensionType === ExtensionType.SingleFile ? filename : root
     let exports: any
     let ext: ExtensionExport
+    this.extensionPathIndex.add(createModuleDescription(id, root, filename))
     let subscriptions: Disposable[] = []
     const timing = createTiming(`activate ${id}`, 5000)
     let extension: Extension<API> = {
@@ -484,7 +516,15 @@ export class ExtensionManager {
           timing.start()
           try {
             let isEmpty = typeof packageJSON.engines.coc === 'undefined'
-            ext = createExtension(id, filename, isEmpty)
+            if (isEmpty || !fs.existsSync(filename)) {
+              ext = { activate: () => {}, deactivate: null }
+            } else if (this.nativeLoader) {
+              let desc = createModuleDescription(id, root, filename)
+              this.moduleCache.clear(desc, this.cocRoot)
+              ext = loadExtensionModule(desc)
+            } else {
+              ext = createExtension(id, filename, isEmpty)
+            }
             let context = {
               subscriptions,
               extensionPath,
