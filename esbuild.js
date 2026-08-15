@@ -55,8 +55,8 @@ if (global.__isMain) {
   const exports = require('./src/index')
   const logger = require('./src/logger').logger
   const attach = require('./src/attach').default
-  module.exports = {attach, exports, logger, loadExtension: (filepath, active) => {
-    return exports.extensions.manager.load(filepath, active)
+  module.exports = {attach, exports, logger, loadExtension: (filepath, active, options) => {
+    return exports.extensions.manager.load(filepath, active, options)
   }}
 }`
       return {

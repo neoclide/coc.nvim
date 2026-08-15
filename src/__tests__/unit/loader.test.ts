@@ -698,4 +698,41 @@ exports.activate = () => module.require('./dep')`)
       (err: any) => err.code === 'ERR_REQUIRE_ESM'
     )
   })
+
+  it('should load a CommonJS entry from source code', async () => {
+    let folder = createFolder()
+    let ext = await createExtensionAsync('src-cjs', path.join(folder, 'index.js'), false, {
+      sourceCode: `exports.activate = () => { return { fromSource: true, dirname: __dirname } }`,
+      extensionRoot: folder
+    })
+    let res = ext.activate({})
+    assert.strictEqual(res.fromSource, true)
+    assert.strictEqual(res.dirname, folder)
+  })
+
+  it('should synchronously load a CommonJS entry from source code', () => {
+    let folder = createFolder()
+    let ext = createExtension('src-cjs-sync', path.join(folder, 'index.js'), false, {
+      sourceCode: `exports.activate = () => ({ sync: true })`,
+      extensionRoot: folder
+    })
+    assert.strictEqual(ext.activate({}).sync, true)
+  })
+
+  it('should treat source code as CommonJS regardless of package type', async () => {
+    let folder = createFolder()
+    fs.writeFileSync(path.join(folder, 'package.json'), JSON.stringify({ type: 'module' }))
+    let ext = await createExtensionAsync('src-cjs-pkg', path.join(folder, 'index.js'), false, {
+      sourceCode: `exports.activate = () => ({ fromCjs: true })`,
+      extensionRoot: folder
+    })
+    let res = ext.activate({})
+    assert.strictEqual(res.fromCjs, true)
+  })
+
+  it('should use the provided extension root for the runtime', () => {
+    let runtime = createExtensionRuntime('src-root', '/tmp/virtual/file.js', {}, consoleLogger, '/tmp/ext-root')
+    assert.strictEqual(runtime.root, '/tmp/ext-root')
+    assert.strictEqual(runtime.realRoot, '/tmp/ext-root')
+  })
 })
