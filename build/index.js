@@ -57966,7 +57966,7 @@ function textToLogLevel(level2) {
       return 2 /* Info */;
   }
 }
-function format(args, depth = 2, color = false, hidden = false) {
+function format2(args, depth = 2, color = false, hidden = false) {
   let result = "";
   for (let i = 0; i < args.length; i++) {
     let a = args[i];
@@ -58047,7 +58047,7 @@ var init_log = __esm({
       }
       format(args) {
         let { color, showHidden, depth } = this.config;
-        return format(args, depth, color, showHidden);
+        return format2(args, depth, color, showHidden);
       }
       createLogger(scope) {
         let logger72 = this.loggers.has(scope) ? this.loggers.get(scope) : {
@@ -58111,7 +58111,7 @@ var init_log = __esm({
       _log(level2, scope, args, time) {
         if (this.useConsole) {
           let method = level2 === 4 /* Error */ ? "error" : "log";
-          console[method](`${stringifyLogLevel(level2)} [${scope}]`, format(args, null, true));
+          console[method](`${stringifyLogLevel(level2)} [${scope}]`, format2(args, null, true));
         } else {
           let message = this.format(args);
           this.promise = this.promise.then(() => {
@@ -70024,6 +70024,71 @@ var init_string = __esm({
   }
 });
 
+// src/util/extensionId.ts
+function getExtensionId(target) {
+  if (typeof target === "function" || typeof target === "object" && target !== null) {
+    return target[extensionIdSymbol];
+  }
+  return void 0;
+}
+function setExtensionId(target, extensionId) {
+  if (typeof target === "function" || typeof target === "object" && target !== null) {
+    try {
+      Object.defineProperty(target, extensionIdSymbol, {
+        value: extensionId,
+        enumerable: false,
+        configurable: true,
+        writable: true
+      });
+    } catch (e) {
+    }
+  }
+}
+function wrapCallbackWithExtension(callback, extensionId) {
+  const wrapped = function(...args) {
+    try {
+      const res = callback.apply(this, args);
+      if (res != null && typeof res.then === "function") {
+        return Promise.resolve(res).catch((e) => {
+          throw prefixExtensionError(e, extensionId);
+        });
+      }
+      return res;
+    } catch (e) {
+      throw prefixExtensionError(e, extensionId);
+    }
+  };
+  setExtensionId(wrapped, extensionId);
+  return wrapped;
+}
+function prefixExtensionError(error, extensionId) {
+  if (typeof error !== "object" || error === null) return error;
+  let target = error;
+  let originalMessage = "";
+  try {
+    if (typeof target.message === "string") {
+      originalMessage = target.message;
+    }
+  } catch (e) {
+    return error;
+  }
+  if (originalMessage.startsWith("[extension:")) return error;
+  const message = `[extension: ${extensionId}] ${originalMessage}`;
+  try {
+    target.message = message;
+  } catch (e) {
+    return new Error(message, { cause: error });
+  }
+  return error;
+}
+var extensionIdSymbol;
+var init_extensionId = __esm({
+  "src/util/extensionId.ts"() {
+    "use strict";
+    extensionIdSymbol = /* @__PURE__ */ Symbol.for("coc.nvim.internal.extensionId");
+  }
+});
+
 // src/events.ts
 var logger2, debounceTime, Events, events_default;
 var init_events = __esm({
@@ -70036,6 +70101,7 @@ var init_events = __esm({
     init_object();
     init_protocol();
     init_string();
+    init_extensionId();
     logger2 = createLogger("events");
     debounceTime = getConditionValue(100, 10);
     Events = class {
@@ -70280,13 +70346,25 @@ var init_events = __esm({
               let timer;
               if (traceSlow) {
                 timer = setTimeout(() => {
-                  logger2.warn(`Slow "${event}" handler detected`, fn["stack"]);
+                  let extensionId = getExtensionId(fn);
+                  let suffix = "";
+                  if (extensionId) {
+                    suffix = ` [extension: ${extensionId}]`;
+                  }
+                  logger2.warn(`Slow "${event}" handler detected${suffix}`, fn["stack"]);
                 }, this.timeout);
               }
               try {
                 await fn(args);
               } catch (e) {
-                if (!shouldIgnore(e)) logger2.error(`Error on event: ${event}`, e, fn["stack"]);
+                if (!shouldIgnore(e)) {
+                  let extensionId = getExtensionId(fn);
+                  let suffix = "";
+                  if (extensionId) {
+                    suffix = ` [extension: ${extensionId}]`;
+                  }
+                  logger2.error(`Error on event: ${event}${suffix}`, e, fn["stack"]);
+                }
               }
               clearTimeout(timer);
             };
@@ -70312,6 +70390,7 @@ var init_events = __esm({
           let onFinish = () => {
             if (disposables === true && disposable) disposable.dispose();
           };
+          let extensionId = getExtensionId(handler);
           let wrappedhandler = (args) => new Promise((resolve, reject) => {
             try {
               Promise.resolve(handler.apply(thisArg ?? null, args)).then(() => {
@@ -70327,6 +70406,10 @@ var init_events = __esm({
             }
           });
           if (true) Error.captureStackTrace(wrappedhandler);
+          Object.defineProperty(wrappedhandler, extensionIdSymbol, {
+            value: extensionId,
+            configurable: true
+          });
           arr.push(wrappedhandler);
           this.handlers.set(event, arr);
           let disposable = import_node4.Disposable.create(() => {
@@ -70855,7 +70938,7 @@ var init_string_intern = __esm({
 });
 
 // node_modules/jsonc-parser/lib/esm/impl/format.js
-function format2(documentText, range, options3) {
+function format3(documentText, range, options3) {
   let initialIndentLevel;
   let formatText;
   let formatTextStart;
@@ -71697,7 +71780,7 @@ function withFormatting(text, edit2, options3) {
       end++;
     }
   }
-  const edits = format2(newText, { offset: begin, length: end - begin }, { ...options3.formattingOptions, keepLines: false });
+  const edits = format3(newText, { offset: begin, length: end - begin }, { ...options3.formattingOptions, keepLines: false });
   for (let i = edits.length - 1; i >= 0; i--) {
     const edit3 = edits[i];
     newText = applyEdit(newText, edit3);
@@ -72884,6 +72967,7 @@ var init_commands = __esm({
     init_mru();
     init_array();
     init_extensionRegistry();
+    init_extensionId();
     init_protocol();
     init_registry();
     init_string();
@@ -72901,7 +72985,24 @@ var init_commands = __esm({
       internal;
       execute(...args) {
         let { impl, thisArg } = this;
-        return impl.apply(thisArg, toArray(args));
+        try {
+          let res = impl.apply(thisArg, toArray(args));
+          if (res != null && typeof res.then === "function") {
+            return Promise.resolve(res).catch((e) => {
+              throw this.withExtension(e);
+            });
+          }
+          return res;
+        } catch (e) {
+          throw this.withExtension(e);
+        }
+      }
+      withExtension(e) {
+        let extensionId = getExtensionId(this.impl) || getExtensionId(this.thisArg);
+        if (!extensionId) {
+          return e;
+        }
+        return prefixExtensionError(e, extensionId);
       }
       dispose() {
         this.thisArg = null;
@@ -88411,6 +88512,7 @@ var init_autocmds = __esm({
     "use strict";
     init_logger();
     init_array();
+    init_extensionId();
     init_extensionRegistry();
     init_lodash();
     init_protocol();
@@ -88448,7 +88550,13 @@ var init_autocmds = __esm({
           let logError2 = (e) => {
             if (logged) return;
             logged = true;
-            logger10.error(`Error on autocmd "${option.event}"`, args, omit(option, ["callback", "stack"]), e);
+            let extensionId = getExtensionId(option);
+            logger10.error(
+              `Error on autocmd "${option.event}"${extensionId ? ` [extension: ${extensionId}]` : ""}`,
+              args,
+              omit(option, ["callback", "stack"]),
+              e
+            );
           };
           try {
             let promise = Promise.resolve(option.callback.apply(option.thisArg, [...args, tokenSource.token]));
@@ -89365,12 +89473,12 @@ var init_textedit = __esm({
 function getMessageString(message) {
   return MarkupContent.is(message) ? message.value : message;
 }
-function formatDiagnostic(format3, diagnostic) {
+function formatDiagnostic(format4, diagnostic) {
   let { source, code, severity, message } = diagnostic;
   let s = getSeverityName(severity)[0];
   const codeStr = code !== void 0 && code !== null && code !== "" ? " " + code : "";
   let msg = getMessageString(message);
-  return format3.replace("%source", source).replace("%code", codeStr).replace("%severity", s).replace("%message", () => msg);
+  return format4.replace("%source", source).replace("%code", codeStr).replace("%severity", s).replace("%message", () => msg);
 }
 function getSeverityName(severity) {
   switch (severity) {
@@ -90769,10 +90877,9 @@ var init_manager2 = __esm({
     init_main();
     init_logger();
     init_errors();
-    init_extensionRegistry();
+    init_extensionId();
     init_object();
     init_protocol();
-    init_string();
     init_workspace();
     logger11 = createLogger("provider-manager");
     Manager = class {
@@ -90781,15 +90888,12 @@ var init_manager2 = __esm({
         return this.getProvider(document2) != null;
       }
       addProvider(item) {
+        if (!item.extension) {
+          item.extension = getExtensionId(item.provider);
+        }
         if (!item.provider.hasOwnProperty("__extensionName")) {
-          if (true) Error.captureStackTrace(item);
-          let name2;
           Object.defineProperty(item.provider, "__extensionName", {
-            get: () => {
-              if (name2) return name2;
-              name2 = parseExtensionName(toText(item["stack"]));
-              return name2;
-            },
+            get: () => item.extension,
             enumerable: true
           });
         }
@@ -90798,11 +90902,14 @@ var init_manager2 = __esm({
           this.providers.delete(item);
         });
       }
-      handleResults(results, name2, token) {
+      handleResults(results, name2, items, token) {
         let serverCancelError;
-        results.forEach((res) => {
+        results.forEach((res, i) => {
           if (res.status === "rejected") {
-            if (!shouldIgnore(res.reason)) logger11.error(`Provider error on ${name2}:`, res.reason);
+            if (!shouldIgnore(res.reason)) {
+              let extension = items?.[i]?.extension;
+              logger11.error(`Provider error on ${name2}${extension ? ` [extension: ${extension}]` : ""}:`, res.reason);
+            }
             if (token && !token.isCancellationRequested && isCancellationError(res.reason)) {
               serverCancelError = res.reason;
             }
@@ -90970,7 +91077,7 @@ var init_codeActionManager = __esm({
           };
           return fn();
         }));
-        this.handleResults(results, "provideCodeActions");
+        this.handleResults(results, "provideCodeActions", providers);
         return res;
       }
       async resolveCodeAction(codeAction, token) {
@@ -91013,7 +91120,7 @@ var init_codeLensManager = __esm({
             }
           });
         }));
-        this.handleResults(results, "provideCodeLenses");
+        this.handleResults(results, "provideCodeLenses", providers);
         return codeLens;
       }
       async resolveCodeLens(codeLens, token) {
@@ -91052,7 +91159,7 @@ var init_declarationManager = __esm({
             this.addLocation(locations, location);
           });
         }));
-        this.handleResults(results, "provideDeclaration");
+        this.handleResults(results, "provideDeclaration", providers);
         return locations;
       }
     };
@@ -91137,7 +91244,7 @@ var init_documentColorManager = __esm({
             }
           });
         }));
-        this.handleResults(results, "provideDocumentColors");
+        this.handleResults(results, "provideDocumentColors", items);
         return colors;
       }
       async provideColorPresentations(colorInformation, document2, token) {
@@ -91231,7 +91338,7 @@ var init_documentLinkManager = __esm({
       }
       async resolveDocumentLink(link, token) {
         let provider = this.getProviderById(link.source);
-        if (typeof provider.resolveDocumentLink === "function") {
+        if (typeof provider?.resolveDocumentLink === "function") {
           let resolved = await Promise.resolve(provider.resolveDocumentLink(omit(link, ["source"]), token));
           if (resolved) Object.assign(link, resolved);
         }
@@ -91315,7 +91422,7 @@ var init_documentSymbolManager = __esm({
             }
           });
         }));
-        this.handleResults(results, "provideDocumentSymbols");
+        this.handleResults(results, "provideDocumentSymbols", [item]);
         return symbols;
       }
     };
@@ -91378,7 +91485,7 @@ var init_foldingRangeManager = __esm({
             }
           });
         }));
-        this.handleResults(results, "provideFoldingRanges");
+        this.handleResults(results, "provideFoldingRanges", items);
         return ranges;
       }
     };
@@ -91538,7 +91645,7 @@ var init_implementationManager = __esm({
             this.addLocation(locations, location);
           });
         }));
-        this.handleResults(results, "provideImplementations");
+        this.handleResults(results, "provideImplementations", providers);
         return locations;
       }
     };
@@ -91609,7 +91716,7 @@ var init_inlayHintManager = __esm({
             inlayHints.push({ providerId: id2, ...hint });
           }
         }));
-        this.handleResults(results, "provideInlayHints", token);
+        this.handleResults(results, "provideInlayHints", items, token);
         return inlayHints;
       }
       async resolveInlayHint(hint, token) {
@@ -91676,7 +91783,7 @@ var init_inlineCompletionItemManager = __esm({
             resolve(void 0);
           });
         }), promise.then((results) => {
-          if (!token.isCancellationRequested) this.handleResults(results, "provideInlineCompletionItems");
+          if (!token.isCancellationRequested) this.handleResults(results, "provideInlineCompletionItems", providers);
         })]).catch(onUnexpectedError);
         if (disposable) disposable.dispose();
         return items;
@@ -91719,7 +91826,7 @@ var init_inlineValueManager = __esm({
             }
           });
         }));
-        this.handleResults(results, "provideInlineValues");
+        this.handleResults(results, "provideInlineValues", items);
         return values;
       }
     };
@@ -92109,7 +92216,7 @@ var init_typeHierarchyManager = __esm({
             }
           })();
         }));
-        this.handleResults(results, "prepareTypeHierarchy");
+        this.handleResults(results, "prepareTypeHierarchy", items);
         return hierarchyItems;
       }
       async provideTypeHierarchySupertypes(item, token) {
@@ -94055,7 +94162,7 @@ var require_bytes = __commonJS({
   "node_modules/bytes/index.js"(exports2, module2) {
     "use strict";
     module2.exports = bytes2;
-    module2.exports.format = format3;
+    module2.exports.format = format4;
     module2.exports.parse = parse3;
     var formatThousandsRegExp = /\B(?=(\d{3})+(?!\d))/g;
     var formatDecimalsRegExp = /(?:\.0*|(\.[^0]+)0+)$/;
@@ -94073,11 +94180,11 @@ var require_bytes = __commonJS({
         return parse3(value);
       }
       if (typeof value === "number") {
-        return format3(value, options3);
+        return format4(value, options3);
       }
       return null;
     }
-    function format3(value, options3) {
+    function format4(value, options3) {
       if (!Number.isFinite(value)) {
         return null;
       }
@@ -101267,16 +101374,16 @@ var init_parser3 = __esm({
         return "";
       }
       toTextmateString() {
-        let format3 = this.children.map((c) => c.toTextmateString()).join("");
+        let format4 = this.children.map((c) => c.toTextmateString()).join("");
         if (this.ultisnip) {
-          format3 = format3.replace(/\\\\(\w)/g, (match, ch) => {
+          format4 = format4.replace(/\\\\(\w)/g, (match, ch) => {
             if (ultisnipSpecialEscape.includes(ch)) {
               return "\\" + ch;
             }
             return match;
           });
         }
-        return `/${this.regexp.source}/${format3}/${(this.regexp.ignoreCase ? "i" : "") + (this.regexp.global ? "g" : "")}`;
+        return `/${this.regexp.source}/${format4}/${(this.regexp.ignoreCase ? "i" : "") + (this.regexp.global ? "g" : "")}`;
       }
       clone() {
         let ret = new _Transform();
@@ -107385,12 +107492,12 @@ var require_common = __commonJS({
             args.unshift("%O");
           }
           let index = 0;
-          args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format3) => {
+          args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format4) => {
             if (match === "%%") {
               return "%";
             }
             index++;
-            const formatter = createDebug4.formatters[format3];
+            const formatter = createDebug4.formatters[format4];
             if (typeof formatter === "function") {
               const val = args[index];
               match = formatter.call(self, val);
@@ -109199,7 +109306,7 @@ var require_content_disposition = __commonJS({
       var opts = options3 || {};
       var type = opts.type || "attachment";
       var params = createparams(filename, opts.fallback);
-      return format3(new ContentDisposition(type, params));
+      return format4(new ContentDisposition(type, params));
     }
     function createparams(filename, fallback) {
       if (filename === void 0) {
@@ -109230,7 +109337,7 @@ var require_content_disposition = __commonJS({
       }
       return params;
     }
-    function format3(obj) {
+    function format4(obj) {
       var parameters = obj.parameters;
       var type = obj.type;
       if (!type || typeof type !== "string" || !TOKEN_REGEXP.test(type)) {
@@ -113215,6 +113322,837 @@ var init_memos = __esm({
   }
 });
 
+// src/extension/console.ts
+function formatDuration(diff) {
+  let ms = Number(diff) / 1e6;
+  let text = ms.toFixed(3).replace(/\.?0+$/, "");
+  return `${text}ms`;
+}
+function formatCell(value) {
+  if (value === null) return "null";
+  if (value === void 0) return "undefined";
+  if (typeof value === "string") return value;
+  if (typeof value === "object") return (0, import_util.inspect)(value, { depth: 1, colors: false });
+  return String(value);
+}
+function formatTable(data) {
+  try {
+    if (Array.isArray(data)) {
+      if (data.length === 0) return "(empty table)";
+      let rows = data;
+      if (rows.every((item) => item !== null && typeof item === "object")) {
+        let keys = [];
+        let objects = rows;
+        for (let row of objects) {
+          for (let key of Object.keys(row)) {
+            if (!keys.includes(key)) keys.push(key);
+          }
+        }
+        if (keys.length === 0) return "(empty table)";
+        let lines2 = [`(index)	${keys.join("	")}`];
+        objects.forEach((row, i) => {
+          lines2.push(`${i}	${keys.map((k) => formatCell(row[k])).join("	")}`);
+        });
+        return lines2.join("\n");
+      }
+      let lines = ["(index)	Value"];
+      rows.forEach((value, i) => lines.push(`${i}	${formatCell(value)}`));
+      return lines.join("\n");
+    }
+    let tag = Object.prototype.toString.call(data);
+    if (tag === "[object Map]") {
+      let lines = ["Key	Value"];
+      for (let [key, value] of data) {
+        lines.push(`${formatCell(key)}	${formatCell(value)}`);
+      }
+      return lines.join("\n");
+    }
+    if (tag === "[object Set]") {
+      let lines = ["Value"];
+      for (let value of data) lines.push(formatCell(value));
+      return lines.join("\n");
+    }
+    if (data !== null && typeof data === "object") {
+      let entries = Object.entries(data);
+      if (entries.length === 0) return "(empty table)";
+      let lines = ["Key	Value"];
+      for (let [key, value] of entries) lines.push(`${key}	${formatCell(value)}`);
+      return lines.join("\n");
+    }
+    return (0, import_util.inspect)(data, { colors: false });
+  } catch (e) {
+    try {
+      return (0, import_util.inspect)(data, { colors: false });
+    } catch (err) {
+      return String(data);
+    }
+  }
+}
+function createExtensionConsole(extensionId, logger72) {
+  let state = {
+    timers: /* @__PURE__ */ new Map(),
+    counters: /* @__PURE__ */ new Map(),
+    groupDepth: 0
+  };
+  const indent = () => "  ".repeat(state.groupDepth);
+  const attributed = typeof logger72.category === "string" && logger72.category.includes(extensionId);
+  const attribution = attributed ? "" : `extension:${extensionId} `;
+  const emit = (level2, text) => {
+    logger72[level2](`${indent()}${attribution}${text}`);
+  };
+  const fallback = (method, error) => {
+    let message = String(error);
+    if (error instanceof Error) message = error.message;
+    try {
+      logger72.error(`extension:${extensionId} console.${method} internal error: ${message}`);
+    } catch (e) {
+    }
+  };
+  const safe = (method, fn) => {
+    try {
+      fn();
+    } catch (e) {
+      fallback(method, e);
+    }
+  };
+  const write = (level2, args) => {
+    let message = args.length === 0 ? "" : (0, import_util.format)(...args);
+    emit(level2, message);
+  };
+  let consoleObj = {
+    log: (...args) => safe("log", () => write("info", args)),
+    info: (...args) => safe("info", () => write("info", args)),
+    warn: (...args) => safe("warn", () => write("warn", args)),
+    error: (...args) => safe("error", () => write("error", args)),
+    debug: (...args) => safe("debug", () => write("debug", args)),
+    trace: function trace(...args) {
+      safe("trace", () => {
+        let message = args.length === 0 ? "Trace" : (0, import_util.format)(...args);
+        let err = new Error();
+        Error.captureStackTrace(err, trace);
+        let stack = "";
+        if (err.stack) stack = err.stack.split("\n").slice(1).join("\n");
+        emit("trace", `${message}
+${stack}`);
+      });
+    },
+    assert: (condition, ...args) => {
+      safe("assert", () => {
+        if (condition) return;
+        emit("error", `Assertion failed${args.length ? `: ${(0, import_util.format)(...args)}` : ""}`);
+      });
+    },
+    dir: (...args) => {
+      safe("dir", () => {
+        let value = args[0];
+        let options3 = args.length > 1 && args[1] !== null && typeof args[1] === "object" ? args[1] : {};
+        emit("info", (0, import_util.inspect)(value, { colors: false, showHidden: false, depth: 2, ...options3 }));
+      });
+    },
+    dirxml: (...args) => {
+      safe("dirxml", () => {
+        let value = args[0];
+        emit("info", (0, import_util.inspect)(value, { colors: false, showHidden: false, depth: 2 }));
+      });
+    },
+    table: (...args) => {
+      safe("table", () => {
+        emit("info", formatTable(args[0]));
+      });
+    },
+    time: (label = "default") => {
+      safe("time", () => {
+        if (state.timers.has(label)) {
+          emit("warn", `Warning: Label '${label}' already exists for console.time()`);
+          return;
+        }
+        state.timers.set(label, process.hrtime.bigint());
+      });
+    },
+    timeLog: (label = "default", ...args) => {
+      safe("timeLog", () => {
+        let start = state.timers.get(label);
+        if (start === void 0) {
+          emit("warn", `Warning: No such label '${label}' for console.timeLog()`);
+          return;
+        }
+        let suffix = "";
+        if (args.length) suffix = ` ${(0, import_util.format)(...args)}`;
+        emit("info", `${label}: ${formatDuration(process.hrtime.bigint() - start)}${suffix}`);
+      });
+    },
+    timeEnd: (label = "default") => {
+      safe("timeEnd", () => {
+        let start = state.timers.get(label);
+        if (start === void 0) {
+          emit("warn", `Warning: No such label '${label}' for console.timeEnd()`);
+          return;
+        }
+        state.timers.delete(label);
+        emit("info", `${label}: ${formatDuration(process.hrtime.bigint() - start)}`);
+      });
+    },
+    count: (label = "default") => {
+      safe("count", () => {
+        let n = (state.counters.get(label) ?? 0) + 1;
+        state.counters.set(label, n);
+        emit("info", `${label}: ${n}`);
+      });
+    },
+    countReset: (label = "default") => {
+      safe("countReset", () => {
+        state.counters.delete(label);
+      });
+    },
+    group: (...args) => {
+      safe("group", () => {
+        if (args.length) emit("info", (0, import_util.format)(...args));
+        state.groupDepth++;
+      });
+    },
+    groupCollapsed: (...args) => {
+      safe("groupCollapsed", () => {
+        if (args.length) emit("info", (0, import_util.format)(...args));
+        state.groupDepth++;
+      });
+    },
+    groupEnd: () => {
+      safe("groupEnd", () => {
+        if (state.groupDepth > 0) state.groupDepth--;
+      });
+    },
+    clear: () => {
+    },
+    profile: () => {
+    },
+    profileEnd: () => {
+    },
+    timeStamp: () => {
+    }
+  };
+  return { console: consoleObj, state };
+}
+function getConsoleFacade(runtime) {
+  let facade = runtime.consoleFacade;
+  if (!facade) {
+    facade = Object.assign({}, NATIVE_CONSOLE);
+    for (let method of CONSOLE_METHODS) {
+      let fn = runtime.console[method];
+      if (typeof fn === "function") facade[method] = fn;
+    }
+    Object.defineProperty(runtime, "consoleFacade", {
+      value: facade,
+      enumerable: false,
+      configurable: true,
+      writable: true
+    });
+  }
+  return facade;
+}
+var CONSOLE_METHODS, NATIVE_CONSOLE;
+var init_console = __esm({
+  "src/extension/console.ts"() {
+    "use strict";
+    init_node();
+    CONSOLE_METHODS = [
+      "log",
+      "info",
+      "warn",
+      "error",
+      "debug",
+      "trace",
+      "assert",
+      "dir",
+      "dirxml",
+      "table",
+      "time",
+      "timeLog",
+      "timeEnd",
+      "count",
+      "countReset",
+      "group",
+      "groupCollapsed",
+      "groupEnd",
+      "clear",
+      "profile",
+      "profileEnd",
+      "timeStamp"
+    ];
+    NATIVE_CONSOLE = require("console");
+  }
+});
+
+// src/extension/facade.ts
+function trackExtensionDisposable(context, disposable) {
+  context.subscriptions.push(disposable);
+  return disposable;
+}
+function isRegistrationMethod(singletonName, name2) {
+  if (name2.startsWith("register")) return true;
+  if (singletonName === "events") {
+    return name2 === "on" || name2 === "once";
+  }
+  if (singletonName === "sources") {
+    return name2 === "addSource" || name2 === "removeSource";
+  }
+  if (singletonName === "diagnosticManager") {
+    return name2 === "create" || name2 === "createDiagnosticCollection";
+  }
+  if (singletonName === "workspace") {
+    if (name2.startsWith("onDid")) return true;
+    if (name2.startsWith("onWill")) return true;
+    if (WORKSPACE_REGISTRATION_METHODS.has(name2)) return true;
+    return false;
+  }
+  return false;
+}
+function wrapNestedCallbacks(obj, extensionId) {
+  for (let key of ["callback", "provideTextDocumentContent"]) {
+    let fn = obj[key];
+    if (typeof fn === "function" && getExtensionId(fn) == null) {
+      obj[key] = wrapCallbackWithExtension(fn, extensionId);
+    }
+  }
+}
+function createWrappedFacade(context, core, singletonName) {
+  const wrapFunctions = singletonName === "workspace";
+  return new Proxy(core, {
+    get(target, prop, receiver) {
+      if (typeof prop !== "string") {
+        return Reflect.get(target, prop, receiver);
+      }
+      const value = Reflect.get(target, prop, target);
+      if (typeof value !== "function") return value;
+      if (isRegistrationMethod(singletonName, prop)) {
+        return (...args) => {
+          for (let i = 0; i < args.length; i++) {
+            const arg = args[i];
+            if (Array.isArray(arg)) continue;
+            if (typeof arg === "function") {
+              if (wrapFunctions) {
+                args[i] = wrapCallbackWithExtension(arg, context.extensionId);
+              } else {
+                setExtensionId(arg, context.extensionId);
+              }
+              continue;
+            }
+            if (arg != null && typeof arg === "object") {
+              setExtensionId(arg, context.extensionId);
+              if (wrapFunctions) {
+                wrapNestedCallbacks(arg, context.extensionId);
+              }
+            }
+          }
+          let result = value.apply(target, args);
+          if (result != null && typeof result.dispose === "function") {
+            trackExtensionDisposable(context, result);
+          }
+          return result;
+        };
+      }
+      return value.bind(target);
+    },
+    set() {
+      return false;
+    }
+  });
+}
+function createExtensionApi(context, core) {
+  const api = {};
+  Object.defineProperty(api, "nvim", {
+    enumerable: true,
+    configurable: false,
+    get: () => core?.workspace?.nvim
+  });
+  for (const name2 of WRAPPED_SINGLETONS) {
+    if (core && core[name2] != null) {
+      api[name2] = createWrappedFacade(context, core[name2], name2);
+    }
+  }
+  for (const name2 of SHARED_VALUE_EXPORTS) {
+    if (core && name2 in core) {
+      api[name2] = core[name2];
+    }
+  }
+  return Object.freeze(api);
+}
+var WRAPPED_SINGLETONS, SHARED_VALUE_EXPORTS, WORKSPACE_REGISTRATION_METHODS;
+var init_facade = __esm({
+  "src/extension/facade.ts"() {
+    "use strict";
+    init_extensionId();
+    WRAPPED_SINGLETONS = [
+      "workspace",
+      "window",
+      "snippetManager",
+      "events",
+      "services",
+      "commands",
+      "sources",
+      "mcp",
+      "languages",
+      "diagnosticManager",
+      "extensions",
+      "listManager"
+    ];
+    SHARED_VALUE_EXPORTS = [
+      "Uri",
+      "LineBuilder",
+      "NullLogger",
+      "SettingMonitor",
+      "LanguageClient",
+      "CancellationTokenSource",
+      "ProgressType",
+      "RequestType",
+      "RequestType0",
+      "NotificationType",
+      "NotificationType0",
+      "ProtocolRequestType",
+      "ProtocolRequestType0",
+      "ProtocolNotificationType",
+      "ProtocolNotificationType0",
+      "Highlighter",
+      "Mru",
+      "Emitter",
+      "SnippetString",
+      "BasicList",
+      "Mutex",
+      "TreeItem",
+      "SemanticTokensBuilder",
+      "FloatFactory",
+      "RelativePattern",
+      "CancellationError",
+      "WorkspaceChange",
+      "ResponseError",
+      "StringValue",
+      "SnippetTextEdit",
+      "Trace",
+      "DocumentUri",
+      "WorkspaceFolder",
+      "SelectedCompletionInfo",
+      "InlineCompletionContext",
+      "InlineCompletionItem",
+      "InlineCompletionList",
+      "InlineCompletionTriggerKind",
+      "InlineValueText",
+      "InlineValueVariableLookup",
+      "InlineValueEvaluatableExpression",
+      "InlineValueContext",
+      "InlayHintKind",
+      "InlayHintLabelPart",
+      "InlayHint",
+      "DiagnosticRelatedInformation",
+      "SemanticTokens",
+      "SemanticTokenTypes",
+      "SemanticTokenModifiers",
+      "AnnotatedTextEdit",
+      "ChangeAnnotation",
+      "SymbolTag",
+      "Command",
+      "Color",
+      "CodeDescription",
+      "ColorInformation",
+      "ColorPresentation",
+      "TextDocumentEdit",
+      "TextDocumentIdentifier",
+      "VersionedTextDocumentIdentifier",
+      "TextDocumentItem",
+      "DocumentHighlight",
+      "SelectionRange",
+      "DocumentLink",
+      "CodeLens",
+      "FormattingOptions",
+      "CodeAction",
+      "CodeActionContext",
+      "DocumentSymbol",
+      "WorkspaceSymbol",
+      "CreateFile",
+      "RenameFile",
+      "WorkspaceEdit",
+      "InsertReplaceEdit",
+      "InsertTextMode",
+      "CompletionItem",
+      "CompletionList",
+      "Hover",
+      "ParameterInformation",
+      "SignatureInformation",
+      "SymbolInformation",
+      "MarkupContent",
+      "ErrorCodes",
+      "EOL",
+      "ExtensionType",
+      "CompletionItemTag",
+      "integer",
+      "uinteger",
+      "FoldingRangeKind",
+      "FoldingRange",
+      "ChangeAnnotationIdentifier",
+      "DeleteFile",
+      "OptionalVersionedTextDocumentIdentifier",
+      "CompletionItemLabelDetails",
+      "MarkedString",
+      "ProviderName",
+      "DocumentDiagnosticReportKind",
+      "UniquenessLevel",
+      "MonikerKind",
+      "PatternType",
+      "SourceType",
+      "ConfigurationTarget",
+      "ServiceStat",
+      "FileType",
+      "State",
+      "ClientState",
+      "CloseAction",
+      "ErrorAction",
+      "TransportKind",
+      "MessageTransports",
+      "RevealOutputChannelOn",
+      "MarkupKind",
+      "DiagnosticTag",
+      "DocumentHighlightKind",
+      "SymbolKind",
+      "SignatureHelpTriggerKind",
+      "FileChangeType",
+      "CodeActionKind",
+      "CodeActionTriggerKind",
+      "CompletionTriggerKind",
+      "Diagnostic",
+      "DiagnosticSeverity",
+      "CompletionItemKind",
+      "InsertTextFormat",
+      "Location",
+      "LocationLink",
+      "CancellationToken",
+      "Position",
+      "Range",
+      "TextEdit",
+      "Disposable",
+      "Event",
+      "TreeItemCollapsibleState",
+      "DiagnosticPullMode",
+      "ApplyKind",
+      "terminate",
+      "fetch",
+      "download",
+      "ansiparse",
+      "disposeAll",
+      "concurrent",
+      "watchFile",
+      "wait",
+      "runCommand",
+      "isRunning",
+      "executable"
+    ];
+    WORKSPACE_REGISTRATION_METHODS = /* @__PURE__ */ new Set([
+      "registerKeymap",
+      "registerExprKeymap",
+      "registerInsertKeymap",
+      "registerLocalKeymap",
+      "registerBufferSync",
+      "registerAutocmd",
+      "registerTextDocumentContentProvider",
+      "createFileSystemWatcher"
+    ]);
+  }
+});
+
+// src/extension/esm.ts
+function ensureVMModules() {
+  if (typeof vm.SourceTextModule !== "function" || typeof vm.SyntheticModule !== "function") {
+    throw new Error(
+      "coc.nvim requires Node.js VM modules support for ESM extensions; start Node with --experimental-vm-modules"
+    );
+  }
+}
+function getPackageType(dirname) {
+  let dir = dirname;
+  while (true) {
+    let pkgFile = path.join(dir, "package.json");
+    if (fs.existsSync(pkgFile)) {
+      let key = pkgFile;
+      if (packageTypeCache.has(key)) return packageTypeCache.get(key);
+      let type;
+      try {
+        let obj = JSON.parse(fs.readFileSync(pkgFile, "utf8"));
+        if (obj.type === "module") {
+          type = "module";
+        } else if (obj.type === "commonjs") {
+          type = "commonjs";
+        } else {
+          type = void 0;
+        }
+      } catch (e) {
+        type = void 0;
+      }
+      packageTypeCache.set(key, type);
+      return type;
+    }
+    let parent = path.dirname(dir);
+    if (parent === dir) return void 0;
+    dir = parent;
+  }
+}
+function resolveModuleFormat(filename, packageType) {
+  let ext = path.extname(filename).toLowerCase();
+  if (ext === ".mjs") return "module";
+  if (ext === ".cjs") return "commonjs";
+  if (ext === ".json") return "json";
+  if (ext === ".node") return "native";
+  if (ext === ".js") {
+    let type = packageType ?? getPackageType(path.dirname(filename));
+    return type === "module" ? "module" : "commonjs";
+  }
+  return "commonjs";
+}
+function isBuiltin(request2) {
+  if (request2.startsWith("node:")) return true;
+  return Module.isBuiltin(request2) === true;
+}
+function findPackageDir(parentFile, request2) {
+  let name2 = request2.startsWith("@") ? request2.split("/").slice(0, 2).join("/") : request2.split("/")[0];
+  let dir = path.dirname(parentFile);
+  while (true) {
+    let candidate = path.join(dir, "node_modules", name2);
+    if (fs.existsSync(path.join(candidate, "package.json"))) {
+      return candidate;
+    }
+    let parent = path.dirname(dir);
+    if (parent === dir) return void 0;
+    dir = parent;
+  }
+}
+function pickCocNvimTarget(target) {
+  if (typeof target === "string") return target;
+  if (Array.isArray(target)) {
+    for (let i = 0; i < target.length; i++) {
+      let res = pickCocNvimTarget(target[i]);
+      if (res) {
+        return res;
+      }
+    }
+    return void 0;
+  }
+  if (target !== null && typeof target === "object") {
+    if (target["coc.nvim"] !== void 0) {
+      return pickNestedTarget(target["coc.nvim"]);
+    }
+  }
+  return void 0;
+}
+function pickNestedTarget(target) {
+  if (typeof target === "string") return target;
+  if (Array.isArray(target)) {
+    for (let i = 0; i < target.length; i++) {
+      let res = pickNestedTarget(target[i]);
+      if (res) return res;
+    }
+    return void 0;
+  }
+  if (target !== null && typeof target === "object") {
+    for (let key of ["node", "require", "import", "default"]) {
+      if (target[key] !== void 0) {
+        let res = pickNestedTarget(target[key]);
+        if (res) return res;
+      }
+    }
+  }
+  return void 0;
+}
+function resolveCocNvimExport(packageDir, subpath) {
+  let pkg;
+  try {
+    pkg = JSON.parse(fs.readFileSync(path.join(packageDir, "package.json"), "utf8"));
+  } catch (e) {
+    return void 0;
+  }
+  let exportsField = pkg.exports;
+  if (exportsField === null || typeof exportsField !== "object" || Array.isArray(exportsField)) {
+    return void 0;
+  }
+  let target = subpath === "." ? exportsField["."] ?? exportsField["./"] ?? exportsField : exportsField[subpath];
+  if (target === void 0) return void 0;
+  return pickCocNvimTarget(target);
+}
+function resolveExtensionModule(runtime, request2, parentIdentifier, mode) {
+  if (request2 === "coc.nvim") return { type: "coc-api", id: "coc.nvim" };
+  if (isBuiltin(request2)) return { type: "builtin", id: request2 };
+  let parentFile = parentIdentifier.startsWith("file://") ? (0, import_url3.fileURLToPath)(parentIdentifier) : parentIdentifier;
+  let packageDir = findPackageDir(parentFile, request2);
+  if (packageDir) {
+    let name2 = request2.startsWith("@") ? request2.split("/").slice(0, 2).join("/") : request2.split("/")[0];
+    let subpath = request2 === name2 ? "." : "./" + request2.slice(name2.length + 1);
+    let cocTarget = resolveCocNvimExport(packageDir, subpath);
+    if (cocTarget) {
+      let filename2 = tryRealpath(path.join(packageDir, cocTarget));
+      if (fs.existsSync(filename2)) {
+        return { type: "file", filename: filename2, format: resolveModuleFormat(filename2) };
+      }
+    }
+  }
+  let record = new Module(parentFile);
+  record.filename = parentFile;
+  record.id = parentFile;
+  record.paths = Module._nodeModulePaths(path.dirname(parentFile));
+  let conditions = mode === "import" ? /* @__PURE__ */ new Set(["coc.nvim", "node", "import"]) : /* @__PURE__ */ new Set(["coc.nvim", "node", "require"]);
+  let filename = Module._resolveFilename(request2, record, false, { conditions });
+  let normalized = tryRealpath(filename);
+  return { type: "file", filename: normalized, format: resolveModuleFormat(normalized) };
+}
+function tryRealpath(filename) {
+  try {
+    return fs.realpathSync(filename);
+  } catch (e) {
+    return filename;
+  }
+}
+function canonicalFileURL(filename) {
+  return (0, import_url3.pathToFileURL)(tryRealpath(filename)).href;
+}
+async function loadESMModule(runtime, request2, parentIdentifier) {
+  let resolved = resolveExtensionModule(runtime, request2, parentIdentifier, "import");
+  if (resolved.type === "coc-api") return createCocApiModule(runtime);
+  if (resolved.type === "builtin") return createBuiltinModule(runtime, resolved.id);
+  switch (resolved.format) {
+    case "module":
+      return loadSourceTextModule(runtime, resolved.filename);
+    case "commonjs":
+      return createCommonJSBridgeModule(runtime, resolved.filename);
+    case "json":
+      return createJsonModule(runtime, resolved.filename);
+    case "native":
+      throw new Error(`ESM import of native addon ${resolved.filename} is not supported`);
+  }
+}
+async function dynamicImportModule(runtime, request2, parentIdentifier) {
+  let module2 = await loadESMModule(runtime, request2, parentIdentifier);
+  instantiateModule(module2);
+  await module2.evaluate();
+  return module2;
+}
+async function loadSourceTextModule(runtime, filename) {
+  ensureVMModules();
+  let identifier = canonicalFileURL(filename);
+  let cached = runtime.esmModules.get(identifier);
+  if (cached) return cached;
+  let source = fs.readFileSync(filename, "utf8");
+  let module2 = new vm.SourceTextModule(source, {
+    context: runtime.context,
+    identifier,
+    initializeImportMeta(meta) {
+      meta.url = identifier;
+      meta.resolve = (specifier) => {
+        let resolved = resolveExtensionModule(runtime, specifier, identifier, "import");
+        if (resolved.type === "file") return (0, import_url3.pathToFileURL)(resolved.filename).href;
+        return resolved.id;
+      };
+    },
+    importModuleDynamically(specifier, referencingModule) {
+      return dynamicImportModule(runtime, specifier, referencingModule.identifier);
+    }
+  });
+  runtime.esmModules.set(identifier, module2);
+  try {
+    let deps = [];
+    for (let request2 of module2.moduleRequests) {
+      deps.push(await loadESMModule(runtime, request2.specifier, identifier));
+    }
+    module2.linkRequests(deps);
+  } catch (e) {
+    runtime.esmModules.delete(identifier);
+    throw e;
+  }
+  return module2;
+}
+function instantiateModule(module2) {
+  if (module2.status === "unlinked" && typeof module2.instantiate === "function") {
+    ;
+    module2.instantiate();
+  }
+}
+async function createSyntheticModule(runtime, identifier, names, evaluator) {
+  ensureVMModules();
+  let cached = runtime.esmModules.get(identifier);
+  if (cached) return cached;
+  let module2 = new vm.SyntheticModule(names, evaluator, {
+    context: runtime.context,
+    identifier
+  });
+  runtime.esmModules.set(identifier, module2);
+  return module2;
+}
+function createCocApiModule(runtime) {
+  let names = Object.keys(runtime.api);
+  return createSyntheticModule(runtime, "coc:nvim-api", names, function() {
+    for (let name2 of names) {
+      this.setExport(name2, runtime.api[name2]);
+    }
+  });
+}
+function createBuiltinModule(runtime, specifier) {
+  let identifier = `builtin:${specifier}`;
+  let value;
+  if (specifier === "process" || specifier === "node:process") {
+    value = runtime.context.process;
+  } else if (specifier === "console" || specifier === "node:console") {
+    value = getConsoleFacade(runtime);
+  } else {
+    value = require(specifier);
+  }
+  let names = ["default", ...Object.keys(value)];
+  return createSyntheticModule(runtime, identifier, names, function() {
+    this.setExport("default", value);
+    for (let name2 of Object.keys(value)) {
+      this.setExport(name2, value[name2]);
+    }
+  });
+}
+function createCommonJSBridgeModule(runtime, filename) {
+  let identifier = `cjs-bridge:${canonicalFileURL(filename)}`;
+  let exports2 = getLoader(runtime).loadJavaScript(filename);
+  return createSyntheticModule(runtime, identifier, ["default", "module.exports"], function() {
+    this.setExport("default", exports2);
+    this.setExport("module.exports", exports2);
+  });
+}
+function createJsonModule(runtime, filename) {
+  let identifier = `json:${canonicalFileURL(filename)}`;
+  let value = getLoader(runtime).loadJson(filename);
+  return createSyntheticModule(runtime, identifier, ["default"], function() {
+    this.setExport("default", value);
+  });
+}
+async function loadESMEntry(runtime, filename) {
+  ensureVMModules();
+  let identifier = canonicalFileURL(filename);
+  let module2 = await loadSourceTextModule(runtime, filename);
+  try {
+    instantiateModule(module2);
+    await module2.evaluate();
+  } catch (e) {
+    runtime.esmModules.delete(identifier);
+    throw e;
+  }
+  return module2.namespace;
+}
+function requireESMError(filename) {
+  let url = (0, import_url3.pathToFileURL)(filename).href;
+  let err = new Error(`require() of ES Module ${url} not supported. Use dynamic import() instead.`);
+  err.code = "ERR_REQUIRE_ESM";
+  return err;
+}
+var import_url3, Module, packageTypeCache;
+var init_esm2 = __esm({
+  "src/extension/esm.ts"() {
+    "use strict";
+    init_node();
+    import_url3 = require("url");
+    init_console();
+    init_loader();
+    Module = require("module");
+    packageTypeCache = /* @__PURE__ */ new Map();
+  }
+});
+
 // src/list/commandTask.ts
 var import_events36, spawn, logger33, CommandTask;
 var init_commandTask = __esm({
@@ -115922,12 +116860,12 @@ function formatListItems(align, list2) {
   }
   return processedList;
 }
-function formatPath(format3, pathToFormat) {
-  if (format3 === "hidden") {
+function formatPath(format4, pathToFormat) {
+  if (format4 === "hidden") {
     return "";
-  } else if (format3 === "full") {
+  } else if (format4 === "full") {
     return pathToFormat;
-  } else if (format3 === "short") {
+  } else if (format4 === "short") {
     const segments = pathToFormat.split(path.sep);
     if (segments.length < 2) {
       return pathToFormat;
@@ -120702,13 +121640,13 @@ function getTracePrefix(data) {
 function getParameterStructures(kind) {
   switch (kind) {
     case "auto":
-      return import_node53.ParameterStructures.auto;
+      return import_node55.ParameterStructures.auto;
     case "byPosition":
-      return import_node53.ParameterStructures.byPosition;
+      return import_node55.ParameterStructures.byPosition;
     case "byName":
-      return import_node53.ParameterStructures.byName;
+      return import_node55.ParameterStructures.byName;
     default:
-      return import_node53.ParameterStructures.auto;
+      return import_node55.ParameterStructures.auto;
   }
 }
 function fixRequestType(type, params) {
@@ -120716,30 +121654,30 @@ function fixRequestType(type, params) {
   let n = typeof type.numberOfParams === "number" ? type.numberOfParams : params.length;
   switch (n) {
     case 0:
-      return new import_node53.RequestType0(type.method);
+      return new import_node55.RequestType0(type.method);
     case 1:
       if (type["parameterStructures"] != null) {
-        return new import_node53.RequestType1(type.method, getParameterStructures(type["parameterStructures"].toString()));
+        return new import_node55.RequestType1(type.method, getParameterStructures(type["parameterStructures"].toString()));
       }
-      return new import_node53.RequestType1(type.method);
+      return new import_node55.RequestType1(type.method);
     case 2:
-      return new import_node53.RequestType2(type.method);
+      return new import_node55.RequestType2(type.method);
     case 3:
-      return new import_node53.RequestType3(type.method);
+      return new import_node55.RequestType3(type.method);
     case 4:
-      return new import_node53.RequestType4(type.method);
+      return new import_node55.RequestType4(type.method);
     case 5:
-      return new import_node53.RequestType5(type.method);
+      return new import_node55.RequestType5(type.method);
     case 6:
-      return new import_node53.RequestType6(type.method);
+      return new import_node55.RequestType6(type.method);
     case 7:
-      return new import_node53.RequestType7(type.method);
+      return new import_node55.RequestType7(type.method);
     case 8:
-      return new import_node53.RequestType8(type.method);
+      return new import_node55.RequestType8(type.method);
     case 9:
-      return new import_node53.RequestType9(type.method);
+      return new import_node55.RequestType9(type.method);
     default:
-      return new import_node53.RequestType(type.method);
+      return new import_node55.RequestType(type.method);
   }
 }
 function fixNotificationType(type, params) {
@@ -120747,30 +121685,30 @@ function fixNotificationType(type, params) {
   let n = typeof type.numberOfParams === "number" ? type.numberOfParams : params.length;
   switch (n) {
     case 0:
-      return new import_node53.NotificationType0(type.method);
+      return new import_node55.NotificationType0(type.method);
     case 1:
       if (type["parameterStructures"] != null) {
-        return new import_node53.NotificationType1(type.method, getParameterStructures(type["parameterStructures"].toString()));
+        return new import_node55.NotificationType1(type.method, getParameterStructures(type["parameterStructures"].toString()));
       }
-      return new import_node53.NotificationType1(type.method);
+      return new import_node55.NotificationType1(type.method);
     case 2:
-      return new import_node53.NotificationType2(type.method);
+      return new import_node55.NotificationType2(type.method);
     case 3:
-      return new import_node53.NotificationType3(type.method);
+      return new import_node55.NotificationType3(type.method);
     case 4:
-      return new import_node53.NotificationType4(type.method);
+      return new import_node55.NotificationType4(type.method);
     case 5:
-      return new import_node53.NotificationType5(type.method);
+      return new import_node55.NotificationType5(type.method);
     case 6:
-      return new import_node53.NotificationType6(type.method);
+      return new import_node55.NotificationType6(type.method);
     case 7:
-      return new import_node53.NotificationType7(type.method);
+      return new import_node55.NotificationType7(type.method);
     case 8:
-      return new import_node53.NotificationType8(type.method);
+      return new import_node55.NotificationType8(type.method);
     case 9:
-      return new import_node53.NotificationType9(type.method);
+      return new import_node55.NotificationType9(type.method);
     default:
-      return new import_node53.NotificationType(type.method);
+      return new import_node55.NotificationType(type.method);
   }
 }
 function data2String(data, color = false) {
@@ -120803,8 +121741,8 @@ function createClientPipeTransport(pipeName, encoding2 = "utf-8") {
     const server = net.createServer((socket) => {
       server.close();
       connectResolve([
-        new import_node53.SocketMessageReader(socket, encoding2),
-        new import_node53.SocketMessageWriter(socket, encoding2)
+        new import_node55.SocketMessageReader(socket, encoding2),
+        new import_node55.SocketMessageWriter(socket, encoding2)
       ]);
     });
     server.on("error", reject);
@@ -120835,8 +121773,8 @@ function createClientSocketTransport(port, encoding2 = "utf-8") {
     const server = net.createServer((socket) => {
       server.close();
       connectResolve([
-        new import_node53.SocketMessageReader(socket, encoding2),
-        new import_node53.SocketMessageWriter(socket, encoding2)
+        new import_node55.SocketMessageReader(socket, encoding2),
+        new import_node55.SocketMessageWriter(socket, encoding2)
       ]);
     });
     server.on("error", reject);
@@ -120854,21 +121792,21 @@ function createClientSocketTransport(port, encoding2 = "utf-8") {
     });
   });
 }
-var import_node53, requestTypes, notificationTypes;
+var import_node55, requestTypes, notificationTypes;
 var init_utils = __esm({
   "src/language-client/utils/index.ts"() {
     "use strict";
-    import_node53 = __toESM(require_main2());
+    import_node55 = __toESM(require_main2());
     init_is();
     init_node();
     init_protocol();
     requestTypes = [
-      import_node53.RequestType,
-      import_node53.RequestType0
+      import_node55.RequestType,
+      import_node55.RequestType0
     ];
     notificationTypes = [
-      import_node53.NotificationType,
-      import_node53.NotificationType0
+      import_node55.NotificationType,
+      import_node55.NotificationType0
     ];
   }
 });
@@ -129584,40 +130522,30 @@ var require_src2 = __commonJS({
   }
 });
 
-// src/util/factory.ts
+// src/extension/loader.ts
 function removedGlobalStub(name2) {
   return () => {
     throw new Error(`process.${name2}() is not allowed in extension sandbox`);
   };
 }
-function makeRequireFunction(cocExports) {
-  const req = (p) => {
-    if (p === "coc.nvim") {
-      return toObject(cocExports);
+function createProcessFacade() {
+  const facade = new process.constructor();
+  for (let key of Reflect.ownKeys(process)) {
+    if (typeof key === "string" && key.startsWith("_")) continue;
+    facade[key] = process[key];
+  }
+  REMOVED_GLOBALS.forEach((name2) => {
+    facade[name2] = removedGlobalStub(name2);
+  });
+  facade["chdir"] = () => {
+  };
+  facade["umask"] = (mask) => {
+    if (typeof mask !== "undefined") {
+      throw new Error("Cannot use process.umask() to change mask (read-only)");
     }
-    return this.require(p);
+    return process.umask();
   };
-  req.resolve = (request2, options3) => Module._resolveFilename(request2, this, false, options3);
-  req.main = mainModule;
-  req.extensions = Module._extensions;
-  req.cache = Module._cache;
-  return req;
-}
-function compileInSandbox(sandbox, cocExports) {
-  return function(content, filename) {
-    const require2 = makeRequireFunction.call(this, cocExports);
-    const dirname = path.dirname(filename);
-    const newContent = content.startsWith("#!") ? content.replace(/^#!.*/, "") : content;
-    const wrapper = Module.wrap(newContent);
-    const compiledWrapper = vm.runInContext(wrapper, sandbox, { filename });
-    const args = [this.exports, require2, this, filename, dirname];
-    return compiledWrapper.apply(this.exports, args);
-  };
-}
-function getProtoWithCompile(mod) {
-  if (hasOwnProperty2(mod.prototype, "_compile")) return mod.prototype;
-  if (hasOwnProperty2(mod.prototype.__proto__, "_compile")) return mod.prototype.__proto__;
-  throw new Error("_compile not found");
+  return facade;
 }
 function copyGlobalProperties(sandbox, globalObj) {
   for (const key of Object.keys(globalObj)) {
@@ -129628,123 +130556,161 @@ function copyGlobalProperties(sandbox, globalObj) {
   }
   return sandbox;
 }
-function createConsole(con, logger72) {
-  let result = {};
-  let methods2 = ["debug", "log", "info", "error", "warn"];
-  for (let key of Object.keys(con)) {
-    if (methods2.includes(key)) {
-      result[key] = (...args) => {
-        logger72[key].apply(logger72, args);
-      };
-    } else {
-      let fn = con[key];
-      if (key !== "Console" && typeof fn === "function") {
-        result[key] = () => {
-          logger72.warn(`function console.${key} not supported`);
-        };
-      } else {
-        result[key] = fn;
-      }
-    }
-  }
-  return result;
-}
-function createSandbox(filename, logger72, name2, noExport) {
-  const module2 = new Module(filename);
-  module2.paths = Module._nodeModulePaths(filename);
+function createExtensionContext(id2, console2) {
   const sandbox = vm.createContext({
-    module: module2,
+    console: console2,
     Buffer,
     URL: globalThis.URL,
-    WebAssembly: globalThis.WebAssembly,
-    console: createConsole(console, logger72)
-  }, { name: name2 });
+    WebAssembly: globalThis.WebAssembly
+  }, { name: id2 });
   copyGlobalProperties(sandbox, global);
-  if (typeof noExport !== "boolean") {
-    noExport = global.__isMain === void 0;
-  }
-  let cocExports = noExport ? void 0 : require_src2();
-  sandbox.require = function sandboxRequire(p) {
-    const oldCompile = ModuleProto._compile;
-    ModuleProto._compile = compileInSandbox(sandbox, cocExports);
-    try {
-      return sandbox.module.require(p);
-    } finally {
-      ModuleProto._compile = oldCompile;
-    }
-  };
-  sandbox.process = new process.constructor();
-  for (let key of Reflect.ownKeys(process)) {
-    if (typeof key === "string" && key.startsWith("_")) {
-      continue;
-    }
-    sandbox.process[key] = process[key];
-  }
-  REMOVED_GLOBALS.forEach((name3) => {
-    sandbox.process[name3] = removedGlobalStub(name3);
-  });
-  sandbox.process["chdir"] = () => {
-  };
-  sandbox.process.umask = (mask) => {
-    if (typeof mask !== "undefined") {
-      throw new Error("Cannot use process.umask() to change mask (read-only)");
-    }
-    return process.umask();
-  };
+  sandbox["process"] = createProcessFacade();
   return sandbox;
 }
-function getLogger(useConsole, id2) {
-  return useConsole ? consoleLogger : createLogger(`extension:${id2}`);
+function stripBOM(content) {
+  if (content.charCodeAt(0) === 65279) return content.slice(1);
+  return content;
 }
-function clearCachedModules(root) {
-  for (let file of Object.keys(Module._cache)) {
-    if (isParentFolder(root, file, true)) {
-      delete Module._cache[file];
-    }
+function stripShebang(content) {
+  return content.startsWith("#!") ? content.replace(/^#![^\n]*/, "") : content;
+}
+function getLoader(runtime) {
+  let loader = runtime.loader;
+  if (!loader) {
+    loader = new ExtensionLoader(runtime);
+    Object.defineProperty(runtime, "loader", {
+      value: loader,
+      enumerable: false,
+      configurable: true,
+      writable: true
+    });
   }
+  return loader;
 }
-function createExtension(id2, filename, isEmpty2) {
-  if (isEmpty2 || !fs.existsSync(filename)) return {
-    activate: () => {
-    },
-    deactivate: null
+function createExtensionRequire(runtime, parent) {
+  const loader = getLoader(runtime);
+  const req = (request2) => {
+    return loader.require(request2, parent);
   };
-  const logger72 = getLogger(!global.__isMain && true, id2);
-  const sandbox = createSandbox(filename, logger72, id2);
-  let root = path.dirname(filename);
-  if (fs.existsSync(root)) {
-    try {
-      root = fs.realpathSync(root);
-    } catch (e) {
-    }
+  req.resolve = (request2, options3) => {
+    return loader.resolve(request2, parent, options3);
+  };
+  req.resolve.paths = (request2) => {
+    return loader.resolvePaths(request2, parent);
+  };
+  req.main = mainModule;
+  return req;
+}
+function createExtensionRuntime(id2, filename, core, logger72, extensionRoot) {
+  const { console: console2, state } = createExtensionConsole(id2, logger72);
+  const root = extensionRoot ?? path.dirname(filename);
+  let realRoot = root;
+  try {
+    realRoot = fs.realpathSync(root);
+  } catch (e) {
   }
-  clearCachedModules(root);
-  const defaultImport = sandbox.require(filename);
-  const activate = defaultImport && defaultImport.activate || defaultImport;
-  if (typeof activate !== "function") return { activate: () => {
-  } };
+  const apiContext = {
+    extensionId: id2,
+    extensionRoot: realRoot,
+    subscriptions: []
+  };
+  const runtime = {
+    id: id2,
+    root,
+    realRoot,
+    entry: filename,
+    context: createExtensionContext(id2, console2),
+    api: createExtensionApi(apiContext, core),
+    console: console2,
+    consoleState: state,
+    cjsModules: /* @__PURE__ */ new Map(),
+    esmModules: /* @__PURE__ */ new Map()
+  };
+  Object.defineProperty(runtime, "apiContext", {
+    value: apiContext,
+    enumerable: false,
+    configurable: true,
+    writable: true
+  });
+  return runtime;
+}
+function disposeExtension(id2) {
+  let runtime = runtimes.get(id2);
+  if (runtime) {
+    runtime.cjsModules.clear();
+    runtime.esmModules.clear();
+    runtime.consoleState.timers.clear();
+    runtime.consoleState.counters.clear();
+    runtime.consoleState.groupDepth = 0;
+    let apiContext = runtime.apiContext;
+    if (apiContext) {
+      for (let disposable of apiContext.subscriptions) {
+        disposable.dispose();
+      }
+      apiContext.subscriptions.length = 0;
+    }
+    runtimes.delete(id2);
+  }
+}
+function getLogger(useConsole, id2) {
+  if (useConsole) {
+    return consoleLogger;
+  }
+  return createLogger(`extension:${id2}`);
+}
+function finalizeExports(id2, defaultImport) {
+  const activate = defaultImport && defaultImport["activate"] || defaultImport;
+  if (typeof activate !== "function") {
+    disposeExtension(id2);
+    return { activate: () => {
+    } };
+  }
   return typeof defaultImport === "function" ? { activate } : Object.assign({}, defaultImport);
 }
-var consoleLogger, Module, mainModule, REMOVED_GLOBALS, ModuleProto;
-var init_factory = __esm({
-  "src/util/factory.ts"() {
+function emptyExtension() {
+  return { activate: () => {
+  }, deactivate: null };
+}
+async function createExtensionAsync(id2, filename, isEmpty2, options3) {
+  if (isEmpty2 || !options3?.sourceCode && !fs.existsSync(filename)) return emptyExtension();
+  disposeExtension(id2);
+  const logger72 = getLogger(!global.__isMain && true, id2);
+  let api;
+  if (global.__isMain === void 0) {
+    api = {};
+  } else {
+    api = require_src2();
+  }
+  const runtime = createExtensionRuntime(id2, filename, api, logger72, options3?.extensionRoot);
+  runtimes.set(id2, runtime);
+  const loader = getLoader(runtime);
+  let defaultImport;
+  const sourceCode = options3?.sourceCode;
+  try {
+    if (sourceCode == null && resolveModuleFormat(filename) === "module") {
+      defaultImport = await loadESMEntry(runtime, filename);
+    } else {
+      defaultImport = loader.loadJavaScript(filename, void 0, sourceCode);
+    }
+    if (typeof defaultImport === "object" && defaultImport !== null && typeof defaultImport["default"] === "function" && typeof defaultImport["activate"] !== "function") {
+      defaultImport = defaultImport["default"];
+    }
+    return finalizeExports(id2, defaultImport);
+  } catch (e) {
+    disposeExtension(id2);
+    throw e;
+  }
+}
+var Module2, mainModule, REMOVED_GLOBALS, consoleLogger, ExtensionLoader, runtimes;
+var init_loader = __esm({
+  "src/extension/loader.ts"() {
     "use strict";
     init_logger();
     init_node();
-    init_fs();
-    init_object();
-    consoleLogger = {
-      category: "",
-      log: console.log.bind(console),
-      debug: console.debug.bind(console),
-      error: console.error.bind(console),
-      warn: console.warn.bind(console),
-      info: console.info.bind(console),
-      trace: console.log.bind(console),
-      fatal: console.error.bind(console),
-      mark: console.log.bind(console)
-    };
-    Module = require("module");
+    init_console();
+    init_facade();
+    init_esm2();
+    Module2 = require("module");
     mainModule = require.main;
     REMOVED_GLOBALS = [
       "reallyExit",
@@ -129757,7 +130723,224 @@ var init_factory = __esm({
       "exit",
       "kill"
     ];
-    ModuleProto = getProtoWithCompile(Module);
+    consoleLogger = {
+      category: "",
+      log: console.log.bind(console),
+      debug: console.debug.bind(console),
+      error: console.error.bind(console),
+      warn: console.warn.bind(console),
+      info: console.info.bind(console),
+      trace: console.log.bind(console),
+      fatal: console.error.bind(console),
+      mark: console.log.bind(console)
+    };
+    ExtensionLoader = class {
+      constructor(runtime) {
+        this.runtime = runtime;
+      }
+      runtime;
+      parents = /* @__PURE__ */ new WeakMap();
+      isBuiltin(request2) {
+        if (request2.startsWith("node:")) return true;
+        return Module2.isBuiltin(request2) === true;
+      }
+      normalizeFilename(filename) {
+        try {
+          return fs.realpathSync(filename);
+        } catch (e) {
+          return path.resolve(filename);
+        }
+      }
+      parentModule(parent) {
+        const record = new Module2(parent.filename);
+        record.filename = parent.filename;
+        record.id = parent.filename;
+        record.paths = Module2._nodeModulePaths(parent.dirname);
+        return record;
+      }
+      /**
+       * Resolve a request against the parent module using Node's resolver.
+       */
+      resolve(request2, parent, options3) {
+        if (this.isBuiltin(request2)) return request2;
+        return Module2._resolveFilename(request2, this.parentModule(parent), false, options3);
+      }
+      /**
+       * Node-compatible `require.resolve.paths` for a request from a parent
+       * module. Returns null for builtins, like Node does.
+       */
+      resolvePaths(request2, parent) {
+        return Module2._resolveLookupPaths(request2, this.parentModule(parent));
+      }
+      /**
+       * Extension-local require: API injection, builtins, then modules in this
+       * runtime.
+       */
+      require(request2, parent) {
+        if (request2 === "coc.nvim") return this.runtime.api;
+        if (this.isBuiltin(request2)) return this.loadBuiltin(request2);
+        let resolved = resolveExtensionModule(this.runtime, request2, parent.filename, "require");
+        if (resolved.type === "file" && resolved.format === "module") {
+          throw requireESMError(resolved.filename);
+        }
+        return this.load(resolved.filename, parent);
+      }
+      load(filename, parent, isMain = false) {
+        const cacheKey = this.normalizeFilename(filename);
+        const ext = path.extname(cacheKey).toLowerCase();
+        if (ext === ".json") return this.loadJson(cacheKey, parent);
+        if (ext === ".node") return this.loadNative(cacheKey, parent);
+        if (ext === ".js" || ext === ".cjs" || ext === "") return this.loadJavaScript(cacheKey, parent);
+        if (ext === ".mjs") throw requireESMError(cacheKey);
+        throw new Error(`Unsupported module type "${ext}" for ${cacheKey}`);
+      }
+      /**
+       * Load a native addon outside the VM. The addon is dlopen'd by Node and its
+       * exports are cached in the runtime module cache.
+       */
+      loadNative(filename, parent) {
+        const cacheKey = this.normalizeFilename(filename);
+        const cached = this.runtime.cjsModules.get(cacheKey);
+        if (cached) return cached.exports;
+        const nodeModule = new Module2(cacheKey);
+        nodeModule.filename = cacheKey;
+        nodeModule.paths = Module2._nodeModulePaths(path.dirname(cacheKey));
+        const nativeLoad = Module2._extensions && Module2._extensions[".node"];
+        if (typeof nativeLoad !== "function") {
+          throw new Error(`Unsupported native addon: ${cacheKey}`);
+        }
+        nativeLoad(nodeModule, cacheKey);
+        const module2 = this.createModule(cacheKey, parent);
+        module2.exports = nodeModule.exports;
+        module2.loaded = true;
+        return module2.exports;
+      }
+      /**
+       * Load a JSON module synchronously and cache the parsed value per runtime.
+       */
+      loadJson(filename, parent) {
+        const cacheKey = this.normalizeFilename(filename);
+        const cached = this.runtime.cjsModules.get(cacheKey);
+        if (cached) return cached.exports;
+        const source = fs.readFileSync(cacheKey, "utf8");
+        let value;
+        try {
+          value = JSON.parse(stripBOM(source));
+        } catch (e) {
+          throw new Error(`Error parsing JSON module ${cacheKey}: ${e.message}`, { cause: e });
+        }
+        const module2 = this.createModule(cacheKey, parent);
+        module2.exports = value;
+        module2.loaded = true;
+        return module2.exports;
+      }
+      loadBuiltin(request2) {
+        if (request2 === "process" || request2 === "node:process") {
+          return this.runtime.context.process;
+        }
+        if (request2 === "console" || request2 === "node:console") {
+          return getConsoleFacade(this.runtime);
+        }
+        return require(request2);
+      }
+      /**
+       * Load a CommonJS JavaScript module. The module record is cached before
+       * execution so circular dependencies observe partial exports; failed
+       * modules are removed from the cache and the module graph.
+       */
+      loadJavaScript(filename, parent, source) {
+        const cacheKey = this.normalizeFilename(filename);
+        const cached = this.runtime.cjsModules.get(cacheKey);
+        if (cached) return cached.exports;
+        const module2 = this.createModule(cacheKey, parent);
+        let code;
+        if (source !== void 0) {
+          code = source;
+        } else {
+          try {
+            code = fs.readFileSync(cacheKey, "utf8");
+          } catch (e) {
+            this.failModule(module2);
+            throw e;
+          }
+        }
+        try {
+          this.compileCommonJS(module2, code);
+          module2.loaded = true;
+        } catch (e) {
+          this.failModule(module2);
+          throw e;
+        }
+        return module2.exports;
+      }
+      /**
+       * Compile and execute one CommonJS module with `vm.compileFunction` inside
+       * the extension context.
+       */
+      compileCommonJS(module2, source) {
+        const code = stripShebang(stripBOM(source));
+        const fn = vm.compileFunction(
+          code,
+          ["exports", "require", "module", "__filename", "__dirname"],
+          {
+            filename: module2.filename,
+            parsingContext: this.runtime.context,
+            importModuleDynamically: (specifier) => {
+              return dynamicImportModule(this.runtime, specifier, module2.filename);
+            }
+          }
+        );
+        const localRequire = createExtensionRequire(this.runtime, module2);
+        module2["require"] = localRequire;
+        fn.call(module2.exports, module2.exports, localRequire, module2, module2.filename, module2.dirname);
+      }
+      /**
+       * Drop all cached modules of this runtime.
+       */
+      clear() {
+        this.runtime.cjsModules.clear();
+      }
+      createModule(filename, parent) {
+        const module2 = {
+          id: filename,
+          filename,
+          dirname: path.dirname(filename),
+          exports: {},
+          loaded: false,
+          parent,
+          children: []
+        };
+        this.runtime.cjsModules.set(filename, module2);
+        if (parent) {
+          parent.children.push(module2);
+          let parents = this.parents.get(module2);
+          if (!parents) {
+            parents = /* @__PURE__ */ new Set();
+            this.parents.set(module2, parents);
+          }
+          parents.add(parent);
+        }
+        return module2;
+      }
+      failModule(module2) {
+        this.runtime.cjsModules.delete(module2.filename);
+        const parents = this.parents.get(module2);
+        if (parents) {
+          for (const parent of parents) {
+            let idx = parent.children.indexOf(module2);
+            if (idx !== -1) parent.children.splice(idx, 1);
+          }
+          this.parents.delete(module2);
+        }
+        for (const child of module2.children) {
+          if (child.parent === module2) child.parent = void 0;
+          const childParents = this.parents.get(child);
+          if (childParents) childParents.delete(module2);
+        }
+        module2.children = [];
+      }
+    };
+    runtimes = /* @__PURE__ */ new Map();
   }
 });
 
@@ -130169,7 +131352,7 @@ var init_manager5 = __esm({
     init_constants();
     init_errors();
     init_extensionRegistry();
-    init_factory();
+    init_loader();
     init_fs();
     init_is();
     init_lodash();
@@ -130412,6 +131595,7 @@ var init_manager5 = __esm({
           this.extensions.delete(id2);
           this._onDidUnloadExtension.fire(id2);
         }
+        disposeExtension(id2);
       }
       async reloadExtension(id2) {
         let item = this.extensions.get(id2);
@@ -130528,12 +131712,12 @@ var init_manager5 = __esm({
           }
         }
       }
-      async registerExtension(root, packageJSON, extensionType, noActive = false) {
+      async registerExtension(root, packageJSON, extensionType, noActive = false, options3) {
         let id2 = packageJSON.name;
         if (this.states.isDisabled(id2)) return;
         let isActive = false;
         let result;
-        let filename = path.join(root, packageJSON.main || "index.js");
+        let filename = options3?.sourceCode ? path.join(root, "index.js") : path.join(root, packageJSON.main || "index.js");
         let extensionPath = extensionType === 2 /* SingleFile */ ? filename : root;
         let exports2;
         let ext;
@@ -130546,7 +131730,7 @@ var init_manager5 = __esm({
               timing.start();
               try {
                 let isEmpty2 = typeof packageJSON.engines.coc === "undefined";
-                ext = createExtension(id2, filename, isEmpty2);
+                ext = await createExtensionAsync(id2, filename, isEmpty2, options3);
                 let context = {
                   subscriptions,
                   extensionPath,
@@ -130703,9 +131887,16 @@ var init_manager5 = __esm({
       /**
        * load extension in folder or file
        */
-      async load(filepath, active) {
+      async load(filepath, active, options3) {
         let name2;
-        if (isDirectory(filepath)) {
+        if (options3?.sourceCode) {
+          let extensionRoot = options3.extensionRoot ?? filepath;
+          let obj = loadJson(path.join(extensionRoot, "package.json"));
+          name2 = obj.name;
+          if (!name2) throw new Error(`Unable to load extension at ${extensionRoot}, missing package.json`);
+          await this.unloadExtension(name2);
+          await this.registerExtension(extensionRoot, obj, 1 /* Local */, true, options3);
+        } else if (isDirectory(filepath)) {
           let obj = loadJson(path.join(filepath, "package.json"));
           name2 = obj.name;
           await this.loadExtension(filepath, true);
@@ -136497,7 +137688,14 @@ var init_links2 = __esm({
         }
       }
       async getLinks() {
-        if (!this.hasProvider || !this.config.enable || this.currentVersion === this.doc.version) return;
+        if (!this.hasProvider) {
+          if (this.links.length > 0) {
+            this.links = [];
+            this.clearHighlight();
+          }
+          return;
+        }
+        if (!this.config.enable || this.currentVersion === this.doc.version) return;
         this.currentVersion = this.doc.version;
         this.cancel();
         let tokenSource = this.tokenSource = new import_node4.CancellationTokenSource();
@@ -140139,7 +141337,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-e259b06 2026-08-14 14:32:22 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-2e484bb 2026-08-15 10:08:10 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -140945,8 +142143,8 @@ if (global.__isMain) {
   const exports2 = require_src2();
   const logger72 = (init_logger(), __toCommonJS(logger_exports)).logger;
   const attach2 = (init_attach(), __toCommonJS(attach_exports)).default;
-  module.exports = { attach: attach2, exports: exports2, logger: logger72, loadExtension: (filepath, active) => {
-    return exports2.extensions.manager.load(filepath, active);
+  module.exports = { attach: attach2, exports: exports2, logger: logger72, loadExtension: (filepath, active, options3) => {
+    return exports2.extensions.manager.load(filepath, active, options3);
   } };
 }
 /*! Bundled license information:

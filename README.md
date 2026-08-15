@@ -505,56 +505,84 @@ Try these steps if you experience problems with coc.nvim:
 
 [Become a backer](https://opencollective.com/cocnvim#backer) and get your image on our README on GitHub with a link to your site.
 
-<a href="https://opencollective.com/cocnvim/backer/0/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/0/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/1/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/1/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/2/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/2/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/3/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/3/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/4/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/4/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/5/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/5/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/6/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/6/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/7/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/7/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/8/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/8/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/9/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/9/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/10/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/10/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/11/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/11/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/12/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/12/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/13/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/13/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/14/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/14/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/15/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/15/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/16/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/16/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/17/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/17/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/18/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/18/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/19/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/19/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/20/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/20/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/21/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/21/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/22/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/22/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/23/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/23/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/24/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/24/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/25/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/25/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/26/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/26/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/27/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/27/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/28/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/28/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/29/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/29/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/30/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/30/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/31/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/31/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/32/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/32/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/33/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/33/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/34/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/34/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/35/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/35/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/36/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/36/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/37/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/37/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/38/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/38/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/39/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/39/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/40/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/40/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/41/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/41/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/42/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/42/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/43/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/43/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/44/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/44/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/45/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/45/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/46/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/46/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/47/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/47/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/48/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/48/avatar.svg?requireActive=false"></a>
-<a href="https://opencollective.com/cocnvim/backer/49/website?requireActive=false" target="_blank"><img src="https://opencollective.com/cocnvim/backer/49/avatar.svg?requireActive=false"></a>
+### Enterprise sponsors
+
+| Logo | Sponsor | Website |
+| --- | --- | --- |
+| <img src="https://images.opencollective.com/mfbtech/avatar/256.png" width="64" alt="MFB Technologies"> | [MFB Technologies](https://mfbtech.com) | <https://mfbtech.com> |
+| <img src="https://images.opencollective.com/sentry/avatar/256.png" width="64" alt="Sentry"> | [Sentry](https://sentry.io/welcome/) | <https://sentry.io/welcome/> |
+
+### Individual backers
+
+| Avatar | Backer | Link |
+| --- | --- | --- |
+| <img src="https://images.opencollective.com/daquexian/avatar/256.png" width="32" alt="daquexian"> | [daquexian](https://opencollective.com/daquexian) | <https://opencollective.com/daquexian> |
+| <img src="https://images.opencollective.com/okan/avatar/256.png" width="32" alt="Okan Esen"> | [Okan Esen](https://okanesen.com) | <https://okanesen.com> |
+| <img src="https://images.opencollective.com/guest-63c9b283/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-63c9b283) | <https://opencollective.com/guest-63c9b283> |
+| <img src="https://images.opencollective.com/npearson72/avatar/256.png" width="32" alt="Nathan Pearson"> | [Nathan Pearson](https://opencollective.com/npearson72) | <https://opencollective.com/npearson72> |
+| <img src="https://images.opencollective.com/chip-camden/avatar/256.png" width="32" alt="Chip Camden"> | [Chip Camden](https://opencollective.com/chip-camden) | <https://opencollective.com/chip-camden> |
+| <img src="https://images.opencollective.com/slomo/avatar/256.png" width="32" alt="Sebastian Dröge"> | [Sebastian Dröge](https://coaxion.net) | <https://coaxion.net> |
+| <img src="https://images.opencollective.com/guest-bce8e2de/avatar/256.png" width="32" alt="leland J Kwong"> | [leland J Kwong](https://opencollective.com/guest-bce8e2de) | <https://opencollective.com/guest-bce8e2de> |
+| <img src="https://images.opencollective.com/incognito-439fb655/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/incognito-439fb655) | <https://opencollective.com/incognito-439fb655> |
+| <img src="https://images.opencollective.com/esroyo/avatar/256.png" width="32" alt="Carles Escrig"> | [Carles Escrig](https://opencollective.com/esroyo) | <https://opencollective.com/esroyo> |
+| <img src="https://images.opencollective.com/pablo/avatar/256.png" width="32" alt="PablO"> | [PablO](https://opencollective.com/pablo) | <https://opencollective.com/pablo> |
+| <img src="https://images.opencollective.com/incognito-c2aa65ce/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/incognito-c2aa65ce) | <https://opencollective.com/incognito-c2aa65ce> |
+| <img src="https://images.opencollective.com/user-288d165e/avatar/256.png" width="32" alt="Omer"> | [Omer](https://opencollective.com/user-288d165e) | <https://opencollective.com/user-288d165e> |
+| <img src="https://images.opencollective.com/nils-b/avatar/256.png" width="32" alt="Nils B"> | [Nils B](https://opencollective.com/nils-b) | <https://opencollective.com/nils-b> |
+| <img src="https://images.opencollective.com/chafic-najjar/avatar/256.png" width="32" alt="Chafic Najjar"> | [Chafic Najjar](https://opencollective.com/chafic-najjar) | <https://opencollective.com/chafic-najjar> |
+| <img src="https://images.opencollective.com/guest-3bc439f2/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-3bc439f2) | <https://opencollective.com/guest-3bc439f2> |
+| <img src="https://images.opencollective.com/incognito-e073348a/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/incognito-e073348a) | <https://opencollective.com/incognito-e073348a> |
+| <img src="https://images.opencollective.com/guest-0e9e75ad/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-0e9e75ad) | <https://opencollective.com/guest-0e9e75ad> |
+| <img src="https://images.opencollective.com/guest-8bb82c78/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-8bb82c78) | <https://opencollective.com/guest-8bb82c78> |
+| <img src="https://images.opencollective.com/guest-812018c9/avatar/256.png" width="32" alt="Денис Житняков"> | [Денис Житняков](https://opencollective.com/guest-812018c9) | <https://opencollective.com/guest-812018c9> |
+| <img src="https://images.opencollective.com/guest-343a0a8e/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-343a0a8e) | <https://opencollective.com/guest-343a0a8e> |
+| <img src="https://images.opencollective.com/guest-8112f063/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-8112f063) | <https://opencollective.com/guest-8112f063> |
+| <img src="https://images.opencollective.com/guest-edf2c072/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-edf2c072) | <https://opencollective.com/guest-edf2c072> |
+| <img src="https://images.opencollective.com/incognito-9e1c6c17/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/incognito-9e1c6c17) | <https://opencollective.com/incognito-9e1c6c17> |
+| <img src="https://images.opencollective.com/user-bf5a2d9b/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/user-bf5a2d9b) | <https://opencollective.com/user-bf5a2d9b> |
+| <img src="https://images.opencollective.com/balamurali-m/avatar/256.png" width="32" alt="Balamurali M"> | [Balamurali M](https://opencollective.com/balamurali-m) | <https://opencollective.com/balamurali-m> |
+| <img src="https://images.opencollective.com/guest-ebc136ce/avatar/256.png" width="32" alt="Ben"> | [Ben](https://opencollective.com/guest-ebc136ce) | <https://opencollective.com/guest-ebc136ce> |
+| <img src="https://images.opencollective.com/guest-e65d50cf/avatar/256.png" width="32" alt="Bert"> | [Bert](https://opencollective.com/guest-e65d50cf) | <https://opencollective.com/guest-e65d50cf> |
+| <img src="https://images.opencollective.com/cheng-jiang/avatar/256.png" width="32" alt="Cheng JIANG"> | [Cheng JIANG](https://blog.alexcj96.com) | <https://blog.alexcj96.com> |
+| <img src="https://images.opencollective.com/emilio-arenas/avatar/256.png" width="32" alt="Emilio Arenas"> | [Emilio Arenas](https://opencollective.com/emilio-arenas) | <https://opencollective.com/emilio-arenas> |
+| <img src="https://images.opencollective.com/ison/avatar/256.png" width="32" alt="ISON"> | [ISON](https://opencollective.com/ison) | <https://opencollective.com/ison> |
+| <img src="https://images.opencollective.com/guest-fdfb2885/avatar/256.png" width="32" alt="Julius"> | [Julius](https://opencollective.com/guest-fdfb2885) | <https://opencollective.com/guest-fdfb2885> |
+| <img src="https://images.opencollective.com/guest-fc8171f6/avatar/256.png" width="32" alt="Juraj Andris"> | [Juraj Andris](https://opencollective.com/guest-fc8171f6) | <https://opencollective.com/guest-fc8171f6> |
+| <img src="https://images.opencollective.com/justus-grunow/avatar/256.png" width="32" alt="Justus Grunow"> | [Justus Grunow](https://opencollective.com/justus-grunow) | <https://opencollective.com/justus-grunow> |
+| <img src="https://images.opencollective.com/guest-e6a5c729/avatar/256.png" width="32" alt="Mauricio Poppe"> | [Mauricio Poppe](https://opencollective.com/guest-e6a5c729) | <https://opencollective.com/guest-e6a5c729> |
+| <img src="https://images.opencollective.com/guest-fc7d356e/avatar/256.png" width="32" alt="Nick TomTHomas"> | [Nick TomTHomas](https://opencollective.com/guest-fc7d356e) | <https://opencollective.com/guest-fc7d356e> |
+| <img src="https://images.opencollective.com/guest-974b3e1e/avatar/256.png" width="32" alt="Proton"> | [Proton](https://opencollective.com/guest-974b3e1e) | <https://opencollective.com/guest-974b3e1e> |
+| <img src="https://images.opencollective.com/guest-307058fe/avatar/256.png" width="32" alt="Thomas Etter"> | [Thomas Etter](https://opencollective.com/guest-307058fe) | <https://opencollective.com/guest-307058fe> |
+| <img src="https://images.opencollective.com/tim-brown/avatar/256.png" width="32" alt="Tim Brown"> | [Tim Brown](https://brimtown.com) | <https://brimtown.com> |
+| <img src="https://images.opencollective.com/wolido/avatar/256.png" width="32" alt="Wolido"> | [Wolido](https://opencollective.com/wolido) | <https://opencollective.com/wolido> |
+| <img src="https://images.opencollective.com/guest-a1626275/avatar/256.png" width="32" alt="狗娃子"> | [狗娃子](https://opencollective.com/guest-a1626275) | <https://opencollective.com/guest-a1626275> |
+| <img src="https://images.opencollective.com/mortymacs/avatar/256.png" width="32" alt="Mort"> | [Mort](https://opencollective.com/mortymacs) | <https://opencollective.com/mortymacs> |
+| <img src="https://images.opencollective.com/guest-bc027749/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-bc027749) | <https://opencollective.com/guest-bc027749> |
+| <img src="https://images.opencollective.com/guest-fdb12847/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-fdb12847) | <https://opencollective.com/guest-fdb12847> |
+| <img src="https://images.opencollective.com/guest-7a04bc76/avatar/256.png" width="32" alt="Emi"> | [Emi](https://opencollective.com/guest-7a04bc76) | <https://opencollective.com/guest-7a04bc76> |
+| <img src="https://images.opencollective.com/luncytb/avatar/256.png" width="32" alt="LuncyTB"> | [LuncyTB](https://opencollective.com/luncytb) | <https://opencollective.com/luncytb> |
+| <img src="https://images.opencollective.com/guest-7ac14515/avatar/256.png" width="32" alt="Mohammad Banisaeid"> | [Mohammad Banisaeid](https://opencollective.com/guest-7ac14515) | <https://opencollective.com/guest-7ac14515> |
+| <img src="https://images.opencollective.com/moti/avatar/256.png" width="32" alt="Moti"> | [Moti](https://opencollective.com/moti) | <https://opencollective.com/moti> |
+| <img src="https://images.opencollective.com/guest-44e11602/avatar/256.png" width="32" alt="Nachiket"> | [Nachiket](https://opencollective.com/guest-44e11602) | <https://opencollective.com/guest-44e11602> |
+| <img src="https://images.opencollective.com/oleksii-usatov/avatar/256.png" width="32" alt="Oleksii Usatov"> | [Oleksii Usatov](https://opencollective.com/oleksii-usatov) | <https://opencollective.com/oleksii-usatov> |
+| <img src="https://images.opencollective.com/guest-e4e855af/avatar/256.png" width="32" alt="Otávio Schwanck dos Santos"> | [Otávio Schwanck dos Santos](https://opencollective.com/guest-e4e855af) | <https://opencollective.com/guest-e4e855af> |
+| <img src="https://images.opencollective.com/robert-zhang/avatar/256.png" width="32" alt="Robert Zhang"> | [Robert Zhang](https://opencollective.com/robert-zhang) | <https://opencollective.com/robert-zhang> |
+| <img src="https://images.opencollective.com/guest-47c6b301/avatar/256.png" width="32" alt="Shank"> | [Shank](https://opencollective.com/guest-47c6b301) | <https://opencollective.com/guest-47c6b301> |
+| <img src="https://images.opencollective.com/guest-30886871/avatar/256.png" width="32" alt="Thomas"> | [Thomas](https://opencollective.com/guest-30886871) | <https://opencollective.com/guest-30886871> |
+| <img src="https://images.opencollective.com/rammiah/avatar/256.png" width="32" alt="rammiah"> | [rammiah](https://opencollective.com/rammiah) | <https://opencollective.com/rammiah> |
+| <img src="https://images.opencollective.com/yaegassy/avatar/256.png" width="32" alt="yaegassy"> | [yaegassy](https://opencollective.com/yaegassy) | <https://opencollective.com/yaegassy> |
+| <img src="https://images.opencollective.com/lord63/avatar/256.png" width="32" alt="lord63"> | [lord63](https://opencollective.com/lord63) | <https://opencollective.com/lord63> |
+| <img src="https://images.opencollective.com/guest-44f008fe/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-44f008fe) | <https://opencollective.com/guest-44f008fe> |
+| <img src="https://images.opencollective.com/guest-b28877fa/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-b28877fa) | <https://opencollective.com/guest-b28877fa> |
+| <img src="https://images.opencollective.com/linhan/avatar/256.png" width="32" alt="Linhan"> | [Linhan](https://opencollective.com/linhan) | <https://opencollective.com/linhan> |
+| <img src="https://images.opencollective.com/guest-36196702/avatar/256.png" width="32" alt="Mika"> | [Mika](https://opencollective.com/guest-36196702) | <https://opencollective.com/guest-36196702> |
+| <img src="https://images.opencollective.com/guest-7f75235b/avatar/256.png" width="32" alt="Ruiqi Zhu"> | [Ruiqi Zhu](https://opencollective.com/guest-7f75235b) | <https://opencollective.com/guest-7f75235b> |
+| <img src="https://images.opencollective.com/yutkat/avatar/256.png" width="32" alt="Yuta Katayama"> | [Yuta Katayama](https://opencollective.com/yutkat) | <https://opencollective.com/yutkat> |
+| <img src="https://images.opencollective.com/guest-c9a81109/avatar/256.png" width="32" alt="luobing Dai"> | [luobing Dai](https://opencollective.com/guest-c9a81109) | <https://opencollective.com/guest-c9a81109> |
+| <img src="https://images.opencollective.com/sternelee/avatar/256.png" width="32" alt="sternelee"> | [sternelee](https://opencollective.com/sternelee) | <https://opencollective.com/sternelee> |
+| <img src="https://images.opencollective.com/unclebill/avatar/256.png" width="32" alt="unclebill"> | [unclebill](https://github.com/unclebill) | <https://github.com/unclebill> |
+| <img src="https://images.opencollective.com/juan-ramirez1/avatar/256.png" width="32" alt="Juan Ramirez"> | [Juan Ramirez](https://opencollective.com/juan-ramirez1) | <https://opencollective.com/juan-ramirez1> |
+| <img src="https://images.opencollective.com/guest-87c17e2a/avatar/256.png" width="32" alt="Breno Vieira"> | [Breno Vieira](https://opencollective.com/guest-87c17e2a) | <https://opencollective.com/guest-87c17e2a> |
 
 <a href="https://opencollective.com/cocnvim#backer" target="_blank"><img src="https://images.opencollective.com/static/images/become_backer.svg"></a>
 
