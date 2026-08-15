@@ -26,6 +26,7 @@ if [ $? -eq 0 ]; then
   cp -r .github bin lua build autoload plugin history.md README.md doc .release
   git checkout release
   cp -r .release/* .
+  rm -rf .cache
   nvim -c 'helptags doc|q'
 
   changes=$(git status --porcelain)
