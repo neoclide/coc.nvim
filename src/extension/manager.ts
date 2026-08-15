@@ -9,7 +9,7 @@ import { splitArray, toArray } from '../util/array'
 import { configHome, dataHome } from '../util/constants'
 import { onUnexpectedError } from '../util/errors'
 import { Extensions as ExtensionsInfo, IExtensionRegistry, IStringDictionary, getProperties } from '../util/extensionRegistry'
-import { ExtensionExport, createExtensionAsync, disposeExtension } from '../extension/loader'
+import { ExtensionExport, ExtensionLoadOptions, createExtensionAsync, disposeExtension } from '../extension/loader'
 import { isDirectory, loadJson, remove, statAsync, watchFile } from '../util/fs'
 import * as Is from '../util/is'
 import type { IJSONSchema } from '../util/jsonSchema'
@@ -467,12 +467,14 @@ export class ExtensionManager {
     }
   }
 
-  public async registerExtension(root: string, packageJSON: ExtensionJson, extensionType: ExtensionType, noActive = false): Promise<void> {
+  public async registerExtension(root: string, packageJSON: ExtensionJson, extensionType: ExtensionType, noActive = false, options?: ExtensionLoadOptions): Promise<void> {
     let id = packageJSON.name
     if (this.states.isDisabled(id)) return
     let isActive = false
     let result: Promise<API> | undefined
-    let filename = path.join(root, packageJSON.main || 'index.js')
+    let filename = options?.sourceCode
+      ? path.join(root, 'index.js')
+      : path.join(root, packageJSON.main || 'index.js')
     let extensionPath = extensionType === ExtensionType.SingleFile ? filename : root
     let exports: any
     let ext: ExtensionExport
@@ -485,7 +487,7 @@ export class ExtensionManager {
           timing.start()
           try {
             let isEmpty = typeof packageJSON.engines.coc === 'undefined'
-            ext = await createExtensionAsync(id, filename, isEmpty)
+            ext = await createExtensionAsync(id, filename, isEmpty, options)
             let context = {
               subscriptions,
               extensionPath,
@@ -649,9 +651,16 @@ export class ExtensionManager {
   /**
    * load extension in folder or file
    */
-  public async load(filepath: string, active: boolean): Promise<ExportExtension> {
+  public async load(filepath: string, active: boolean, options?: ExtensionLoadOptions): Promise<ExportExtension> {
     let name: string
-    if (isDirectory(filepath)) {
+    if (options?.sourceCode) {
+      let extensionRoot = options.extensionRoot ?? filepath
+      let obj = loadJson(path.join(extensionRoot, 'package.json')) as any
+      name = obj.name
+      if (!name) throw new Error(`Unable to load extension at ${extensionRoot}, missing package.json`)
+      await this.unloadExtension(name)
+      await this.registerExtension(extensionRoot, obj, ExtensionType.Local, true, options)
+    } else if (isDirectory(filepath)) {
       let obj = loadJson(path.join(filepath, 'package.json')) as any
       name = obj.name
       await this.loadExtension(filepath, true)

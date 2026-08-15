@@ -166,6 +166,76 @@ describe('ExtensionManager', () => {
       }
     })
 
+    it('should load an extension from source code', async t => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+      let name = `src-ext-${crypto.randomUUID().slice(0, 8)}`
+      let extFolder = path.join(tmpfolder, 'node_modules', name)
+      fs.mkdirSync(extFolder, { recursive: true })
+      // The declared main file does not exist on disk; the entry is compiled
+      // from the provided source code instead.
+      fs.writeFileSync(path.join(extFolder, 'package.json'), JSON.stringify({
+        name,
+        main: 'missing.js',
+        engines: { coc: '>=0.0.1' }
+      }), 'utf8')
+      let prev = global.__isMain
+      global.__isMain = true
+      try {
+        let loaded = await manager.load(extFolder, true, {
+          sourceCode: [
+            `const { commands } = require('coc.nvim')`,
+            `exports.activate = () => {`,
+            `  commands.registerCommand('${name}.test', () => 'ok')`,
+            `  return { fromSource: true }`,
+            `}`
+          ].join('\n')
+        })
+        assert.strictEqual(loaded.isActive, true)
+        assert.strictEqual(loaded.api.fromSource, true)
+        assert.strictEqual(await commands.executeCommand(`${name}.test`), 'ok')
+      } finally {
+        if (prev === undefined) {
+          delete global.__isMain
+        } else {
+          global.__isMain = prev
+        }
+      }
+    })
+
+    it('should throw when loading a disabled extension from source', async t => {
+      tmpfolder = createFolder()
+      let name = `disabled-src-${crypto.randomUUID().slice(0, 8)}`
+      fs.writeFileSync(path.join(tmpfolder, 'package.json'), JSON.stringify({ disabled: [name] }), 'utf8')
+      let manager = create(tmpfolder)
+      let extFolder = path.join(tmpfolder, 'node_modules', name)
+      fs.mkdirSync(extFolder, { recursive: true })
+      fs.writeFileSync(path.join(extFolder, 'package.json'), JSON.stringify({
+        name,
+        main: 'missing.js',
+        engines: { coc: '>=0.0.1' }
+      }), 'utf8')
+      await assert.rejects(
+        manager.load(extFolder, true, { sourceCode: 'exports.activate = () => ({})' }),
+        /disabled/
+      )
+    })
+
+    it('should throw when the source extension has no name', async t => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+      let extFolder = path.join(tmpfolder, 'node_modules', 'no-name')
+      fs.mkdirSync(extFolder, { recursive: true })
+      fs.writeFileSync(path.join(extFolder, 'package.json'), JSON.stringify({
+        main: 'index.js',
+        engines: { coc: '>=0.0.1' }
+      }), 'utf8')
+      await assert.rejects(
+        manager.load(extFolder, true, { sourceCode: 'exports.activate = () => ({})' }),
+        /Unable to load extension/
+      )
+    })
+
     it('should registExtensions', async t => {
       let res = await shared.doAction('registerExtensions')
       assert.strictEqual(res, true)
