@@ -257,12 +257,16 @@ export async function dynamicImportModule(runtime: ExtensionRuntime, request: st
  * Load an ESM file with `vm.SourceTextModule`, caching it before linking so
  * ESM cycles see the partially initialized module.
  */
-export async function loadSourceTextModule(runtime: ExtensionRuntime, filename: string): Promise<SourceTextModule> {
+export async function loadSourceTextModule(
+  runtime: ExtensionRuntime,
+  filename: string,
+  sourceCode?: string,
+): Promise<SourceTextModule> {
   ensureVMModules()
   let identifier = canonicalFileURL(filename)
   let cached = runtime.esmModules.get(identifier)
   if (cached) return cached as SourceTextModule
-  let source = fs.readFileSync(filename, 'utf8')
+  let source = sourceCode ?? fs.readFileSync(filename, 'utf8')
   let module = new vm.SourceTextModule(source, {
     context: runtime.context,
     identifier,
@@ -362,9 +366,20 @@ export function createBuiltinModule(runtime: ExtensionRuntime, specifier: string
 export function createCommonJSBridgeModule(runtime: ExtensionRuntime, filename: string): Promise<SyntheticModule> {
   let identifier = `cjs-bridge:${canonicalFileURL(filename)}`
   let exports = getLoader(runtime).loadJavaScript(filename)
-  return createSyntheticModule(runtime, identifier, ['default', 'module.exports'], function (this: any) {
+  let names = ['default', 'module.exports']
+  if (exports !== null && (typeof exports === 'object' || typeof exports === 'function')) {
+    for (let name of Object.keys(exports)) {
+      if (name !== 'default' && name !== 'module.exports') names.push(name)
+    }
+  }
+  return createSyntheticModule(runtime, identifier, names, function (this: any) {
     this.setExport('default', exports)
     this.setExport('module.exports', exports)
+    for (let name of names) {
+      if (name !== 'default' && name !== 'module.exports') {
+        this.setExport(name, (exports as any)[name])
+      }
+    }
   })
 }
 
@@ -382,10 +397,10 @@ export function createJsonModule(runtime: ExtensionRuntime, filename: string): P
 /**
  * Load and evaluate an ESM extension entry, returning its namespace.
  */
-export async function loadESMEntry(runtime: ExtensionRuntime, filename: string): Promise<any> {
+export async function loadESMEntry(runtime: ExtensionRuntime, filename: string, sourceCode?: string): Promise<any> {
   ensureVMModules()
   let identifier = canonicalFileURL(filename)
-  let module = await loadSourceTextModule(runtime, filename)
+  let module = await loadSourceTextModule(runtime, filename, sourceCode)
   try {
     instantiateModule(module)
     await module.evaluate()

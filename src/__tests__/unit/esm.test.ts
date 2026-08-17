@@ -56,6 +56,23 @@ export function deactivate() {}`)
     assert.strictEqual(typeof ext.deactivate, 'function')
   })
 
+  it('should load ESM sourceCode with its source filename', async () => {
+    let folder = createFolder()
+    write(folder, 'dep.cjs', `module.exports = { value: 'from-cjs' }`)
+    let sourceFilename = path.join(folder, 'virtual-entry.mjs')
+    let ext = await createExtensionAsync('esm-source', path.join(folder, 'index.js'), false, {
+      sourceCode: `
+import { value } from './dep.cjs'
+export function activate() { return { value, url: import.meta.url } }`,
+      sourceFormat: 'module',
+      sourceFilename,
+      extensionRoot: folder
+    })
+    let res = ext.activate({})
+    assert.strictEqual(res.value, 'from-cjs')
+    assert.strictEqual(res.url, pathToFileURL(sourceFilename).href)
+  })
+
   it('should treat .js files under type=module as ESM', async () => {
     let folder = createFolder()
     write(folder, 'package.json', JSON.stringify({ type: 'module' }))
@@ -193,15 +210,18 @@ globalThis.__cjsCount = (globalThis.__cjsCount || 0) + 1
 module.exports = { name: 'cjs', count: globalThis.__cjsCount }`)
     write(folder, 'index.mjs', `
 import cjs from './cjs.cjs'
+import { name, count as namedCount } from './cjs.cjs'
 import * as ns from './cjs.cjs'
 export function activate() {
-  return { defaultName: cjs.name, nsName: ns.default.name, count: cjs.count }
+  return { defaultName: cjs.name, namedName: name, nsName: ns.default.name, count: cjs.count, namedCount }
 }`)
     let ext = await createExtensionAsync('cjs-bridge', path.join(folder, 'index.mjs'), false)
     let res = ext.activate({})
     assert.strictEqual(res.defaultName, 'cjs')
+    assert.strictEqual(res.namedName, 'cjs')
     assert.strictEqual(res.nsName, 'cjs')
     assert.strictEqual(res.count, 1)
+    assert.strictEqual(res.namedCount, 1)
   })
 
   it('should import JSON from ESM', async () => {
