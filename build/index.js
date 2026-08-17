@@ -114029,12 +114029,12 @@ async function dynamicImportModule(runtime, request2, parentIdentifier) {
   await module2.evaluate();
   return module2;
 }
-async function loadSourceTextModule(runtime, filename) {
+async function loadSourceTextModule(runtime, filename, sourceCode) {
   ensureVMModules();
   let identifier = canonicalFileURL(filename);
   let cached = runtime.esmModules.get(identifier);
   if (cached) return cached;
-  let source = fs.readFileSync(filename, "utf8");
+  let source = sourceCode ?? fs.readFileSync(filename, "utf8");
   let module2 = new vm.SourceTextModule(source, {
     context: runtime.context,
     identifier,
@@ -114109,9 +114109,20 @@ function createBuiltinModule(runtime, specifier) {
 function createCommonJSBridgeModule(runtime, filename) {
   let identifier = `cjs-bridge:${canonicalFileURL(filename)}`;
   let exports2 = getLoader(runtime).loadJavaScript(filename);
-  return createSyntheticModule(runtime, identifier, ["default", "module.exports"], function() {
+  let names = ["default", "module.exports"];
+  if (exports2 !== null && (typeof exports2 === "object" || typeof exports2 === "function")) {
+    for (let name2 of Object.keys(exports2)) {
+      if (name2 !== "default" && name2 !== "module.exports") names.push(name2);
+    }
+  }
+  return createSyntheticModule(runtime, identifier, names, function() {
     this.setExport("default", exports2);
     this.setExport("module.exports", exports2);
+    for (let name2 of names) {
+      if (name2 !== "default" && name2 !== "module.exports") {
+        this.setExport(name2, exports2[name2]);
+      }
+    }
   });
 }
 function createJsonModule(runtime, filename) {
@@ -114121,10 +114132,10 @@ function createJsonModule(runtime, filename) {
     this.setExport("default", value);
   });
 }
-async function loadESMEntry(runtime, filename) {
+async function loadESMEntry(runtime, filename, sourceCode) {
   ensureVMModules();
   let identifier = canonicalFileURL(filename);
-  let module2 = await loadSourceTextModule(runtime, filename);
+  let module2 = await loadSourceTextModule(runtime, filename, sourceCode);
   try {
     instantiateModule(module2);
     await module2.evaluate();
@@ -130672,7 +130683,7 @@ function emptyExtension() {
   }, deactivate: null };
 }
 async function createExtensionAsync(id2, filename, isEmpty2, options3) {
-  if (isEmpty2 || !options3?.sourceCode && !fs.existsSync(filename)) return emptyExtension();
+  if (isEmpty2 || options3?.sourceCode == null && !fs.existsSync(filename)) return emptyExtension();
   disposeExtension(id2);
   const logger72 = getLogger(!global.__isMain && true, id2);
   let api;
@@ -130687,8 +130698,12 @@ async function createExtensionAsync(id2, filename, isEmpty2, options3) {
   let defaultImport;
   const sourceCode = options3?.sourceCode;
   try {
-    if (sourceCode == null && resolveModuleFormat(filename) === "module") {
-      defaultImport = await loadESMEntry(runtime, filename);
+    if (options3?.sourceFormat === "module" || sourceCode == null && resolveModuleFormat(filename) === "module") {
+      defaultImport = await loadESMEntry(
+        runtime,
+        options3?.sourceFilename ?? filename,
+        sourceCode
+      );
     } else {
       defaultImport = loader.loadJavaScript(filename, void 0, sourceCode);
     }
@@ -141337,7 +141352,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-a382406 2026-08-16 02:55:32 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-977aaf5 2026-08-17 22:15:49 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
