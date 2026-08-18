@@ -1,6 +1,7 @@
 'use strict'
 import { createLogger } from '../logger'
 import { fs, path, vm } from '../util/node'
+import type { Disposable } from '../util/protocol'
 import type { Context, Module as VMModule } from 'vm'
 import { createExtensionConsole, getConsoleFacade } from './console'
 import type { ExtensionConsoleState } from './console'
@@ -445,7 +446,7 @@ export function createExtensionRequire(runtime: ExtensionRuntime, parent: Extens
  * Create an extension runtime: one vm.Context, one CJS cache and one ESM
  * cache.
  */
-export function createExtensionRuntime(id: string, filename: string, core: unknown, logger: ILogger, extensionRoot?: string): ExtensionRuntime {
+export function createExtensionRuntime(id: string, filename: string, core: unknown, logger: ILogger, extensionRoot?: string, subscriptions: Disposable[] = []): ExtensionRuntime {
   const { console, state } = createExtensionConsole(id, logger)
   const root = extensionRoot ?? path.dirname(filename)
   let realRoot = root
@@ -457,7 +458,7 @@ export function createExtensionRuntime(id: string, filename: string, core: unkno
   const apiContext: ExtensionApiContext = {
     extensionId: id,
     extensionRoot: realRoot,
-    subscriptions: []
+    subscriptions
   }
   const runtime: ExtensionRuntime = {
     id,
@@ -496,10 +497,11 @@ export function disposeExtension(id: string): void {
     runtime.consoleState.groupDepth = 0
     let apiContext = (runtime as any).apiContext as ExtensionApiContext | undefined
     if (apiContext) {
-      for (let disposable of apiContext.subscriptions) {
+      let subscriptions = Array.from(new Set(apiContext.subscriptions))
+      apiContext.subscriptions.length = 0
+      for (let disposable of subscriptions) {
         disposable.dispose()
       }
-      apiContext.subscriptions.length = 0
     }
     runtimes.delete(id)
   }
@@ -556,7 +558,7 @@ export function createExtension(id: string, filename: string, isEmpty: boolean, 
  * Load an extension entry of either format. ESM entries are loaded and
  * evaluated through the VM ESM pipeline.
  */
-export async function createExtensionAsync(id: string, filename: string, isEmpty: boolean, options?: ExtensionLoadOptions): Promise<ExtensionExport> {
+export async function createExtensionAsync(id: string, filename: string, isEmpty: boolean, options?: ExtensionLoadOptions, subscriptions?: Disposable[]): Promise<ExtensionExport> {
   if (isEmpty || (options?.sourceCode == null && !fs.existsSync(filename))) return emptyExtension()
   disposeExtension(id)
   const logger = getLogger(!global.__isMain && !global.__TEST__, id)
@@ -567,7 +569,7 @@ export async function createExtensionAsync(id: string, filename: string, isEmpty
   } else {
     api = require('../index')
   }
-  const runtime = createExtensionRuntime(id, filename, api, logger, options?.extensionRoot)
+  const runtime = createExtensionRuntime(id, filename, api, logger, options?.extensionRoot, subscriptions)
   runtimes.set(id, runtime)
   const loader = getLoader(runtime)
   let defaultImport: any

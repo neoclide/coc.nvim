@@ -2,14 +2,14 @@ import { URI } from 'vscode-uri'
 import { Extensions, IConfigurationNode, IConfigurationRegistry } from '../configuration/registry'
 import { ConfigurationScope } from '../configuration/types'
 import events from '../events'
+import { ExtensionExport, ExtensionLoadOptions, createExtensionAsync, disposeExtension } from '../extension/loader'
 import { createLogger } from '../logger'
 import Memos from '../model/memos'
-import { disposeAll, isTester, wait } from '../util'
+import { disposeAll, wait } from '../util'
 import { splitArray, toArray } from '../util/array'
 import { configHome, dataHome } from '../util/constants'
 import { onUnexpectedError } from '../util/errors'
 import { Extensions as ExtensionsInfo, IExtensionRegistry, IStringDictionary, getProperties } from '../util/extensionRegistry'
-import { ExtensionExport, ExtensionLoadOptions, createExtensionAsync, disposeExtension } from '../extension/loader'
 import { isDirectory, loadJson, remove, statAsync, watchFile } from '../util/fs'
 import * as Is from '../util/is'
 import type { IJSONSchema } from '../util/jsonSchema'
@@ -486,7 +486,7 @@ export class ExtensionManager {
           timing.start()
           try {
             let isEmpty = typeof packageJSON.engines.coc === 'undefined'
-            ext = await createExtensionAsync(id, filename, isEmpty, options)
+            ext = await createExtensionAsync(id, filename, isEmpty, options, subscriptions)
             let context = {
               subscriptions,
               extensionPath,
@@ -538,7 +538,7 @@ export class ExtensionManager {
         isActive = false
         result = undefined
         exports = undefined
-        disposeAll(subscriptions)
+        disposeExtension(id)
         if (ext && typeof ext.deactivate === 'function') {
           try {
             await Promise.resolve(ext.deactivate())

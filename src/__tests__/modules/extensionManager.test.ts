@@ -716,6 +716,43 @@ describe('ExtensionManager', () => {
   })
 
   describe('unloadExtension()', () => {
+    it('should dispose duplicated extension subscriptions once', async () => {
+      tmpfolder = createFolder()
+      let name = `duplicate-subscriptions-${crypto.randomUUID().slice(0, 8)}`
+      let extFolder = path.join(tmpfolder, 'node_modules', name)
+      createExtension(extFolder, {
+        name,
+        main: 'index.js',
+        engines: { coc: '>=0.0.1' }
+      }, [
+        "const { commands } = require('coc.nvim')",
+        'let disposeCount = 0',
+        'exports.activate = context => {',
+        `  let disposable = commands.registerCommand('${name}.test', () => {})`,
+        '  let dispose = disposable.dispose.bind(disposable)',
+        '  disposable.dispose = () => { disposeCount++; dispose() }',
+        '  context.subscriptions.push(disposable)',
+        '  return { getDisposeCount: () => disposeCount }',
+        '}'
+      ].join('\n'))
+      let manager = create(tmpfolder)
+      let previous = global.__isMain
+      global.__isMain = true
+      try {
+        await manager.loadExtension(extFolder)
+        let item = manager.getExtension(name)
+        let api = await item.extension.activate() as any
+        await manager.unloadExtension(name)
+        assert.strictEqual(api.getDisposeCount(), 1)
+      } finally {
+        if (previous === undefined) {
+          delete global.__isMain
+        } else {
+          global.__isMain = previous
+        }
+      }
+    })
+
     it('should unload extension', async t => {
       let extFolder = createGlobalExtension('name')
       let manager = create(tmpfolder)
