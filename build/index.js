@@ -52,7 +52,8 @@ __export(ansi_styles_exports, {
   colorNames: () => colorNames,
   default: () => ansi_styles_default,
   foregroundColorNames: () => foregroundColorNames,
-  modifierNames: () => modifierNames
+  modifierNames: () => modifierNames,
+  underlineColorNames: () => underlineColorNames
 });
 function assembleStyles() {
   const codes = /* @__PURE__ */ new Map();
@@ -63,7 +64,7 @@ function assembleStyles() {
         close: `\x1B[${style[1]}m`
       };
       group[styleName] = styles[styleName];
-      codes.set(style[0], style[1]);
+      codes.set(Number(String(style[0]).split(new RegExp("[:;]", "v"), 1)[0]), style[1]);
     }
     Object.defineProperty(styles, groupName2, {
       value: group,
@@ -76,12 +77,16 @@ function assembleStyles() {
   });
   styles.color.close = "\x1B[39m";
   styles.bgColor.close = "\x1B[49m";
+  styles.underlineColor.close = "\x1B[59m";
   styles.color.ansi = wrapAnsi16();
   styles.color.ansi256 = wrapAnsi256();
   styles.color.ansi16m = wrapAnsi16m();
   styles.bgColor.ansi = wrapAnsi16(ANSI_BACKGROUND_OFFSET);
   styles.bgColor.ansi256 = wrapAnsi256(ANSI_BACKGROUND_OFFSET);
   styles.bgColor.ansi16m = wrapAnsi16m(ANSI_BACKGROUND_OFFSET);
+  styles.underlineColor.ansi = wrapUnderlineAnsi;
+  styles.underlineColor.ansi256 = wrapAnsi256(ANSI_UNDERLINE_OFFSET);
+  styles.underlineColor.ansi16m = wrapAnsi16m(ANSI_UNDERLINE_OFFSET);
   Object.defineProperties(styles, {
     rgbToAnsi256: {
       value(red, green, blue2) {
@@ -100,7 +105,7 @@ function assembleStyles() {
     },
     hexToRgb: {
       value(hex) {
-        const matches = /[a-f\d]{6}|[a-f\d]{3}/i.exec(hex.toString(16));
+        const matches = new RegExp("[\\da-f]{6}|[\\da-f]{3}", "iv").exec(hex.toString(16));
         if (!matches) {
           return [0, 0, 0];
         }
@@ -110,7 +115,7 @@ function assembleStyles() {
         }
         const integer2 = Number.parseInt(colorString, 16);
         return [
-          /* eslint-disable no-bitwise */
+          /* eslint-disable no-bitwise -- We need the speed */
           integer2 >> 16 & 255,
           integer2 >> 8 & 255,
           integer2 & 255
@@ -168,13 +173,17 @@ function assembleStyles() {
   });
   return styles;
 }
-var ANSI_BACKGROUND_OFFSET, wrapAnsi16, wrapAnsi256, wrapAnsi16m, styles, modifierNames, foregroundColorNames, backgroundColorNames, colorNames, ansiStyles, ansi_styles_default;
+var ANSI_BACKGROUND_OFFSET, ANSI_UNDERLINE_OFFSET, wrapAnsi16, wrapAnsi256, wrapAnsi16m, wrapUnderlineAnsi, blackBright, bgBlackBright, styles, modifierNames, foregroundColorNames, backgroundColorNames, underlineColorNames, colorNames, ansiStyles, ansi_styles_default;
 var init_ansi_styles = __esm({
   "node_modules/ansi-styles/index.js"() {
     ANSI_BACKGROUND_OFFSET = 10;
+    ANSI_UNDERLINE_OFFSET = 20;
     wrapAnsi16 = (offset = 0) => (code) => `\x1B[${code + offset}m`;
     wrapAnsi256 = (offset = 0) => (code) => `\x1B[${38 + offset};5;${code}m`;
     wrapAnsi16m = (offset = 0) => (red, green, blue2) => `\x1B[${38 + offset};2;${red};${green};${blue2}m`;
+    wrapUnderlineAnsi = (code) => `\x1B[58;5;${code < 90 ? code - 30 : code - 90 + 8}m`;
+    blackBright = [90, 39];
+    bgBlackBright = [100, 49];
     styles = {
       modifier: {
         reset: [0, 0],
@@ -183,6 +192,11 @@ var init_ansi_styles = __esm({
         dim: [2, 22],
         italic: [3, 23],
         underline: [4, 24],
+        // Extended underline styles (`SGR 4:x` sub-parameters). Not in upstream `ansi-styles`.
+        underlineDouble: ["4:2", 24],
+        underlineCurly: ["4:3", 24],
+        underlineDotted: ["4:4", 24],
+        underlineDashed: ["4:5", 24],
         overline: [53, 55],
         inverse: [7, 27],
         hidden: [8, 28],
@@ -198,11 +212,9 @@ var init_ansi_styles = __esm({
         cyan: [36, 39],
         white: [37, 39],
         // Bright color
-        blackBright: [90, 39],
-        gray: [90, 39],
-        // Alias of `blackBright`
-        grey: [90, 39],
-        // Alias of `blackBright`
+        blackBright,
+        gray: blackBright,
+        grey: blackBright,
         redBright: [91, 39],
         greenBright: [92, 39],
         yellowBright: [93, 39],
@@ -221,11 +233,9 @@ var init_ansi_styles = __esm({
         bgCyan: [46, 49],
         bgWhite: [47, 49],
         // Bright color
-        bgBlackBright: [100, 49],
-        bgGray: [100, 49],
-        // Alias of `bgBlackBright`
-        bgGrey: [100, 49],
-        // Alias of `bgBlackBright`
+        bgBlackBright,
+        bgGray: bgBlackBright,
+        bgGrey: bgBlackBright,
         bgRedBright: [101, 49],
         bgGreenBright: [102, 49],
         bgYellowBright: [103, 49],
@@ -233,11 +243,36 @@ var init_ansi_styles = __esm({
         bgMagentaBright: [105, 49],
         bgCyanBright: [106, 49],
         bgWhiteBright: [107, 49]
+      },
+      // Underline color (`SGR 58`/`59`). Not in upstream `ansi-styles`.
+      underlineColor: {
+        underlineBlack: ["58;5;0", 59],
+        underlineRed: ["58;5;1", 59],
+        underlineGreen: ["58;5;2", 59],
+        underlineYellow: ["58;5;3", 59],
+        underlineBlue: ["58;5;4", 59],
+        underlineMagenta: ["58;5;5", 59],
+        underlineCyan: ["58;5;6", 59],
+        underlineWhite: ["58;5;7", 59],
+        // Bright color
+        underlineBlackBright: ["58;5;8", 59],
+        underlineGray: ["58;5;8", 59],
+        // Alias of `underlineBlackBright`
+        underlineGrey: ["58;5;8", 59],
+        // Alias of `underlineBlackBright`
+        underlineRedBright: ["58;5;9", 59],
+        underlineGreenBright: ["58;5;10", 59],
+        underlineYellowBright: ["58;5;11", 59],
+        underlineBlueBright: ["58;5;12", 59],
+        underlineMagentaBright: ["58;5;13", 59],
+        underlineCyanBright: ["58;5;14", 59],
+        underlineWhiteBright: ["58;5;15", 59]
       }
     };
     modifierNames = Object.keys(styles.modifier);
     foregroundColorNames = Object.keys(styles.color);
     backgroundColorNames = Object.keys(styles.bgColor);
+    underlineColorNames = Object.keys(styles.underlineColor);
     colorNames = [...foregroundColorNames, ...backgroundColorNames];
     ansiStyles = assembleStyles();
     ansi_styles_default = ansiStyles;
@@ -5984,7 +6019,7 @@ var require_parse = __commonJS({
   "node_modules/semver/functions/parse.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
-    var parse3 = (version2, options3, throwErrors = false) => {
+    var parse4 = (version2, options3, throwErrors = false) => {
       if (version2 instanceof SemVer) {
         return version2;
       }
@@ -5997,7 +6032,7 @@ var require_parse = __commonJS({
         throw er;
       }
     };
-    module2.exports = parse3;
+    module2.exports = parse4;
   }
 });
 
@@ -6005,9 +6040,9 @@ var require_parse = __commonJS({
 var require_valid = __commonJS({
   "node_modules/semver/functions/valid.js"(exports2, module2) {
     "use strict";
-    var parse3 = require_parse();
+    var parse4 = require_parse();
     var valid = (version2, options3) => {
-      const v = parse3(version2, options3);
+      const v = parse4(version2, options3);
       return v ? v.version : null;
     };
     module2.exports = valid;
@@ -6018,9 +6053,9 @@ var require_valid = __commonJS({
 var require_clean = __commonJS({
   "node_modules/semver/functions/clean.js"(exports2, module2) {
     "use strict";
-    var parse3 = require_parse();
+    var parse4 = require_parse();
     var clean = (version2, options3) => {
-      const s = parse3(version2.trim().replace(/^[=v]+/, ""), options3);
+      const s = parse4(version2.trim().replace(/^[=v]+/, ""), options3);
       return s ? s.version : null;
     };
     module2.exports = clean;
@@ -6055,10 +6090,10 @@ var require_inc = __commonJS({
 var require_diff = __commonJS({
   "node_modules/semver/functions/diff.js"(exports2, module2) {
     "use strict";
-    var parse3 = require_parse();
+    var parse4 = require_parse();
     var diff = (version1, version2) => {
-      const v1 = parse3(version1, null, true);
-      const v2 = parse3(version2, null, true);
+      const v1 = parse4(version1, null, true);
+      const v2 = parse4(version2, null, true);
       const comparison = v1.compare(v2);
       if (comparison === 0) {
         return null;
@@ -6129,9 +6164,9 @@ var require_patch = __commonJS({
 var require_prerelease = __commonJS({
   "node_modules/semver/functions/prerelease.js"(exports2, module2) {
     "use strict";
-    var parse3 = require_parse();
+    var parse4 = require_parse();
     var prerelease = (version2, options3) => {
-      const parsed = parse3(version2, options3);
+      const parsed = parse4(version2, options3);
       return parsed && parsed.prerelease.length ? parsed.prerelease : null;
     };
     module2.exports = prerelease;
@@ -6317,7 +6352,7 @@ var require_coerce = __commonJS({
   "node_modules/semver/functions/coerce.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
-    var parse3 = require_parse();
+    var parse4 = require_parse();
     var { safeRe: re, t } = require_re();
     var coerce = (version2, options3) => {
       if (version2 instanceof SemVer) {
@@ -6352,7 +6387,7 @@ var require_coerce = __commonJS({
       const patch = match[4] || "0";
       const prerelease = options3.includePrerelease && match[5] ? `-${match[5]}` : "";
       const build = options3.includePrerelease && match[6] ? `+${match[6]}` : "";
-      return parse3(`${major}.${minor}.${patch}${prerelease}${build}`, options3);
+      return parse4(`${major}.${minor}.${patch}${prerelease}${build}`, options3);
     };
     module2.exports = coerce;
   }
@@ -6362,7 +6397,7 @@ var require_coerce = __commonJS({
 var require_truncate = __commonJS({
   "node_modules/semver/functions/truncate.js"(exports2, module2) {
     "use strict";
-    var parse3 = require_parse();
+    var parse4 = require_parse();
     var constants = require_constants();
     var SemVer = require_semver();
     var truncate = (version2, truncation, options3) => {
@@ -6374,7 +6409,7 @@ var require_truncate = __commonJS({
     };
     var cloneInputVersion = (version2, options3) => {
       const versionStringToParse = version2 instanceof SemVer ? version2.version : version2;
-      return parse3(versionStringToParse, options3);
+      return parse4(versionStringToParse, options3);
     };
     var doTruncation = (version2, truncation) => {
       if (isPrerelease(truncation)) {
@@ -7418,7 +7453,7 @@ var require_semver2 = __commonJS({
     var constants = require_constants();
     var SemVer = require_semver();
     var identifiers = require_identifiers();
-    var parse3 = require_parse();
+    var parse4 = require_parse();
     var valid = require_valid();
     var clean = require_clean();
     var inc = require_inc();
@@ -7457,7 +7492,7 @@ var require_semver2 = __commonJS({
     var simplifyRange = require_simplify();
     var subset = require_subset();
     module2.exports = {
-      parse: parse3,
+      parse: parse4,
       valid,
       clean,
       inc,
@@ -62538,7 +62573,7 @@ var init_main = __esm({
       uinteger3.is = is;
     })(uinteger || (uinteger = {}));
     (function(Position12) {
-      function create(line, character) {
+      function create2(line, character) {
         if (line === Number.MAX_VALUE) {
           line = uinteger.MAX_VALUE;
         }
@@ -62547,7 +62582,7 @@ var init_main = __esm({
         }
         return { line, character };
       }
-      Position12.create = create;
+      Position12.create = create2;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Is.uinteger(candidate.line) && Is.uinteger(candidate.character);
@@ -62555,7 +62590,7 @@ var init_main = __esm({
       Position12.is = is;
     })(Position || (Position = {}));
     (function(Range11) {
-      function create(one, two, three, four) {
+      function create2(one, two, three, four) {
         if (Is.uinteger(one) && Is.uinteger(two) && Is.uinteger(three) && Is.uinteger(four)) {
           return { start: Position.create(one, two), end: Position.create(three, four) };
         } else if (Position.is(one) && Position.is(two)) {
@@ -62564,7 +62599,7 @@ var init_main = __esm({
           throw new Error(`Range#create called with invalid arguments[${one}, ${two}, ${three}, ${four}]`);
         }
       }
-      Range11.create = create;
+      Range11.create = create2;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Position.is(candidate.start) && Position.is(candidate.end);
@@ -62572,10 +62607,10 @@ var init_main = __esm({
       Range11.is = is;
     })(Range || (Range = {}));
     (function(Location3) {
-      function create(uri, range) {
+      function create2(uri, range) {
         return { uri, range };
       }
-      Location3.create = create;
+      Location3.create = create2;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Range.is(candidate.range) && (Is.string(candidate.uri) || Is.undefined(candidate.uri));
@@ -62583,10 +62618,10 @@ var init_main = __esm({
       Location3.is = is;
     })(Location || (Location = {}));
     (function(LocationLink3) {
-      function create(targetUri, targetRange, targetSelectionRange, originSelectionRange) {
+      function create2(targetUri, targetRange, targetSelectionRange, originSelectionRange) {
         return { targetUri, targetRange, targetSelectionRange, originSelectionRange };
       }
-      LocationLink3.create = create;
+      LocationLink3.create = create2;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Range.is(candidate.targetRange) && Is.string(candidate.targetUri) && Range.is(candidate.targetSelectionRange) && (Range.is(candidate.originSelectionRange) || Is.undefined(candidate.originSelectionRange));
@@ -62594,7 +62629,7 @@ var init_main = __esm({
       LocationLink3.is = is;
     })(LocationLink || (LocationLink = {}));
     (function(Color2) {
-      function create(red, green, blue2, alpha) {
+      function create2(red, green, blue2, alpha) {
         return {
           red,
           green,
@@ -62602,7 +62637,7 @@ var init_main = __esm({
           alpha
         };
       }
-      Color2.create = create;
+      Color2.create = create2;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Is.numberRange(candidate.red, 0, 1) && Is.numberRange(candidate.green, 0, 1) && Is.numberRange(candidate.blue, 0, 1) && Is.numberRange(candidate.alpha, 0, 1);
@@ -62610,13 +62645,13 @@ var init_main = __esm({
       Color2.is = is;
     })(Color || (Color = {}));
     (function(ColorInformation3) {
-      function create(range, color) {
+      function create2(range, color) {
         return {
           range,
           color
         };
       }
-      ColorInformation3.create = create;
+      ColorInformation3.create = create2;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Range.is(candidate.range) && Color.is(candidate.color);
@@ -62624,14 +62659,14 @@ var init_main = __esm({
       ColorInformation3.is = is;
     })(ColorInformation || (ColorInformation = {}));
     (function(ColorPresentation3) {
-      function create(label, textEdit, additionalTextEdits) {
+      function create2(label, textEdit, additionalTextEdits) {
         return {
           label,
           textEdit,
           additionalTextEdits
         };
       }
-      ColorPresentation3.create = create;
+      ColorPresentation3.create = create2;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Is.string(candidate.label) && (Is.undefined(candidate.textEdit) || TextEdit.is(candidate)) && (Is.undefined(candidate.additionalTextEdits) || Is.typedArray(candidate.additionalTextEdits, TextEdit.is));
@@ -62644,7 +62679,7 @@ var init_main = __esm({
       FoldingRangeKind3.Region = "region";
     })(FoldingRangeKind || (FoldingRangeKind = {}));
     (function(FoldingRange3) {
-      function create(startLine, endLine, startCharacter, endCharacter, kind, collapsedText) {
+      function create2(startLine, endLine, startCharacter, endCharacter, kind, collapsedText) {
         const result = {
           startLine,
           endLine
@@ -62663,7 +62698,7 @@ var init_main = __esm({
         }
         return result;
       }
-      FoldingRange3.create = create;
+      FoldingRange3.create = create2;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Is.uinteger(candidate.startLine) && Is.uinteger(candidate.startLine) && (Is.undefined(candidate.startCharacter) || Is.uinteger(candidate.startCharacter)) && (Is.undefined(candidate.endCharacter) || Is.uinteger(candidate.endCharacter)) && (Is.undefined(candidate.kind) || Is.string(candidate.kind));
@@ -62671,13 +62706,13 @@ var init_main = __esm({
       FoldingRange3.is = is;
     })(FoldingRange || (FoldingRange = {}));
     (function(DiagnosticRelatedInformation2) {
-      function create(location, message) {
+      function create2(location, message) {
         return {
           location,
           message
         };
       }
-      DiagnosticRelatedInformation2.create = create;
+      DiagnosticRelatedInformation2.create = create2;
       function is(value) {
         const candidate = value;
         return Is.defined(candidate) && Location.is(candidate.location) && Is.string(candidate.message);
@@ -62702,7 +62737,7 @@ var init_main = __esm({
       CodeDescription2.is = is;
     })(CodeDescription || (CodeDescription = {}));
     (function(Diagnostic9) {
-      function create(range, message, severity, code, source, relatedInformation) {
+      function create2(range, message, severity, code, source, relatedInformation) {
         const result = { range, message };
         if (Is.defined(severity)) {
           result.severity = severity;
@@ -62718,7 +62753,7 @@ var init_main = __esm({
         }
         return result;
       }
-      Diagnostic9.create = create;
+      Diagnostic9.create = create2;
       function is(value) {
         var _a;
         const candidate = value;
@@ -62741,14 +62776,14 @@ var init_main = __esm({
       Diagnostic9.getMessageString = getMessageString2;
     })(Diagnostic || (Diagnostic = {}));
     (function(Command3) {
-      function create(title, command, ...args) {
+      function create2(title, command, ...args) {
         const result = { title, command };
         if (Is.defined(args) && args.length > 0) {
           result.arguments = args;
         }
         return result;
       }
-      Command3.create = create;
+      Command3.create = create2;
       function is(value) {
         const candidate = value;
         return Is.defined(candidate) && Is.string(candidate.title) && (candidate.tooltip === void 0 || Is.string(candidate.tooltip)) && Is.string(candidate.command);
@@ -62775,7 +62810,7 @@ var init_main = __esm({
       TextEdit11.is = is;
     })(TextEdit || (TextEdit = {}));
     (function(ChangeAnnotation5) {
-      function create(label, needsConfirmation, description) {
+      function create2(label, needsConfirmation, description) {
         const result = { label };
         if (needsConfirmation !== void 0) {
           result.needsConfirmation = needsConfirmation;
@@ -62785,7 +62820,7 @@ var init_main = __esm({
         }
         return result;
       }
-      ChangeAnnotation5.create = create;
+      ChangeAnnotation5.create = create2;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Is.string(candidate.label) && (Is.boolean(candidate.needsConfirmation) || candidate.needsConfirmation === void 0) && (Is.string(candidate.description) || candidate.description === void 0);
@@ -62819,10 +62854,10 @@ var init_main = __esm({
       AnnotatedTextEdit2.is = is;
     })(AnnotatedTextEdit || (AnnotatedTextEdit = {}));
     (function(TextDocumentEdit2) {
-      function create(textDocument, edits) {
+      function create2(textDocument, edits) {
         return { textDocument, edits };
       }
-      TextDocumentEdit2.create = create;
+      TextDocumentEdit2.create = create2;
       function is(value) {
         const candidate = value;
         return Is.defined(candidate) && OptionalVersionedTextDocumentIdentifier.is(candidate.textDocument) && Array.isArray(candidate.edits);
@@ -62830,7 +62865,7 @@ var init_main = __esm({
       TextDocumentEdit2.is = is;
     })(TextDocumentEdit || (TextDocumentEdit = {}));
     (function(CreateFile2) {
-      function create(uri, options3, annotation) {
+      function create2(uri, options3, annotation) {
         const result = {
           kind: "create",
           uri
@@ -62843,7 +62878,7 @@ var init_main = __esm({
         }
         return result;
       }
-      CreateFile2.create = create;
+      CreateFile2.create = create2;
       function is(value) {
         const candidate = value;
         return candidate && candidate.kind === "create" && Is.string(candidate.uri) && (candidate.options === void 0 || (candidate.options.overwrite === void 0 || Is.boolean(candidate.options.overwrite)) && (candidate.options.ignoreIfExists === void 0 || Is.boolean(candidate.options.ignoreIfExists))) && (candidate.annotationId === void 0 || ChangeAnnotationIdentifier.is(candidate.annotationId));
@@ -62851,7 +62886,7 @@ var init_main = __esm({
       CreateFile2.is = is;
     })(CreateFile || (CreateFile = {}));
     (function(RenameFile2) {
-      function create(oldUri, newUri, options3, annotation) {
+      function create2(oldUri, newUri, options3, annotation) {
         const result = {
           kind: "rename",
           oldUri,
@@ -62865,7 +62900,7 @@ var init_main = __esm({
         }
         return result;
       }
-      RenameFile2.create = create;
+      RenameFile2.create = create2;
       function is(value) {
         const candidate = value;
         return candidate && candidate.kind === "rename" && Is.string(candidate.oldUri) && Is.string(candidate.newUri) && (candidate.options === void 0 || (candidate.options.overwrite === void 0 || Is.boolean(candidate.options.overwrite)) && (candidate.options.ignoreIfExists === void 0 || Is.boolean(candidate.options.ignoreIfExists))) && (candidate.annotationId === void 0 || ChangeAnnotationIdentifier.is(candidate.annotationId));
@@ -62873,7 +62908,7 @@ var init_main = __esm({
       RenameFile2.is = is;
     })(RenameFile || (RenameFile = {}));
     (function(DeleteFile2) {
-      function create(uri, options3, annotation) {
+      function create2(uri, options3, annotation) {
         const result = {
           kind: "delete",
           uri
@@ -62886,7 +62921,7 @@ var init_main = __esm({
         }
         return result;
       }
-      DeleteFile2.create = create;
+      DeleteFile2.create = create2;
       function is(value) {
         const candidate = value;
         return candidate && candidate.kind === "delete" && Is.string(candidate.uri) && (candidate.options === void 0 || (candidate.options.recursive === void 0 || Is.boolean(candidate.options.recursive)) && (candidate.options.ignoreIfNotExists === void 0 || Is.boolean(candidate.options.ignoreIfNotExists))) && (candidate.annotationId === void 0 || ChangeAnnotationIdentifier.is(candidate.annotationId));
@@ -63181,10 +63216,10 @@ var init_main = __esm({
       }
     };
     (function(TextDocumentIdentifier3) {
-      function create(uri) {
+      function create2(uri) {
         return { uri };
       }
-      TextDocumentIdentifier3.create = create;
+      TextDocumentIdentifier3.create = create2;
       function is(value) {
         const candidate = value;
         return Is.defined(candidate) && Is.string(candidate.uri);
@@ -63192,10 +63227,10 @@ var init_main = __esm({
       TextDocumentIdentifier3.is = is;
     })(TextDocumentIdentifier || (TextDocumentIdentifier = {}));
     (function(VersionedTextDocumentIdentifier2) {
-      function create(uri, version2) {
+      function create2(uri, version2) {
         return { uri, version: version2 };
       }
-      VersionedTextDocumentIdentifier2.create = create;
+      VersionedTextDocumentIdentifier2.create = create2;
       function is(value) {
         const candidate = value;
         return Is.defined(candidate) && Is.string(candidate.uri) && Is.integer(candidate.version);
@@ -63203,10 +63238,10 @@ var init_main = __esm({
       VersionedTextDocumentIdentifier2.is = is;
     })(VersionedTextDocumentIdentifier || (VersionedTextDocumentIdentifier = {}));
     (function(OptionalVersionedTextDocumentIdentifier2) {
-      function create(uri, version2) {
+      function create2(uri, version2) {
         return { uri, version: version2 };
       }
-      OptionalVersionedTextDocumentIdentifier2.create = create;
+      OptionalVersionedTextDocumentIdentifier2.create = create2;
       function is(value) {
         const candidate = value;
         return Is.defined(candidate) && Is.string(candidate.uri) && (candidate.version === null || Is.integer(candidate.version));
@@ -63278,10 +63313,10 @@ var init_main = __esm({
       LanguageKind2.YAML = "yaml";
     })(LanguageKind || (LanguageKind = {}));
     (function(TextDocumentItem2) {
-      function create(uri, languageId, version2, text) {
+      function create2(uri, languageId, version2, text) {
         return { uri, languageId, version: version2, text };
       }
-      TextDocumentItem2.create = create;
+      TextDocumentItem2.create = create2;
       function is(value) {
         const candidate = value;
         return Is.defined(candidate) && Is.string(candidate.uri) && Is.string(candidate.languageId) && Is.integer(candidate.version) && Is.string(candidate.text);
@@ -63339,10 +63374,10 @@ var init_main = __esm({
       CompletionItemTag2.Deprecated = 1;
     })(CompletionItemTag || (CompletionItemTag = {}));
     (function(InsertReplaceEdit2) {
-      function create(newText, insert, replace) {
+      function create2(newText, insert, replace) {
         return { newText, insert, replace };
       }
-      InsertReplaceEdit2.create = create;
+      InsertReplaceEdit2.create = create2;
       function is(value) {
         const candidate = value;
         return candidate && Is.string(candidate.newText) && Range.is(candidate.insert) && Range.is(candidate.replace);
@@ -63365,16 +63400,16 @@ var init_main = __esm({
       CompletionItemLabelDetails3.is = is;
     })(CompletionItemLabelDetails || (CompletionItemLabelDetails = {}));
     (function(CompletionItem6) {
-      function create(label) {
+      function create2(label) {
         return { label };
       }
-      CompletionItem6.create = create;
+      CompletionItem6.create = create2;
     })(CompletionItem || (CompletionItem = {}));
     (function(CompletionList4) {
-      function create(items, isIncomplete) {
+      function create2(items, isIncomplete) {
         return { items: items ? items : [], isIncomplete: !!isIncomplete };
       }
-      CompletionList4.create = create;
+      CompletionList4.create = create2;
     })(CompletionList || (CompletionList = {}));
     (function(MarkedString2) {
       function fromPlainText(plainText) {
@@ -63395,13 +63430,13 @@ var init_main = __esm({
       Hover5.is = is;
     })(Hover || (Hover = {}));
     (function(ParameterInformation2) {
-      function create(label, documentation) {
+      function create2(label, documentation) {
         return documentation ? { label, documentation } : { label };
       }
-      ParameterInformation2.create = create;
+      ParameterInformation2.create = create2;
     })(ParameterInformation || (ParameterInformation = {}));
     (function(SignatureInformation2) {
-      function create(label, documentation, ...parameters) {
+      function create2(label, documentation, ...parameters) {
         const result = { label };
         if (Is.defined(documentation)) {
           result.documentation = documentation;
@@ -63413,7 +63448,7 @@ var init_main = __esm({
         }
         return result;
       }
-      SignatureInformation2.create = create;
+      SignatureInformation2.create = create2;
     })(SignatureInformation || (SignatureInformation = {}));
     (function(DocumentHighlightKind2) {
       DocumentHighlightKind2.Text = 1;
@@ -63421,14 +63456,14 @@ var init_main = __esm({
       DocumentHighlightKind2.Write = 3;
     })(DocumentHighlightKind || (DocumentHighlightKind = {}));
     (function(DocumentHighlight4) {
-      function create(range, kind) {
+      function create2(range, kind) {
         const result = { range };
         if (Is.number(kind)) {
           result.kind = kind;
         }
         return result;
       }
-      DocumentHighlight4.create = create;
+      DocumentHighlight4.create = create2;
     })(DocumentHighlight || (DocumentHighlight = {}));
     (function(SymbolKind5) {
       SymbolKind5.File = 1;
@@ -63462,7 +63497,7 @@ var init_main = __esm({
       SymbolTag2.Deprecated = 1;
     })(SymbolTag || (SymbolTag = {}));
     (function(SymbolInformation5) {
-      function create(name2, kind, range, uri, containerName) {
+      function create2(name2, kind, range, uri, containerName) {
         const result = {
           name: name2,
           kind,
@@ -63473,16 +63508,16 @@ var init_main = __esm({
         }
         return result;
       }
-      SymbolInformation5.create = create;
+      SymbolInformation5.create = create2;
     })(SymbolInformation || (SymbolInformation = {}));
     (function(WorkspaceSymbol7) {
-      function create(name2, kind, uri, range) {
+      function create2(name2, kind, uri, range) {
         return range !== void 0 ? { name: name2, kind, location: { uri, range } } : { name: name2, kind, location: { uri } };
       }
-      WorkspaceSymbol7.create = create;
+      WorkspaceSymbol7.create = create2;
     })(WorkspaceSymbol || (WorkspaceSymbol = {}));
     (function(DocumentSymbol8) {
-      function create(name2, detail, kind, range, selectionRange, children) {
+      function create2(name2, detail, kind, range, selectionRange, children) {
         const result = {
           name: name2,
           detail,
@@ -63495,7 +63530,7 @@ var init_main = __esm({
         }
         return result;
       }
-      DocumentSymbol8.create = create;
+      DocumentSymbol8.create = create2;
       function is(value) {
         const candidate = value;
         return candidate && Is.string(candidate.name) && Is.number(candidate.kind) && Range.is(candidate.range) && Range.is(candidate.selectionRange) && (candidate.detail === void 0 || Is.string(candidate.detail)) && (candidate.deprecated === void 0 || Is.boolean(candidate.deprecated)) && (candidate.children === void 0 || Array.isArray(candidate.children)) && (candidate.tags === void 0 || Array.isArray(candidate.tags));
@@ -63520,7 +63555,7 @@ var init_main = __esm({
       CodeActionTriggerKind2.Automatic = 2;
     })(CodeActionTriggerKind || (CodeActionTriggerKind = {}));
     (function(CodeActionContext6) {
-      function create(diagnostics, only, triggerKind) {
+      function create2(diagnostics, only, triggerKind) {
         const result = { diagnostics };
         if (only !== void 0 && only !== null) {
           result.only = only;
@@ -63530,7 +63565,7 @@ var init_main = __esm({
         }
         return result;
       }
-      CodeActionContext6.create = create;
+      CodeActionContext6.create = create2;
       function is(value) {
         const candidate = value;
         return Is.defined(candidate) && Is.typedArray(candidate.diagnostics, Diagnostic.is) && (candidate.only === void 0 || Is.typedArray(candidate.only, Is.string)) && (candidate.triggerKind === void 0 || candidate.triggerKind === CodeActionTriggerKind.Invoked || candidate.triggerKind === CodeActionTriggerKind.Automatic);
@@ -63545,7 +63580,7 @@ var init_main = __esm({
       CodeActionTag2.is = is;
     })(CodeActionTag || (CodeActionTag = {}));
     (function(CodeAction8) {
-      function create(title, kindOrCommandOrEdit, kind) {
+      function create2(title, kindOrCommandOrEdit, kind) {
         const result = { title };
         let checkKind = true;
         if (typeof kindOrCommandOrEdit === "string") {
@@ -63561,7 +63596,7 @@ var init_main = __esm({
         }
         return result;
       }
-      CodeAction8.create = create;
+      CodeAction8.create = create2;
       function is(value) {
         const candidate = value;
         return candidate && Is.string(candidate.title) && (candidate.diagnostics === void 0 || Is.typedArray(candidate.diagnostics, Diagnostic.is)) && (candidate.kind === void 0 || Is.string(candidate.kind)) && (candidate.edit !== void 0 || candidate.command !== void 0) && (candidate.command === void 0 || Command.is(candidate.command)) && (candidate.isPreferred === void 0 || Is.boolean(candidate.isPreferred)) && (candidate.edit === void 0 || WorkspaceEdit.is(candidate.edit)) && (candidate.tags === void 0 || Is.typedArray(candidate.tags, CodeActionTag.is));
@@ -63569,14 +63604,14 @@ var init_main = __esm({
       CodeAction8.is = is;
     })(CodeAction || (CodeAction = {}));
     (function(CodeLens3) {
-      function create(range, data) {
+      function create2(range, data) {
         const result = { range };
         if (Is.defined(data)) {
           result.data = data;
         }
         return result;
       }
-      CodeLens3.create = create;
+      CodeLens3.create = create2;
       function is(value) {
         const candidate = value;
         return Is.defined(candidate) && Range.is(candidate.range) && (Is.undefined(candidate.command) || Command.is(candidate.command));
@@ -63584,10 +63619,10 @@ var init_main = __esm({
       CodeLens3.is = is;
     })(CodeLens || (CodeLens = {}));
     (function(FormattingOptions7) {
-      function create(tabSize, insertSpaces) {
+      function create2(tabSize, insertSpaces) {
         return { tabSize, insertSpaces };
       }
-      FormattingOptions7.create = create;
+      FormattingOptions7.create = create2;
       function is(value) {
         const candidate = value;
         return Is.defined(candidate) && Is.uinteger(candidate.tabSize) && Is.boolean(candidate.insertSpaces);
@@ -63595,10 +63630,10 @@ var init_main = __esm({
       FormattingOptions7.is = is;
     })(FormattingOptions || (FormattingOptions = {}));
     (function(DocumentLink3) {
-      function create(range, target, data) {
+      function create2(range, target, data) {
         return { range, target, data };
       }
-      DocumentLink3.create = create;
+      DocumentLink3.create = create2;
       function is(value) {
         const candidate = value;
         return Is.defined(candidate) && Range.is(candidate.range) && (Is.undefined(candidate.target) || Is.string(candidate.target));
@@ -63606,10 +63641,10 @@ var init_main = __esm({
       DocumentLink3.is = is;
     })(DocumentLink || (DocumentLink = {}));
     (function(SelectionRange5) {
-      function create(range, parent) {
+      function create2(range, parent) {
         return { range, parent };
       }
-      SelectionRange5.create = create;
+      SelectionRange5.create = create2;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Range.is(candidate.range) && (candidate.parent === void 0 || SelectionRange5.is(candidate.parent));
@@ -63662,10 +63697,10 @@ var init_main = __esm({
       SemanticTokens6.is = is;
     })(SemanticTokens || (SemanticTokens = {}));
     (function(InlineValueText2) {
-      function create(range, text) {
+      function create2(range, text) {
         return { range, text };
       }
-      InlineValueText2.create = create;
+      InlineValueText2.create = create2;
       function is(value) {
         const candidate = value;
         return candidate !== void 0 && candidate !== null && Range.is(candidate.range) && Is.string(candidate.text);
@@ -63673,10 +63708,10 @@ var init_main = __esm({
       InlineValueText2.is = is;
     })(InlineValueText || (InlineValueText = {}));
     (function(InlineValueVariableLookup2) {
-      function create(range, variableName, caseSensitiveLookup) {
+      function create2(range, variableName, caseSensitiveLookup) {
         return { range, variableName, caseSensitiveLookup };
       }
-      InlineValueVariableLookup2.create = create;
+      InlineValueVariableLookup2.create = create2;
       function is(value) {
         const candidate = value;
         return candidate !== void 0 && candidate !== null && Range.is(candidate.range) && Is.boolean(candidate.caseSensitiveLookup) && (Is.string(candidate.variableName) || candidate.variableName === void 0);
@@ -63684,10 +63719,10 @@ var init_main = __esm({
       InlineValueVariableLookup2.is = is;
     })(InlineValueVariableLookup || (InlineValueVariableLookup = {}));
     (function(InlineValueEvaluatableExpression2) {
-      function create(range, expression) {
+      function create2(range, expression) {
         return { range, expression };
       }
-      InlineValueEvaluatableExpression2.create = create;
+      InlineValueEvaluatableExpression2.create = create2;
       function is(value) {
         const candidate = value;
         return candidate !== void 0 && candidate !== null && Range.is(candidate.range) && (Is.string(candidate.expression) || candidate.expression === void 0);
@@ -63695,10 +63730,10 @@ var init_main = __esm({
       InlineValueEvaluatableExpression2.is = is;
     })(InlineValueEvaluatableExpression || (InlineValueEvaluatableExpression = {}));
     (function(InlineValueContext3) {
-      function create(frameId, stoppedLocation) {
+      function create2(frameId, stoppedLocation) {
         return { frameId, stoppedLocation };
       }
-      InlineValueContext3.create = create;
+      InlineValueContext3.create = create2;
       function is(value) {
         const candidate = value;
         return Is.defined(candidate) && Range.is(value.stoppedLocation);
@@ -63714,10 +63749,10 @@ var init_main = __esm({
       InlayHintKind2.is = is;
     })(InlayHintKind || (InlayHintKind = {}));
     (function(InlayHintLabelPart2) {
-      function create(value) {
+      function create2(value) {
         return { value };
       }
-      InlayHintLabelPart2.create = create;
+      InlayHintLabelPart2.create = create2;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && (candidate.tooltip === void 0 || Is.string(candidate.tooltip) || MarkupContent.is(candidate.tooltip)) && (candidate.location === void 0 || Location.is(candidate.location)) && (candidate.command === void 0 || Command.is(candidate.command));
@@ -63725,14 +63760,14 @@ var init_main = __esm({
       InlayHintLabelPart2.is = is;
     })(InlayHintLabelPart || (InlayHintLabelPart = {}));
     (function(InlayHint3) {
-      function create(position, label, kind) {
+      function create2(position, label, kind) {
         const result = { position, label };
         if (kind !== void 0) {
           result.kind = kind;
         }
         return result;
       }
-      InlayHint3.create = create;
+      InlayHint3.create = create2;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Position.is(candidate.position) && (Is.string(candidate.label) || Is.typedArray(candidate.label, InlayHintLabelPart.is)) && (candidate.kind === void 0 || InlayHintKind.is(candidate.kind)) && candidate.textEdits === void 0 || Is.typedArray(candidate.textEdits, TextEdit.is) && (candidate.tooltip === void 0 || Is.string(candidate.tooltip) || MarkupContent.is(candidate.tooltip)) && (candidate.paddingLeft === void 0 || Is.boolean(candidate.paddingLeft)) && (candidate.paddingRight === void 0 || Is.boolean(candidate.paddingRight));
@@ -63751,32 +63786,32 @@ var init_main = __esm({
       StringValue4.isSnippet = isSnippet;
     })(StringValue || (StringValue = {}));
     (function(InlineCompletionItem6) {
-      function create(insertText, filterText, range, command) {
+      function create2(insertText, filterText, range, command) {
         return { insertText, filterText, range, command };
       }
-      InlineCompletionItem6.create = create;
+      InlineCompletionItem6.create = create2;
     })(InlineCompletionItem || (InlineCompletionItem = {}));
     (function(InlineCompletionList3) {
-      function create(items) {
+      function create2(items) {
         return { items };
       }
-      InlineCompletionList3.create = create;
+      InlineCompletionList3.create = create2;
     })(InlineCompletionList || (InlineCompletionList = {}));
     (function(InlineCompletionTriggerKind2) {
       InlineCompletionTriggerKind2.Invoked = 1;
       InlineCompletionTriggerKind2.Automatic = 2;
     })(InlineCompletionTriggerKind || (InlineCompletionTriggerKind = {}));
     (function(SelectedCompletionInfo3) {
-      function create(range, text) {
+      function create2(range, text) {
         return { range, text };
       }
-      SelectedCompletionInfo3.create = create;
+      SelectedCompletionInfo3.create = create2;
     })(SelectedCompletionInfo || (SelectedCompletionInfo = {}));
     (function(InlineCompletionContext4) {
-      function create(triggerKind, selectedCompletionInfo) {
+      function create2(triggerKind, selectedCompletionInfo) {
         return { triggerKind, selectedCompletionInfo };
       }
-      InlineCompletionContext4.create = create;
+      InlineCompletionContext4.create = create2;
     })(InlineCompletionContext || (InlineCompletionContext = {}));
     (function(WorkspaceFolder2) {
       function is(value) {
@@ -63787,10 +63822,10 @@ var init_main = __esm({
     })(WorkspaceFolder || (WorkspaceFolder = {}));
     EOL = ["\n", "\r\n", "\r"];
     (function(TextDocument3) {
-      function create(uri, languageId, version2, content) {
+      function create2(uri, languageId, version2, content) {
         return new FullTextDocument(uri, languageId, version2, content);
       }
-      TextDocument3.create = create;
+      TextDocument3.create = create2;
       function is(value) {
         const candidate = value;
         return Is.defined(candidate) && Is.string(candidate.uri) && (Is.undefined(candidate.languageId) || Is.string(candidate.languageId)) && Is.uinteger(candidate.lineCount) && Is.func(candidate.getText) && Is.func(candidate.positionAt) && Is.func(candidate.offsetAt) ? true : false;
@@ -65017,12 +65052,12 @@ var require_disposable = __commonJS({
     exports2.Disposable = void 0;
     var Disposable42;
     (function(Disposable43) {
-      function create(func2) {
+      function create2(func2) {
         return {
           dispose: func2
         };
       }
-      Disposable43.create = create;
+      Disposable43.create = create2;
     })(Disposable42 || (exports2.Disposable = Disposable42 = {}));
   }
 });
@@ -67930,10 +67965,10 @@ var require_messages2 = __commonJS({
     exports2.ProtocolNotificationType = ProtocolNotificationType3;
     var CM;
     (function(CM2) {
-      function create(client, server) {
+      function create2(client, server) {
         return { client, server };
       }
-      CM2.create = create;
+      CM2.create = create2;
     })(CM || (exports2.CM = CM = {}));
   }
 });
@@ -68600,14 +68635,14 @@ var require_protocol_notebook = __commonJS({
     })(NotebookCellKind || (exports2.NotebookCellKind = NotebookCellKind = {}));
     var ExecutionSummary;
     (function(ExecutionSummary2) {
-      function create(executionOrder, success) {
+      function create2(executionOrder, success) {
         const result = { executionOrder };
         if (success === true || success === false) {
           result.success = success;
         }
         return result;
       }
-      ExecutionSummary2.create = create;
+      ExecutionSummary2.create = create2;
       function is(value) {
         const candidate = value;
         return Is2.objectLiteral(candidate) && vscode_languageserver_types_1.uinteger.is(candidate.executionOrder) && (candidate.success === void 0 || Is2.boolean(candidate.success));
@@ -68626,10 +68661,10 @@ var require_protocol_notebook = __commonJS({
     })(ExecutionSummary || (exports2.ExecutionSummary = ExecutionSummary = {}));
     var NotebookCell;
     (function(NotebookCell2) {
-      function create(kind, document2) {
+      function create2(kind, document2) {
         return { kind, document: document2 };
       }
-      NotebookCell2.create = create;
+      NotebookCell2.create = create2;
       function is(value) {
         const candidate = value;
         return Is2.objectLiteral(candidate) && NotebookCellKind.is(candidate.kind) && vscode_languageserver_types_1.DocumentUri.is(candidate.document) && (candidate.metadata === void 0 || Is2.objectLiteral(candidate.metadata));
@@ -68706,10 +68741,10 @@ var require_protocol_notebook = __commonJS({
     })(NotebookCell || (exports2.NotebookCell = NotebookCell = {}));
     var NotebookDocument;
     (function(NotebookDocument2) {
-      function create(uri, notebookType, version2, cells) {
+      function create2(uri, notebookType, version2, cells) {
         return { uri, notebookType, version: version2, cells };
       }
-      NotebookDocument2.create = create;
+      NotebookDocument2.create = create2;
       function is(value) {
         const candidate = value;
         return Is2.objectLiteral(candidate) && Is2.string(candidate.uri) && vscode_languageserver_types_1.integer.is(candidate.version) && Is2.typedArray(candidate.cells, NotebookCell.is);
@@ -68736,14 +68771,14 @@ var require_protocol_notebook = __commonJS({
         return Is2.objectLiteral(candidate) && vscode_languageserver_types_1.uinteger.is(candidate.start) && vscode_languageserver_types_1.uinteger.is(candidate.deleteCount) && (candidate.cells === void 0 || Is2.typedArray(candidate.cells, NotebookCell.is));
       }
       NotebookCellArrayChange2.is = is;
-      function create(start, deleteCount, cells) {
+      function create2(start, deleteCount, cells) {
         const result = { start, deleteCount };
         if (cells !== void 0) {
           result.cells = cells;
         }
         return result;
       }
-      NotebookCellArrayChange2.create = create;
+      NotebookCellArrayChange2.create = create2;
     })(NotebookCellArrayChange || (exports2.NotebookCellArrayChange = NotebookCellArrayChange = {}));
     var DidChangeNotebookDocumentNotification;
     (function(DidChangeNotebookDocumentNotification2) {
@@ -86775,10 +86810,10 @@ var init_main3 = __esm({
       }
     };
     (function(TextDocument3) {
-      function create(uri, languageId, version2, content) {
+      function create2(uri, languageId, version2, content) {
         return new FullTextDocument2(uri, languageId, version2, content);
       }
-      TextDocument3.create = create;
+      TextDocument3.create = create2;
       function update(document2, changes, version2) {
         if (document2 instanceof FullTextDocument2) {
           document2.update(changes, version2);
@@ -89473,12 +89508,12 @@ var init_textedit = __esm({
 function getMessageString(message) {
   return MarkupContent.is(message) ? message.value : message;
 }
-function formatDiagnostic(format4, diagnostic) {
+function formatDiagnostic(format5, diagnostic) {
   let { source, code, severity, message } = diagnostic;
   let s = getSeverityName(severity)[0];
   const codeStr = code !== void 0 && code !== null && code !== "" ? " " + code : "";
   let msg = getMessageString(message);
-  return format4.replace("%source", source).replace("%code", codeStr).replace("%severity", s).replace("%message", () => msg);
+  return format5.replace("%source", source).replace("%code", codeStr).replace("%severity", s).replace("%message", () => msg);
 }
 function getSeverityName(severity) {
   switch (severity) {
@@ -94162,8 +94197,8 @@ var require_bytes = __commonJS({
   "node_modules/bytes/index.js"(exports2, module2) {
     "use strict";
     module2.exports = bytes2;
-    module2.exports.format = format4;
-    module2.exports.parse = parse3;
+    module2.exports.format = format5;
+    module2.exports.parse = parse4;
     var formatThousandsRegExp = /\B(?=(\d{3})+(?!\d))/g;
     var formatDecimalsRegExp = /(?:\.0*|(\.[^0]+)0+)$/;
     var map = {
@@ -94177,14 +94212,14 @@ var require_bytes = __commonJS({
     var parseRegExp = /^((-|\+)?(\d+(?:\.\d+)?)) *(kb|mb|gb|tb|pb)$/i;
     function bytes2(value, options3) {
       if (typeof value === "string") {
-        return parse3(value);
+        return parse4(value);
       }
       if (typeof value === "number") {
-        return format4(value, options3);
+        return format5(value, options3);
       }
       return null;
     }
-    function format4(value, options3) {
+    function format5(value, options3) {
       if (!Number.isFinite(value)) {
         return null;
       }
@@ -94221,7 +94256,7 @@ var require_bytes = __commonJS({
       }
       return str + unitSeparator + unit;
     }
-    function parse3(val) {
+    function parse4(val) {
       if (typeof val === "number" && !isNaN(val)) {
         return val;
       }
@@ -95071,16 +95106,16 @@ var init_editors = __esm({
           let winids = /* @__PURE__ */ new Set();
           for (let info of infos) {
             let editor = this.editors.get(info.winid);
-            let create = false;
+            let create2 = false;
             if (!editor) {
-              create = true;
+              create2 = true;
             } else if (renamed(editor, info)) {
               void events_default.fire("BufRename", [info.bufnr]);
-              create = true;
+              create2 = true;
             } else if (editor.document.bufnr != info.bufnr || editor.document !== documents.getDocument(info.bufnr) || editor.tabpageid != info.tabid) {
-              create = true;
+              create2 = true;
             }
-            if (create) {
+            if (create2) {
               await this.createTextEditor(info.winid);
               changed = true;
             }
@@ -98867,8 +98902,8 @@ var init_workspace = __esm({
       createDatabase(name2) {
         return new DB(path.join(dataHome, name2 + ".json"));
       }
-      registerBufferSync(create) {
-        return new BufferSync(create, this.documentsManager);
+      registerBufferSync(create2) {
+        return new BufferSync(create2, this.documentsManager);
       }
       /**
        * @internal
@@ -101374,16 +101409,16 @@ var init_parser3 = __esm({
         return "";
       }
       toTextmateString() {
-        let format4 = this.children.map((c) => c.toTextmateString()).join("");
+        let format5 = this.children.map((c) => c.toTextmateString()).join("");
         if (this.ultisnip) {
-          format4 = format4.replace(/\\\\(\w)/g, (match, ch) => {
+          format5 = format5.replace(/\\\\(\w)/g, (match, ch) => {
             if (ultisnipSpecialEscape.includes(ch)) {
               return "\\" + ch;
             }
             return match;
           });
         }
-        return `/${this.regexp.source}/${format4}/${(this.regexp.ignoreCase ? "i" : "") + (this.regexp.global ? "g" : "")}`;
+        return `/${this.regexp.source}/${format5}/${(this.regexp.ignoreCase ? "i" : "") + (this.regexp.global ? "g" : "")}`;
       }
       clone() {
         let ret = new _Transform();
@@ -107341,7 +107376,7 @@ var require_ms = __commonJS({
       options3 = options3 || {};
       var type = typeof val;
       if (type === "string" && val.length > 0) {
-        return parse3(val);
+        return parse4(val);
       } else if (type === "number" && isFinite(val)) {
         return options3.long ? fmtLong(val) : fmtShort(val);
       }
@@ -107349,7 +107384,7 @@ var require_ms = __commonJS({
         "val is not a non-empty string or a valid number. val=" + JSON.stringify(val)
       );
     };
-    function parse3(str) {
+    function parse4(str) {
       str = String(str);
       if (str.length > 100) {
         return;
@@ -107492,12 +107527,12 @@ var require_common = __commonJS({
             args.unshift("%O");
           }
           let index = 0;
-          args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format4) => {
+          args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format5) => {
             if (match === "%%") {
               return "%";
             }
             index++;
-            const formatter = createDebug4.formatters[format4];
+            const formatter = createDebug4.formatters[format5];
             if (typeof formatter === "function") {
               const val = args[index];
               match = formatter.call(self, val);
@@ -109286,212 +109321,303 @@ var init_fetch = __esm({
   }
 });
 
-// node_modules/content-disposition/index.js
-var require_content_disposition = __commonJS({
-  "node_modules/content-disposition/index.js"(exports2, module2) {
-    "use strict";
-    module2.exports = contentDisposition;
-    module2.exports.parse = parse3;
-    var utf8Decoder = new TextDecoder("utf-8");
-    var ENCODE_URL_ATTR_CHAR_REGEXP = /[\x00-\x20"'()*,/:;<=>?@[\\\]{}\x7f]/g;
-    var NON_LATIN1_REGEXP = /[^\x20-\x7e\xa0-\xff]/g;
-    var QESC_REGEXP = /\\([\u0000-\u007f])/g;
-    var QUOTE_REGEXP = /([\\"])/g;
-    var PARAM_REGEXP = /;[\x09\x20]*([!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*=[\x09\x20]*("(?:[\x20!\x23-\x5b\x5d-\x7e\x80-\xff]|\\[\x20-\x7e])*"|[!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*/g;
-    var TEXT_REGEXP = /^[\x20-\x7e\x80-\xff]+$/;
-    var TOKEN_REGEXP = /^[!#$%&'*+.0-9A-Z^_`a-z|~-]+$/;
-    var EXT_VALUE_REGEXP = /^([A-Za-z0-9!#$%&+\-^_`{}~]+)'(?:[A-Za-z]{2,3}(?:-[A-Za-z]{3}){0,3}|[A-Za-z]{4,8}|)'((?:%[0-9A-Fa-f]{2}|[A-Za-z0-9!#$&+.^_`|~-])+)$/;
-    var DISPOSITION_TYPE_REGEXP = /^([!#$%&'*+.0-9A-Z^_`a-z|~-]+)[\x09\x20]*(?:$|;)/;
-    function contentDisposition(filename, options3) {
-      var opts = options3 || {};
-      var type = opts.type || "attachment";
-      var params = createparams(filename, opts.fallback);
-      return format4(new ContentDisposition(type, params));
-    }
-    function createparams(filename, fallback) {
-      if (filename === void 0) {
-        return;
-      }
-      var params = {};
-      if (typeof filename !== "string") {
-        throw new TypeError("filename must be a string");
-      }
-      if (fallback === void 0) {
-        fallback = true;
-      }
-      if (typeof fallback !== "string" && typeof fallback !== "boolean") {
-        throw new TypeError("fallback must be a string or boolean");
-      }
-      if (typeof fallback === "string" && NON_LATIN1_REGEXP.test(fallback)) {
-        throw new TypeError("fallback must be ISO-8859-1 string");
-      }
-      var name2 = basename2(filename);
-      var isQuotedString = TEXT_REGEXP.test(name2);
-      var fallbackName = typeof fallback !== "string" ? fallback && getlatin1(name2) : basename2(fallback);
-      var hasFallback = typeof fallbackName === "string" && fallbackName !== name2;
-      if (hasFallback || !isQuotedString || hasHexEscape(name2)) {
-        params["filename*"] = name2;
-      }
-      if (isQuotedString || hasFallback) {
-        params.filename = hasFallback ? fallbackName : name2;
-      }
-      return params;
-    }
-    function format4(obj) {
-      var parameters = obj.parameters;
-      var type = obj.type;
-      if (!type || typeof type !== "string" || !TOKEN_REGEXP.test(type)) {
-        throw new TypeError("invalid type");
-      }
-      var string2 = String(type).toLowerCase();
-      if (parameters && typeof parameters === "object") {
-        var param;
-        var params = Object.keys(parameters).sort();
-        for (var i = 0; i < params.length; i++) {
-          param = params[i];
-          var val = param.slice(-1) === "*" ? ustring(parameters[param]) : qstring(parameters[param]);
-          string2 += "; " + param + "=" + val;
-        }
-      }
-      return string2;
-    }
-    function decodefield(str) {
-      const match = EXT_VALUE_REGEXP.exec(str);
-      if (!match) {
-        throw new TypeError("invalid extended field value");
-      }
-      const charset = match[1].toLowerCase();
-      const encoded = match[2];
-      switch (charset) {
-        case "iso-8859-1": {
-          const binary = decodeHexEscapes(encoded);
-          return getlatin1(binary);
-        }
-        case "utf-8":
-        case "utf8": {
-          try {
-            return decodeURIComponent(encoded);
-          } catch {
-            const binary = decodeHexEscapes(encoded);
-            const bytes2 = new Uint8Array(binary.length);
-            for (let idx = 0; idx < binary.length; idx++) {
-              bytes2[idx] = binary.charCodeAt(idx);
+// node_modules/content-disposition/dist/index.js
+var dist_exports2 = {};
+__export(dist_exports2, {
+  create: () => create,
+  decodeExtended: () => decodeExtended,
+  encodeExtended: () => encodeExtended,
+  format: () => format4,
+  parse: () => parse3
+});
+function create(filename, options3) {
+  const type = options3?.type || "attachment";
+  const parameters = createParameters(filename, options3?.fallback);
+  return format4({ type, parameters }, { extended: false });
+}
+function parse3(header, options3) {
+  const len = header.length;
+  const multipart = options3?.multipart === true;
+  const extended = options3?.extended !== false;
+  let index = skipOWS(header, 0, header.length);
+  const typeStart = index;
+  index = parseToken(header, index, len);
+  const typeEnd = trailingOWS(header, typeStart, index);
+  const type = header.slice(typeStart, typeEnd).toLowerCase();
+  const parameters = new NullObject();
+  parameter: while (index < len) {
+    index = skipOWS(header, index + 1, len);
+    const keyStart = index;
+    while (index < len) {
+      const char = header.charCodeAt(index);
+      if (char === SEMI)
+        continue parameter;
+      if (char === EQ) {
+        const keyEnd = trailingOWS(header, keyStart, index);
+        const key = header.slice(keyStart, keyEnd).toLowerCase();
+        index = skipOWS(header, index + 1, len);
+        if (index < len && header.charCodeAt(index) === DQUOTE) {
+          index++;
+          let value2 = "";
+          if (multipart) {
+            while (index < len) {
+              const code = header.charCodeAt(index++);
+              if (code === DQUOTE) {
+                index = parseToken(header, index, len);
+                if (parameters[key] === void 0)
+                  parameters[key] = value2;
+                break;
+              }
+              if (code === /* % */
+              37 && index + 1 < len) {
+                const code2 = header.charCodeAt(index);
+                const code3 = header.charCodeAt(index + 1);
+                if (code2 === 50 && code3 === 50) {
+                  value2 += '"';
+                  index += 2;
+                  continue;
+                }
+                if (code2 === 48) {
+                  if (code3 === 100 || code3 === 68) {
+                    value2 += "\r";
+                    index += 2;
+                    continue;
+                  }
+                  if (code3 === 97 || code3 === 65) {
+                    value2 += "\n";
+                    index += 2;
+                    continue;
+                  }
+                }
+              }
+              value2 += String.fromCharCode(code);
             }
-            return utf8Decoder.decode(bytes2);
+          } else {
+            while (index < len) {
+              const code = header.charCodeAt(index++);
+              if (code === DQUOTE) {
+                index = parseToken(header, index, len);
+                if (parameters[key] === void 0)
+                  parameters[key] = value2;
+                break;
+              }
+              if (code === BSLASH && index < len) {
+                value2 += header[index++];
+                continue;
+              }
+              value2 += String.fromCharCode(code);
+            }
+          }
+          continue parameter;
+        }
+        const valueStart = index;
+        index = parseToken(header, index, len);
+        const valueEnd = trailingOWS(header, valueStart, index);
+        const value = header.slice(valueStart, valueEnd);
+        if (parameters[key] === void 0) {
+          parameters[key] = value;
+          if (extended && key.charCodeAt(key.length - 1) === ASTERISK) {
+            const normalizedKey = key.slice(0, -1);
+            const decoded = decodeExtended(value);
+            if (decoded !== void 0)
+              parameters[normalizedKey] = decoded;
           }
         }
+        continue parameter;
       }
-      throw new TypeError("unsupported charset in extended field");
+      index++;
     }
-    function getlatin1(val) {
-      return String(val).replace(NON_LATIN1_REGEXP, "?");
+  }
+  return { type, parameters };
+}
+function createParameters(filename, fallback = true) {
+  if (filename === void 0)
+    return;
+  if (typeof fallback === "string") {
+    if (!ASCII_TEXT_REGEXP.test(fallback)) {
+      throw new TypeError("Fallback must be valid US-ASCII: " + fallback);
     }
-    function parse3(string2) {
-      if (!string2 || typeof string2 !== "string") {
-        throw new TypeError("argument string is required");
+    if (fallback === filename)
+      return { filename };
+    return { filename: fallback, "filename*": encodeExtended(filename) };
+  }
+  if (ASCII_TEXT_REGEXP.test(filename) && !INVALID_FILENAME_REGEXP.test(filename)) {
+    return { filename };
+  }
+  if (fallback === false) {
+    return { "filename*": encodeExtended(filename) };
+  }
+  return {
+    filename: getAscii(filename),
+    "filename*": encodeExtended(filename)
+  };
+}
+function decodeExtended(str) {
+  const charsetEnd = str.indexOf("'");
+  if (charsetEnd <= 0) {
+    return void 0;
+  }
+  const languageEnd = str.indexOf("'", charsetEnd + 1);
+  if (languageEnd === -1) {
+    return void 0;
+  }
+  const charset = str.slice(0, charsetEnd).toLowerCase();
+  const encoded = str.slice(languageEnd + 1);
+  switch (charset) {
+    case "iso-8859-1": {
+      return decodeHexEscapes(encoded);
+    }
+    case "utf-8":
+    case "utf8": {
+      return tryDecodeURIComponent(encoded);
+    }
+  }
+  return void 0;
+}
+function tryDecodeURIComponent(str) {
+  try {
+    return decodeURIComponent(str);
+  } catch {
+    return void 0;
+  }
+}
+function parseToken(str, index, len) {
+  while (index < len) {
+    const char = str.charCodeAt(index);
+    if (char === SEMI)
+      break;
+    index++;
+  }
+  return index;
+}
+function skipOWS(str, index, len) {
+  while (index < len) {
+    const char = str.charCodeAt(index);
+    if (char !== SP && char !== HTAB)
+      break;
+    index++;
+  }
+  return index;
+}
+function trailingOWS(str, start, end) {
+  while (end > start) {
+    const char = str.charCodeAt(end - 1);
+    if (char !== SP && char !== HTAB)
+      break;
+    end--;
+  }
+  return end;
+}
+function format4(obj, options3) {
+  const { type, parameters } = obj;
+  const multipart = options3?.multipart === true;
+  const extended = options3?.extended !== false;
+  if (!type || !TOKEN_REGEXP.test(type)) {
+    throw new TypeError("Invalid type: " + type);
+  }
+  let result = type;
+  if (parameters) {
+    for (const param of Object.keys(parameters)) {
+      const value = parameters[param];
+      if (!TOKEN_REGEXP.test(param)) {
+        throw new TypeError("Invalid parameter name: " + param);
       }
-      var match = DISPOSITION_TYPE_REGEXP.exec(string2);
-      if (!match) {
-        throw new TypeError("invalid type format");
+      if (multipart) {
+        result += "; " + param + "=" + qmultipart(value);
+        continue;
       }
-      var index = match[0].length;
-      var type = match[1].toLowerCase();
-      var key;
-      var names = [];
-      var params = {};
-      var value;
-      index = PARAM_REGEXP.lastIndex = match[0].slice(-1) === ";" ? index - 1 : index;
-      while (match = PARAM_REGEXP.exec(string2)) {
-        if (match.index !== index) {
-          throw new TypeError("invalid parameter format");
-        }
-        index += match[0].length;
-        key = match[1].toLowerCase();
-        value = match[2];
-        if (names.indexOf(key) !== -1) {
-          throw new TypeError("invalid duplicate parameter");
-        }
-        names.push(key);
-        if (key.indexOf("*") + 1 === key.length) {
-          key = key.slice(0, -1);
-          value = decodefield(value);
-          params[key] = value;
-          continue;
-        }
-        if (typeof params[key] === "string") {
-          continue;
-        }
-        if (value[0] === '"') {
-          value = value.slice(1, -1).replace(QESC_REGEXP, "$1");
-        }
-        params[key] = value;
+      if (TOKEN_REGEXP.test(value)) {
+        result += "; " + param + "=" + value;
+        continue;
       }
-      if (index !== -1 && index !== string2.length) {
-        throw new TypeError("invalid parameter format");
+      if (TEXT_REGEXP.test(value)) {
+        result += "; " + param + "=" + qstring(value);
+        continue;
       }
-      return new ContentDisposition(type, params);
-    }
-    function pencode(char) {
-      return "%" + String(char).charCodeAt(0).toString(16).toUpperCase();
-    }
-    function qstring(val) {
-      var str = String(val);
-      return '"' + str.replace(QUOTE_REGEXP, "\\$1") + '"';
-    }
-    function ustring(val) {
-      var str = String(val);
-      var encoded = encodeURIComponent(str).replace(ENCODE_URL_ATTR_CHAR_REGEXP, pencode);
-      return "UTF-8''" + encoded;
-    }
-    function ContentDisposition(type, parameters) {
-      this.type = type;
-      this.parameters = parameters;
-    }
-    function basename2(path3) {
-      const normalized = path3.replaceAll("\\", "/");
-      let end = normalized.length;
-      while (end > 0 && normalized[end - 1] === "/") {
-        end--;
+      if (!extended) {
+        throw new TypeError("Invalid parameter value: " + value);
       }
-      if (end === 0) {
-        return "";
+      if (param.charCodeAt(param.length - 1) === ASTERISK) {
+        throw new TypeError("Invalid extended parameter value: " + value);
       }
-      let start = end - 1;
-      while (start >= 0 && normalized[start] !== "/") {
-        start--;
+      if (parameters[param + "*"] !== void 0) {
+        continue;
       }
-      return normalized.slice(start + 1, end);
+      result += "; " + param + "*=" + encodeExtended(value);
     }
-    function isHexDigit(char) {
-      const code = char.charCodeAt(0);
-      return code >= 48 && code <= 57 || // 0-9
-      code >= 65 && code <= 70 || // A-F
-      code >= 97 && code <= 102;
-    }
-    function hasHexEscape(str) {
-      const maxIndex = str.length - 3;
-      let lastIndex = -1;
-      while ((lastIndex = str.indexOf("%", lastIndex + 1)) !== -1 && lastIndex <= maxIndex) {
-        if (isHexDigit(str[lastIndex + 1]) && isHexDigit(str[lastIndex + 2])) {
-          return true;
-        }
+  }
+  return result;
+}
+function getAscii(val) {
+  return val.replace(NON_ASCII_REGEXP, "?");
+}
+function pencode(char) {
+  return "%" + char.charCodeAt(0).toString(16).toUpperCase();
+}
+function qstring(str) {
+  return '"' + str.replace(QUOTE_REGEXP, "\\$&") + '"';
+}
+function qmultipart(str) {
+  return '"' + str.replace(/[\n\r"]/g, multipartEscape) + '"';
+}
+function multipartEscape(char) {
+  if (char === "\n")
+    return "%0A";
+  if (char === "\r")
+    return "%0D";
+  return "%22";
+}
+function encodeExtended(str) {
+  const encoded = encodeURIComponent(str).replace(ENCODE_URL_ATTR_CHAR_REGEXP, pencode);
+  return "UTF-8''" + encoded;
+}
+function isHexDigit(char) {
+  const code = char.charCodeAt(0);
+  return code >= 48 && code <= 57 || // 0-9
+  code >= 65 && code <= 70 || // A-F
+  code >= 97 && code <= 102;
+}
+function decodeHexEscapes(str) {
+  const firstEscape = str.indexOf("%");
+  if (firstEscape === -1)
+    return str;
+  let result = str.slice(0, firstEscape);
+  for (let idx = firstEscape; idx < str.length; idx++) {
+    if (str[idx] === "%") {
+      if (idx + 2 >= str.length || !isHexDigit(str[idx + 2]) || !isHexDigit(str[idx + 1])) {
+        return;
       }
-      return false;
+      result += String.fromCharCode(Number.parseInt(str[idx + 1] + str[idx + 2], 16));
+      idx += 2;
+    } else {
+      result += str[idx];
     }
-    function decodeHexEscapes(str) {
-      const firstEscape = str.indexOf("%");
-      if (firstEscape === -1) return str;
-      let result = str.slice(0, firstEscape);
-      for (let idx = firstEscape; idx < str.length; idx++) {
-        if (str[idx] === "%" && idx + 2 < str.length && isHexDigit(str[idx + 1]) && isHexDigit(str[idx + 2])) {
-          result += String.fromCharCode(Number.parseInt(str[idx + 1] + str[idx + 2], 16));
-          idx += 2;
-        } else {
-          result += str[idx];
-        }
-      }
-      return result;
-    }
+  }
+  return result;
+}
+var NullObject, SP, HTAB, SEMI, EQ, DQUOTE, BSLASH, ASTERISK, ENCODE_URL_ATTR_CHAR_REGEXP, NON_ASCII_REGEXP, QUOTE_REGEXP, INVALID_FILENAME_REGEXP, TEXT_REGEXP, ASCII_TEXT_REGEXP, TOKEN_REGEXP;
+var init_dist6 = __esm({
+  "node_modules/content-disposition/dist/index.js"() {
+    NullObject = /* @__PURE__ */ (() => {
+      const C = function() {
+      };
+      C.prototype = /* @__PURE__ */ Object.create(null);
+      return C;
+    })();
+    SP = 32;
+    HTAB = 9;
+    SEMI = 59;
+    EQ = 61;
+    DQUOTE = 34;
+    BSLASH = 92;
+    ASTERISK = 42;
+    ENCODE_URL_ATTR_CHAR_REGEXP = /[\x00-\x20"'()*,/:;<=>?@[\\\]{}\x7f]/g;
+    NON_ASCII_REGEXP = /[^\x20-\x7e]/g;
+    QUOTE_REGEXP = /[\\"]/g;
+    INVALID_FILENAME_REGEXP = /%[0-9A-Fa-f]{2}/;
+    TEXT_REGEXP = /^[\x20-\x7e\x80-\xff]*$/;
+    ASCII_TEXT_REGEXP = /^[\x20-\x7e]*$/;
+    TOKEN_REGEXP = /^[!#$%&'*+.0-9A-Z^_`a-z|~-]+$/;
   }
 });
 
@@ -112749,7 +112875,7 @@ function getEtag(headers) {
   return header.slice(1, -1);
 }
 function getExtname(dispositionHeader) {
-  const contentDisposition = require_content_disposition();
+  const contentDisposition = (init_dist6(), __toCommonJS(dist_exports2));
   let disposition = contentDisposition.parse(dispositionHeader);
   let filename = disposition.parameters.filename;
   if (filename) return path.extname(filename);
@@ -113260,63 +113386,6 @@ var init_installer = __esm({
       }
       async fetch(url, options3 = {}) {
         return await fetch(url, options3);
-      }
-    };
-  }
-});
-
-// src/model/memos.ts
-var Memos;
-var init_memos = __esm({
-  "src/model/memos.ts"() {
-    "use strict";
-    init_fs();
-    init_node();
-    init_object();
-    Memos = class {
-      constructor(filepath) {
-        this.filepath = filepath;
-        if (!fs.existsSync(filepath)) {
-          fs.mkdirSync(path.dirname(filepath), { recursive: true });
-          fs.writeFileSync(filepath, "{}", "utf8");
-        }
-      }
-      filepath;
-      merge(filepath) {
-        if (!fs.existsSync(filepath)) return;
-        let obj = loadJson(filepath);
-        let current = loadJson(this.filepath);
-        Object.assign(current, obj);
-        writeJson(this.filepath, current);
-        fs.unlinkSync(filepath);
-      }
-      fetchContent(id2, key) {
-        let res = loadJson(this.filepath);
-        let obj = res[id2];
-        if (!obj) return void 0;
-        return obj[key];
-      }
-      async update(id2, key, value) {
-        let { filepath } = this;
-        let current = loadJson(filepath);
-        current[id2] = current[id2] || {};
-        if (value !== void 0) {
-          current[id2][key] = deepClone(value);
-        } else {
-          delete current[id2][key];
-        }
-        writeJson(filepath, current);
-      }
-      createMemento(id2) {
-        return {
-          get: (key, defaultValue2) => {
-            let res = this.fetchContent(id2, key);
-            return res === void 0 ? defaultValue2 : res;
-          },
-          update: async (key, value) => {
-            await this.update(id2, key, value);
-          }
-        };
       }
     };
   }
@@ -116871,12 +116940,12 @@ function formatListItems(align, list2) {
   }
   return processedList;
 }
-function formatPath(format4, pathToFormat) {
-  if (format4 === "hidden") {
+function formatPath(format5, pathToFormat) {
+  if (format5 === "hidden") {
     return "";
-  } else if (format4 === "full") {
+  } else if (format5 === "full") {
     return pathToFormat;
-  } else if (format4 === "short") {
+  } else if (format5 === "short") {
     const segments = pathToFormat.split(path.sep);
     if (segments.length < 2) {
       return pathToFormat;
@@ -121651,13 +121720,13 @@ function getTracePrefix(data) {
 function getParameterStructures(kind) {
   switch (kind) {
     case "auto":
-      return import_node55.ParameterStructures.auto;
+      return import_node54.ParameterStructures.auto;
     case "byPosition":
-      return import_node55.ParameterStructures.byPosition;
+      return import_node54.ParameterStructures.byPosition;
     case "byName":
-      return import_node55.ParameterStructures.byName;
+      return import_node54.ParameterStructures.byName;
     default:
-      return import_node55.ParameterStructures.auto;
+      return import_node54.ParameterStructures.auto;
   }
 }
 function fixRequestType(type, params) {
@@ -121665,30 +121734,30 @@ function fixRequestType(type, params) {
   let n = typeof type.numberOfParams === "number" ? type.numberOfParams : params.length;
   switch (n) {
     case 0:
-      return new import_node55.RequestType0(type.method);
+      return new import_node54.RequestType0(type.method);
     case 1:
       if (type["parameterStructures"] != null) {
-        return new import_node55.RequestType1(type.method, getParameterStructures(type["parameterStructures"].toString()));
+        return new import_node54.RequestType1(type.method, getParameterStructures(type["parameterStructures"].toString()));
       }
-      return new import_node55.RequestType1(type.method);
+      return new import_node54.RequestType1(type.method);
     case 2:
-      return new import_node55.RequestType2(type.method);
+      return new import_node54.RequestType2(type.method);
     case 3:
-      return new import_node55.RequestType3(type.method);
+      return new import_node54.RequestType3(type.method);
     case 4:
-      return new import_node55.RequestType4(type.method);
+      return new import_node54.RequestType4(type.method);
     case 5:
-      return new import_node55.RequestType5(type.method);
+      return new import_node54.RequestType5(type.method);
     case 6:
-      return new import_node55.RequestType6(type.method);
+      return new import_node54.RequestType6(type.method);
     case 7:
-      return new import_node55.RequestType7(type.method);
+      return new import_node54.RequestType7(type.method);
     case 8:
-      return new import_node55.RequestType8(type.method);
+      return new import_node54.RequestType8(type.method);
     case 9:
-      return new import_node55.RequestType9(type.method);
+      return new import_node54.RequestType9(type.method);
     default:
-      return new import_node55.RequestType(type.method);
+      return new import_node54.RequestType(type.method);
   }
 }
 function fixNotificationType(type, params) {
@@ -121696,30 +121765,30 @@ function fixNotificationType(type, params) {
   let n = typeof type.numberOfParams === "number" ? type.numberOfParams : params.length;
   switch (n) {
     case 0:
-      return new import_node55.NotificationType0(type.method);
+      return new import_node54.NotificationType0(type.method);
     case 1:
       if (type["parameterStructures"] != null) {
-        return new import_node55.NotificationType1(type.method, getParameterStructures(type["parameterStructures"].toString()));
+        return new import_node54.NotificationType1(type.method, getParameterStructures(type["parameterStructures"].toString()));
       }
-      return new import_node55.NotificationType1(type.method);
+      return new import_node54.NotificationType1(type.method);
     case 2:
-      return new import_node55.NotificationType2(type.method);
+      return new import_node54.NotificationType2(type.method);
     case 3:
-      return new import_node55.NotificationType3(type.method);
+      return new import_node54.NotificationType3(type.method);
     case 4:
-      return new import_node55.NotificationType4(type.method);
+      return new import_node54.NotificationType4(type.method);
     case 5:
-      return new import_node55.NotificationType5(type.method);
+      return new import_node54.NotificationType5(type.method);
     case 6:
-      return new import_node55.NotificationType6(type.method);
+      return new import_node54.NotificationType6(type.method);
     case 7:
-      return new import_node55.NotificationType7(type.method);
+      return new import_node54.NotificationType7(type.method);
     case 8:
-      return new import_node55.NotificationType8(type.method);
+      return new import_node54.NotificationType8(type.method);
     case 9:
-      return new import_node55.NotificationType9(type.method);
+      return new import_node54.NotificationType9(type.method);
     default:
-      return new import_node55.NotificationType(type.method);
+      return new import_node54.NotificationType(type.method);
   }
 }
 function data2String(data, color = false) {
@@ -121752,8 +121821,8 @@ function createClientPipeTransport(pipeName, encoding2 = "utf-8") {
     const server = net.createServer((socket) => {
       server.close();
       connectResolve([
-        new import_node55.SocketMessageReader(socket, encoding2),
-        new import_node55.SocketMessageWriter(socket, encoding2)
+        new import_node54.SocketMessageReader(socket, encoding2),
+        new import_node54.SocketMessageWriter(socket, encoding2)
       ]);
     });
     server.on("error", reject);
@@ -121784,8 +121853,8 @@ function createClientSocketTransport(port, encoding2 = "utf-8") {
     const server = net.createServer((socket) => {
       server.close();
       connectResolve([
-        new import_node55.SocketMessageReader(socket, encoding2),
-        new import_node55.SocketMessageWriter(socket, encoding2)
+        new import_node54.SocketMessageReader(socket, encoding2),
+        new import_node54.SocketMessageWriter(socket, encoding2)
       ]);
     });
     server.on("error", reject);
@@ -121803,21 +121872,21 @@ function createClientSocketTransport(port, encoding2 = "utf-8") {
     });
   });
 }
-var import_node55, requestTypes, notificationTypes;
+var import_node54, requestTypes, notificationTypes;
 var init_utils = __esm({
   "src/language-client/utils/index.ts"() {
     "use strict";
-    import_node55 = __toESM(require_main2());
+    import_node54 = __toESM(require_main2());
     init_is();
     init_node();
     init_protocol();
     requestTypes = [
-      import_node55.RequestType,
-      import_node55.RequestType0
+      import_node54.RequestType,
+      import_node54.RequestType0
     ];
     notificationTypes = [
-      import_node55.NotificationType,
-      import_node55.NotificationType0
+      import_node54.NotificationType,
+      import_node54.NotificationType0
     ];
   }
 });
@@ -130612,7 +130681,7 @@ function createExtensionRequire(runtime, parent) {
   req.main = mainModule;
   return req;
 }
-function createExtensionRuntime(id2, filename, core, logger72, extensionRoot) {
+function createExtensionRuntime(id2, filename, core, logger72, extensionRoot, subscriptions = []) {
   const { console: console2, state } = createExtensionConsole(id2, logger72);
   const root = extensionRoot ?? path.dirname(filename);
   let realRoot = root;
@@ -130623,7 +130692,7 @@ function createExtensionRuntime(id2, filename, core, logger72, extensionRoot) {
   const apiContext = {
     extensionId: id2,
     extensionRoot: realRoot,
-    subscriptions: []
+    subscriptions
   };
   const runtime = {
     id: id2,
@@ -130655,10 +130724,11 @@ function disposeExtension(id2) {
     runtime.consoleState.groupDepth = 0;
     let apiContext = runtime.apiContext;
     if (apiContext) {
-      for (let disposable of apiContext.subscriptions) {
+      let subscriptions = Array.from(new Set(apiContext.subscriptions));
+      apiContext.subscriptions.length = 0;
+      for (let disposable of subscriptions) {
         disposable.dispose();
       }
-      apiContext.subscriptions.length = 0;
     }
     runtimes.delete(id2);
   }
@@ -130682,7 +130752,7 @@ function emptyExtension() {
   return { activate: () => {
   }, deactivate: null };
 }
-async function createExtensionAsync(id2, filename, isEmpty2, options3) {
+async function createExtensionAsync(id2, filename, isEmpty2, options3, subscriptions) {
   if (isEmpty2 || options3?.sourceCode == null && !fs.existsSync(filename)) return emptyExtension();
   disposeExtension(id2);
   const logger72 = getLogger(!global.__isMain && true, id2);
@@ -130692,7 +130762,7 @@ async function createExtensionAsync(id2, filename, isEmpty2, options3) {
   } else {
     api = require_src2();
   }
-  const runtime = createExtensionRuntime(id2, filename, api, logger72, options3?.extensionRoot);
+  const runtime = createExtensionRuntime(id2, filename, api, logger72, options3?.extensionRoot, subscriptions);
   runtimes.set(id2, runtime);
   const loader = getLoader(runtime);
   let defaultImport;
@@ -130956,6 +131026,63 @@ var init_loader = __esm({
       }
     };
     runtimes = /* @__PURE__ */ new Map();
+  }
+});
+
+// src/model/memos.ts
+var Memos;
+var init_memos = __esm({
+  "src/model/memos.ts"() {
+    "use strict";
+    init_fs();
+    init_node();
+    init_object();
+    Memos = class {
+      constructor(filepath) {
+        this.filepath = filepath;
+        if (!fs.existsSync(filepath)) {
+          fs.mkdirSync(path.dirname(filepath), { recursive: true });
+          fs.writeFileSync(filepath, "{}", "utf8");
+        }
+      }
+      filepath;
+      merge(filepath) {
+        if (!fs.existsSync(filepath)) return;
+        let obj = loadJson(filepath);
+        let current = loadJson(this.filepath);
+        Object.assign(current, obj);
+        writeJson(this.filepath, current);
+        fs.unlinkSync(filepath);
+      }
+      fetchContent(id2, key) {
+        let res = loadJson(this.filepath);
+        let obj = res[id2];
+        if (!obj) return void 0;
+        return obj[key];
+      }
+      async update(id2, key, value) {
+        let { filepath } = this;
+        let current = loadJson(filepath);
+        current[id2] = current[id2] || {};
+        if (value !== void 0) {
+          current[id2][key] = deepClone(value);
+        } else {
+          delete current[id2][key];
+        }
+        writeJson(filepath, current);
+      }
+      createMemento(id2) {
+        return {
+          get: (key, defaultValue2) => {
+            let res = this.fetchContent(id2, key);
+            return res === void 0 ? defaultValue2 : res;
+          },
+          update: async (key, value) => {
+            await this.update(id2, key, value);
+          }
+        };
+      }
+    };
   }
 });
 
@@ -131360,6 +131487,7 @@ var init_manager5 = __esm({
     init_registry2();
     init_types();
     init_events();
+    init_loader();
     init_logger();
     init_memos();
     init_util();
@@ -131367,7 +131495,6 @@ var init_manager5 = __esm({
     init_constants();
     init_errors();
     init_extensionRegistry();
-    init_loader();
     init_fs();
     init_is();
     init_lodash();
@@ -131745,7 +131872,7 @@ var init_manager5 = __esm({
               timing.start();
               try {
                 let isEmpty2 = typeof packageJSON.engines.coc === "undefined";
-                ext = await createExtensionAsync(id2, filename, isEmpty2, options3);
+                ext = await createExtensionAsync(id2, filename, isEmpty2, options3, subscriptions);
                 let context = {
                   subscriptions,
                   extensionPath,
@@ -131772,9 +131899,6 @@ var init_manager5 = __esm({
           packageJSON,
           extensionPath,
           extensionUri: URI2.file(extensionPath),
-          get _exports() {
-            return isTester ? ext : void 0;
-          },
           get isActive() {
             return isActive;
           },
@@ -131800,7 +131924,7 @@ var init_manager5 = __esm({
             isActive = false;
             result = void 0;
             exports2 = void 0;
-            disposeAll(subscriptions);
+            disposeExtension(id2);
             if (ext && typeof ext.deactivate === "function") {
               try {
                 await Promise.resolve(ext.deactivate());
@@ -131938,7 +132062,7 @@ var init_manager5 = __esm({
             return omit(module2, ["activate"]);
           },
           get _exports() {
-            return item.extension._exports;
+            return global.__isMain ? void 0 : item.extension.module;
           },
           unload: () => {
             return this.unloadExtension(name2);
@@ -138582,7 +138706,7 @@ var init_search = __esm({
         let fileItem;
         let lines = [];
         let highlights = [];
-        let create = true;
+        let create2 = true;
         rl.on("line", (content) => {
           if (content.includes(controlCode2)) {
             let items = ansiparse(content);
@@ -138595,9 +138719,9 @@ var init_search = __esm({
             if (normalLine) {
               let lnum = parseInt(items[0].text, 10) - 1;
               let padlen2 = items[0].text.length + 1;
-              if (create) {
+              if (create2) {
                 start = lnum;
-                create = false;
+                create2 = false;
               }
               let line = "";
               for (let item of items) {
@@ -138622,7 +138746,7 @@ var init_search = __esm({
             }
             lines = [];
             highlights = [];
-            create = true;
+            create2 = true;
           }
         });
         rl.on("close", () => {
@@ -141352,7 +141476,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-977aaf5 2026-08-17 22:15:49 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-3bfca49 2026-08-18 18:30:43 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -142172,7 +142296,7 @@ bytes/index.js:
    * MIT Licensed
    *)
 
-content-disposition/index.js:
+content-disposition/dist/index.js:
   (*!
    * content-disposition
    * Copyright(c) 2014-2017 Douglas Christopher Wilson
