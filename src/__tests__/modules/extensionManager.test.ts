@@ -383,7 +383,6 @@ describe('ExtensionManager', () => {
       let manager = create(tmpfolder, true)
       let ext = await createExtension(manager, 'workspaceContains:foobar', 'onLanguage:javascript')
       assert.strictEqual(ext.isActive, false)
-      assert.strictEqual(ext._exports, undefined)
       await nvim.command('edit /tmp/a.js')
       await nvim.command('setf javascript')
       await shared.waitValue(() => ext.isActive, true)

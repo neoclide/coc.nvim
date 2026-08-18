@@ -81,7 +81,6 @@ export interface Extension<T> {
   readonly packageJSON: ExtensionJson
   readonly exports: T
   readonly module: object
-  readonly _exports?: T
   activate(): Promise<T>
 }
 
@@ -514,10 +513,6 @@ export class ExtensionManager {
       packageJSON,
       extensionPath,
       extensionUri: URI.file(extensionPath),
-      get _exports() {
-        // Can be used by coc-test
-        return isTester ? ext : undefined
-      },
       get isActive() {
         return isActive
       },
@@ -687,7 +682,7 @@ export class ExtensionManager {
         return omit(module, ['activate'])
       },
       get _exports() {
-        return item.extension._exports
+        return global.__isMain ? undefined : item.extension.module
       },
       unload: () => {
         return this.unloadExtension(name)
