@@ -7198,6 +7198,13 @@ declare module 'coc.nvim' {
     applyEdits(edits: TextEdit[], joinUndo?: boolean, move?: boolean | Position): Promise<void>
 
     /**
+    * Synchronize latest buffer lines to vim.
+    * This method is needed after applyEdits to wait for buffer synchronize with
+    * changed lines.
+    */
+    synchronize(): Promise<void>
+
+    /**
      * Change individual lines.
      *
      * @param {[number, string][]} lines
