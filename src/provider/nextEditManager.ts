@@ -2,7 +2,7 @@
 import { Position } from 'vscode-languageserver-types'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { toArray } from '../util/array'
-import { onUnexpectedError } from '../util/errors'
+import { shouldIgnore } from '../util/errors'
 import { createLogger } from '../logger'
 import { CancellationToken, Disposable } from '../util/protocol'
 import { DocumentSelector, NextEditContext, NextEditItem, NextEditList, NextEditProvider } from './index'
@@ -46,7 +46,13 @@ export default class NextEditManager extends Manager<NextEditProvider> {
         }, token)
         return Array.isArray(result) ? result : toArray((result as NextEditList | null | undefined)?.items)
       } catch (err) {
-        this.handleResults([{ status: 'rejected', reason: err }], 'provideNextEdits', [item], token)
+        try {
+          this.handleResults([{ status: 'rejected', reason: err }], 'provideNextEdits', [item], token)
+        } catch (error) {
+          // A cancellation surfaced by one provider must not fail the whole
+          // request: other providers may still produce candidates.
+          void error
+        }
         return []
       }
     }))
@@ -57,6 +63,7 @@ export default class NextEditManager extends Manager<NextEditProvider> {
       for (let item of results[i]) {
         if (!item || typeof item !== 'object') continue
         let candidate = item as NextEditItem
+        if (!candidate.textDocument) continue
         let key = itemKey(candidate)
         if (seen.has(key)) continue
         seen.add(key)
@@ -70,12 +77,19 @@ export default class NextEditManager extends Manager<NextEditProvider> {
   public handleDidShow(item: NextEditItem): void {
     let provider = this.owners.get(item)
     if (!provider?.handleDidShowNextEdit) return
-    Promise.resolve(provider.handleDidShowNextEdit(item)).catch(err => {
-      try {
-        onUnexpectedError(err)
-      } catch (error) {
-        logger.error('Error on handleDidShowNextEdit', error)
-      }
-    })
+    let result: void | Thenable<void>
+    try {
+      result = provider.handleDidShowNextEdit(item)
+    } catch (err) {
+      this.handleDidShowError(err)
+      return
+    }
+    Promise.resolve(result).catch(err => this.handleDidShowError(err))
+  }
+
+  private handleDidShowError(err: any): void {
+    if (!shouldIgnore(err)) {
+      logger.error('Error on handleDidShowNextEdit', err)
+    }
   }
 }

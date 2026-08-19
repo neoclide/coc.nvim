@@ -1,5 +1,6 @@
 import { CancellationToken, CancellationTokenSource, InlineCompletionTriggerKind, Position, Range } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
+import { CancellationError } from '../../util/errors'
 import '../../workspace'
 import NextEditManager from '../../provider/nextEditManager'
 
@@ -30,6 +31,35 @@ describe('NextEditManager', () => {
     assert.deepStrictEqual(await manager.provideNextEdits(document, Position.create(0, 0), { ...context, provider: 'missing' }, CancellationToken.None), [])
     let result = await manager.provideNextEdits(document, Position.create(0, 0), context, CancellationToken.None)
     assert.deepStrictEqual(result.map(o => o.newText), ['valid'])
+  })
+
+  it('skips items without a textDocument instead of failing the request', async () => {
+    let manager = new NextEditManager()
+    manager.register([{ language: '*' }], {
+      provideNextEdits: () => [{ newText: 'missing' } as any, { textDocument: null, range: Range.create(0, 0, 0, 0), newText: 'null' } as any, item('valid')]
+    })
+    let result = await manager.provideNextEdits(document, Position.create(0, 0), context, CancellationToken.None)
+    assert.deepStrictEqual(result.map(o => o.newText), ['valid'])
+  })
+
+  it('keeps other provider results when one provider fails with a cancellation error', async () => {
+    let manager = new NextEditManager()
+    manager.register([{ language: '*' }], {
+      provideNextEdits: () => { throw new CancellationError() }
+    })
+    manager.register([{ language: '*' }], { provideNextEdits: () => [item('survivor')] })
+    let result = await manager.provideNextEdits(document, Position.create(0, 0), context, CancellationToken.None)
+    assert.deepStrictEqual(result.map(o => o.newText), ['survivor'])
+  })
+
+  it('contains synchronous handleDidShowNextEdit exceptions', async () => {
+    let manager = new NextEditManager()
+    manager.register([{ language: '*' }], {
+      provideNextEdits: () => [item('owned')],
+      handleDidShowNextEdit: () => { throw new Error('sync failure') }
+    })
+    let result = await manager.provideNextEdits(document, Position.create(0, 0), context, CancellationToken.None)
+    assert.doesNotThrow(() => manager.handleDidShow(result[0]))
   })
 
   it('normalizes results in registration order and deduplicates candidates', async () => {
