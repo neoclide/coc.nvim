@@ -2387,6 +2387,20 @@
       "scope": "language-overridable",
       "description": "Wait time in milliseconds between text change and triggering inline completion."
     },
+    "nextEdit.autoTrigger": {
+      "type": "boolean",
+      "default": true,
+      "scope": "language-overridable",
+      "description": "Automatically request generic next edits after text changes."
+    },
+    "nextEdit.triggerWait": {
+      "type": "integer",
+      "default": 150,
+      "minimum": 0,
+      "maximum": 2000,
+      "scope": "language-overridable",
+      "description": "Wait time in milliseconds before requesting a next edit."
+    },
     "tree.closedIcon": {
       "type": "string",
       "scope": "application",

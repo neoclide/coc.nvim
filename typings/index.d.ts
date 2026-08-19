@@ -6119,6 +6119,7 @@ declare module 'coc.nvim' {
     InlayHint = 'inlayHint',
     InlineValue = 'inlineValue',
     InlineCompletion = 'inlineCompletion',
+    NextEdit = 'nextEdit',
     TypeHierarchy = 'typeHierarchy'
   }
 
@@ -7054,6 +7055,27 @@ declare module 'coc.nvim' {
       context: InlineCompletionContext,
       token: CancellationToken
     ): ProviderResult<InlineCompletionItem[] | InlineCompletionList>
+  }
+
+  export interface NextEditItem {
+    /** Target document and the exact version used to compute this edit. */
+    textDocument: VersionedTextDocumentIdentifier
+    range: Range
+    newText: string
+    command?: Command
+  }
+
+  export interface NextEditList {
+    items: NextEditItem[]
+  }
+
+  export interface NextEditContext {
+    triggerKind: InlineCompletionTriggerKind
+  }
+
+  export interface NextEditProvider {
+    provideNextEdits(document: TextDocument, position: Position, context: NextEditContext, token: CancellationToken): ProviderResult<NextEditItem[] | NextEditList>
+    handleDidShowNextEdit?(item: NextEditItem): void | Thenable<void>
   }
   // }}
 
@@ -8046,6 +8068,9 @@ declare module 'coc.nvim' {
      * Trigger inline completion
      */
     export function executeCommand(command: 'editor.action.triggerInlineCompletion', option?: InlineCompletionOption): Promise<void>
+
+    /** Trigger coc.nvim's generic next edit provider. */
+    export function executeCommand(command: 'editor.action.triggerNextEdit', option?: { provider?: string; autoTrigger?: boolean }): Promise<boolean>
   }
   // }}
 
@@ -8828,6 +8853,9 @@ declare module 'coc.nvim' {
      * @return A {@link Disposable} that unregisters this provider when being disposed.
      */
     export function registerInlineCompletionItemProvider(selector: DocumentSelector, provider: InlineCompletionItemProvider): Disposable
+
+    /** Register a provider of generic, versioned next edits. */
+    export function registerNextEditProvider(selector: DocumentSelector, provider: NextEditProvider): Disposable
   }
   // }}
 

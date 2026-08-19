@@ -24,6 +24,7 @@ LSP features
 	Completion 				|coc-config-suggest|
 	Sources 				|coc-config-sources|
 	Inline completion 			|coc-config-inlineSuggest|
+	Next edit 				|coc-config-nextEdit|
 	Cursors 				|coc-config-cursors|
 	Diagnostics 				|coc-config-diagnostic|
 	Document highlight 			|coc-config-documentHighlight|
@@ -2335,6 +2336,22 @@ INLINE COMPLETION
 	completion.
 
 	Scope: `language-overridable`, default: `10`
+
+------------------------------------------------------------------------------
+NEXT EDIT
+							*coc-config-nextEdit*
+
+"nextEdit.autoTrigger"					*coc-config-nextEdit-autoTrigger*
+
+	Automatically request generic next edits after text changes.
+
+	Scope: `language-overridable`, default: `true`
+
+"nextEdit.triggerWait"					*coc-config-nextEdit-triggerWait*
+
+	Wait time in milliseconds before requesting a next edit.
+
+	Scope: `language-overridable`, default: `150`
 
 ------------------------------------------------------------------------------
 TYPEHIERARCHY

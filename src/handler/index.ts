@@ -28,6 +28,7 @@ import Highlights from './highlights'
 import HoverHandler from './hover'
 import InlayHintHandler from './inlayHint/index'
 import InlineCompletion, { InlineSuggestOption } from './inline'
+import NextEdit from './nextEdit'
 import LinkedEditingHandler from './linkedEditing'
 import Links from './links'
 import Locations from './locations'
@@ -70,6 +71,7 @@ export default class Handler implements HandlerDelegate {
   public readonly callHierarchy: CallHierarchy
   public readonly typeHierarchy: TypeHierarchy
   public readonly inlineCompletion: InlineCompletion
+  public readonly nextEdit: NextEdit
   public readonly semanticHighlighter: SemanticTokens
   public readonly workspace: WorkspaceHandler
   public readonly linkedEditingHandler: LinkedEditingHandler
@@ -108,6 +110,7 @@ export default class Handler implements HandlerDelegate {
     this.linkedEditingHandler = new LinkedEditingHandler(nvim, this)
     this.inlayHintHandler = new InlayHintHandler(nvim, this)
     this.inlineCompletion = new InlineCompletion(nvim, this)
+    this.nextEdit = new NextEdit(nvim, this, this.inlineCompletion)
     this.disposables.push({
       dispose: () => {
         this.callHierarchy.dispose()
@@ -122,6 +125,7 @@ export default class Handler implements HandlerDelegate {
         this.documentHighlighter.dispose()
         this.semanticHighlighter.dispose()
         this.inlineCompletion.dispose()
+        this.nextEdit.dispose()
       }
     })
     this.registerCommands()
@@ -182,6 +186,10 @@ export default class Handler implements HandlerDelegate {
     this.register('editor.action.triggerInlineCompletion', async (option?: InlineSuggestOption) => {
       let bufnr = await this.nvim.eval('bufnr("%")') as number
       return await this.inlineCompletion.trigger(bufnr, option)
+    })
+    this.register('editor.action.triggerNextEdit', async (option?: { provider?: string; autoTrigger?: boolean }) => {
+      let bufnr = await this.nvim.eval('bufnr("%")') as number
+      return this.nextEdit.trigger(bufnr, { ...option, autoTrigger: false })
     })
   }
 

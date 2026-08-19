@@ -12,7 +12,7 @@ import { SnippetParser } from '../snippets/parser'
 import { defaultValue, disposeAll, waitWithToken } from '../util'
 import { onUnexpectedError } from '../util/errors'
 import { comparePosition, emptyRange, getEnd, positionInRange } from '../util/position'
-import { CancellationTokenSource, Disposable, InlineCompletionItem } from '../util/protocol'
+import { CancellationTokenSource, Disposable, Emitter, Event, InlineCompletionItem } from '../util/protocol'
 import { byteIndex, toText } from '../util/string'
 import window from '../window'
 import workspace from '../workspace'
@@ -140,6 +140,8 @@ export class InlineSession {
 
 export default class InlineCompletion {
   public session: InlineSession | undefined
+  private readonly _onDidChangeVisibility = new Emitter<boolean>()
+  public readonly onDidChangeVisibility: Event<boolean> = this._onDidChangeVisibility.event
   private bufnr: number
   private tokenSource: CancellationTokenSource
   private disposables: Disposable[] = []
@@ -295,6 +297,7 @@ export default class InlineCompletion {
       return false
     }
     this.session = new InlineSession(bufnr, cursor, items)
+    this._onDidChangeVisibility.fire(true)
     await this.insertVtext(items[0])
     return true
   }
@@ -398,6 +401,7 @@ export default class InlineCompletion {
     } else {
       this.session.clearNamespace()
       this.session = undefined
+      this._onDidChangeVisibility.fire(false)
     }
   }
 
@@ -410,11 +414,13 @@ export default class InlineCompletion {
     if (this.session) {
       this.session.clearNamespace()
       this.session = undefined
+      this._onDidChangeVisibility.fire(false)
     }
     this.bufnr = undefined
   }
 
   public dispose(): void {
+    this._onDidChangeVisibility.dispose()
     disposeAll(this.disposables)
   }
 }

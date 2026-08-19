@@ -34,6 +34,11 @@ let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
 let s:root = expand('<sfile>:h:h')
 
+hi default link CocNextEditDelete DiffDelete
+hi default link CocNextEditInsert DiffAdd
+hi default link CocNextEditAnnotation MoreMsg
+hi default link CocNextEditIndicator MoreMsg
+
 function! CocTagFunc(pattern, flags, info) abort
   " tagfunc can't be set in the sandbox mode, preload the following functions
   silent! call coc#cursor#move_to()
