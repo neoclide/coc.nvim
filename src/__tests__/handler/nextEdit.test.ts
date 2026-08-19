@@ -4,7 +4,7 @@ import commands from '../../commands'
 import languages from '../../languages'
 import type NextEdit from '../../handler/nextEdit'
 import { Disposable } from '../../util/protocol'
-import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
+import { InlineCompletionTriggerKind, Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import window from '../../window'
 import workspace from '../../workspace'
 
@@ -169,6 +169,22 @@ describe('NextEdit handler', () => {
     assert.strictEqual(await nextEdit.accept(), false)
   })
 
+  it('refuses to apply when the session is replaced during the jump', async t => {
+    let doc = await setup(t)
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(1, 0, 1, 3),
+      newText: ''
+    }))
+    // Simulate a buffer switch during jumpTo invalidating the session (e.g.
+    // the target buffer closes while the request is in flight).
+    t.mock.method(workspace, 'jumpTo', async () => { nextEdit.cancel() })
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.strictEqual(nextEdit.available(), true)
+    assert.strictEqual(await nextEdit.accept(), false)
+    assert.strictEqual(nextEdit.available(), false)
+  })
+
   it('normalizes newlines and executes a command after applying', async t => {
     let doc = await setup(t)
     let executed = 0
@@ -242,6 +258,21 @@ describe('NextEdit handler', () => {
     assert.strictEqual((nextEdit as any).renderedBufnrs.size, 0)
   })
 
+  it('drops a render cancelled while creating the namespace', async t => {
+    let doc = await setup(t)
+    register(doc, version => ({ textDocument: { uri: doc.uri, version }, range: Range.create(0, 0, 0, 0), newText: 'x' }))
+    ;(nextEdit as any).namespace = undefined
+    let resolveNs: (value?: unknown) => void
+    t.mock.method(workspace.nvim, 'createNamespace', () => new Promise(resolve => { resolveNs = resolve }))
+    let pending = nextEdit.trigger(doc.bufnr, { autoTrigger: false })
+    await shared.waitValue(() => resolveNs != null, true)
+    nextEdit.cancel()
+    resolveNs(1)
+    assert.strictEqual(await pending, true)
+    assert.strictEqual(nextEdit.available(), false)
+    assert.strictEqual((nextEdit as any).state, 'idle')
+  })
+
   it('keeps the accept action with inline completion', async t => {
     let doc = await setup(t)
     register(doc, version => ({ textDocument: { uri: doc.uri, version }, range: Range.create(0, 0, 0, 0), newText: 'x' }))
@@ -252,6 +283,23 @@ describe('NextEdit handler', () => {
     assert.strictEqual(await nextEdit.accept(), false)
     inline.session = undefined
     nextEdit.cancel()
+  })
+
+  it('triggers through the editor.action.triggerNextEdit command', async t => {
+    let doc = await setup(t)
+    // No provider registered yet: the command resolves to false.
+    assert.strictEqual(await commands.executeCommand('editor.action.triggerNextEdit', { autoTrigger: true }), false)
+    let kinds: number[] = []
+    disposables.push(languages.registerNextEditProvider([{ language: '*' }], {
+      provideNextEdits: (_doc, _position, option: any) => {
+        kinds.push(option.triggerKind)
+        return [{ textDocument: { uri: doc.uri, version: doc.version }, range: Range.create(0, 0, 0, 0), newText: 'x' }]
+      }
+    }))
+    // The command forces autoTrigger to false regardless of the passed option.
+    assert.strictEqual(await commands.executeCommand('editor.action.triggerNextEdit', { autoTrigger: true }), true)
+    assert.strictEqual(nextEdit.available(), true)
+    assert.deepStrictEqual(kinds, [InlineCompletionTriggerKind.Invoked])
   })
 
   it('reports final visibility state and disposes subscriptions', () => {

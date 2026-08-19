@@ -1131,4 +1131,10 @@ describe('Utility functions', () => {
       assert.strictEqual(result, true)
     })
   })
+
+  describe('dispose()', () => {
+    it('disposes the visibility emitter and subscriptions', () => {
+      inlineCompletion.dispose()
+    })
+  })
 })
