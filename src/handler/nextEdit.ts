@@ -2,11 +2,10 @@
 import { Neovim } from '@chemzqm/neovim'
 import { InlineCompletionTriggerKind, Position, Range, TextEdit } from 'vscode-languageserver-types'
 import commands from '../commands'
-import events from '../events'
 import languages, { ProviderName } from '../languages'
 import { createLogger } from '../logger'
 import { CancellationTokenSource, Disposable } from '../util/protocol'
-import { waitWithToken } from '../util'
+import { wait, waitWithToken } from '../util'
 import { byteIndex } from '../util/string'
 import { comparePosition, getEnd, positionInRange } from '../util/position'
 import window from '../window'
@@ -21,7 +20,7 @@ const NAMESPACE = 'nextEdit'
 export type NextEditState = 'idle' | 'waiting' | 'requesting' | 'ready' | 'preview' | 'applying'
 interface SourceSnapshot { uri: string; version: number; position: Position; bufnr: number }
 interface PreviewSnapshot { uri: string; version: number; range: Range; originalText: string }
-interface Session { source: SourceSnapshot; items: NextEditItem[]; index: number; shownIndexes: Set<number>; originWinid: number; originUri: string; originPosition: Position }
+interface Session { source: SourceSnapshot; items: NextEditItem[]; index: number; shownIndexes: Set<number> }
 
 function validPosition(doc: Document, pos: Position): boolean {
   return Number.isInteger(pos.line) && Number.isInteger(pos.character) && pos.line >= 0 && pos.line < doc.textDocument.lineCount
@@ -55,6 +54,9 @@ export default class NextEdit {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
     workspace.onDidChangeTextDocument(e => {
+      // Invalidate the current session on document changes even when auto
+      // triggering is disabled, so stale previews are not kept around.
+      if (!this.applying && this.session && e.bufnr === this.session.source.bufnr) this.cancel()
       if (this.applying || !this.config.autoTrigger || e.bufnr !== window.activeTextEditor?.bufnr) return
       let doc = workspace.getDocument(e.bufnr)
       if (doc?.attached && languages.hasProvider(ProviderName.NextEdit, doc.textDocument)) this.trigger(e.bufnr, { autoTrigger: true }, this.config.triggerWait).catch(logger.error)
@@ -84,25 +86,33 @@ export default class NextEdit {
 
   private async render(): Promise<void> {
     await this.clearRender()
-    if (!this.session || this.inline.session) return
-    let item = this.session.items[this.session.index]
+    let session = this.session
+    if (!session || this.inline.session) return
+    let item = session.items[session.index]
     let target = workspace.getDocument(item.textDocument.uri)
     if (!target || target.bufnr !== window.activeTextEditor?.bufnr || !this.preview) {
       this.state = 'ready'
-      this.renderedBufnrs.add(this.session.source.bufnr)
-      workspace.nvim.createBuffer(this.session.source.bufnr).setVar('coc_next_edit_state', 1, true)
+      this.renderedBufnrs.add(session.source.bufnr)
+      workspace.nvim.createBuffer(session.source.bufnr).setVar('coc_next_edit_state', 1, true)
       return
     }
-    if (this.namespace == null) this.namespace = await this.nvim.createNamespace(NAMESPACE) as number
+    if (this.namespace == null) {
+      this.namespace = await this.nvim.createNamespace(NAMESPACE) as number
+      if (this.session !== session) return
+    }
     let text = item.newText.length ? `Next edit: ${item.newText.replace(/\n/g, ' ↵ ')}` : 'Next edit: delete'
     let line = item.range.start.line
-    let col = byteIndex(target.getline(line), item.range.start.character)
-    await this.nvim.call('coc#vtext#add', [target.bufnr, this.namespace, line, [[text, item.newText ? 'CocNextEditInsert' : 'CocNextEditDelete']], { col }])
+    // coc#vtext#add expects a 1 based byte column, same as inline completion.
+    let col = byteIndex(target.getline(line), item.range.start.character) + 1
+    // Track the buffer before the RPC round trip so a cancel that happens
+    // while the request is in flight still clears this virtual text.
     this.renderedBufnrs.add(target.bufnr)
+    await this.nvim.call('coc#vtext#add', [target.bufnr, this.namespace, line, [[text, item.newText ? 'CocNextEditInsert' : 'CocNextEditDelete']], { col }])
+    if (this.session !== session) return
     workspace.nvim.createBuffer(target.bufnr).setVar('coc_next_edit_state', 2, true)
     this.state = 'preview'
-    if (!this.session.shownIndexes.has(this.session.index)) {
-      this.session.shownIndexes.add(this.session.index)
+    if (!session.shownIndexes.has(session.index)) {
+      session.shownIndexes.add(session.index)
       languages.nextEditManager.handleDidShow(item)
     }
   }
@@ -143,14 +153,18 @@ export default class NextEdit {
     if (delay) await waitWithToken(delay, source.token)
     if (source.token.isCancellationRequested || this.source !== requestId) return false
     await doc.synchronize()
-    let [pos, winid] = await this.nvim.eval('[coc#cursor#position(),win_getid()]') as [[number, number], number]
+    let [nr, pos] = await this.nvim.eval('[bufnr("%"),coc#cursor#position()]') as [number, [number, number]]
+    if (nr !== bufnr) {
+      this.cancel()
+      return false
+    }
     let position = Position.create(pos[0], pos[1])
     let items = await languages.provideNextEdits(doc.textDocument, position, { provider: option.provider, triggerKind: option.autoTrigger ? InlineCompletionTriggerKind.Automatic : InlineCompletionTriggerKind.Invoked }, source.token)
     if (source.token.isCancellationRequested || this.source !== requestId) return false
     this.source = undefined
     let valid = items.filter(item => this.validCandidate(item))
     if (!valid.length) { this.cancel(); return false }
-    this.session = { source: { uri: doc.uri, version: doc.version, position, bufnr }, items: valid, index: 0, shownIndexes: new Set(), originWinid: winid, originUri: doc.uri, originPosition: position }
+    this.session = { source: { uri: doc.uri, version: doc.version, position, bufnr }, items: valid, index: 0, shownIndexes: new Set() }
     this.state = 'ready'
     let selected = valid[0]
     let target = workspace.getDocument(selected.textDocument.uri)
@@ -164,11 +178,13 @@ export default class NextEdit {
 
   public async accept(): Promise<boolean> {
     if (this.inline.session || !this.session || (this.state !== 'ready' && this.state !== 'preview')) return false
-    let item = this.session.items[this.session.index]
+    let session = this.session
+    let item = session.items[session.index]
     if (this.state === 'ready') {
       await workspace.jumpTo(item.textDocument.uri, item.range.start)
-      let checked = this.validate(item)
-      if (!checked) { this.cancel(); return false }
+      if (this.session !== session) { this.cancel(); return false }
+      let checked = await this.waitForValidate(item)
+      if (!checked || this.session !== session) { this.cancel(); return false }
       this.preview = { uri: checked.doc.uri, version: checked.doc.version, range: item.range, originalText: checked.originalText }
       await this.render()
       return true
@@ -188,6 +204,20 @@ export default class NextEdit {
     }
     this.cancel()
     return true
+  }
+
+  /**
+   * Validate a candidate, waiting briefly for the target document to attach
+   * after it was opened by workspace.jumpTo.
+   */
+  private async waitForValidate(item: NextEditItem): Promise<{ doc: Document; originalText: string } | undefined> {
+    let deadline = Date.now() + 300
+    let checked = this.validate(item)
+    while (!checked && Date.now() < deadline) {
+      await wait(20)
+      checked = this.validate(item)
+    }
+    return checked
   }
 
   public cancel(): void {

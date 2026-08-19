@@ -10,6 +10,7 @@ import workspace from '../../workspace'
 
 let nextEdit: NextEdit
 let disposables: Disposable[] = []
+let vtextCalls: any[][] = []
 
 before(() => {
   nextEdit = getCurrentPlugin().handler.nextEdit
@@ -20,6 +21,7 @@ afterEach(async t => {
   nextEdit.cancel()
   disposables.forEach(d => d.dispose())
   disposables = []
+  vtextCalls = []
 })
 
 async function setup(t: any, lines = ['one', 'two']): Promise<any> {
@@ -30,7 +32,10 @@ async function setup(t: any, lines = ['one', 'two']): Promise<any> {
   await workspace.nvim.call('cursor', [1, 1])
   let originalCall = workspace.nvim.call
   t.mock.method(workspace.nvim, 'call', ((method: string, ...args: any[]) => {
-    if (method === 'coc#vtext#add') return Promise.resolve(1)
+    if (method === 'coc#vtext#add') {
+      vtextCalls.push(args)
+      return Promise.resolve(1)
+    }
     return originalCall.apply(workspace.nvim, [method, ...args] as any)
   }) as any)
   return doc
@@ -70,6 +75,34 @@ describe('NextEdit handler', () => {
     assert.notStrictEqual(doc.textDocument.getText(), before)
     assert.strictEqual(doc.getline(0), 'Xone')
     assert.strictEqual(await nextEdit.accept(), false)
+  })
+
+  it('renders the preview at a 1 based byte column of the edit start', async t => {
+    let doc = await setup(t, ['中文one', 'two'])
+    // Byte column 7 is the character index 2 position (after 中文).
+    await workspace.nvim.call('cursor', [1, 7])
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 2, 0, 2),
+      newText: 'X'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.strictEqual(nextEdit.visible(), true)
+    assert.strictEqual(vtextCalls.length, 1)
+    // byteIndex('中文one', 2) is 6; the virtual text column must be 7.
+    assert.strictEqual(vtextCalls[0][0][4].col, 7)
+  })
+
+  it('uses column 1 for an insertion at the start of a line', async t => {
+    let doc = await setup(t)
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 0, 0, 0),
+      newText: 'X'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.strictEqual(nextEdit.visible(), true)
+    assert.strictEqual(vtextCalls[0][0][4].col, 1)
   })
 
   it('jumps before previewing an off-cursor candidate, then applies a deletion', async t => {
@@ -162,6 +195,51 @@ describe('NextEdit handler', () => {
     await nextEdit.trigger(doc.bufnr, { autoTrigger: false })
     await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'changed')])
     assert.strictEqual(await nextEdit.accept(), false)
+  })
+
+  it('invalidates a preview when the document changes with autoTrigger disabled', async t => {
+    let doc = await setup(t)
+    register(doc, version => ({ textDocument: { uri: doc.uri, version }, range: Range.create(0, 0, 0, 0), newText: 'x' }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.strictEqual(nextEdit.visible(), true)
+    await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'changed')])
+    assert.strictEqual(nextEdit.available(), false)
+    assert.strictEqual(nextEdit.visible(), false)
+  })
+
+  it('aborts when the active buffer changed during the request', async t => {
+    let doc = await setup(t)
+    register(doc, version => ({ textDocument: { uri: doc.uri, version }, range: Range.create(0, 0, 0, 0), newText: 'x' }))
+    let originalEval = workspace.nvim.eval
+    t.mock.method(workspace.nvim, 'eval', ((expr: string) => {
+      if (typeof expr === 'string' && expr.includes('coc#cursor#position')) {
+        return Promise.resolve([doc.bufnr + 1, [0, 0]])
+      }
+      return originalEval.apply(workspace.nvim, [expr] as any)
+    }) as any)
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), false)
+    assert.strictEqual(nextEdit.available(), false)
+  })
+
+  it('drops a render that finishes after cancel without orphan state', async t => {
+    let doc = await setup(t)
+    register(doc, version => ({ textDocument: { uri: doc.uri, version }, range: Range.create(0, 0, 0, 0), newText: 'x' }))
+    let originalCall = workspace.nvim.call
+    let resolveAdd: (value?: unknown) => void
+    t.mock.method(workspace.nvim, 'call', ((method: string, ...args: any[]) => {
+      if (method === 'coc#vtext#add') {
+        return new Promise(resolve => { resolveAdd = resolve })
+      }
+      return originalCall.apply(workspace.nvim, [method, ...args] as any)
+    }) as any)
+    let pending = nextEdit.trigger(doc.bufnr, { autoTrigger: false })
+    await shared.waitValue(() => resolveAdd != null, true)
+    nextEdit.cancel()
+    resolveAdd(1)
+    assert.strictEqual(await pending, true)
+    assert.strictEqual(nextEdit.available(), false)
+    assert.strictEqual((nextEdit as any).state, 'idle')
+    assert.strictEqual((nextEdit as any).renderedBufnrs.size, 0)
   })
 
   it('keeps the accept action with inline completion', async t => {
