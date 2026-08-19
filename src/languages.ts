@@ -5,7 +5,7 @@ import { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoingCall
 import type { Sources } from './completion/sources'
 import DiagnosticCollection from './diagnostic/collection'
 import diagnosticManager from './diagnostic/manager'
-import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSelector, DocumentSemanticTokensProvider, DocumentSymbolProvider, DocumentSymbolProviderMetadata, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlayHintsProvider, InlineCompletionItemProvider, InlineValuesProvider, LinkedEditingRangeProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from './provider'
+import { CallHierarchyProvider, CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentRangeSemanticTokensProvider, DocumentSelector, DocumentSemanticTokensProvider, DocumentSymbolProvider, DocumentSymbolProviderMetadata, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, InlayHintsProvider, InlineCompletionItemProvider, InlineValuesProvider, LinkedEditingRangeProvider, NextEditContext, NextEditItem, NextEditProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SelectionRangeProvider, SignatureHelpProvider, TypeDefinitionProvider, TypeHierarchyProvider, WorkspaceSymbolProvider } from './provider'
 import CallHierarchyManager from './provider/callHierarchyManager'
 import CodeActionManager from './provider/codeActionManager'
 import CodeLensManager from './provider/codeLensManager'
@@ -22,6 +22,7 @@ import HoverManager from './provider/hoverManager'
 import ImplementationManager from './provider/implementationManager'
 import InlayHintManger, { InlayHintWithProvider } from './provider/inlayHintManager'
 import InlineCompletionItemManager, { ExtendedInlineContext } from './provider/inlineCompletionItemManager'
+import NextEditManager from './provider/nextEditManager'
 import InlineValueManager from './provider/inlineValueManager'
 import LinkedEditingRangeManager from './provider/linkedEditingRangeManager'
 import OnTypeFormatManager from './provider/onTypeFormatManager'
@@ -79,6 +80,7 @@ export enum ProviderName {
   InlayHint = 'inlayHint',
   InlineValue = 'inlineValue',
   InlineCompletion = 'inlineCompletion',
+  NextEdit = 'nextEdit',
   TypeHierarchy = 'typeHierarchy'
 }
 
@@ -143,6 +145,8 @@ class Languages {
    * @internal
    */
   public inlineCompletionItemManager = new InlineCompletionItemManager()
+  /** @internal */
+  public nextEditManager = new NextEditManager()
   private inlineValueManager = new InlineValueManager()
   /**
    * @internal
@@ -206,6 +210,10 @@ class Languages {
 
   public registerInlineCompletionItemProvider(selector: DocumentSelector, provider: InlineCompletionItemProvider): Disposable {
     return this.inlineCompletionItemManager.register(selector, provider)
+  }
+
+  public registerNextEditProvider(selector: DocumentSelector, provider: NextEditProvider): Disposable {
+    return this.nextEditManager.register(selector, provider)
   }
 
   public registerCodeActionProvider(selector: DocumentSelector, provider: CodeActionProvider, clientId: string | undefined, codeActionKinds?: CodeActionKind[]): Disposable {
@@ -542,6 +550,11 @@ class Languages {
   public async provideInlineCompletionItems(document: TextDocument, position: Position, context: ExtendedInlineContext, token: CancellationToken): Promise<InlineCompletionItem[]> {
     return this.inlineCompletionItemManager.provideInlineCompletionItems(document, position, context, token)
   }
+
+  /** @internal */
+  public async provideNextEdits(document: TextDocument, position: Position, context: NextEditContext & { provider?: string }, token: CancellationToken): Promise<NextEditItem[]> {
+    return this.nextEditManager.provideNextEdits(document, position, context, token)
+  }
   /**
    * @internal
    */
@@ -777,6 +790,8 @@ class Languages {
         return this.inlayHintManager.hasProvider(document)
       case ProviderName.InlineCompletion:
         return this.inlineCompletionItemManager.hasProvider(document)
+      case ProviderName.NextEdit:
+        return this.nextEditManager.hasProvider(document)
       case ProviderName.InlineValue:
         return this.inlineValueManager.hasProvider(document)
       case ProviderName.TypeHierarchy:

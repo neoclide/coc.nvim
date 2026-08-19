@@ -189,6 +189,15 @@ export default class Plugin {
     this.addAction('inlineAccept', (bufnr: number, kind?: AcceptKind) => this.handler.inlineCompletion.accept(bufnr, kind))
     this.addAction('inlineNext', (bufnr: number) => this.handler.inlineCompletion.next(bufnr))
     this.addAction('inlinePrev', (bufnr: number) => this.handler.inlineCompletion.prev(bufnr))
+    this.addAction('nextEditTrigger', async (option?: { provider?: string; autoTrigger?: boolean }) => {
+      let bufnr = await this.nvim.eval('bufnr("%")') as number
+      return this.handler.nextEdit.trigger(bufnr, { ...option, autoTrigger: false })
+    })
+    this.addAction('nextEditAccept', () => this.handler.nextEdit.accept())
+    this.addAction('nextEditCancel', () => this.handler.nextEdit.cancel())
+    this.addAction('nextEditNext', () => this.handler.nextEdit.next())
+    this.addAction('nextEditPrev', () => this.handler.nextEdit.prev())
+    this.addAction('nextEditAvailable', () => this.handler.nextEdit.available())
     this.addAction('notificationHistory', () => window.notifications.history)
   }
 

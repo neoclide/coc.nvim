@@ -1,5 +1,6 @@
 'use strict'
 import type { CallHierarchyIncomingCall, DocumentFilter, CallHierarchyItem, CallHierarchyOutgoingCall, CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DefinitionLink, DocumentDiagnosticReport, DocumentHighlight, DocumentLink, DocumentSymbol, Event, FoldingRange, FormattingOptions, Hover, InlayHint, InlineValue, InlineValueContext, LinkedEditingRanges, Location, Position, PreviousResultId, Range, SelectionRange, SemanticTokens, SemanticTokensDelta, SignatureHelp, SignatureHelpContext, SymbolInformation, TextEdit, TypeHierarchyItem, WorkspaceDiagnosticReport, WorkspaceDiagnosticReportPartialResult, WorkspaceEdit, WorkspaceSymbol, InlineCompletionContext, InlineCompletionItem, InlineCompletionList } from 'vscode-languageserver-protocol'
+import type { InlineCompletionTriggerKind, VersionedTextDocumentIdentifier } from 'vscode-languageserver-types'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { URI } from 'vscode-uri'
 
@@ -113,6 +114,26 @@ export interface InlineCompletionItemProvider {
     context: InlineCompletionContext,
     token: CancellationToken
   ): ProviderResult<InlineCompletionItem[] | InlineCompletionList>
+}
+
+export interface NextEditItem {
+  textDocument: VersionedTextDocumentIdentifier
+  range: Range
+  newText: string
+  command?: Command
+}
+
+export interface NextEditList {
+  items: NextEditItem[]
+}
+
+export interface NextEditContext {
+  triggerKind: InlineCompletionTriggerKind
+}
+
+export interface NextEditProvider {
+  provideNextEdits(document: TextDocument, position: Position, context: NextEditContext, token: CancellationToken): ProviderResult<NextEditItem[] | NextEditList>
+  handleDidShowNextEdit?(item: NextEditItem): void | Thenable<void>
 }
 
 /**
