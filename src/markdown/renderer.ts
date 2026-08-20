@@ -197,11 +197,17 @@ function unescapeEntities(html: string): string {
 
 const links: Map<string, string> = new Map()
 
+export interface MarkdownLink {
+  marker: number
+  url: string
+}
+
 export interface RendererOptions {
   sanitize?: boolean
 }
 
 class Renderer {
+  private linkMarkers: MarkdownLink[] = []
   private o: any
   private tab: any
   private tableSettings: any
@@ -342,9 +348,15 @@ class Renderer {
     if (text && href && text != href) {
       links.set(text, href)
     }
-    if (text && text != href) return styles.blue(text)
+    let marker = `\0${this.linkMarkers.length}\0`
+    this.linkMarkers.push({ marker: this.linkMarkers.length, url: href })
+    if (text && text != href) return styles.blue(marker + text + marker)
     let out = this.o.href(href)
-    return this.o.link(out)
+    return marker + this.o.link(out) + marker
+  }
+
+  public getLinkMarkers(): readonly MarkdownLink[] {
+    return this.linkMarkers
   }
 
   public image(href: string, title: string | null, text: string): string {
