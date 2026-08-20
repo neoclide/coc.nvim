@@ -19,6 +19,7 @@ LSP features 					|coc-lsp|
   Hover 					|coc-hover|
   Completion					|coc-completion|
   Inline completion				|coc-inlineCompletion|
+  Next edit					|coc-next-edit|
   Diagnostics 					|coc-diagnostics|
   Pull diagnostics 				|coc-pullDiagnostics|
   Locations 					|coc-locations|
@@ -764,6 +765,32 @@ disable inline completion triggering completely.
 Related Highlight groups:
 	|CocInlineVirtualText| for virtual text highlight.
 	|CocInlineAnnotation| for annotation highlight.
+
+------------------------------------------------------------------------------
+NEXT EDIT							*coc-next-edit*
+
+Extensions can register a generic `NextEditProvider` with
+`languages.registerNextEditProvider()`. Providers return versioned insertion,
+replacement, or deletion candidates. Candidates are previewed without changing
+the buffer; accepting an off-cursor candidate first jumps to it, and accepting
+again applies it. A visible inline completion always has priority.
+
+Functions: ~
+
+  • Trigger: |coc#nextedit#trigger()|.
+  • Check availability: |coc#nextedit#available()|.
+  • Check preview visibility: |coc#nextedit#visible()|.
+  • Accept: |coc#nextedit#accept()|.
+  • Cancel: |coc#nextedit#cancel()|.
+  • Next/previous candidate: |coc#nextedit#next()| and |coc#nextedit#prev()|.
+
+No default mapping is installed. A priority-preserving Insert-mode example is: >
+	inoremap <silent><expr> <Tab>
+	      \ coc#pum#visible() ? coc#pum#next(1) :
+	      \ coc#inline#visible() ? coc#inline#accept() :
+	      \ coc#nextedit#available() ? coc#nextedit#accept() :
+	      \ "\<Tab>"
+<
 
 ------------------------------------------------------------------------------
 DIAGNOSTICS SUPPORT 					*coc-diagnostics*
@@ -2592,6 +2619,49 @@ coc#inline#prev() 					*coc#inline#prev()*
 
 	Note: this function uses |CocActionAsync()|, use it in key-mappings
 	instead of API.
+
+coc#nextedit#trigger([{option}]) 				*coc#nextedit#trigger()*
+
+	Trigger a Next Edit request for the current buffer asynchronously and
+	return `""`, so this function can be used in an `<expr>` mapping.
+
+	Parameters: ~
+		{option} Optional dictionary. The `provider` property restricts the
+		request to the named provider.
+
+coc#nextedit#available() 				*coc#nextedit#available()*
+
+	Return `1` when a Next Edit candidate is ready to jump or apply in the
+	current buffer, otherwise return `0`.
+
+coc#nextedit#visible() 				*coc#nextedit#visible()*
+
+	Return `1` when a Next Edit preview is visible in the current buffer,
+	otherwise return `0`. A ready navigation indicator is not a preview.
+
+coc#nextedit#accept() 				*coc#nextedit#accept()*
+
+	Accept the current Next Edit action asynchronously. An off-cursor or
+	cross-file candidate is first opened and previewed; a second call applies
+	the edit. Returns `""` and does nothing when no candidate is available.
+
+coc#nextedit#cancel() 				*coc#nextedit#cancel()*
+
+	Cancel the current request or preview and clear all Next Edit UI state.
+	Returns `""`.
+
+coc#nextedit#next() 				*coc#nextedit#next()*
+
+	Select the next candidate, wrapping to the first candidate. Returns `""`.
+
+coc#nextedit#prev() 				*coc#nextedit#prev()*
+
+	Select the previous candidate, wrapping to the last candidate. Returns `""`.
+
+coc#nextedit#clear([{bufnr}]) 				*coc#nextedit#clear()*
+
+	Clear Next Edit virtual text and buffer-local state. When {bufnr} is
+	omitted, clear the current buffer.
 
 							*coc#notify*
 coc#notify#close_all()					*coc#notify#close_all()*

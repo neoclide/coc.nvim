@@ -2,6 +2,12 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-19
+
+- Add a provider-neutral Next Edit API with versioned candidates, cancellation,
+  preview, navigation, acceptance, Vim/Neovim actions, and extension-owned
+  `handleDidShowNextEdit` callbacks.
+
 ## 2026-08-15
 
 - Upgrade extension loader:
