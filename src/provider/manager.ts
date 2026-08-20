@@ -65,6 +65,25 @@ export default class Manager<T extends object, P = object> {
     if (serverCancelError) throw serverCancelError
   }
 
+  /**
+   * Wait for provider aggregation without letting a provider that ignores its
+   * cancellation token keep the request alive.
+   */
+  protected async raceCancellation<R>(promise: Promise<R>, token: CancellationToken): Promise<R | undefined> {
+    if (token.isCancellationRequested) return undefined
+    let disposable: Disposable
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<undefined>(resolve => {
+          disposable = token.onCancellationRequested(() => resolve(undefined))
+        })
+      ])
+    } finally {
+      disposable?.dispose()
+    }
+  }
+
   protected getProvider(document: TextDocumentMatch): ProviderItem<T, P> {
     let currScore = 0
     let providerItem: ProviderItem<T, P>

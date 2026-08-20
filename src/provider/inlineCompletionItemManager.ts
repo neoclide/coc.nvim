@@ -2,7 +2,6 @@
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { InlineCompletionContext, InlineCompletionItem, Position } from 'vscode-languageserver-types'
 import { toArray } from '../util/array'
-import { onUnexpectedError } from '../util/errors'
 import { omit } from '../util/lodash'
 import { CancellationToken, Disposable } from '../util/protocol'
 import { DocumentSelector, InlineCompletionItemProvider } from './index'
@@ -57,15 +56,8 @@ export default class InlineCompletionItemManager extends Manager<InlineCompletio
         }
       })
     }))
-    let disposable: Disposable
-    await Promise.race([new Promise(resolve => {
-      disposable = token.onCancellationRequested(() => {
-        resolve(undefined)
-      })
-    }), promise.then(results => {
-      if (!token.isCancellationRequested) this.handleResults(results, 'provideInlineCompletionItems', providers)
-    })]).catch(onUnexpectedError)
-    if (disposable) disposable.dispose()
+    const results = await this.raceCancellation(promise, token)
+    if (results) this.handleResults(results, 'provideInlineCompletionItems', providers)
     return items
   }
 }

@@ -60,28 +60,17 @@ describe('InlineCompletion', () => {
     assert.strictEqual(res.length, 2)
   })
 
-  it('should return empty when token cancelled', async t => {
+  it('should return immediately when a provider ignores cancellation', async t => {
     let doc = await workspace.document
     let pos = await window.getCursorPosition()
     let context: InlineCompletionContext = { triggerKind: InlineCompletionTriggerKind.Automatic }
-    let cancelled = false
     disposables.push(languages.registerInlineCompletionItemProvider(['*'], {
-      provideInlineCompletionItems: (_doc, _pos, _context, token) => {
-        return new Promise(resolve => {
-          let timer = setTimeout(() => resolve([]), 500)
-          token.onCancellationRequested(() => {
-            cancelled = true
-            clearTimeout(timer)
-            resolve(undefined)
-          })
-        })
-      }
+      provideInlineCompletionItems: () => new Promise(() => {})
     }))
     let tokenSource = new CancellationTokenSource()
     let p = languages.provideInlineCompletionItems(doc.textDocument, pos, context, tokenSource.token)
     tokenSource.cancel()
     let res = await p
-    assert.strictEqual(cancelled, true)
     assert.deepStrictEqual(res, [])
   })
 
