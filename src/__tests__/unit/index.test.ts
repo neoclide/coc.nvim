@@ -135,6 +135,15 @@ bar
     ])
   })
 
+  it('should retain markdown links for Neovim hyperlink extmarks', () => {
+    let res = parseMarkdown('[Coc](https://github.com/neoclide/coc.nvim) and https://neovim.io', {})
+    assert.deepStrictEqual(res.lines, ['Coc and https://neovim.io', '', 'Coc: https://github.com/neoclide/coc.nvim'])
+    assert.deepStrictEqual(res.links, [
+      { lnum: 0, colStart: 0, colEnd: 3, url: 'https://github.com/neoclide/coc.nvim' },
+      { lnum: 0, colStart: 8, colEnd: 25, url: 'https://neovim.io' }
+    ])
+  })
+
   it('should exclude images by option', () => {
     let content = 'head\n![img](img)\ncontent ![img](img) ![img](img)'
     let res = parseMarkdown(content, { excludeImages: false })

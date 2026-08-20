@@ -1524,6 +1524,9 @@ endfunction
 function! s:add_highlights(winid, config, create) abort
   let codes = get(a:config, 'codes', [])
   let highlights = get(a:config, 'highlights', [])
+  if !s:is_vim && has('nvim-0.12')
+    call v:lua.require('coc.float').add_hyperlinks(a:winid, get(a:config, 'links', []))
+  endif
   if empty(codes) && empty(highlights) && a:create
     return
   endif

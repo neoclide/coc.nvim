@@ -140,10 +140,11 @@ export default class FloatFactoryImpl implements Disposable {
 
   private async createPopup(docs: Documentation[], opts: FloatWinConfig, token: number): Promise<void> {
     docs = docs.filter(o => o.content.trim().length > 0)
-    let { lines, codes, highlights } = parseDocuments(docs, { excludeImages: opts.excludeImages, breaks: opts.breaks })
+    let { lines, codes, highlights, links } = parseDocuments(docs, { excludeImages: opts.excludeImages, breaks: opts.breaks })
     let config: any = {
       codes,
       highlights,
+      links,
       pumAlignTop: events.pumAlignTop,
       preferTop: typeof opts.preferTop === 'boolean' ? opts.preferTop : false,
       offsetX: opts.offsetX || 0,

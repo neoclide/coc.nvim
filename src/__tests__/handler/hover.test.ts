@@ -155,6 +155,20 @@ describe('Hover', () => {
       let lines = await nvim.eval(`getbufline(winbufnr(${win.id}),1,'$')`)
       assert.deepStrictEqual(lines, ['const foo:number'])
     })
+
+    it('should add OSC 8 hyperlinks to Neovim hover floats', async t => {
+      hoverResult = { contents: { kind: 'markdown', value: '[Coc](https://github.com/neoclide/coc.nvim)' } }
+      await hover.onHover('float')
+      if (workspace.isVim || !workspace.has('nvim-0.12.0')) return
+      let win = await shared.getFloat()
+      let namespaces = await nvim.call('nvim_get_namespaces') as Record<string, number>
+      let bufnr = await nvim.call('winbufnr', [win.id]) as number
+      let marks = await nvim.call('luaeval', ['vim.api.nvim_buf_get_extmarks(_A[1], _A[2], 0, -1, {details = true})', [bufnr, namespaces['coc-hyperlinks']]]) as any[]
+      assert.strictEqual(marks.length, 1)
+      assert.deepStrictEqual(marks[0].slice(1, 3), [0, 0])
+      assert.strictEqual(marks[0][3].end_col, 3)
+      assert.strictEqual(marks[0][3].url, 'https://github.com/neoclide/coc.nvim')
+    })
   })
 
   describe('getHover', () => {

@@ -5,7 +5,7 @@ import { parseAnsiHighlights } from '../util/ansiparse'
 import * as Is from '../util/is'
 import { stripAnsi } from '../util/node'
 import { byteIndex, byteLength } from '../util/string'
-import Renderer from './renderer'
+import Renderer, { MarkdownLink } from './renderer'
 
 export interface MarkdownParseOptions {
   breaks?: boolean
@@ -26,6 +26,14 @@ export interface DocumentInfo {
   lines: string[]
   highlights: HighlightItem[]
   codes: CodeBlock[]
+  links: MarkdownLinkItem[]
+}
+
+export interface MarkdownLinkItem {
+  lnum: number
+  colStart: number
+  colEnd: number
+  url: string
 }
 
 enum FiletypeHighlights {
@@ -59,6 +67,7 @@ export function parseDocuments(docs: Documentation[], opts: MarkdownParseOptions
   let lines: string[] = []
   let highlights: HighlightItem[] = []
   let codes: CodeBlock[] = []
+  let linkItems: MarkdownLinkItem[] = []
   let idx = 0
   for (let doc of docs) {
     let currline = lines.length
@@ -75,6 +84,7 @@ export function parseDocuments(docs: Documentation[], opts: MarkdownParseOptions
         o.lnum = o.lnum + currline
         return o
       }))
+      linkItems.push(...info.links.map(o => ({ ...o, lnum: o.lnum + currline })))
       lines.push(...info.lines)
     } else {
       let parts = content.trim().split(/\r?\n/)
@@ -106,7 +116,7 @@ export function parseDocuments(docs: Documentation[], opts: MarkdownParseOptions
     }
     idx = idx + 1
   }
-  return { lines, highlights, codes }
+  return { lines, highlights, codes, links: linkItems }
 }
 
 /**
@@ -154,8 +164,9 @@ export function getHighlightItems(content: string, currline: number, active: [nu
  * Parse markdown for lines, highlights & codes
  */
 export function parseMarkdown(content: string, opts: MarkdownParseOptions): DocumentInfo {
+  let renderer = new Renderer()
   marked.setOptions({
-    renderer: new Renderer() as MarkedRenderer,
+    renderer: renderer as MarkedRenderer,
     gfm: true,
     breaks: Is.boolean(opts.breaks) ? opts.breaks : true,
     hooks: Renderer.hooks,
@@ -163,15 +174,16 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
   let lines: string[] = []
   let highlights: HighlightItem[] = []
   let codes: CodeBlock[] = []
+  let linkItems: MarkdownLinkItem[] = []
   let currline = 0
   let inCodeBlock = false
   let filetype: string
   let startLnum = 0
   let parsed = marked(content)
-  let links = Renderer.getLinks()
+  let linkReferences = Renderer.getLinks()
   parsed = parsed.replace(/\s*$/, '')
-  if (links.length) {
-    parsed = parsed + '\n\n' + links.join('\n')
+  if (linkReferences.length) {
+    parsed = parsed + '\n\n' + linkReferences.join('\n')
   }
   let parsedLines = parsed.split(/\n/)
   for (let i = 0; i < parsedLines.length; i++) {
@@ -219,6 +231,9 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
       continue
     }
     let res = parseAnsiHighlights(line, true)
+    let linkResult = extractLinks(res.line, renderer.getLinkMarkers(), currline)
+    res.line = linkResult.line
+    linkItems.push(...linkResult.links)
     if (line === DIVIDE_LINE) {
       highlights.push({
         hlGroup: DIVIDING_LINE_HI_GROUP,
@@ -232,13 +247,48 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
         highlights.push({
           hlGroup,
           lnum: currline,
-          colStart: span[0],
-          colEnd: span[1]
+          colStart: adjustLinkMarkerColumn(span[0], linkResult.markerOffsets, true),
+          colEnd: adjustLinkMarkerColumn(span[1], linkResult.markerOffsets, false)
         })
       }
     }
     lines.push(res.line)
     currline++
   }
-  return { lines, highlights, codes }
+  return { lines, highlights, codes, links: linkItems }
+}
+
+function extractLinks(line: string, markers: readonly MarkdownLink[], lnum: number): { line: string, links: MarkdownLinkItem[], markerOffsets: number[] } {
+  let links: MarkdownLinkItem[] = []
+  let markerOffsets: number[] = []
+  let starts = new Map<number, number>()
+  let result = ''
+  let offset = 0
+  let match: RegExpExecArray | null
+  const marker = String.fromCharCode(0)
+  const regexp = new RegExp(`${marker}(\\d+)${marker}`, 'g')
+  while ((match = regexp.exec(line)) != null) {
+    result += line.slice(offset, match.index)
+    markerOffsets.push(byteLength(line.slice(0, match.index)))
+    let marker = Number(match[1])
+    let start = starts.get(marker)
+    if (start == null) {
+      starts.set(marker, byteLength(result))
+    } else {
+      let url = markers[marker]?.url
+      let end = byteLength(result)
+      if (url && end > start) links.push({ lnum, colStart: start, colEnd: end, url })
+      starts.delete(marker)
+    }
+    offset = match.index + match[0].length
+  }
+  return { line: result + line.slice(offset), links, markerOffsets }
+}
+
+function adjustLinkMarkerColumn(column: number, markerOffsets: readonly number[], includeEqual: boolean): number {
+  let original = column
+  for (let offset of markerOffsets) {
+    if (offset < original || (includeEqual && offset === original)) column -= 2 + offset.toString().length
+  }
+  return column
 }
