@@ -33,13 +33,13 @@ export default class NextEditManager extends Manager<NextEditProvider> {
   ): Promise<NextEditItem[]> {
     let providers: ProviderItem<NextEditProvider>[]
     if (context.provider) {
-      let item = this.getProvideByExtension(document, context.provider)
+      let item = this.getProviders(document).find(item => item.provider['__extensionName'] === context.provider)
       providers = item ? [item] : []
     } else {
       providers = this.getProviders(document)
     }
     if (providers.length === 0 || token.isCancellationRequested) return []
-    let results = await Promise.all(providers.map(async item => {
+    let aggregate = Promise.all(providers.map(async item => {
       try {
         let result = await item.provider.provideNextEdits(document, position, {
           triggerKind: context.triggerKind
@@ -56,6 +56,12 @@ export default class NextEditManager extends Manager<NextEditProvider> {
         return []
       }
     }))
+    let disposable: Disposable | undefined
+    let results = await Promise.race([aggregate, new Promise<undefined>(resolve => {
+      disposable = token.onCancellationRequested(() => resolve(undefined))
+    })])
+    disposable?.dispose()
+    if (!results) return []
     if (token.isCancellationRequested) return []
     let items: NextEditItem[] = []
     let seen = new Set<string>()

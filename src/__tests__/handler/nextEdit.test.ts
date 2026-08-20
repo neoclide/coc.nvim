@@ -105,6 +105,20 @@ describe('NextEdit handler', () => {
     assert.strictEqual(vtextCalls[0][0][4].col, 1)
   })
 
+  it('uses the namespace cleared by the Vim next-edit layer', async t => {
+    let doc = await setup(t)
+    ;(nextEdit as any).namespace = undefined
+    let namespaces: string[] = []
+    t.mock.method(workspace.nvim, 'createNamespace', async (name: string) => { namespaces.push(name); return 1 })
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 0, 0, 0),
+      newText: 'X'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.deepStrictEqual(namespaces, ['coc-nextEdit'])
+  })
+
   it('jumps before previewing an off-cursor candidate, then applies a deletion', async t => {
     let doc = await setup(t)
     register(doc, version => ({
@@ -137,6 +151,48 @@ describe('NextEdit handler', () => {
     await nextEdit.next()
     await nextEdit.prev()
     assert.strictEqual(shown, 2)
+  })
+
+  it('does not mark a superseded candidate as shown after an async render', async t => {
+    let doc = await setup(t)
+    let shown: string[] = []
+    let resolveFirst: () => void
+    let calls = 0
+    t.mock.method(workspace.nvim, 'call', ((method: string) => {
+      if (method === 'coc#vtext#add' && calls++ === 0) return new Promise<void>(resolve => { resolveFirst = resolve })
+      return Promise.resolve(1)
+    }) as any)
+    disposables.push(languages.registerNextEditProvider([{ language: '*' }], {
+      provideNextEdits: () => [
+        { textDocument: { uri: doc.uri, version: doc.version }, range: Range.create(0, 0, 0, 0), newText: 'a' },
+        { textDocument: { uri: doc.uri, version: doc.version }, range: Range.create(0, 0, 0, 0), newText: 'b' },
+      ],
+      handleDidShowNextEdit: item => { shown.push(item.newText) }
+    }))
+    let pending = nextEdit.trigger(doc.bufnr, { autoTrigger: false })
+    await shared.waitValue(() => resolveFirst != null, true)
+    await nextEdit.next()
+    resolveFirst()
+    await pending
+    assert.deepStrictEqual(shown, ['b'])
+  })
+
+  it('reloads language-scoped configuration after switching buffers', async t => {
+    await setup(t)
+    let handler = nextEdit as any
+    let original = workspace.getConfiguration
+    t.mock.method(workspace, 'getConfiguration', ((section: string, resource: any) => {
+      if (section === 'nextEdit') {
+        let disabled = resource?.languageId === 'typescript'
+        return { get: (key: string, fallback: any) => key === 'autoTrigger' ? !disabled : fallback }
+      }
+      return original.call(workspace, section, resource)
+    }) as any)
+    await workspace.nvim.command('setfiletype typescript')
+    await shared.waitValue(() => handler.config.autoTrigger, false)
+    await workspace.nvim.command('enew | setfiletype javascript')
+    await shared.waitValue(() => handler.config.autoTrigger, true)
+    assert.strictEqual(handler.config.autoTrigger, true)
   })
 
   it('rejects malformed, stale, invalid-range and no-op candidates', async t => {

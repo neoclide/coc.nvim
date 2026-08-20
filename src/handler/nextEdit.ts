@@ -15,7 +15,7 @@ import Document from '../model/document'
 import { HandlerDelegate } from './types'
 
 const logger = createLogger('handler-next-edit')
-const NAMESPACE = 'nextEdit'
+const NAMESPACE = 'coc-nextEdit'
 
 export type NextEditState = 'idle' | 'waiting' | 'requesting' | 'ready' | 'preview' | 'applying'
 interface SourceSnapshot { uri: string; version: number; position: Position; bufnr: number }
@@ -53,6 +53,7 @@ export default class NextEdit {
   constructor(private nvim: Neovim, private handler: HandlerDelegate, private inline: { session: unknown; onDidChangeVisibility: (cb: (visible: boolean) => void) => Disposable }) {
     this.loadConfiguration()
     workspace.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables)
+    window.onDidChangeActiveTextEditor(this.loadConfiguration, this, this.disposables)
     workspace.onDidChangeTextDocument(e => {
       // Invalidate the current session on document changes even when auto
       // triggering is disabled, so stale previews are not kept around.
@@ -88,7 +89,8 @@ export default class NextEdit {
     await this.clearRender()
     let session = this.session
     if (!session || this.inline.session) return
-    let item = session.items[session.index]
+    let index = session.index
+    let item = session.items[index]
     let target = workspace.getDocument(item.textDocument.uri)
     if (!target || target.bufnr !== window.activeTextEditor?.bufnr || !this.preview) {
       this.state = 'ready'
@@ -108,11 +110,11 @@ export default class NextEdit {
     // while the request is in flight still clears this virtual text.
     this.renderedBufnrs.add(target.bufnr)
     await this.nvim.call('coc#vtext#add', [target.bufnr, this.namespace, line, [[text, item.newText ? 'CocNextEditInsert' : 'CocNextEditDelete']], { col }])
-    if (this.session !== session) return
+    if (this.session !== session || session.index !== index) return
     workspace.nvim.createBuffer(target.bufnr).setVar('coc_next_edit_state', 2, true)
     this.state = 'preview'
-    if (!session.shownIndexes.has(session.index)) {
-      session.shownIndexes.add(session.index)
+    if (!session.shownIndexes.has(index)) {
+      session.shownIndexes.add(index)
       languages.nextEditManager.handleDidShow(item)
     }
   }

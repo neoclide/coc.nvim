@@ -90,6 +90,32 @@ describe('NextEditManager', () => {
     assert.deepStrictEqual(await promise, [])
   })
 
+  it('returns promptly when a provider ignores cancellation', async () => {
+    let manager = new NextEditManager()
+    manager.register([{ language: '*' }], { provideNextEdits: () => new Promise(() => {}) })
+    let source = new CancellationTokenSource()
+    let promise = manager.provideNextEdits(document, Position.create(0, 0), context, source.token)
+    source.cancel()
+    assert.deepStrictEqual(await Promise.race([
+      promise,
+      new Promise(resolve => setTimeout(() => resolve('timed out'), 50))
+    ]), [])
+  })
+
+  it('does not invoke a named provider outside its document selector', async () => {
+    let manager = new NextEditManager()
+    let called = 0
+    let wrong = { provideNextEdits: () => { called++; return [item('wrong language')] } }
+    let matching = { provideNextEdits: () => [item('matching language')] }
+    Object.defineProperty(wrong, '__extensionName', { value: 'selected' })
+    Object.defineProperty(matching, '__extensionName', { value: 'selected' })
+    manager.register([{ language: 'javascript' }], wrong)
+    manager.register([{ language: 'typescript' }], matching)
+    let result = await manager.provideNextEdits(document, Position.create(0, 0), { ...context, provider: 'selected' }, CancellationToken.None)
+    assert.deepStrictEqual(result.map(o => o.newText), ['matching language'])
+    assert.strictEqual(called, 0)
+  })
+
   it('does not call providers for an already cancelled token', async () => {
     let manager = new NextEditManager()
     let called = 0
