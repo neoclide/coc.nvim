@@ -49,7 +49,6 @@ const filetyepsMap = {
   bash: 'sh'
 }
 const ACTIVE_HL_GROUP = 'CocFloatActive'
-const HEADER_PREFIX = '\x1b[35m'
 const DIVIDING_LINE_HI_GROUP = 'CocFloatDividingLine'
 const MARKDOWN = 'markdown'
 const DOTS = '```'
@@ -260,19 +259,21 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
 
 function extractLinks(line: string, markers: readonly MarkdownLink[], starts: Map<number, number>, lnum: number): { line: string, links: MarkdownLinkItem[] } {
   let links: MarkdownLinkItem[] = []
+  if (markers.length == 0) return { line, links }
   let result = ''
   let offset = 0
   let match: RegExpExecArray | null
   const regexp = new RegExp(`${String.fromCharCode(27)}\\[1000;(\\d+)m`, 'g')
   while ((match = regexp.exec(line)) != null) {
-    result += line.slice(offset, match.index)
+    let part = line.slice(offset, match.index)
+    result += part
     let marker = Number(match[1])
     let start = starts.get(marker)
     if (start == null) {
       starts.set(marker, byteLength(stripAnsi(result)))
     } else {
       let url = markers[marker]?.url
-      let end = byteLength(stripAnsi(result))
+      let end = start + byteLength(stripAnsi(part))
       if (url && end > start) links.push({ lnum, colStart: start, colEnd: end, url })
       starts.delete(marker)
     }
