@@ -231,9 +231,8 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
       currline++
       continue
     }
-    let res = parseAnsiHighlights(line, true)
-    let linkResult = extractLinks(res.line, renderer.getLinkMarkers(), linkStarts, currline)
-    res.line = linkResult.line
+    let linkResult = extractLinks(line, renderer.getLinkMarkers(), linkStarts, currline)
+    let res = parseAnsiHighlights(linkResult.line, true)
     linkItems.push(...linkResult.links)
     if (line === DIVIDE_LINE) {
       highlights.push({
@@ -248,8 +247,8 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
         highlights.push({
           hlGroup,
           lnum: currline,
-          colStart: adjustLinkMarkerColumn(span[0], linkResult.markerOffsets),
-          colEnd: adjustLinkMarkerColumn(span[1], linkResult.markerOffsets)
+          colStart: span[0],
+          colEnd: span[1]
         })
       }
     }
@@ -259,24 +258,21 @@ export function parseMarkdown(content: string, opts: MarkdownParseOptions): Docu
   return { lines, highlights, codes, links: linkItems }
 }
 
-function extractLinks(line: string, markers: readonly MarkdownLink[], starts: Map<number, number>, lnum: number): { line: string, links: MarkdownLinkItem[], markerOffsets: number[] } {
+function extractLinks(line: string, markers: readonly MarkdownLink[], starts: Map<number, number>, lnum: number): { line: string, links: MarkdownLinkItem[] } {
   let links: MarkdownLinkItem[] = []
-  let markerOffsets: number[] = []
   let result = ''
   let offset = 0
   let match: RegExpExecArray | null
-  const marker = String.fromCharCode(0)
-  const regexp = new RegExp(`${marker}(\\d+)${marker}`, 'g')
+  const regexp = new RegExp(`${String.fromCharCode(27)}\\[1000;(\\d+)m`, 'g')
   while ((match = regexp.exec(line)) != null) {
     result += line.slice(offset, match.index)
-    markerOffsets.push(byteLength(line.slice(0, match.index)))
     let marker = Number(match[1])
     let start = starts.get(marker)
     if (start == null) {
-      starts.set(marker, byteLength(result))
+      starts.set(marker, byteLength(stripAnsi(result)))
     } else {
       let url = markers[marker]?.url
-      let end = byteLength(result)
+      let end = byteLength(stripAnsi(result))
       if (url && end > start) links.push({ lnum, colStart: start, colEnd: end, url })
       starts.delete(marker)
     }
@@ -285,17 +281,9 @@ function extractLinks(line: string, markers: readonly MarkdownLink[], starts: Ma
   result += line.slice(offset)
   for (let [marker, start] of starts) {
     let url = markers[marker]?.url
-    let end = byteLength(result)
+    let end = byteLength(stripAnsi(result))
     if (url && end > start) links.push({ lnum, colStart: start, colEnd: end, url })
     starts.set(marker, 0)
   }
-  return { line: result, links, markerOffsets }
-}
-
-function adjustLinkMarkerColumn(column: number, markerOffsets: readonly number[]): number {
-  let original = column
-  for (let offset of markerOffsets) {
-    if (offset < original) column -= 2 + offset.toString().length
-  }
-  return column
+  return { line: result, links }
 }
