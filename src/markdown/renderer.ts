@@ -204,6 +204,7 @@ export interface MarkdownLink {
 
 export interface RendererOptions {
   sanitize?: boolean
+  linkMarkers?: boolean
 }
 
 class Renderer {
@@ -348,9 +349,12 @@ class Renderer {
     if (text && href && text != href) {
       links.set(text, href)
     }
-    let marker = `\0${this.linkMarkers.length}\0`
-    this.linkMarkers.push({ marker: this.linkMarkers.length, url: href })
-    if (text && text != href) return styles.blue(marker + text + marker)
+    let marker = ''
+    if (this.o.linkMarkers) {
+      marker = `\0${this.linkMarkers.length}\0`
+      this.linkMarkers.push({ marker: this.linkMarkers.length, url: href })
+    }
+    if (text && text != href) return marker + styles.blue(text) + marker
     let out = this.o.href(href)
     return marker + this.o.link(out) + marker
   }
