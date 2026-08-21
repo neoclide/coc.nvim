@@ -351,7 +351,9 @@ class Renderer {
     }
     let marker = ''
     if (this.o.linkMarkers) {
-      marker = `\0${this.linkMarkers.length}\0`
+      // Use an ANSI-shaped marker so terminal table renderers treat the
+      // hyperlink metadata as zero-width when calculating column sizes.
+      marker = `\x1b[1000;${this.linkMarkers.length}m`
       this.linkMarkers.push({ marker: this.linkMarkers.length, url: href })
     }
     if (text && text != href) return marker + styles.blue(text) + marker

@@ -2,6 +2,13 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-21
+
+- Support neovim OSC 8 hyperlinks.  Hold Command on macOS or Ctrl on
+  Linux/Windows to open the link. In mouse-capturing TUI applications, also hold
+  Shift.
+
+
 ## 2026-08-19
 
 - Add a provider-neutral Next Edit API with versioned candidates, cancellation,

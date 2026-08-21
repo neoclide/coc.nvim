@@ -145,10 +145,18 @@ bar
   })
 
   it('should preserve named-link highlights after removing markers', () => {
-    let res = parseMarkdown('[Coc](https://example.com)', {})
+    let res = parseMarkdown('[0123456789](https://example.com)', {})
     assert.deepStrictEqual(res.highlights[0], {
-      hlGroup: 'CocMarkdownLink', lnum: 0, colStart: 0, colEnd: 3
+      hlGroup: 'CocMarkdownLink', lnum: 0, colStart: 0, colEnd: 10
     })
+  })
+
+  it('should preserve emphasis around named links', () => {
+    let res = parseMarkdown('**[Coc](https://example.com)**', {})
+    assert.deepStrictEqual(res.highlights.slice(0, 2), [
+      { hlGroup: 'CocMarkdownLink', lnum: 0, colStart: 0, colEnd: 3 },
+      { hlGroup: 'CocBold', lnum: 0, colStart: 0, colEnd: 3 }
+    ])
   })
 
   it('should retain markdown links across line boundaries', () => {
@@ -205,6 +213,13 @@ bar
     ].join('\n')
     let res = parseMarkdown(content, {})
     assert.ok(res.lines.includes('│ Type │ size_of::<Type>() │'))
+  })
+
+  it('should not include hyperlink markers in table widths', () => {
+    let res = parseMarkdown('| Link | Value |\n| --- | --- |\n| [Coc](https://x) | xx |', {})
+    assert.ok(res.lines.includes('│ Coc  │ xx    │'))
+    let tableLines = res.lines.filter(line => /^[┌├└│]/.test(line))
+    assert.ok(tableLines.every(line => line.length == tableLines[0].length))
   })
 
   it('should render html', () => {
