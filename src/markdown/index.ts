@@ -164,7 +164,7 @@ export function getHighlightItems(content: string, currline: number, active: [nu
  * Parse markdown for lines, highlights & codes
  */
 export function parseMarkdown(content: string, opts: MarkdownParseOptions): DocumentInfo {
-  let renderer = new Renderer()
+  let renderer = new Renderer({ linkMarkers: true })
   marked.setOptions({
     renderer: renderer as MarkedRenderer,
     gfm: true,
