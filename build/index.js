@@ -82308,6 +82308,7 @@ var init_renderer = __esm({
       }
       options;
       highlightOptions;
+      linkMarkers = [];
       o;
       tab;
       tableSettings;
@@ -82412,9 +82413,17 @@ var init_renderer = __esm({
         if (text && href && text != href) {
           links.set(text, href);
         }
-        if (text && text != href) return blue(text);
+        let marker = "";
+        if (this.o.linkMarkers) {
+          marker = `\x1B[1000;${this.linkMarkers.length}m`;
+          this.linkMarkers.push({ marker: this.linkMarkers.length, url: href });
+        }
+        if (text && text != href) return marker + blue(text) + marker;
         let out = this.o.href(href);
-        return this.o.link(out);
+        return marker + this.o.link(out) + marker;
+      }
+      getLinkMarkers() {
+        return this.linkMarkers;
       }
       image(href, title, text) {
         return `![${text}](${href}${title ? ` "${title}"` : ""})`;
@@ -82451,6 +82460,7 @@ function parseDocuments(docs, opts = {}) {
   let lines = [];
   let highlights = [];
   let codes = [];
+  let linkItems = [];
   let idx = 0;
   for (let doc of docs) {
     let currline = lines.length;
@@ -82467,6 +82477,7 @@ function parseDocuments(docs, opts = {}) {
         o.lnum = o.lnum + currline;
         return o;
       }));
+      linkItems.push(...info.links.map((o) => ({ ...o, lnum: o.lnum + currline })));
       lines.push(...info.lines);
     } else {
       let parts = content.trim().split(/\r?\n/);
@@ -82498,7 +82509,7 @@ function parseDocuments(docs, opts = {}) {
     }
     idx = idx + 1;
   }
-  return { lines, highlights, codes };
+  return { lines, highlights, codes, links: linkItems };
 }
 function getHighlightItems(content, currline, active) {
   let res = [];
@@ -82538,8 +82549,9 @@ function getHighlightItems(content, currline, active) {
   return res;
 }
 function parseMarkdown(content, opts) {
+  let renderer = new renderer_default({ linkMarkers: true });
   marked.setOptions({
-    renderer: new renderer_default(),
+    renderer,
     gfm: true,
     breaks: boolean(opts.breaks) ? opts.breaks : true,
     hooks: renderer_default.hooks
@@ -82547,15 +82559,17 @@ function parseMarkdown(content, opts) {
   let lines = [];
   let highlights = [];
   let codes = [];
+  let linkItems = [];
+  let linkStarts = /* @__PURE__ */ new Map();
   let currline = 0;
   let inCodeBlock = false;
   let filetype;
   let startLnum = 0;
   let parsed = marked(content);
-  let links2 = renderer_default.getLinks();
+  let linkReferences = renderer_default.getLinks();
   parsed = parsed.replace(/\s*$/, "");
-  if (links2.length) {
-    parsed = parsed + "\n\n" + links2.join("\n");
+  if (linkReferences.length) {
+    parsed = parsed + "\n\n" + linkReferences.join("\n");
   }
   let parsedLines = parsed.split(/\n/);
   for (let i = 0; i < parsedLines.length; i++) {
@@ -82599,7 +82613,9 @@ function parseMarkdown(content, opts) {
       currline++;
       continue;
     }
-    let res = parseAnsiHighlights(line, true);
+    let linkResult = extractLinks(line, renderer.getLinkMarkers(), linkStarts, currline);
+    let res = parseAnsiHighlights(linkResult.line, true);
+    linkItems.push(...linkResult.links);
     if (line === DIVIDE_LINE) {
       highlights.push({
         hlGroup: DIVIDING_LINE_HI_GROUP,
@@ -82621,7 +82637,38 @@ function parseMarkdown(content, opts) {
     lines.push(res.line);
     currline++;
   }
-  return { lines, highlights, codes };
+  return { lines, highlights, codes, links: linkItems };
+}
+function extractLinks(line, markers, starts, lnum) {
+  let links2 = [];
+  if (markers.length == 0) return { line, links: links2 };
+  let result = "";
+  let offset = 0;
+  let match;
+  const regexp = new RegExp(`${String.fromCharCode(27)}\\[1000;(\\d+)m`, "g");
+  while ((match = regexp.exec(line)) != null) {
+    let part = line.slice(offset, match.index);
+    result += part;
+    let marker = Number(match[1]);
+    let start = starts.get(marker);
+    if (start == null) {
+      starts.set(marker, byteLength(stripAnsi(result)));
+    } else {
+      let url = markers[marker]?.url;
+      let end = start + byteLength(stripAnsi(part));
+      if (url && end > start) links2.push({ lnum, colStart: start, colEnd: end, url });
+      starts.delete(marker);
+    }
+    offset = match.index + match[0].length;
+  }
+  result += line.slice(offset);
+  for (let [marker, start] of starts) {
+    let url = markers[marker]?.url;
+    let end = byteLength(stripAnsi(result));
+    if (url && end > start) links2.push({ lnum, colStart: start, colEnd: end, url });
+    starts.set(marker, 0);
+  }
+  return { line: result, links: links2 };
 }
 var FiletypeHighlights, filetyepsMap, ACTIVE_HL_GROUP, DIVIDING_LINE_HI_GROUP, MARKDOWN, DOTS, TXT, DIVIDE_CHARACTER, DIVIDE_LINE;
 var init_markdown = __esm({
@@ -82760,10 +82807,11 @@ var init_floatFactory = __esm({
       }
       async createPopup(docs, opts, token) {
         docs = docs.filter((o) => o.content.trim().length > 0);
-        let { lines, codes, highlights } = parseDocuments(docs, { excludeImages: opts.excludeImages, breaks: opts.breaks });
+        let { lines, codes, highlights, links: links2 } = parseDocuments(docs, { excludeImages: opts.excludeImages, breaks: opts.breaks });
         let config = {
           codes,
           highlights,
+          links: links2,
           pumAlignTop: events_default.pumAlignTop,
           preferTop: typeof opts.preferTop === "boolean" ? opts.preferTop : false,
           offsetX: opts.offsetX || 0,
@@ -141860,7 +141908,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-6e4c9e8 2026-08-20 15:41:10 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-8685d3f 2026-08-21 12:04:47 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
