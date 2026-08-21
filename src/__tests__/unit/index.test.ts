@@ -168,6 +168,12 @@ bar
     ])
   })
 
+  it('should render titled images without hyperlink ranges', () => {
+    let res = parseMarkdown('![logo](https://example.com/logo.png "Logo")', { breaks: false })
+    assert.deepStrictEqual(res.lines, ['![logo](https://example.com/logo.png "Logo")'])
+    assert.deepStrictEqual(res.links, [])
+  })
+
   it('should exclude images by option', () => {
     let content = 'head\n![img](img)\ncontent ![img](img) ![img](img)'
     let res = parseMarkdown(content, { excludeImages: false })
@@ -345,6 +351,23 @@ describe('parseDocuments', () => {
     assert.deepStrictEqual(res.codes, [
       { filetype: 'typescript', startLine: 0, endLine: 1 }
     ])
+  })
+
+  it('should adjust markdown link lines across documents', () => {
+    let docs = [{
+      filetype: 'typescript',
+      content: 'const workspace'
+    }, {
+      filetype: 'markdown',
+      content: '[Coc](https://github.com/neoclide/coc.nvim)'
+    }]
+    let res = parseDocuments(docs)
+    assert.deepStrictEqual(res.links, [{
+      lnum: 2,
+      colStart: 0,
+      colEnd: 3,
+      url: 'https://github.com/neoclide/coc.nvim'
+    }])
   })
 
   it('should parse document with highlights', () => {
