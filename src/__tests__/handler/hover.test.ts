@@ -169,6 +169,12 @@ describe('Hover', () => {
       assert.strictEqual(marks[0][3].end_col, 3)
       assert.strictEqual(marks[0][3].url, 'https://github.com/neoclide/coc.nvim')
     })
+
+    it('should ignore rejected Neovim hyperlink extmarks', async t => {
+      if (workspace.isVim || !workspace.has('nvim-0.12.0')) return
+      let winid = await nvim.call('win_getid') as number
+      await nvim.call('luaeval', ["require('coc.float').add_hyperlinks(_A[1], _A[2])", [winid, [{ lnum: -1, colStart: 0, colEnd: 1, url: 'https://example.com' }]]])
+    })
   })
 
   describe('getHover', () => {

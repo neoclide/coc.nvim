@@ -11,7 +11,7 @@ function M.add_hyperlinks(winid, links)
   local bufnr = api.nvim_win_get_buf(winid)
   api.nvim_buf_clear_namespace(bufnr, hyperlink_ns, 0, -1)
   for _, link in ipairs(links) do
-    api.nvim_buf_set_extmark(bufnr, hyperlink_ns, link.lnum, link.colStart, {
+    pcall(api.nvim_buf_set_extmark, bufnr, hyperlink_ns, link.lnum, link.colStart, {
       end_col = link.colEnd,
       url = link.url,
     })

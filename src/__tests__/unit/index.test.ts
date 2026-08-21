@@ -144,6 +144,22 @@ bar
     ])
   })
 
+  it('should preserve named-link highlights after removing markers', () => {
+    let res = parseMarkdown('[Coc](https://example.com)', {})
+    assert.deepStrictEqual(res.highlights[0], {
+      hlGroup: 'CocMarkdownLink', lnum: 0, colStart: 0, colEnd: 3
+    })
+  })
+
+  it('should retain markdown links across line boundaries', () => {
+    let res = parseMarkdown('[first\nsecond](https://example.com)', {})
+    assert.deepStrictEqual(res.lines.slice(0, 2), ['first', 'second'])
+    assert.deepStrictEqual(res.links, [
+      { lnum: 0, colStart: 0, colEnd: 5, url: 'https://example.com' },
+      { lnum: 1, colStart: 0, colEnd: 6, url: 'https://example.com' }
+    ])
+  })
+
   it('should exclude images by option', () => {
     let content = 'head\n![img](img)\ncontent ![img](img) ![img](img)'
     let res = parseMarkdown(content, { excludeImages: false })
