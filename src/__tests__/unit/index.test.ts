@@ -159,13 +159,17 @@ bar
     ])
   })
 
-  it('should retain markdown links across line boundaries', () => {
+  it('should use byte columns for named links', () => {
+    let res = parseMarkdown('前 [中文](https://example.com) 后', {})
+    assert.deepStrictEqual(res.links, [
+      { lnum: 0, colStart: 4, colEnd: 10, url: 'https://example.com' }
+    ])
+  })
+
+  it('should ignore markdown links across line boundaries', () => {
     let res = parseMarkdown('[first\nsecond](https://example.com)', {})
     assert.deepStrictEqual(res.lines.slice(0, 2), ['first', 'second'])
-    assert.deepStrictEqual(res.links, [
-      { lnum: 0, colStart: 0, colEnd: 5, url: 'https://example.com' },
-      { lnum: 1, colStart: 0, colEnd: 6, url: 'https://example.com' }
-    ])
+    assert.deepStrictEqual(res.links, [])
   })
 
   it('should render titled images without hyperlink ranges', () => {

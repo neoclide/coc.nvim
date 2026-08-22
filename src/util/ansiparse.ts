@@ -8,6 +8,7 @@ export interface AnsiItem {
   italic?: boolean
   underline?: boolean
   strikethrough?: boolean
+  linkMarker?: number
   text: string
 }
 
@@ -51,15 +52,20 @@ export interface AnsiResult {
   highlights: AnsiHighlight[]
 }
 
-export function parseAnsiHighlights(line: string, markdown = false): AnsiResult {
+export function parseAnsiHighlights(line: string, markdown = false, onLinkMarker?: (marker: number, byteOffset: number) => void): AnsiResult {
   let items = ansiparse(line)
   let highlights: AnsiHighlight[] = []
   let newLabel = ''
+  let byteOffset = 0
   for (let item of items) {
+    if (item.linkMarker != null) {
+      onLinkMarker?.(item.linkMarker, byteOffset)
+      continue
+    }
     if (!item.text) continue
     let { foreground, background } = item
-    let len = byteLength(newLabel)
-    let span: [number, number] = [len, len + byteLength(item.text)]
+    let len = byteLength(item.text)
+    let span: [number, number] = [byteOffset, byteOffset + len]
     if (foreground && background) {
       let hlGroup = `CocList${upperFirst(foreground)}${upperFirst(background)}`
       highlights.push({ span, hlGroup })
@@ -93,6 +99,7 @@ export function parseAnsiHighlights(line: string, markdown = false): AnsiResult 
       highlights.push({ span, hlGroup: 'CocStrikeThrough' })
     }
     newLabel = newLabel + item.text
+    byteOffset += len
   }
   return { line: newLabel, highlights }
 }
@@ -126,22 +133,23 @@ export function ansiparse(str: string): AnsiItem[] {
   // Erases a char from the output
   //
   eraseChar = () => {
-    let index
-    let text
     if (matchingText.length) {
       matchingText = matchingText.slice(0, matchingText.length - 1)
     }
     else if (result.length) {
-      index = result.length - 1
-      text = result[index].text
-      if (text.length === 1) {
-        //
-        // A result bit was fully deleted, pop it out to simplify the final output
-        //
-        result.pop()
-      }
-      else {
-        result[index].text = text.slice(0, text.length - 1)
+      for (let index = result.length - 1; index >= 0; index--) {
+        let text = result[index].text
+        if (!text.length) continue
+        if (text.length === 1) {
+          //
+          // A result bit was fully deleted, remove it to simplify the final output
+          //
+          result.splice(index, 1)
+        }
+        else {
+          result[index].text = text.slice(0, text.length - 1)
+        }
+        break
       }
     }
   }
@@ -199,6 +207,11 @@ export function ansiparse(str: string): AnsiItem[] {
         ansiState.push(matchingData)
         matchingData = null
         matchingText = ''
+
+        if (str[i] == 'm' && ansiState.length == 2 && ansiState[0] == '1000' && /^\d+$/.test(ansiState[1])) {
+          let marker = Number(ansiState[1])
+          if (Number.isSafeInteger(marker)) result.push({ text: '', linkMarker: marker })
+        }
 
         //
         // Convert matched formatting data into user-friendly state object.

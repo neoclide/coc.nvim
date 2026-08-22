@@ -857,6 +857,26 @@ describe('parseAnsiHighlights', () => {
     assert.strictEqual(res.line, 'bar')
   })
 
+  it('should report link marker byte offsets', () => {
+    let markers: Array<[number, number]> = []
+    let text = `a中\x1b[1000;2m${style.blue.open}文${style.blue.close}\x1b[1000;2m`
+    let res = parseAnsiHighlights(text, true, (marker, byteOffset) => {
+      markers.push([marker, byteOffset])
+    })
+    assert.strictEqual(res.line, 'a中文')
+    assert.deepStrictEqual(markers, [[2, 4], [2, 7]])
+  })
+
+  it('should erase text across a link marker', () => {
+    let markers: Array<[number, number]> = []
+    let text = `a\x1b[1000;2mb\x1b[1000;2m\u0008c`
+    let res = parseAnsiHighlights(text, true, (marker, byteOffset) => {
+      markers.push([marker, byteOffset])
+    })
+    assert.strictEqual(res.line, 'ac')
+    assert.deepStrictEqual(markers, [[2, 1], [2, 1]])
+  })
+
   it('should not throw for bad control character', () => {
     let text = '\x1bafoo'
     let res = parseAnsiHighlights(text)
