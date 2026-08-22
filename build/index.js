@@ -81158,15 +81158,20 @@ ${content}</tr>
 });
 
 // src/util/ansiparse.ts
-function parseAnsiHighlights(line, markdown = false) {
+function parseAnsiHighlights(line, markdown = false, onLinkMarker) {
   let items = ansiparse(line);
   let highlights = [];
   let newLabel = "";
+  let byteOffset = 0;
   for (let item of items) {
+    if (item.linkMarker != null) {
+      onLinkMarker?.(item.linkMarker, byteOffset);
+      continue;
+    }
     if (!item.text) continue;
     let { foreground, background } = item;
-    let len = byteLength(newLabel);
-    let span = [len, len + byteLength(item.text)];
+    let len = byteLength(item.text);
+    let span = [byteOffset, byteOffset + len];
     if (foreground && background) {
       let hlGroup = `CocList${upperFirst(foreground)}${upperFirst(background)}`;
       highlights.push({ span, hlGroup });
@@ -81200,6 +81205,7 @@ function parseAnsiHighlights(line, markdown = false) {
       highlights.push({ span, hlGroup: "CocStrikeThrough" });
     }
     newLabel = newLabel + item.text;
+    byteOffset += len;
   }
   return { line: newLabel, highlights };
 }
@@ -81212,17 +81218,18 @@ function ansiparse(str) {
   let state = {};
   let eraseChar;
   eraseChar = () => {
-    let index;
-    let text;
     if (matchingText.length) {
       matchingText = matchingText.slice(0, matchingText.length - 1);
     } else if (result.length) {
-      index = result.length - 1;
-      text = result[index].text;
-      if (text.length === 1) {
-        result.pop();
-      } else {
-        result[index].text = text.slice(0, text.length - 1);
+      for (let index = result.length - 1; index >= 0; index--) {
+        let text = result[index].text;
+        if (!text.length) continue;
+        if (text.length === 1) {
+          result.splice(index, 1);
+        } else {
+          result[index].text = text.slice(0, text.length - 1);
+        }
+        break;
       }
     }
   };
@@ -81257,6 +81264,10 @@ function ansiparse(str) {
         ansiState.push(matchingData);
         matchingData = null;
         matchingText = "";
+        if (str[i] == "m" && ansiState.length == 2 && ansiState[0] == "1000" && /^\d+$/.test(ansiState[1])) {
+          let marker = Number(ansiState[1]);
+          if (Number.isSafeInteger(marker)) result.push({ text: "", linkMarker: marker });
+        }
         ansiState.forEach((ansiCode) => {
           if (foregroundColors[ansiCode]) {
             state.foreground = foregroundColors[ansiCode];
@@ -82560,13 +82571,13 @@ function parseMarkdown(content, opts) {
   let highlights = [];
   let codes = [];
   let linkItems = [];
-  let linkStarts = /* @__PURE__ */ new Map();
   let currline = 0;
   let inCodeBlock = false;
   let filetype;
   let startLnum = 0;
   let parsed = marked(content);
   let linkReferences = renderer_default.getLinks();
+  let linkMarkers = renderer.getLinkMarkers();
   parsed = parsed.replace(/\s*$/, "");
   if (linkReferences.length) {
     parsed = parsed + "\n\n" + linkReferences.join("\n");
@@ -82613,9 +82624,18 @@ function parseMarkdown(content, opts) {
       currline++;
       continue;
     }
-    let linkResult = extractLinks(line, renderer.getLinkMarkers(), linkStarts, currline);
-    let res = parseAnsiHighlights(linkResult.line, true);
-    linkItems.push(...linkResult.links);
+    let linkStarts;
+    let res = parseAnsiHighlights(line, true, linkMarkers.length === 0 ? void 0 : (marker, byteOffset) => {
+      linkStarts ??= /* @__PURE__ */ new Map();
+      let start = linkStarts.get(marker);
+      if (start == null) {
+        linkStarts.set(marker, byteOffset);
+        return;
+      }
+      let url = linkMarkers[marker]?.url;
+      if (url && byteOffset > start) linkItems.push({ lnum: currline, colStart: start, colEnd: byteOffset, url });
+      linkStarts.delete(marker);
+    });
     if (line === DIVIDE_LINE) {
       highlights.push({
         hlGroup: DIVIDING_LINE_HI_GROUP,
@@ -82638,37 +82658,6 @@ function parseMarkdown(content, opts) {
     currline++;
   }
   return { lines, highlights, codes, links: linkItems };
-}
-function extractLinks(line, markers, starts, lnum) {
-  let links2 = [];
-  if (markers.length == 0) return { line, links: links2 };
-  let result = "";
-  let offset = 0;
-  let match;
-  const regexp = new RegExp(`${String.fromCharCode(27)}\\[1000;(\\d+)m`, "g");
-  while ((match = regexp.exec(line)) != null) {
-    let part = line.slice(offset, match.index);
-    result += part;
-    let marker = Number(match[1]);
-    let start = starts.get(marker);
-    if (start == null) {
-      starts.set(marker, byteLength(stripAnsi(result)));
-    } else {
-      let url = markers[marker]?.url;
-      let end = start + byteLength(stripAnsi(part));
-      if (url && end > start) links2.push({ lnum, colStart: start, colEnd: end, url });
-      starts.delete(marker);
-    }
-    offset = match.index + match[0].length;
-  }
-  result += line.slice(offset);
-  for (let [marker, start] of starts) {
-    let url = markers[marker]?.url;
-    let end = byteLength(stripAnsi(result));
-    if (url && end > start) links2.push({ lnum, colStart: start, colEnd: end, url });
-    starts.set(marker, 0);
-  }
-  return { line: result, links: links2 };
 }
 var FiletypeHighlights, filetyepsMap, ACTIVE_HL_GROUP, DIVIDING_LINE_HI_GROUP, MARKDOWN, DOTS, TXT, DIVIDE_CHARACTER, DIVIDE_LINE;
 var init_markdown = __esm({
@@ -141908,7 +141897,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-8685d3f 2026-08-21 12:04:47 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-570b4ac 2026-08-22 21:57:28 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
