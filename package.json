@@ -29,6 +29,7 @@
     "neovim"
   ],
   "author": "Qiming Zhao <chemzqm@gmail.com>",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/neoclide/coc.nvim/issues"
   },
