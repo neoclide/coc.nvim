@@ -14,7 +14,7 @@ const DEFAULT_MAX_DOWNLOAD_SIZE = 512 * 1024 * 1024
 const DEFAULT_MAX_EXTRACT_SIZE = 1024 * 1024 * 1024
 const DEFAULT_MAX_ARCHIVE_ENTRIES = 100000
 
-export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
+export interface DownloadOptions extends Omit<FetchOptions, 'buffer' | 'maxResponseSize'> {
   /**
    * Folder that contains downloaded file or extracted files by untar or unzip
    */

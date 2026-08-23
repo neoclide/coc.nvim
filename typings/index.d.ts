@@ -7769,7 +7769,7 @@ declare module 'coc.nvim' {
     maxResponseSize?: number
   }
 
-  export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
+  export interface DownloadOptions extends Omit<FetchOptions, 'buffer' | 'maxResponseSize'> {
     /**
      * Folder that contains downloaded file or extracted files by untar or unzip
      */
