@@ -605,6 +605,17 @@ describe('download', () => {
     assert.strictEqual(exists, true)
   })
 
+  it('should extract zip to a normalized destination', async () => {
+    let normalized = path.join(tempdir, 'normalized')
+    let dest = path.join(normalized, '..', 'normalized') + path.sep
+    let result = await download(`http://127.0.0.1:${port}/zip`, {
+      dest,
+      extract: true
+    })
+    assert.strictEqual(result, normalized)
+    assert.strictEqual(fs.existsSync(path.join(normalized, 'log.txt')), true)
+  })
+
   it('should not extract zip file outside dest', async t => {
     let dest = path.join(tempdir, 'evil')
     let url = `http://127.0.0.1:${port}/evil_zip`

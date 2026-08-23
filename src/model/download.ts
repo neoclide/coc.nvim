@@ -66,8 +66,8 @@ function isSafeEntryPath(dest: string, entryPath: string): boolean {
   // path.join treats absolute entry paths as relative, keeping the
   // extracted files inside dest.
   let destPath = path.join(dest, entryPath)
-  if (destPath === dest) return false
-  return destPath.startsWith(dest + path.sep)
+  let relative = path.relative(dest, destPath)
+  return relative !== '' && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative)
 }
 
 function openZip(filepath: string): Promise<ZipFile> {
@@ -220,6 +220,9 @@ export default function download(urlInput: string | URL, options: DownloadOption
   if (!dest || !path.isAbsolute(dest)) {
     throw new Error(`Invalid dest path: ${dest}`)
   }
+  // Use one canonical lexical representation for filesystem operations and
+  // archive-boundary checks. path.resolve also removes a trailing separator.
+  dest = path.resolve(dest)
   if (!fs.existsSync(dest)) {
     fs.mkdirSync(dest, { recursive: true })
   } else {
