@@ -10,6 +10,22 @@ import workspace from '../workspace'
 const logger = createLogger('extension-installer')
 const local_dependencies = ['coc.nvim', 'esbuild', 'webpack', '@types/node']
 
+function extensionPath(root: string, name: string | undefined): string {
+  // npm package names contain either one path component, or two for a scoped
+  // package.  Reject path syntax before using registry-controlled metadata in
+  // destructive filesystem operations.
+  if (typeof name !== 'string' || !/^(?:@[^/\\]+\/)?[^/\\]+$/.test(name) || name.includes('\0') || name.split('/').some(part => part === '.' || part === '..')) {
+    throw new Error(`Invalid extension name: ${name}`)
+  }
+  let resolvedRoot = path.resolve(root)
+  let target = path.resolve(resolvedRoot, name)
+  let relative = path.relative(resolvedRoot, target)
+  if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error(`Invalid extension name: ${name}`)
+  }
+  return target
+}
+
 export interface Info {
   'dist.tarball'?: string
   'engines.coc'?: string
@@ -119,6 +135,7 @@ export class Installer extends EventEmitter implements IInstaller {
     if (!obj) throw new Error(`${this.def} doesn't exists in ${registry}.`)
     let requiredVersion = obj['engines'] && obj['engines']['coc']
     if (!requiredVersion) throw new Error(`${this.def} is not a valid coc extension, "engines" field with coc property required.`)
+    extensionPath(this.root, res.name)
     return {
       'dist.tarball': obj['dist']['tarball'],
       'engines.coc': requiredVersion,
@@ -129,7 +146,13 @@ export class Installer extends EventEmitter implements IInstaller {
 
   public async getInfoFromUri(): Promise<Info> {
     let { url } = this
-    if (!url.startsWith('https://github.com')) {
+    let repository: URL
+    try {
+      repository = new URL(url)
+    } catch (_e) {
+      throw new Error(`"${url}" is not supported, coc.nvim support github.com only`)
+    }
+    if (repository.protocol !== 'https:' || repository.hostname !== 'github.com') {
       throw new Error(`"${url}" is not supported, coc.nvim support github.com only`)
     }
     url = url.replace(/\/$/, '')
@@ -144,6 +167,7 @@ export class Installer extends EventEmitter implements IInstaller {
     this.log(`Get info from ${fileUrl}`)
     let content = await this.fetch(fileUrl, { timeout: 10000 })
     let obj = typeof content == 'string' ? JSON.parse(content) : content
+    extensionPath(this.root, obj.name)
     this.name = obj.name
     return {
       'dist.tarball': `${url}/archive/${branch}.tar.gz`,
@@ -167,14 +191,14 @@ export class Installer extends EventEmitter implements IInstaller {
       throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`)
     }
     let updated = await this.doInstall(info, new Set())
-    return { name, updated, version, url: this.url, folder: path.join(this.root, info.name) }
+    return { name, updated, version, url: this.url, folder: extensionPath(this.root, info.name) }
   }
 
   public async update(url?: string): Promise<string | undefined> {
     if (url) this.url = url
     let version: string | undefined
     if (this.name) {
-      let folder = path.join(this.root, this.name)
+      let folder = extensionPath(this.root, this.name)
       if (isSymbolicLink(folder)) {
         this.log(`Skipped update for symbol link`)
         return
@@ -262,7 +286,7 @@ export class Installer extends EventEmitter implements IInstaller {
   }
 
   public async doInstall(info: Info, installing: Set<string> = new Set()): Promise<boolean> {
-    let dest = path.join(this.root, info.name)
+    let dest = extensionPath(this.root, info.name)
     if (isSymbolicLink(dest)) return false
     if (installing.has(info.name)) {
       this.log(`Skipping dependency: ${info.name} (already installed or in progress)`)
@@ -270,8 +294,7 @@ export class Installer extends EventEmitter implements IInstaller {
     }
     installing.add(info.name)
 
-    let key = info.name.replace(/\//g, '_')
-    let downloadFolder = path.join(this.root, `${key}-${crypto.randomUUID()}`)
+    let downloadFolder = path.join(path.resolve(this.root), `.coc-download-${crypto.randomUUID()}`)
     let url = info['dist.tarball']
     this.log(`Downloading from ${url}`)
     let etagAlgorithm = url.startsWith('https://registry.npmjs.org') ? 'md5' : undefined

@@ -15,6 +15,7 @@ import workspace from '../workspace'
 import { Agent } from 'node:http'
 const logger = createLogger('model-fetch')
 export const timeout = getConditionValue(500, 50)
+const DEFAULT_MAX_RESPONSE_SIZE = 128 * 1024 * 1024
 
 export type ResponseResult = string | Buffer | { [name: string]: any }
 
@@ -57,6 +58,8 @@ export interface FetchOptions {
    * Password for http basic auth, should use with user
    */
   password?: string
+  /** Maximum decompressed response size in bytes. Defaults to 128 MiB. */
+  maxResponseSize?: number
 }
 
 export function getRequestModule(url: URL): typeof http | typeof https {
@@ -185,6 +188,9 @@ export function resolveRequestOptions(url: URL, options: FetchOptions): any {
   if (url.username) opts.auth = url.username + ':' + (toText(url.password))
   if (options.timeout) opts.timeout = options.timeout
   if (options.buffer) opts.buffer = true
+  let maxResponseSize = options.maxResponseSize ?? DEFAULT_MAX_RESPONSE_SIZE
+  if (!Number.isFinite(maxResponseSize) || maxResponseSize <= 0) throw new Error('maxResponseSize must be a positive finite number')
+  opts.maxResponseSize = maxResponseSize
   return opts
 }
 
@@ -209,25 +215,45 @@ function parseCharset(contentType: string): BufferEncoding {
 export function request(url: URL, data: any, opts: any, token?: CancellationToken, obj: any = {}): Promise<ResponseResult> {
   let mod = getRequestModule(url)
   return new Promise<ResponseResult>((resolve, reject) => {
-    if (token) {
-      let disposable = token.onCancellationRequested(() => {
-        disposable.dispose()
-        req.destroy(new CancellationError())
-      })
-    }
     let timer: NodeJS.Timeout
-    const req = mod.request(opts, res => {
+    let settled = false
+    let req: any
+    let cancellation: { dispose(): void } | undefined
+    const cleanup = (): void => {
+      cancellation?.dispose()
+      cancellation = undefined
+      if (timer) clearTimeout(timer)
+    }
+    const succeed = (value: ResponseResult): void => {
+      if (settled) return
+      settled = true
+      cleanup()
+      resolve(value)
+    }
+    const fail = (error: Error): void => {
+      if (settled) return
+      settled = true
+      cleanup()
+      reject(error)
+    }
+    req = mod.request(opts, res => {
       let readable: Readable = res
       if ((res.statusCode >= 200 && res.statusCode < 300) || res.statusCode === 1223) {
         let headers = res.headers
         let chunks: Buffer[] = []
+        let size = 0
         let contentType: string = toText(headers['content-type'])
         readable = decompressResponse(res)
         readable.on('data', chunk => {
+          size += chunk.length
+          let maxResponseSize = opts.maxResponseSize ?? DEFAULT_MAX_RESPONSE_SIZE
+          if (size > maxResponseSize) {
+            readable.destroy(new Error(`Response exceeds maximum size of ${maxResponseSize} bytes`))
+            return
+          }
           chunks.push(chunk)
         })
         readable.on('end', () => {
-          clearTimeout(timer)
           let buf = Buffer.concat(chunks)
           if (!opts.buffer && (contentType.startsWith('application/json') || contentType.startsWith('text/'))) {
             // The decode must not escape the event callback: unsupported or
@@ -236,38 +262,42 @@ export function request(url: URL, data: any, opts: any, token?: CancellationToke
               let encoding = parseCharset(contentType)
               let rawData = buf.toString(encoding)
               if (!contentType.includes('application/json')) {
-                resolve(rawData)
+                succeed(rawData)
               } else {
                 try {
                   const parsedData = JSON.parse(rawData)
-                  resolve(parsedData)
+                  succeed(parsedData)
                 } catch (e) {
-                  reject(new Error(`Parse response error: ${e}`))
+                  fail(new Error(`Parse response error: ${e}`))
                 }
               }
             } catch (e) {
-              reject(new Error(`Decode response error: ${e instanceof Error ? e.message : String(e)}`))
+              fail(new Error(`Decode response error: ${e instanceof Error ? e.message : String(e)}`))
             }
           } else {
-            resolve(buf)
+            succeed(buf)
           }
         })
         readable.on('error', err => {
-          reject(new Error(`Connection error to ${url}: ${err.message}`))
+          fail(new Error(`Connection error to ${url}: ${err.message}`))
         })
       } else {
-        reject(new Error(`Bad response from ${url}: ${res.statusCode}`))
+        res.resume()
+        fail(new Error(`Bad response from ${url}: ${res.statusCode}`))
       }
+    })
+    cancellation = token?.onCancellationRequested(() => {
+      req.destroy(new CancellationError())
     })
     obj.req = req
     req.on('error', e => {
       // Possible succeed proxy request with ECONNRESET error on node > 14
       if (e['code'] == 'ECONNRESET') {
         timer = setTimeout(() => {
-          reject(e)
+          fail(e)
         }, timeout)
       } else {
-        reject(e)
+        fail(e)
       }
     })
     req.on('timeout', () => {

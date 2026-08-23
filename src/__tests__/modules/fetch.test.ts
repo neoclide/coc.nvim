@@ -399,13 +399,18 @@ describe('fetch', () => {
   })
 
   it('should catch proxy error', async t => {
+    let noProxy = process.env.no_proxy
     delete process.env.NO_PROXY
+    delete process.env.no_proxy
     process.env.HTTP_PROXY = `http://127.0.0.1`
-    let fn = async () => {
-      await fetch(`http://127.0.0.1:${port}/json`)
+    try {
+      await assert.rejects(() => fetch(`http://127.0.0.1:${port}/json`))
+    } finally {
+      delete process.env.HTTP_PROXY
+      if (noProxy == null) delete process.env.no_proxy
+      else process.env.no_proxy = noProxy
+      process.env.NO_PROXY = '*'
     }
-    await assert.rejects(fn(), )
-    delete process.env.HTTP_PROXY
   })
 
   it('should throw for ECONNRESET error', async t => {
@@ -472,6 +477,10 @@ describe('fetch', () => {
       await p
     }
     await assert.rejects(fn(), Error)
+  })
+
+  it('should reject oversized responses', async () => {
+    await assert.rejects(fetch(`http://127.0.0.1:${port}/text`, { maxResponseSize: 1 }), /maximum size/)
   })
 })
 
@@ -557,6 +566,13 @@ describe('download', () => {
     assert.strictEqual(exists, true)
   })
 
+  it('should reject oversized downloads', async () => {
+    await assert.rejects(download(`http://127.0.0.1:${port}/binary`, {
+      dest: tempdir,
+      maxDownloadSize: 10
+    }), /maximum size/)
+  })
+
   it('should throw when etag check failed', async t => {
     let url = `http://127.0.0.1:${port}/binary`
     let called = false
@@ -587,6 +603,17 @@ describe('download', () => {
     })
     exists = fs.existsSync(file)
     assert.strictEqual(exists, true)
+  })
+
+  it('should extract zip to a normalized destination', async () => {
+    let normalized = path.join(tempdir, 'normalized')
+    let dest = path.join(normalized, '..', 'normalized') + path.sep
+    let result = await download(`http://127.0.0.1:${port}/zip`, {
+      dest,
+      extract: true
+    })
+    assert.strictEqual(result, normalized)
+    assert.strictEqual(fs.existsSync(path.join(normalized, 'log.txt')), true)
   })
 
   it('should not extract zip file outside dest', async t => {
@@ -628,6 +655,15 @@ describe('download', () => {
     assert.notStrictEqual(res, undefined)
   })
 
+  it('should reject tgz extraction limits without an uncaught exception', async () => {
+    await assert.rejects(download(`http://127.0.0.1:${port}/tgz`, {
+      dest: tempdir,
+      extract: 'untar',
+      strip: 0,
+      maxExtractSize: 1
+    }), /exceeds extraction limits/)
+  })
+
   it('should cancel download by CancellationToken', async t => {
     let fn = async () => {
       let tokenSource = new CancellationTokenSource()
@@ -640,15 +676,19 @@ describe('download', () => {
   })
 
   it('should throw on agent error', async t => {
+    let noProxy = process.env.no_proxy
     delete process.env.NO_PROXY
+    delete process.env.no_proxy
     process.env.HTTP_PROXY = `http://127.0.0.1`
-    let fn = async () => {
-      await download(`http://127.0.0.1:${port}/json`, { dest: tempdir })
+    try {
+      await assert.rejects(() => download(`http://127.0.0.1:${port}/json`, { dest: tempdir }), /using proxy/)
+    } finally {
+      delete process.env.HTTP_PROXY
+      if (noProxy == null) delete process.env.no_proxy
+      else process.env.no_proxy = noProxy
+      process.env.NO_PROXY = '*'
     }
-    await assert.rejects(fn(), /using proxy/)
-    delete process.env.HTTP_PROXY
-    process.env.NO_PROXY = '*'
-    fn = async () => {
+    let fn = async () => {
       let agent = new http.Agent({ keepAlive: true })
       let p = download(`http://127.0.0.1:${port}/slow`, { dest: tempdir, timeout: 50, agent })
       await p

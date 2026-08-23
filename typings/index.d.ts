@@ -7763,9 +7763,13 @@ declare module 'coc.nvim' {
      * Password for http basic auth, should use with user
      */
     password?: string
+    /**
+     * Maximum decompressed response size in bytes. Defaults to 128 MiB.
+     */
+    maxResponseSize?: number
   }
 
-  export interface DownloadOptions extends Omit<FetchOptions, 'buffer'> {
+  export interface DownloadOptions extends Omit<FetchOptions, 'buffer' | 'maxResponseSize'> {
     /**
      * Folder that contains downloaded file or extracted files by untar or unzip
      */
@@ -7786,6 +7790,18 @@ declare module 'coc.nvim' {
      * Callback invoked with the download progress percent.
      */
     onProgress?: (percent: string) => void
+    /**
+     * Maximum number of compressed bytes accepted from the network. Defaults to 512 MiB.
+     */
+    maxDownloadSize?: number
+    /**
+     * Maximum total uncompressed archive size. Defaults to 1 GiB.
+     */
+    maxExtractSize?: number
+    /**
+     * Maximum number of archive entries. Defaults to 100000.
+     */
+    maxArchiveEntries?: number
   }
 
   export type ResponseResult = string | Buffer | {
