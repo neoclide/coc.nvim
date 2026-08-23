@@ -109359,6 +109359,9 @@ function resolveRequestOptions(url, options3) {
   if (url.username) opts.auth = url.username + ":" + toText(url.password);
   if (options3.timeout) opts.timeout = options3.timeout;
   if (options3.buffer) opts.buffer = true;
+  let maxResponseSize = options3.maxResponseSize ?? DEFAULT_MAX_RESPONSE_SIZE;
+  if (!Number.isFinite(maxResponseSize) || maxResponseSize <= 0) throw new Error("maxResponseSize must be a positive finite number");
+  opts.maxResponseSize = maxResponseSize;
   return opts;
 }
 function parseCharset(contentType) {
@@ -109376,62 +109379,86 @@ function parseCharset(contentType) {
 function request(url, data, opts, token, obj = {}) {
   let mod = getRequestModule(url);
   return new Promise((resolve, reject) => {
-    if (token) {
-      let disposable = token.onCancellationRequested(() => {
-        disposable.dispose();
-        req.destroy(new CancellationError());
-      });
-    }
     let timer;
-    const req = mod.request(opts, (res) => {
+    let settled = false;
+    let req;
+    let cancellation;
+    const cleanup = () => {
+      cancellation?.dispose();
+      cancellation = void 0;
+      if (timer) clearTimeout(timer);
+    };
+    const succeed = (value) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(value);
+    };
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+    req = mod.request(opts, (res) => {
       let readable = res;
       if (res.statusCode >= 200 && res.statusCode < 300 || res.statusCode === 1223) {
         let headers = res.headers;
         let chunks = [];
+        let size = 0;
         let contentType = toText(headers["content-type"]);
         readable = decompressResponse(res);
         readable.on("data", (chunk) => {
+          size += chunk.length;
+          let maxResponseSize = opts.maxResponseSize ?? DEFAULT_MAX_RESPONSE_SIZE;
+          if (size > maxResponseSize) {
+            readable.destroy(new Error(`Response exceeds maximum size of ${maxResponseSize} bytes`));
+            return;
+          }
           chunks.push(chunk);
         });
         readable.on("end", () => {
-          clearTimeout(timer);
           let buf = Buffer.concat(chunks);
           if (!opts.buffer && (contentType.startsWith("application/json") || contentType.startsWith("text/"))) {
             try {
               let encoding2 = parseCharset(contentType);
               let rawData = buf.toString(encoding2);
               if (!contentType.includes("application/json")) {
-                resolve(rawData);
+                succeed(rawData);
               } else {
                 try {
                   const parsedData = JSON.parse(rawData);
-                  resolve(parsedData);
+                  succeed(parsedData);
                 } catch (e) {
-                  reject(new Error(`Parse response error: ${e}`));
+                  fail(new Error(`Parse response error: ${e}`));
                 }
               }
             } catch (e) {
-              reject(new Error(`Decode response error: ${e instanceof Error ? e.message : String(e)}`));
+              fail(new Error(`Decode response error: ${e instanceof Error ? e.message : String(e)}`));
             }
           } else {
-            resolve(buf);
+            succeed(buf);
           }
         });
         readable.on("error", (err) => {
-          reject(new Error(`Connection error to ${url}: ${err.message}`));
+          fail(new Error(`Connection error to ${url}: ${err.message}`));
         });
       } else {
-        reject(new Error(`Bad response from ${url}: ${res.statusCode}`));
+        res.resume();
+        fail(new Error(`Bad response from ${url}: ${res.statusCode}`));
       }
+    });
+    cancellation = token?.onCancellationRequested(() => {
+      req.destroy(new CancellationError());
     });
     obj.req = req;
     req.on("error", (e) => {
       if (e["code"] == "ECONNRESET") {
         timer = setTimeout(() => {
-          reject(e);
+          fail(e);
         }, timeout);
       } else {
-        reject(e);
+        fail(e);
       }
     });
     req.on("timeout", () => {
@@ -109455,7 +109482,7 @@ function fetch(urlInput, options3 = {}, token) {
     }
   });
 }
-var import_follow_redirects, logger31, timeout;
+var import_follow_redirects, logger31, timeout, DEFAULT_MAX_RESPONSE_SIZE;
 var init_fetch = __esm({
   "src/model/fetch.ts"() {
     "use strict";
@@ -109472,6 +109499,7 @@ var init_fetch = __esm({
     init_workspace();
     logger31 = createLogger("model-fetch");
     timeout = getConditionValue(500, 50);
+    DEFAULT_MAX_RESPONSE_SIZE = 128 * 1024 * 1024;
   }
 });
 
@@ -113037,8 +113065,8 @@ function getExtname(dispositionHeader) {
 }
 function isSafeEntryPath(dest, entryPath) {
   let destPath = path.join(dest, entryPath);
-  if (destPath === dest) return false;
-  return destPath.startsWith(dest + path.sep);
+  let relative = path.relative(dest, destPath);
+  return relative !== "" && relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
 }
 function openZip(filepath) {
   return new Promise((resolve, reject) => {
@@ -113056,10 +113084,12 @@ function openZipEntry(zipfile, entry) {
     });
   });
 }
-async function unzipFile(filepath, dest) {
+async function unzipFile(filepath, dest, maxExtractSize, maxArchiveEntries) {
   let zipfile = await openZip(filepath);
   return await new Promise((resolve, reject) => {
     let settled = false;
+    let entries = 0;
+    let extractedSize = 0;
     const fail = (error) => {
       if (settled) return;
       settled = true;
@@ -113073,6 +113103,12 @@ async function unzipFile(filepath, dest) {
       resolve();
     });
     zipfile.on("entry", (entry) => {
+      entries++;
+      extractedSize += entry.uncompressedSize;
+      if (entries > maxArchiveEntries || extractedSize > maxExtractSize) {
+        fail(new Error("Zip archive exceeds extraction limits"));
+        return;
+      }
       let entryPath = (0, import_yauzl.getFileNameLowLevel)(entry.generalPurposeBitFlag, entry.fileNameRaw, entry.extraFields, false);
       entryPath = entryPath.replace(/(?<=^|[/\\]+)[.][.]+(?=[/\\]+|$)/g, ".");
       if (!isSafeEntryPath(dest, entryPath)) {
@@ -113081,10 +113117,12 @@ async function unzipFile(filepath, dest) {
       }
       let target = path.join(dest, entryPath);
       let isDirectory2 = entryPath.endsWith("/");
-      void fs.promises.mkdir(isDirectory2 ? target : path.dirname(target), { recursive: true }).then(async () => {
+      let parent = isDirectory2 ? target : path.dirname(target);
+      void ensureNoSymlink(dest, parent).then(() => fs.promises.mkdir(parent, { recursive: true })).then(async () => {
+        await ensureNoSymlink(dest, parent);
         if (!isDirectory2) {
           let input = await openZipEntry(zipfile, entry);
-          await (0, import_promises.pipeline)(input, fs.createWriteStream(target));
+          await writeZipEntry(input, target);
         }
         zipfile.readEntry();
       }, fail).catch(fail);
@@ -113092,7 +113130,31 @@ async function unzipFile(filepath, dest) {
     zipfile.readEntry();
   });
 }
-function extractZip(res, dest) {
+async function ensureNoSymlink(dest, target) {
+  let relative = path.relative(dest, target);
+  let current = dest;
+  for (let part of relative.split(path.sep).filter(Boolean)) {
+    current = path.join(current, part);
+    try {
+      let stat = await fs.promises.lstat(current);
+      if (stat.isSymbolicLink()) throw new Error(`Refusing to extract through symbolic link: ${current}`);
+      if (!stat.isDirectory()) throw new Error(`Invalid extraction directory: ${current}`);
+    } catch (e) {
+      if (e.code !== "ENOENT") throw e;
+    }
+  }
+}
+async function writeZipEntry(input, target) {
+  let flags = fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_TRUNC;
+  if (typeof fs.constants.O_NOFOLLOW === "number") flags |= fs.constants.O_NOFOLLOW;
+  let handle = await fs.promises.open(target, flags, 438);
+  try {
+    await (0, import_promises.pipeline)(input, handle.createWriteStream());
+  } finally {
+    await handle.close().catch(() => void 0);
+  }
+}
+function extractZip(res, dest, options3) {
   let emitter = new import_events34.EventEmitter();
   let archive = path.join(dest, `.coc-download-${crypto2.randomUUID()}.zip`);
   let output = fs.createWriteStream(archive);
@@ -113109,7 +113171,12 @@ function extractZip(res, dest) {
   };
   output.on("error", finish);
   output.on("finish", () => {
-    void unzipFile(archive, dest).then(() => finish(), finish);
+    void unzipFile(
+      archive,
+      dest,
+      options3.maxExtractSize ?? DEFAULT_MAX_EXTRACT_SIZE,
+      options3.maxArchiveEntries ?? DEFAULT_MAX_ARCHIVE_ENTRIES
+    ).then(() => finish(), finish);
   });
   res.on("error", (error) => {
     output.destroy(error);
@@ -113121,9 +113188,17 @@ function download(urlInput, options3, token, obj = {}) {
   let url = toURL(urlInput);
   let { etagAlgorithm } = options3;
   let { dest, onProgress, extract } = options3;
+  for (let [name2, value] of Object.entries({
+    maxDownloadSize: options3.maxDownloadSize,
+    maxExtractSize: options3.maxExtractSize,
+    maxArchiveEntries: options3.maxArchiveEntries
+  })) {
+    if (value !== void 0 && (!Number.isFinite(value) || value <= 0)) throw new Error(`${name2} must be a positive finite number`);
+  }
   if (!dest || !path.isAbsolute(dest)) {
     throw new Error(`Invalid dest path: ${dest}`);
   }
+  dest = path.resolve(dest);
   if (!fs.existsSync(dest)) {
     fs.mkdirSync(dest, { recursive: true });
   } else {
@@ -113137,13 +113212,26 @@ function download(urlInput, options3, token, obj = {}) {
   if (!opts.agent && options3.agent) opts.agent = options3.agent;
   let extname = path.extname(url.pathname);
   return new Promise((resolve, reject) => {
-    if (token) {
-      let disposable = token.onCancellationRequested(() => {
-        disposable.dispose();
-        req.destroy(new Error("request aborted"));
-      });
-    }
     let timer;
+    let settled = false;
+    let cancellation;
+    const cleanup = () => {
+      cancellation?.dispose();
+      cancellation = void 0;
+      if (timer) clearTimeout(timer);
+    };
+    const succeed = (value) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(value);
+    };
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
     const req = mod.request(opts, (res) => {
       if (res.statusCode >= 200 && res.statusCode < 300 || res.statusCode === 1223) {
         let headers = res.headers;
@@ -113159,7 +113247,7 @@ function download(urlInput, options3, token, obj = {}) {
           } else if (extname == ".tgz") {
             extract = "untar";
           } else {
-            reject(new Error(`Unable to detect extract method for ${url}`));
+            fail(new Error(`Unable to detect extract method for ${url}`));
             return;
           }
         }
@@ -113167,11 +113255,15 @@ function download(urlInput, options3, token, obj = {}) {
         let hasTotal = !isNaN(total);
         let cur = 0;
         res.on("error", (err) => {
-          reject(new Error(`Unable to connect ${url}: ${err.message}`));
+          fail(new Error(`Unable to connect ${url}: ${err.message}`));
         });
         let hash = checkEtag ? crypto2.createHash(etagAlgorithm) : void 0;
         res.on("data", (chunk) => {
           cur += chunk.length;
+          if (cur > (options3.maxDownloadSize ?? DEFAULT_MAX_DOWNLOAD_SIZE)) {
+            res.destroy(new Error(`Download exceeds maximum size of ${options3.maxDownloadSize ?? DEFAULT_MAX_DOWNLOAD_SIZE} bytes`));
+            return;
+          }
           if (hash) hash.update(chunk);
           if (hasTotal) {
             let percent = (cur / total * 100).toFixed(1);
@@ -113188,46 +113280,83 @@ function download(urlInput, options3, token, obj = {}) {
           logger32.info("Download completed:", url);
         });
         let stream;
+        const attachStreamHandlers = () => {
+          stream.on("finish", () => {
+            if (hash) {
+              if (hash.digest("hex") !== etag) {
+                fail(new Error(`Etag check failed by ${etagAlgorithm}, content not match.`));
+                return;
+              }
+            }
+            logger32.info(`Downloaded ${url} => ${dest}`);
+            setTimeout(() => {
+              succeed(dest);
+            }, 100);
+          });
+          stream.on("error", fail);
+        };
         if (extract === "untar") {
           const tar = require_index_min3();
-          stream = res.pipe(tar.x({ strip: options3.strip ?? 1, C: dest }));
+          let entries = 0;
+          let extractedSize = 0;
+          let rejected = false;
+          let extraction;
+          const rejectEntry = (error) => {
+            if (!rejected) {
+              rejected = true;
+              extraction.abort(error);
+            }
+            return false;
+          };
+          extraction = tar.x({
+            strip: options3.strip ?? 1,
+            C: dest,
+            preservePaths: false,
+            filter: (_entryPath, entry) => {
+              entries++;
+              extractedSize += entry.size ?? 0;
+              if (entry.type === "SymbolicLink" || entry.type === "Link") {
+                return rejectEntry(new Error("Tar archive links are not supported"));
+              }
+              if (entries > (options3.maxArchiveEntries ?? DEFAULT_MAX_ARCHIVE_ENTRIES) || extractedSize > (options3.maxExtractSize ?? DEFAULT_MAX_EXTRACT_SIZE)) {
+                return rejectEntry(new Error("Tar archive exceeds extraction limits"));
+              }
+              return true;
+            }
+          });
+          stream = extraction;
+          attachStreamHandlers();
+          res.pipe(stream);
+          return;
         } else if (extract === "unzip") {
-          stream = extractZip(res, dest);
+          stream = extractZip(res, dest, options3);
         } else {
           dest = path.join(dest, `${crypto2.randomUUID()}${extname}`);
           stream = res.pipe(fs.createWriteStream(dest));
         }
-        stream.on("finish", () => {
-          if (hash) {
-            if (hash.digest("hex") !== etag) {
-              reject(new Error(`Etag check failed by ${etagAlgorithm}, content not match.`));
-              return;
-            }
-          }
-          logger32.info(`Downloaded ${url} => ${dest}`);
-          setTimeout(() => {
-            resolve(dest);
-          }, 100);
-        });
-        stream.on("error", reject);
+        attachStreamHandlers();
       } else {
-        reject(new Error(`Invalid response from ${url}: ${res.statusCode}`));
+        res.resume();
+        fail(new Error(`Invalid response from ${url}: ${res.statusCode}`));
       }
     });
     obj.req = req;
     req.on("error", (e) => {
       if (e["code"] == "ECONNRESET") {
         timer = setTimeout(() => {
-          reject(e);
+          fail(e);
         }, timeout);
       } else {
         clearTimeout(timer);
         if (opts.agent && opts.agent.proxy) {
-          reject(new Error(`Request failed using proxy ${opts.agent.proxy.host}: ${e.message}`));
+          fail(new Error(`Request failed using proxy ${opts.agent.proxy.host}: ${e.message}`));
           return;
         }
-        reject(e);
+        fail(e);
       }
+    });
+    cancellation = token?.onCancellationRequested(() => {
+      req.destroy(new Error("request aborted"));
     });
     req.on("timeout", () => {
       req.destroy(new Error(`request timeout after ${options3.timeout}ms`));
@@ -113238,7 +113367,7 @@ function download(urlInput, options3, token, obj = {}) {
     req.end();
   });
 }
-var import_events34, import_promises, import_yauzl, logger32;
+var import_events34, import_promises, import_yauzl, logger32, DEFAULT_MAX_DOWNLOAD_SIZE, DEFAULT_MAX_EXTRACT_SIZE, DEFAULT_MAX_ARCHIVE_ENTRIES;
 var init_download = __esm({
   "src/model/download.ts"() {
     "use strict";
@@ -113249,10 +113378,25 @@ var init_download = __esm({
     init_node();
     init_fetch();
     logger32 = createLogger("model-download");
+    DEFAULT_MAX_DOWNLOAD_SIZE = 512 * 1024 * 1024;
+    DEFAULT_MAX_EXTRACT_SIZE = 1024 * 1024 * 1024;
+    DEFAULT_MAX_ARCHIVE_ENTRIES = 1e5;
   }
 });
 
 // src/extension/installer.ts
+function extensionPath(root, name2) {
+  if (typeof name2 !== "string" || !/^(?:@[^/\\]+\/)?[^/\\]+$/.test(name2) || name2.includes("\0") || name2.split("/").some((part) => part === "." || part === "..")) {
+    throw new Error(`Invalid extension name: ${name2}`);
+  }
+  let resolvedRoot = path.resolve(root);
+  let target = path.resolve(resolvedRoot, name2);
+  let relative = path.relative(resolvedRoot, target);
+  if (!relative || relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error(`Invalid extension name: ${name2}`);
+  }
+  return target;
+}
 function registryUrl(home = os.homedir()) {
   let res;
   let filepath = path.join(home, ".npmrc");
@@ -113356,6 +113500,7 @@ var init_installer = __esm({
         if (!obj) throw new Error(`${this.def} doesn't exists in ${registry}.`);
         let requiredVersion = obj["engines"] && obj["engines"]["coc"];
         if (!requiredVersion) throw new Error(`${this.def} is not a valid coc extension, "engines" field with coc property required.`);
+        extensionPath(this.root, res.name);
         return {
           "dist.tarball": obj["dist"]["tarball"],
           "engines.coc": requiredVersion,
@@ -113365,7 +113510,13 @@ var init_installer = __esm({
       }
       async getInfoFromUri() {
         let { url } = this;
-        if (!url.startsWith("https://github.com")) {
+        let repository;
+        try {
+          repository = new URL(url);
+        } catch (_e) {
+          throw new Error(`"${url}" is not supported, coc.nvim support github.com only`);
+        }
+        if (repository.protocol !== "https:" || repository.hostname !== "github.com") {
           throw new Error(`"${url}" is not supported, coc.nvim support github.com only`);
         }
         url = url.replace(/\/$/, "");
@@ -113379,6 +113530,7 @@ var init_installer = __esm({
         this.log(`Get info from ${fileUrl}`);
         let content = await this.fetch(fileUrl, { timeout: 1e4 });
         let obj = typeof content == "string" ? JSON.parse(content) : content;
+        extensionPath(this.root, obj.name);
         this.name = obj.name;
         return {
           "dist.tarball": `${url}/archive/${branch}.tar.gz`,
@@ -113400,13 +113552,13 @@ var init_installer = __esm({
           throw new Error(`${name2} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`);
         }
         let updated = await this.doInstall(info, /* @__PURE__ */ new Set());
-        return { name: name2, updated, version: version2, url: this.url, folder: path.join(this.root, info.name) };
+        return { name: name2, updated, version: version2, url: this.url, folder: extensionPath(this.root, info.name) };
       }
       async update(url) {
         if (url) this.url = url;
         let version2;
         if (this.name) {
-          let folder = path.join(this.root, this.name);
+          let folder = extensionPath(this.root, this.name);
           if (isSymbolicLink(folder)) {
             this.log(`Skipped update for symbol link`);
             return;
@@ -113490,15 +113642,14 @@ var init_installer = __esm({
         });
       }
       async doInstall(info, installing = /* @__PURE__ */ new Set()) {
-        let dest = path.join(this.root, info.name);
+        let dest = extensionPath(this.root, info.name);
         if (isSymbolicLink(dest)) return false;
         if (installing.has(info.name)) {
           this.log(`Skipping dependency: ${info.name} (already installed or in progress)`);
           return false;
         }
         installing.add(info.name);
-        let key = info.name.replace(/\//g, "_");
-        let downloadFolder = path.join(this.root, `${key}-${crypto.randomUUID()}`);
+        let downloadFolder = path.join(path.resolve(this.root), `.coc-download-${crypto.randomUUID()}`);
         let url = info["dist.tarball"];
         this.log(`Downloading from ${url}`);
         let etagAlgorithm = url.startsWith("https://registry.npmjs.org") ? "md5" : void 0;
@@ -129486,7 +129637,13 @@ function searchWithRg(pattern, args, root, maxResults) {
 function escapeRegExp2(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+function unsafeFallbackRegex(pattern) {
+  return pattern.length > 1e3 || /\\[1-9]/.test(pattern) || /\(\?[=!<]/.test(pattern) || /\([^)]*[+*{][^)]*\)\s*(?:[+*?]|\{)/.test(pattern);
+}
 async function searchWithJs(pattern, args, root, maxResults) {
+  if (args.regex === true && unsafeFallbackRegex(pattern)) {
+    throw new Error("Regex is too complex for the JavaScript search fallback; install ripgrep to use it safely");
+  }
   let include = new RelativePattern2(URI2.file(root), typeof args.include === "string" && args.include ? args.include : "**/*");
   let uris = await workspace_default.findFiles(include, args.exclude || null, 500);
   let flags = args.caseSensitive === true ? "" : "i";
@@ -132014,7 +132171,7 @@ var init_manager5 = __esm({
         let isActive = false;
         let result;
         let filename = options3?.sourceCode ? path.join(root, "index.js") : path.join(root, packageJSON.main || "index.js");
-        let extensionPath = extensionType === 2 /* SingleFile */ ? filename : root;
+        let extensionPath2 = extensionType === 2 /* SingleFile */ ? filename : root;
         let exports2;
         let ext;
         let subscriptions = [];
@@ -132029,7 +132186,7 @@ var init_manager5 = __esm({
                 ext = await createExtensionAsync(id2, filename, isEmpty2, options3, subscriptions);
                 let context = {
                   subscriptions,
-                  extensionPath,
+                  extensionPath: extensionPath2,
                   globalState: memos.createMemento(`${id2}|global`),
                   workspaceState: memos.createMemento(`${id2}|${workspace_default.rootPath}`),
                   asAbsolutePath: (relativePath) => path.join(root, relativePath),
@@ -132051,8 +132208,8 @@ var init_manager5 = __esm({
           },
           id: id2,
           packageJSON,
-          extensionPath,
-          extensionUri: URI2.file(extensionPath),
+          extensionPath: extensionPath2,
+          extensionUri: URI2.file(extensionPath2),
           get isActive() {
             return isActive;
           },
@@ -141897,7 +142054,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-570b4ac 2026-08-22 21:57:28 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-555f5ce 2026-08-23 23:08:12 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
