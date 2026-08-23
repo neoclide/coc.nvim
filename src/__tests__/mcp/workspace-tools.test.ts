@@ -245,6 +245,7 @@ describe('mcp workspace tools', () => {
     let limited = await searchWithJs('hello', {}, tmpdir, 1)
     assert.strictEqual(limited.length, 1)
     await assert.rejects(searchWithJs('[', { regex: true }, tmpdir, 10), new RegExp('Invalid regex'))
+    await assert.rejects(searchWithJs('(a+)+$', { regex: true }, tmpdir, 10), /too complex/)
   })
 
   it('validates required arguments for workspace tools', async t => {

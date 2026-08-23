@@ -473,6 +473,10 @@ describe('fetch', () => {
     }
     await assert.rejects(fn(), Error)
   })
+
+  it('should reject oversized responses', async () => {
+    await assert.rejects(fetch(`http://127.0.0.1:${port}/binary`, { maxResponseSize: 10 }), /maximum size/)
+  })
 })
 
 describe('download', () => {
@@ -555,6 +559,13 @@ describe('download', () => {
     assert.strictEqual(called, true)
     let exists = fs.existsSync(res)
     assert.strictEqual(exists, true)
+  })
+
+  it('should reject oversized downloads', async () => {
+    await assert.rejects(download(`http://127.0.0.1:${port}/binary`, {
+      dest: tempdir,
+      maxDownloadSize: 10
+    }), /maximum size/)
   })
 
   it('should throw when etag check failed', async t => {

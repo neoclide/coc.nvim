@@ -158,6 +158,8 @@ describe('Installer', () => {
         await installer.getInfoFromUri()
       }
       await assert.rejects(fn(), /not supported/)
+      let deceptive = new Installer(import.meta.dirname, 'npm', 'https://github.com.example.com/owner/repo')
+      await assert.rejects(() => deceptive.getInfoFromUri(), /not supported/)
     })
 
     it('should get info from url #1', async t => {
@@ -181,6 +183,13 @@ describe('Installer', () => {
   })
 
   describe('update()', () => {
+    it('should reject extension names outside the extension root', async () => {
+      let installer = new Installer(os.tmpdir(), 'npm', 'foo')
+      await assert.rejects(() => installer.doInstall({ name: '../outside' }), /Invalid extension name/)
+      await assert.rejects(() => installer.doInstall({ name: '..\\outside' }), /Invalid extension name/)
+      await assert.rejects(() => installer.doInstall({ name: '/outside' }), /Invalid extension name/)
+    })
+
     it('should skip install & update for symbolic folder', async t => {
       tmpfolder = path.join(os.tmpdir(), 'foo')
       fs.rmSync(tmpfolder, { recursive: true, force: true })

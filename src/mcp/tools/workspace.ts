@@ -103,7 +103,20 @@ export function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+function unsafeFallbackRegex(pattern: string): boolean {
+  // JavaScript RegExp has no execution timeout. Keep the no-ripgrep fallback
+  // to expressions without the constructs most commonly responsible for
+  // catastrophic backtracking; ripgrep remains the unrestricted regex path.
+  return pattern.length > 1000
+    || /\\[1-9]/.test(pattern)
+    || /\(\?[=!<]/.test(pattern)
+    || /\([^)]*[+*{][^)]*\)\s*(?:[+*?]|\{)/.test(pattern)
+}
+
 export async function searchWithJs(pattern: string, args: any, root: string, maxResults: number): Promise<SearchMatch[]> {
+  if (args.regex === true && unsafeFallbackRegex(pattern)) {
+    throw new Error('Regex is too complex for the JavaScript search fallback; install ripgrep to use it safely')
+  }
   let include = new RelativePatternImpl(URI.file(root), typeof args.include === 'string' && args.include ? args.include : '**/*')
   let uris = await workspace.findFiles(include, args.exclude || null, 500)
   // One (first) match per line, searched from the start of every line: the
