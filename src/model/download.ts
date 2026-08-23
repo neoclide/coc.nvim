@@ -2,6 +2,7 @@
 import { EventEmitter } from 'events'
 import http, { IncomingHttpHeaders, IncomingMessage } from 'http'
 import { pipeline } from 'stream/promises'
+import type { Writable } from 'stream'
 import { getFileNameLowLevel, open } from 'yauzl'
 import type { Entry, ZipFile } from 'yauzl'
 import { createLogger } from '../logger'
@@ -300,11 +301,38 @@ export default function download(urlInput: string | URL, options: DownloadOption
           logger.info('Download completed:', url)
         })
         let stream: any
+        const attachStreamHandlers = (): void => {
+          stream.on('finish', () => {
+            if (hash) {
+              if (hash.digest('hex') !== etag) {
+                fail(new Error(`Etag check failed by ${etagAlgorithm}, content not match.`))
+                return
+              }
+            }
+            logger.info(`Downloaded ${url} => ${dest}`)
+            setTimeout(() => {
+              succeed(dest)
+            }, 100)
+          })
+          stream.on('error', fail)
+        }
         if (extract === 'untar') {
           const tar = require('tar')
           let entries = 0
           let extractedSize = 0
-          stream = res.pipe(tar.x({
+          let rejected = false
+          let extraction: Writable & { abort(error: Error): void }
+          const rejectEntry = (error: Error): false => {
+            if (!rejected) {
+              rejected = true
+              // tar's parser abort path destroys its underlying streams and
+              // emits `error`; unlike throwing from filter, it is caught by
+              // the handler installed below.
+              extraction.abort(error)
+            }
+            return false
+          }
+          extraction = tar.x({
             strip: options.strip ?? 1,
             C: dest,
             preservePaths: false,
@@ -312,34 +340,28 @@ export default function download(urlInput: string | URL, options: DownloadOption
               entries++
               extractedSize += entry.size ?? 0
               if (entry.type === 'SymbolicLink' || entry.type === 'Link') {
-                throw new Error('Tar archive links are not supported')
+                return rejectEntry(new Error('Tar archive links are not supported'))
               }
               if (entries > (options.maxArchiveEntries ?? DEFAULT_MAX_ARCHIVE_ENTRIES)
                 || extractedSize > (options.maxExtractSize ?? DEFAULT_MAX_EXTRACT_SIZE)) {
-                throw new Error('Tar archive exceeds extraction limits')
+                return rejectEntry(new Error('Tar archive exceeds extraction limits'))
               }
               return true
             }
-          }))
+          })
+          stream = extraction
+          // Attach the rejection handler before piping. The tar parser invokes
+          // filter synchronously while consuming a response data event.
+          attachStreamHandlers()
+          res.pipe(stream)
+          return
         } else if (extract === 'unzip') {
           stream = extractZip(res, dest, options)
         } else {
           dest = path.join(dest, `${crypto.randomUUID()}${extname}`)
           stream = res.pipe(fs.createWriteStream(dest))
         }
-        stream.on('finish', () => {
-          if (hash) {
-            if (hash.digest('hex') !== etag) {
-              fail(new Error(`Etag check failed by ${etagAlgorithm}, content not match.`))
-              return
-            }
-          }
-          logger.info(`Downloaded ${url} => ${dest}`)
-          setTimeout(() => {
-            succeed(dest)
-          }, 100)
-        })
-        stream.on('error', fail)
+        attachStreamHandlers()
       } else {
         res.resume()
         fail(new Error(`Invalid response from ${url}: ${res.statusCode}`))

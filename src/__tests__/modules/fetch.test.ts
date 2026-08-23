@@ -644,6 +644,15 @@ describe('download', () => {
     assert.notStrictEqual(res, undefined)
   })
 
+  it('should reject tgz extraction limits without an uncaught exception', async () => {
+    await assert.rejects(download(`http://127.0.0.1:${port}/tgz`, {
+      dest: tempdir,
+      extract: 'untar',
+      strip: 0,
+      maxExtractSize: 1
+    }), /exceeds extraction limits/)
+  })
+
   it('should cancel download by CancellationToken', async t => {
     let fn = async () => {
       let tokenSource = new CancellationTokenSource()
