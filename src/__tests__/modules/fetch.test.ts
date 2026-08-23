@@ -399,13 +399,18 @@ describe('fetch', () => {
   })
 
   it('should catch proxy error', async t => {
+    let noProxy = process.env.no_proxy
     delete process.env.NO_PROXY
+    delete process.env.no_proxy
     process.env.HTTP_PROXY = `http://127.0.0.1`
-    let fn = async () => {
-      await fetch(`http://127.0.0.1:${port}/json`)
+    try {
+      await assert.rejects(() => fetch(`http://127.0.0.1:${port}/json`))
+    } finally {
+      delete process.env.HTTP_PROXY
+      if (noProxy == null) delete process.env.no_proxy
+      else process.env.no_proxy = noProxy
+      process.env.NO_PROXY = '*'
     }
-    await assert.rejects(fn(), )
-    delete process.env.HTTP_PROXY
   })
 
   it('should throw for ECONNRESET error', async t => {
@@ -475,7 +480,7 @@ describe('fetch', () => {
   })
 
   it('should reject oversized responses', async () => {
-    await assert.rejects(fetch(`http://127.0.0.1:${port}/binary`, { maxResponseSize: 10 }), /maximum size/)
+    await assert.rejects(fetch(`http://127.0.0.1:${port}/text`, { maxResponseSize: 1 }), /maximum size/)
   })
 })
 
@@ -651,15 +656,19 @@ describe('download', () => {
   })
 
   it('should throw on agent error', async t => {
+    let noProxy = process.env.no_proxy
     delete process.env.NO_PROXY
+    delete process.env.no_proxy
     process.env.HTTP_PROXY = `http://127.0.0.1`
-    let fn = async () => {
-      await download(`http://127.0.0.1:${port}/json`, { dest: tempdir })
+    try {
+      await assert.rejects(() => download(`http://127.0.0.1:${port}/json`, { dest: tempdir }), /using proxy/)
+    } finally {
+      delete process.env.HTTP_PROXY
+      if (noProxy == null) delete process.env.no_proxy
+      else process.env.no_proxy = noProxy
+      process.env.NO_PROXY = '*'
     }
-    await assert.rejects(fn(), /using proxy/)
-    delete process.env.HTTP_PROXY
-    process.env.NO_PROXY = '*'
-    fn = async () => {
+    let fn = async () => {
       let agent = new http.Agent({ keepAlive: true })
       let p = download(`http://127.0.0.1:${port}/slow`, { dest: tempdir, timeout: 50, agent })
       await p
