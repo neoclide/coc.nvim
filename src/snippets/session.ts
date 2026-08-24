@@ -508,7 +508,7 @@ export class SnippetSession {
     // check if snippet not changed as expected
     const expected = newDocument.getText(changedRange)
     if (expected !== snippetText) {
-      logger.error(`Something went wrong with the snippet implementation`, change, snippetText, expected)
+      logger.error(`Something went wrong with the snippet implementation`, change, { snippetText, expected })
       this.deactivate()
       return
     }
