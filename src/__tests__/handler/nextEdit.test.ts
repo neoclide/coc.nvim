@@ -11,6 +11,7 @@ import workspace from '../../workspace'
 let nextEdit: NextEdit
 let disposables: Disposable[] = []
 let vtextCalls: any[][] = []
+let highlightCalls: any[][] = []
 
 before(() => {
   nextEdit = getCurrentPlugin().handler.nextEdit
@@ -22,22 +23,29 @@ afterEach(async t => {
   disposables.forEach(d => d.dispose())
   disposables = []
   vtextCalls = []
+  highlightCalls = []
 })
 
-async function setup(t: any, lines = ['one', 'two']): Promise<any> {
+async function setup(t: any, lines = ['one', 'two'], mockRender = true): Promise<any> {
   shared.updateConfiguration('nextEdit.autoTrigger', false, disposables)
   let doc = await shared.createDocument(`next-edit-${Date.now()}-${Math.random()}`)
   await workspace.nvim.call('setline', [1, lines])
   await doc.synchronize()
   await workspace.nvim.call('cursor', [1, 1])
-  let originalCall = workspace.nvim.call
-  t.mock.method(workspace.nvim, 'call', ((method: string, ...args: any[]) => {
-    if (method === 'coc#vtext#add') {
-      vtextCalls.push(args)
-      return Promise.resolve(1)
-    }
-    return originalCall.apply(workspace.nvim, [method, ...args] as any)
-  }) as any)
+  if (mockRender) {
+    let originalCall = workspace.nvim.call
+    t.mock.method(workspace.nvim, 'call', ((method: string, ...args: any[]) => {
+      if (method === 'coc#vtext#add') {
+        vtextCalls.push(args)
+        return Promise.resolve(1)
+      }
+      if (method === 'coc#highlight#buffer_update') {
+        highlightCalls.push(args)
+        return Promise.resolve(1)
+      }
+      return originalCall.apply(workspace.nvim, [method, ...args] as any)
+    }) as any)
+  }
   return doc
 }
 
@@ -103,6 +111,89 @@ describe('NextEdit handler', () => {
     assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
     assert.strictEqual(nextEdit.visible(), true)
     assert.strictEqual(vtextCalls[0][0][4].col, 1)
+  })
+
+  it('renders character-level insertion and deletion changes', async t => {
+    let doc = await setup(t, ['a中文b'])
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 0, 0, 4),
+      newText: 'a日b'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.strictEqual(nextEdit.visible(), true)
+    assert.strictEqual(highlightCalls.length, 1)
+    assert.deepStrictEqual(highlightCalls[0][0][2], [
+      ['CocNextEditDelete', 0, 1, 7, 0, 0, 0]
+    ])
+    assert.deepStrictEqual(vtextCalls[0][0][3], [['日', 'CocNextEditInsert']])
+    assert.strictEqual(vtextCalls[0][0][4].col, 2)
+    assert.strictEqual(vtextCalls[0][0][4].hl_mode, 'replace')
+  })
+
+  it('renders multiline inserted text with virtual lines', async t => {
+    let doc = await setup(t, ['one'])
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 0, 0, 0),
+      newText: 'first\nsecond'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.deepStrictEqual(vtextCalls[0][0][3], [['first', 'CocNextEditInsert']])
+    assert.deepStrictEqual(vtextCalls[0][0][4].virt_lines, [[['second', 'CocNextEditInsert']]])
+  })
+
+  it('renders an insertion starting with a newline without an empty text block', async t => {
+    let doc = await setup(t, ['one'])
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 0, 0, 0),
+      newText: '\nsecond'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.deepStrictEqual(vtextCalls[0][0][3], [])
+    assert.deepStrictEqual(vtextCalls[0][0][4].virt_lines, [[['second', 'CocNextEditInsert']]])
+  })
+
+  it('renders a deleted newline with a visible deletion marker', async t => {
+    let doc = await setup(t, ['', 'two'])
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 0, 1, 0),
+      newText: ''
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.deepStrictEqual(vtextCalls[0][0][3], [['↵', 'CocNextEditDelete']])
+    assert.strictEqual(vtextCalls[0][0][4].col, 1)
+    assert.strictEqual(vtextCalls[0][0][4].hl_mode, 'replace')
+  })
+
+  it('creates and clears insertion virtual text through the editor compatibility layer', async t => {
+    let doc = await setup(t, ['one'], false)
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 0, 0, 0),
+      newText: 'X'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    let namespace = (nextEdit as any).namespace
+    assert.strictEqual(await workspace.nvim.call('coc#vtext#exists', [doc.bufnr, namespace]), 1)
+    nextEdit.cancel()
+    assert.strictEqual(await workspace.nvim.call('coc#vtext#exists', [doc.bufnr, namespace]), 0)
+  })
+
+  it('creates deletion highlights through the editor compatibility layer', async t => {
+    let doc = await setup(t, ['one'], false)
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 0, 0, 3),
+      newText: ''
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    let highlights = await doc.buffer.getHighlights((nextEdit as any).namespace)
+    assert.deepStrictEqual(highlights.map(item => [item.hlGroup, item.lnum, item.colStart, item.colEnd]), [
+      ['CocNextEditDelete', 0, 0, 3]
+    ])
   })
 
   it('uses the namespace cleared by the Vim next-edit layer', async t => {
@@ -193,6 +284,97 @@ describe('NextEdit handler', () => {
     await workspace.nvim.command('enew | setfiletype javascript')
     await shared.waitValue(() => handler.config.autoTrigger, true)
     assert.strictEqual(handler.config.autoTrigger, true)
+  })
+
+  it('ignores edits that change the character count before the cursor', async t => {
+    let doc = await setup(t, ['abcdef'])
+    await workspace.nvim.call('cursor', [1, 4])
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 0, 0, 6),
+      newText: 'abXYdef'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), false)
+    assert.strictEqual(nextEdit.available(), false)
+  })
+
+  it('ignores a completed edit before the cursor that changes its column', async t => {
+    let doc = await setup(t, ['abcdef'])
+    await workspace.nvim.call('cursor', [1, 6])
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 0, 0, 1),
+      newText: 'XY'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), false)
+  })
+
+  it('allows same-width character changes before the cursor', async t => {
+    let doc = await setup(t, ['abcdef'])
+    await workspace.nvim.call('cursor', [1, 4])
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 0, 0, 6),
+      newText: 'abXdef'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.strictEqual(nextEdit.visible(), true)
+  })
+
+  it('ignores edits that change the line count above the cursor', async t => {
+    let doc = await setup(t, ['one', 'two'])
+    await workspace.nvim.call('cursor', [2, 2])
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 0, 1, 3),
+      newText: 'one\nadded\ntwo'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), false)
+    assert.strictEqual(nextEdit.available(), false)
+  })
+
+  it('ignores a completed edit above the cursor that changes its line', async t => {
+    let doc = await setup(t, ['one', 'two'])
+    await workspace.nvim.call('cursor', [2, 2])
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 0, 0, 3),
+      newText: 'one\nadded'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), false)
+  })
+
+  it('allows edits above the cursor that preserve the line count', async t => {
+    let doc = await setup(t, ['one', 'two'])
+    await workspace.nvim.call('cursor', [2, 2])
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 0, 1, 3),
+      newText: 'ONE\ntwo'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.strictEqual(nextEdit.visible(), true)
+  })
+
+  it('shows a managed float hint for a next edit in another file', async t => {
+    let doc = await setup(t)
+    let shown: any[] = []
+    let closed = 0
+    let factory = (nextEdit as any).floatFactory
+    t.mock.method(factory, 'show', async (docs: any[]) => { shown.push(docs) })
+    t.mock.method(factory, 'close', () => { closed++ })
+    let uri = 'file:///tmp/next-edit-target.ts'
+    disposables.push(languages.registerNextEditProvider([{ language: '*' }], {
+      provideNextEdits: () => [{ textDocument: { uri, version: 1 }, range: Range.create(3, 0, 3, 0), newText: 'external' }]
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.strictEqual(nextEdit.visible(), false)
+    assert.strictEqual(shown.length, 1)
+    assert.ok(shown[0][0].content.endsWith('next-edit-target.ts:4'))
+    assert.ok((nextEdit as any).disposables.includes(factory))
+    let beforeCancel = closed
+    nextEdit.cancel()
+    assert.strictEqual(closed, beforeCancel + 1)
   })
 
   it('rejects malformed, stale, invalid-range and no-op candidates', async t => {

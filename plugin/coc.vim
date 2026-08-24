@@ -34,11 +34,6 @@ let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
 let s:root = expand('<sfile>:h:h')
 
-hi default link CocNextEditDelete DiffDelete
-hi default link CocNextEditInsert DiffAdd
-hi default link CocNextEditAnnotation MoreMsg
-hi default link CocNextEditIndicator MoreMsg
-
 function! CocTagFunc(pattern, flags, info) abort
   " tagfunc can't be set in the sandbox mode, preload the following functions
   silent! call coc#cursor#move_to()
@@ -458,6 +453,12 @@ function! s:Enable(initialize)
 endfunction
 
 function! s:StaticHighlight() abort
+  let nextEditBg = &background ==# 'dark' ? '#3a3a3a' : '#d0d0d0'
+  let nextEditCtermBg = coc#color#rgb2term(strpart(nextEditBg, 1))
+  exe 'hi default CocNextEditInsert ctermfg=Green ctermbg='.nextEditCtermBg.' guifg='.(&background ==# 'dark' ? '#98c379' : '#008700').' guibg='.nextEditBg
+  exe 'hi default CocNextEditDelete ctermfg=Red ctermbg='.nextEditCtermBg.' guifg='.(&background ==# 'dark' ? '#e06c75' : '#af0000').' guibg='.nextEditBg
+  hi default link CocNextEditAnnotation MoreMsg
+  hi default link CocNextEditIndicator MoreMsg
   hi default CocSelectedText  ctermfg=Red     guifg=#fb4934 guibg=NONE
   hi default CocCodeLens      ctermfg=Gray    guifg=#999999 guibg=NONE
   hi default CocUnderline     term=underline cterm=underline gui=underline guisp=#ebdbb2
