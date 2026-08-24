@@ -2,6 +2,11 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-24
+
+- Improve Next Edit previews with cursor-stable candidate filtering,
+  character-level insertion/deletion highlights, and cross-file float hints.
+
 ## 2026-08-21
 
 - Support neovim OSC 8 hyperlinks.  Hold Command on macOS or Ctrl on
