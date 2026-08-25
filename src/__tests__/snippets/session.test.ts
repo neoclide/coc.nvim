@@ -172,6 +172,29 @@ describe('SnippetSession', () => {
   })
 
   describe('insertSnippetEdits', () => {
+    it('should serialize concurrent snippet edits', async () => {
+      let session = await createSession()
+      let applying = 0
+      let maxApplying = 0
+      const start = session.start.bind(session)
+      session.start = async () => {
+        applying++
+        maxApplying = Math.max(maxApplying, applying)
+        await new Promise(resolve => setTimeout(resolve, 20))
+        applying--
+        return true
+      }
+      try {
+        await Promise.all([
+          session.insertSnippetEdits([{ range: Range.create(0, 0, 0, 0), snippet: 'foo' }]),
+          session.insertSnippetEdits([{ range: Range.create(0, 0, 0, 0), snippet: 'bar' }])
+        ])
+      } finally {
+        session.start = start
+      }
+      assert.strictEqual(maxApplying, 1)
+    })
+
     it('should insert snippets', async t => {
       await shared.createDocument()
       let session = await createSession()
