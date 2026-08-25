@@ -140,7 +140,45 @@ describe('NextEdit handler', () => {
     }))
     assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
     assert.deepStrictEqual(vtextCalls[0][0][3], [['first', 'CocNextEditInsert']])
-    assert.deepStrictEqual(vtextCalls[0][0][4].virt_lines, [[['second', 'CocNextEditInsert']]])
+    assert.deepStrictEqual(vtextCalls[0][0][4].virt_lines, [[['second', 'CocNextEditInsert'], ['one', 'Normal']]])
+  })
+
+  it('includes the unchanged suffix in a multiline insertion preview', async t => {
+    let doc = await setup(t, ['abc'])
+    await workspace.nvim.call('cursor', [1, 2])
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 1, 0, 1),
+      newText: '\nX'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.deepStrictEqual(vtextCalls[0][0][4].virt_lines, [[['X', 'CocNextEditInsert'], ['bc', 'Normal']]])
+  })
+
+  it('includes text following a multiline replacement in its preview', async t => {
+    let doc = await setup(t, ['abcd'])
+    await workspace.nvim.call('cursor', [1, 2])
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 1, 0, 3),
+      newText: '\nX'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.deepStrictEqual(vtextCalls[0][0][4].virt_lines, [[['X', 'CocNextEditInsert'], ['d', 'Normal']]])
+  })
+
+  it('uses complete virtual lines for mid-line insertions on older Neovim', async t => {
+    let doc = await setup(t, ['abc'])
+    await workspace.nvim.call('cursor', [1, 2])
+    t.mock.method(workspace, 'has', (feature: string) => feature === 'nvim-0.10.0' ? false : true)
+    register(doc, version => ({
+      textDocument: { uri: doc.uri, version },
+      range: Range.create(0, 1, 0, 1),
+      newText: 'X'
+    }))
+    assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
+    assert.deepStrictEqual(vtextCalls[0][0][3], [])
+    assert.deepStrictEqual(vtextCalls[0][0][4].virt_lines, [[['a', 'Normal'], ['X', 'CocNextEditInsert'], ['bc', 'Normal']]])
   })
 
   it('renders an insertion starting with a newline without an empty text block', async t => {
@@ -152,7 +190,7 @@ describe('NextEdit handler', () => {
     }))
     assert.strictEqual(await nextEdit.trigger(doc.bufnr, { autoTrigger: false }), true)
     assert.deepStrictEqual(vtextCalls[0][0][3], [])
-    assert.deepStrictEqual(vtextCalls[0][0][4].virt_lines, [[['second', 'CocNextEditInsert']]])
+    assert.deepStrictEqual(vtextCalls[0][0][4].virt_lines, [[['second', 'CocNextEditInsert'], ['one', 'Normal']]])
   })
 
   it('renders a deleted newline with a visible deletion marker', async t => {

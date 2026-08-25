@@ -25,13 +25,15 @@ export type NextEditState = 'idle' | 'waiting' | 'requesting' | 'ready' | 'previ
 interface SourceSnapshot { uri: string; version: number; position: Position; bufnr: number }
 interface PreviewSnapshot { uri: string; version: number; range: Range; originalText: string }
 interface Session { source: SourceSnapshot; items: NextEditItem[]; index: number; shownIndexes: Set<number> }
-interface TextInsertion { position: Position; text: string }
+interface TextInsertion { position: Position; text: string; suffix: string }
 interface PreviewChanges { deletions: Range[]; deletedNewlines: Position[]; insertions: TextInsertion[] }
 interface NextEditVirtualTextOptions {
   col: number
   hl_mode: 'replace'
   virt_lines?: [string, string][][]
 }
+
+type VirtualTextBlock = [string, string]
 
 function validPosition(doc: Document, pos: Position): boolean {
   return Number.isInteger(pos.line) && Number.isInteger(pos.character) && pos.line >= 0 && pos.line < doc.textDocument.lineCount
@@ -101,7 +103,8 @@ function getPreviewChanges(range: Range, originalText: string, newText: string):
   for (let i = 0; i < diffs.length; i++) {
     let [kind, text] = diffs[i]
     if (kind === fastDiff.INSERT) {
-      insertions.push({ position: Position.create(position.line, position.character), text })
+      let suffix = diffs.slice(i + 1).filter(item => item[0] !== fastDiff.DELETE).map(item => item[1]).join('')
+      insertions.push({ position: Position.create(position.line, position.character), text, suffix })
     } else {
       let start = position
       let end = getEnd(position, text)
@@ -116,7 +119,8 @@ function getPreviewChanges(range: Range, originalText: string, newText: string):
         }
         let next = diffs[i + 1]
         if (next?.[0] === fastDiff.INSERT) {
-          insertions.push({ position: Position.create(start.line, start.character), text: next[1] })
+          let suffix = diffs.slice(i + 2).filter(item => item[0] !== fastDiff.DELETE).map(item => item[1]).join('')
+          insertions.push({ position: Position.create(start.line, start.character), text: next[1], suffix })
           i++
         }
       }
@@ -215,10 +219,29 @@ export default class NextEdit {
     }
     for (let insertion of changes.insertions) {
       let lines = insertion.text.split('\n')
-      let col = byteIndex(target.getline(insertion.position.line), insertion.position.character) + 1
+      let currentLine = target.getline(insertion.position.line)
+      let before = currentLine.slice(0, insertion.position.character)
+      let after = insertion.suffix + target.getline(item.range.end.line).slice(item.range.end.character)
+      let col = byteIndex(currentLine, insertion.position.character) + 1
       let options: NextEditVirtualTextOptions = { col, hl_mode: 'replace' }
-      if (lines.length > 1) options.virt_lines = lines.slice(1).map(line => [[line || ' ', 'CocNextEditInsert']])
-      let blocks = lines[0] ? [[lines[0], 'CocNextEditInsert']] : []
+      let blocks: VirtualTextBlock[] = lines[0] ? [[lines[0], 'CocNextEditInsert']] : []
+      if (!workspace.isVim && !workspace.has('nvim-0.10.0')) {
+        let previewLines = lines.map((line, i): VirtualTextBlock[] => {
+          let result: VirtualTextBlock[] = []
+          if (i === 0 && before) result.push([before, 'Normal'])
+          if (line) result.push([line, 'CocNextEditInsert'])
+          if (i === lines.length - 1 && after) result.push([after, 'Normal'])
+          return result.length ? result : [[' ', 'CocNextEditInsert']]
+        })
+        options.virt_lines = previewLines
+        blocks = []
+      } else if (lines.length > 1) {
+        options.virt_lines = lines.slice(1).map((line, i): VirtualTextBlock[] => {
+          let result: VirtualTextBlock[] = [[line || ' ', 'CocNextEditInsert']]
+          if (i === lines.length - 2 && after) result.push([after, 'Normal'])
+          return result
+        })
+      }
       await this.nvim.call('coc#vtext#add', [target.bufnr, this.namespace, insertion.position.line, blocks, options])
       if (this.session !== session || session.index !== index) return
     }
