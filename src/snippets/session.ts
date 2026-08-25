@@ -67,6 +67,10 @@ export class SnippetSession {
   }
 
   public async insertSnippetEdits(edits: SnippetEdit[]): Promise<boolean> {
+    return await this.mutex.use(() => this._insertSnippetEdits(edits))
+  }
+
+  private async _insertSnippetEdits(edits: SnippetEdit[]): Promise<boolean> {
     if (edits.length === 0) return this.isActive
     if (edits.length === 1) return await this.start(toSnippetString(edits[0].snippet), edits[0].range, false)
     const textDocument = this.document.textDocument
@@ -508,7 +512,7 @@ export class SnippetSession {
     // check if snippet not changed as expected
     const expected = newDocument.getText(changedRange)
     if (expected !== snippetText) {
-      logger.error(`Something went wrong with the snippet implementation`, change, snippetText, expected)
+      logger.error(`Something went wrong with the snippet implementation`, change, { snippetText, expected })
       this.deactivate()
       return
     }
