@@ -772,8 +772,11 @@ NEXT EDIT							*coc-next-edit*
 Extensions can register a generic `NextEditProvider` with
 `languages.registerNextEditProvider()`. Providers return versioned insertion,
 replacement, or deletion candidates. Candidates are previewed without changing
-the buffer; accepting an off-cursor candidate first jumps to it, and accepting
-again applies it. A visible inline completion always has priority.
+the buffer with character-level insert/delete highlights. Candidates that
+would change the cursor's line or character position through edits before it
+are ignored. A next edit in another file is announced in a small float;
+accepting an off-cursor candidate first jumps to it, and accepting again
+applies it. A visible inline completion always has priority.
 
 Functions: ~
 
@@ -3741,6 +3744,14 @@ Inline completion related ~
 to a medium gray.
 *CocInlineAnnotation* for annotation virtual text of |coc-inlineCompletion|,
 defaulting to "MoreMsg".
+
+							*CocNextEdit*
+Next Edit related ~
+
+*CocNextEditInsert* for inserted virtual text, defaulting to green text on a
+gray background.
+*CocNextEditDelete* for deleted original text, defaulting to red text on a
+gray background.
 
 Symbol icons ~
 

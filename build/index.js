@@ -6477,7 +6477,7 @@ var require_range = __commonJS({
   "node_modules/semver/classes/range.js"(exports2, module2) {
     "use strict";
     var SPACE_CHARACTERS = /\s+/g;
-    var Range12 = class _Range {
+    var Range11 = class _Range {
       constructor(range, options3) {
         options3 = parseOptions(options3);
         if (range instanceof _Range) {
@@ -6616,7 +6616,7 @@ var require_range = __commonJS({
         return false;
       }
     };
-    module2.exports = Range12;
+    module2.exports = Range11;
     var LRU = require_lrucache();
     var cache = new LRU();
     var parseOptions = require_parse_options();
@@ -6928,12 +6928,12 @@ var require_comparator = __commonJS({
           if (this.value === "") {
             return true;
           }
-          return new Range12(comp.value, options3).test(this.value);
+          return new Range11(comp.value, options3).test(this.value);
         } else if (comp.operator === "") {
           if (comp.value === "") {
             return true;
           }
-          return new Range12(this.value, options3).test(comp.semver);
+          return new Range11(this.value, options3).test(comp.semver);
         }
         options3 = parseOptions(options3);
         if (options3.includePrerelease && (this.value === "<0.0.0-0" || comp.value === "<0.0.0-0")) {
@@ -6966,7 +6966,7 @@ var require_comparator = __commonJS({
     var cmp = require_cmp();
     var debug4 = require_debug();
     var SemVer = require_semver();
-    var Range12 = require_range();
+    var Range11 = require_range();
   }
 });
 
@@ -6974,10 +6974,10 @@ var require_comparator = __commonJS({
 var require_satisfies = __commonJS({
   "node_modules/semver/functions/satisfies.js"(exports2, module2) {
     "use strict";
-    var Range12 = require_range();
+    var Range11 = require_range();
     var satisfies = (version2, range, options3) => {
       try {
-        range = new Range12(range, options3);
+        range = new Range11(range, options3);
       } catch (er) {
         return false;
       }
@@ -6991,8 +6991,8 @@ var require_satisfies = __commonJS({
 var require_to_comparators = __commonJS({
   "node_modules/semver/ranges/to-comparators.js"(exports2, module2) {
     "use strict";
-    var Range12 = require_range();
-    var toComparators = (range, options3) => new Range12(range, options3).set.map((comp) => comp.map((c) => c.value).join(" ").trim().split(" "));
+    var Range11 = require_range();
+    var toComparators = (range, options3) => new Range11(range, options3).set.map((comp) => comp.map((c) => c.value).join(" ").trim().split(" "));
     module2.exports = toComparators;
   }
 });
@@ -7002,13 +7002,13 @@ var require_max_satisfying = __commonJS({
   "node_modules/semver/ranges/max-satisfying.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
-    var Range12 = require_range();
+    var Range11 = require_range();
     var maxSatisfying = (versions, range, options3) => {
       let max = null;
       let maxSV = null;
       let rangeObj = null;
       try {
-        rangeObj = new Range12(range, options3);
+        rangeObj = new Range11(range, options3);
       } catch (er) {
         return null;
       }
@@ -7031,13 +7031,13 @@ var require_min_satisfying = __commonJS({
   "node_modules/semver/ranges/min-satisfying.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
-    var Range12 = require_range();
+    var Range11 = require_range();
     var minSatisfying = (versions, range, options3) => {
       let min = null;
       let minSV = null;
       let rangeObj = null;
       try {
-        rangeObj = new Range12(range, options3);
+        rangeObj = new Range11(range, options3);
       } catch (er) {
         return null;
       }
@@ -7060,10 +7060,10 @@ var require_min_version = __commonJS({
   "node_modules/semver/ranges/min-version.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
-    var Range12 = require_range();
+    var Range11 = require_range();
     var gt = require_gt();
     var minVersion = (range, loose) => {
-      range = new Range12(range, loose);
+      range = new Range11(range, loose);
       let minver = new SemVer("0.0.0");
       if (range.test(minver)) {
         return minver;
@@ -7118,10 +7118,10 @@ var require_min_version = __commonJS({
 var require_valid2 = __commonJS({
   "node_modules/semver/ranges/valid.js"(exports2, module2) {
     "use strict";
-    var Range12 = require_range();
+    var Range11 = require_range();
     var validRange2 = (range, options3) => {
       try {
-        return new Range12(range, options3).range || "*";
+        return new Range11(range, options3).range || "*";
       } catch (er) {
         return null;
       }
@@ -7137,7 +7137,7 @@ var require_outside = __commonJS({
     var SemVer = require_semver();
     var Comparator = require_comparator();
     var { ANY } = Comparator;
-    var Range12 = require_range();
+    var Range11 = require_range();
     var satisfies = require_satisfies();
     var gt = require_gt();
     var lt = require_lt();
@@ -7145,7 +7145,7 @@ var require_outside = __commonJS({
     var gte = require_gte();
     var outside = (version2, range, hilo, options3) => {
       version2 = new SemVer(version2, options3);
-      range = new Range12(range, options3);
+      range = new Range11(range, options3);
       let gtfn, ltefn, ltfn, comp, ecomp;
       switch (hilo) {
         case ">":
@@ -7223,10 +7223,10 @@ var require_ltr = __commonJS({
 var require_intersects = __commonJS({
   "node_modules/semver/ranges/intersects.js"(exports2, module2) {
     "use strict";
-    var Range12 = require_range();
+    var Range11 = require_range();
     var intersects = (r1, r2, options3) => {
-      r1 = new Range12(r1, options3);
-      r2 = new Range12(r2, options3);
+      r1 = new Range11(r1, options3);
+      r2 = new Range11(r2, options3);
       return r1.intersects(r2, options3);
     };
     module2.exports = intersects;
@@ -7287,7 +7287,7 @@ var require_simplify = __commonJS({
 var require_subset = __commonJS({
   "node_modules/semver/ranges/subset.js"(exports2, module2) {
     "use strict";
-    var Range12 = require_range();
+    var Range11 = require_range();
     var Comparator = require_comparator();
     var { ANY } = Comparator;
     var satisfies = require_satisfies();
@@ -7296,8 +7296,8 @@ var require_subset = __commonJS({
       if (sub === dom) {
         return true;
       }
-      sub = new Range12(sub, options3);
-      dom = new Range12(dom, options3);
+      sub = new Range11(sub, options3);
+      dom = new Range11(dom, options3);
       let sawNonNull = false;
       OUTER: for (const simpleSub of sub.set) {
         for (const simpleDom of dom.set) {
@@ -7478,7 +7478,7 @@ var require_semver2 = __commonJS({
     var coerce = require_coerce();
     var truncate = require_truncate();
     var Comparator = require_comparator();
-    var Range12 = require_range();
+    var Range11 = require_range();
     var satisfies = require_satisfies();
     var toComparators = require_to_comparators();
     var maxSatisfying = require_max_satisfying();
@@ -7517,7 +7517,7 @@ var require_semver2 = __commonJS({
       coerce,
       truncate,
       Comparator,
-      Range: Range12,
+      Range: Range11,
       satisfies,
       toComparators,
       maxSatisfying,
@@ -62589,7 +62589,7 @@ var init_main = __esm({
       }
       Position12.is = is;
     })(Position || (Position = {}));
-    (function(Range12) {
+    (function(Range11) {
       function create2(one, two, three, four) {
         if (Is.uinteger(one) && Is.uinteger(two) && Is.uinteger(three) && Is.uinteger(four)) {
           return { start: Position.create(one, two), end: Position.create(three, four) };
@@ -62599,12 +62599,12 @@ var init_main = __esm({
           throw new Error(`Range#create called with invalid arguments[${one}, ${two}, ${three}, ${four}]`);
         }
       }
-      Range12.create = create2;
+      Range11.create = create2;
       function is(value) {
         const candidate = value;
         return Is.objectLiteral(candidate) && Position.is(candidate.start) && Position.is(candidate.end);
       }
-      Range12.is = is;
+      Range11.is = is;
     })(Range || (Range = {}));
     (function(Location3) {
       function create2(uri, range) {
@@ -84551,6 +84551,12 @@ var init_schema = __esm({
           description: "Set to false to disable float/popup support for the actions menu.",
           default: true
         },
+        "coc.preferences.codeActionsShowKind": {
+          type: "boolean",
+          scope: "application",
+          description: "Set to true to show kind in the code actions menu.",
+          default: true
+        },
         "coc.preferences.autoApplySingleQuickfix": {
           type: "boolean",
           scope: "application",
@@ -103250,6 +103256,9 @@ var init_session = __esm({
         return this._selected;
       }
       async insertSnippetEdits(edits) {
+        return await this.mutex.use(() => this._insertSnippetEdits(edits));
+      }
+      async _insertSnippetEdits(edits) {
         if (edits.length === 0) return this.isActive;
         if (edits.length === 1) return await this.start(toSnippetString(edits[0].snippet), edits[0].range, false);
         const textDocument = this.document.textDocument;
@@ -103635,7 +103644,7 @@ var init_session = __esm({
         let changedRange = Range.create(start, getEnd(start, snippetText));
         const expected = newDocument.getText(changedRange);
         if (expected !== snippetText) {
-          logger27.error(`Something went wrong with the snippet implementation`, change, snippetText, expected);
+          logger27.error(`Something went wrong with the snippet implementation`, change, { snippetText, expected });
           this.deactivate();
           return;
         }
@@ -135501,7 +135510,7 @@ function toCodeActionText(action) {
   let tooltip = action.command?.tooltip;
   if (tooltip) text = `${text} - ${tooltip}`;
   let kind = action.kind;
-  if (kind && kind.length > 0) {
+  if (kind && kind.length > 0 && this.codeActionsShowKind) {
     text = `${text} [${kind.split(".")[0]}]`;
   }
   return text.length > 80 ? `${text.slice(0, 77)}...` : text;
@@ -135581,7 +135590,7 @@ var init_codeActions = __esm({
           void window_default.showWarningMessage(`No${only ? " " + only : ""} code action available`);
           return;
         }
-        let idx = await window_default.showMenuPicker(codeActions.map(toCodeActionText), "Choose action");
+        let idx = await window_default.showMenuPicker(codeActions.map(toCodeActionText.bind(this)), "Choose action");
         let action = codeActions[idx];
         if (action) await this.applyCodeAction(action);
       }
@@ -135622,6 +135631,9 @@ var init_codeActions = __esm({
       get floatActions() {
         return workspace_default.initialConfiguration.get("coc.preferences.floatActions", true);
       }
+      get codeActionsShowKind() {
+        return workspace_default.initialConfiguration.get("coc.preferences.codeActionsShowKind", true);
+      }
       async doCodeAction(mode, only, showDisable = false) {
         let { doc, position } = await this.handler.getCurrentState();
         let range;
@@ -135648,10 +135660,10 @@ var init_codeActions = __esm({
         }
         let idx = this.floatActions ? await window_default.showMenuPicker(
           codeActions.map((o) => {
-            return { text: toCodeActionText(o), disabled: o.disabled };
+            return { text: toCodeActionText.call(this, o), disabled: o.disabled };
           }),
           "Choose action"
-        ) : await window_default.requestInputList("Choose action by number", codeActions.map(toCodeActionText));
+        ) : await window_default.requestInputList("Choose action by number", codeActions.map(toCodeActionText.bind(this)));
         let action = codeActions[idx];
         if (action) await this.applyCodeAction(action);
       }
@@ -137795,18 +137807,91 @@ function validRange(doc, range) {
 function validRangeShape(range) {
   return !!range && Number.isInteger(range.start?.line) && Number.isInteger(range.start?.character) && Number.isInteger(range.end?.line) && Number.isInteger(range.end?.character) && range.start.line >= 0 && range.start.character >= 0 && range.end.line >= 0 && range.end.character >= 0 && (range.start.line < range.end.line || range.start.line === range.end.line && range.start.character <= range.end.character);
 }
+function sameTextPosition(one, two) {
+  let oneEnd = getEnd(Position.create(0, 0), one);
+  let twoEnd = getEnd(Position.create(0, 0), two);
+  return oneEnd.line === twoEnd.line && oneEnd.character === twoEnd.character;
+}
+function keepsCursorPrefix(originalText, newText, cursorOffset) {
+  let originalPrefix = "";
+  let newPrefix = "";
+  let used = 0;
+  let replacementAtCursor = false;
+  for (let [kind, text] of fastDiff(originalText, newText)) {
+    if (kind === fastDiff.EQUAL) {
+      let remaining = cursorOffset - used;
+      if (remaining <= 0) break;
+      let part = text.slice(0, remaining);
+      originalPrefix += part;
+      newPrefix += part;
+      used += part.length;
+      replacementAtCursor = false;
+      if (part.length < text.length || used === cursorOffset) break;
+    } else if (kind === fastDiff.DELETE) {
+      let remaining = cursorOffset - used;
+      if (remaining <= 0) break;
+      if (text.length > remaining) return false;
+      originalPrefix += text;
+      used += text.length;
+      replacementAtCursor = used === cursorOffset;
+    } else if (used < cursorOffset || replacementAtCursor) {
+      newPrefix += text;
+    } else {
+      break;
+    }
+  }
+  return sameTextPosition(originalPrefix, newPrefix);
+}
+function getPreviewChanges(range, originalText, newText) {
+  let deletions = [];
+  let deletedNewlines = [];
+  let insertions = [];
+  let position = range.start;
+  let diffs = fastDiff(originalText, newText);
+  for (let i = 0; i < diffs.length; i++) {
+    let [kind, text] = diffs[i];
+    if (kind === fastDiff.INSERT) {
+      let suffix = diffs.slice(i + 1).filter((item) => item[0] !== fastDiff.DELETE).map((item) => item[1]).join("");
+      insertions.push({ position: Position.create(position.line, position.character), text, suffix });
+    } else {
+      let start = position;
+      let end = getEnd(position, text);
+      if (kind === fastDiff.DELETE) {
+        deletions.push(Range.create(position, end));
+        let newlinePosition = position;
+        let parts = text.split("\n");
+        for (let part of parts.slice(0, -1)) {
+          newlinePosition = getEnd(newlinePosition, part);
+          deletedNewlines.push(newlinePosition);
+          newlinePosition = Position.create(newlinePosition.line + 1, 0);
+        }
+        let next = diffs[i + 1];
+        if (next?.[0] === fastDiff.INSERT) {
+          let suffix = diffs.slice(i + 2).filter((item) => item[0] !== fastDiff.DELETE).map((item) => item[1]).join("");
+          insertions.push({ position: Position.create(start.line, start.character), text: next[1], suffix });
+          i++;
+        }
+      }
+      position = end;
+    }
+  }
+  return { deletions, deletedNewlines, insertions };
+}
 var logger64, NAMESPACE4, NextEdit;
 var init_nextEdit = __esm({
   "src/handler/nextEdit.ts"() {
     "use strict";
     init_main();
+    init_esm();
     init_commands();
     init_languages();
     init_logger();
     init_protocol();
     init_util();
+    init_node();
     init_string();
     init_position();
+    init_textedit();
     init_window();
     init_workspace();
     logger64 = createLogger("handler-next-edit");
@@ -137817,6 +137902,8 @@ var init_nextEdit = __esm({
         this.handler = handler;
         this.inline = inline2;
         this.loadConfiguration();
+        this.floatFactory = window_default.createFloatFactory({ modes: ["n", "i"], autoHide: false, breaks: false, maxWidth: 60 });
+        this.disposables.push(this.floatFactory);
         workspace_default.onDidChangeConfiguration(this.loadConfiguration, this, this.disposables);
         window_default.onDidChangeActiveTextEditor(this.loadConfiguration, this, this.disposables);
         workspace_default.onDidChangeTextDocument((e) => {
@@ -137843,6 +137930,7 @@ var init_nextEdit = __esm({
       renderedBufnrs = /* @__PURE__ */ new Set();
       applying = false;
       disposables = [];
+      floatFactory;
       config = { autoTrigger: true, triggerWait: 150 };
       loadConfiguration() {
         let config = workspace_default.getConfiguration("nextEdit", window_default.activeTextEditor?.document);
@@ -137850,6 +137938,7 @@ var init_nextEdit = __esm({
         this.config.triggerWait = config.get("triggerWait", 150);
       }
       async clearRender() {
+        this.floatFactory.close();
         if (this.namespace != null) {
           for (let bufnr of this.renderedBufnrs) {
             workspace_default.nvim.createBuffer(bufnr).clearNamespace(this.namespace);
@@ -137870,17 +137959,58 @@ var init_nextEdit = __esm({
           this.state = "ready";
           this.renderedBufnrs.add(session.source.bufnr);
           workspace_default.nvim.createBuffer(session.source.bufnr).setVar("coc_next_edit_state", 1, true);
+          if (item.textDocument.uri !== session.source.uri) {
+            let uri = URI2.parse(item.textDocument.uri);
+            let filepath = workspace_default.getRelativePath(uri) || uri.path || item.textDocument.uri;
+            await this.floatFactory.show([{ content: `Next edit in ${filepath}:${item.range.start.line + 1}`, filetype: "txt" }]);
+          }
           return;
         }
         if (this.namespace == null) {
           this.namespace = await this.nvim.createNamespace(NAMESPACE4);
-          if (this.session !== session) return;
+          if (this.session !== session || session.index !== index) return;
         }
-        let text = item.newText.length ? `Next edit: ${item.newText.replace(/\n/g, " \u21B5 ")}` : "Next edit: delete";
-        let line = item.range.start.line;
-        let col = byteIndex(target.getline(line), item.range.start.character) + 1;
+        let changes = getPreviewChanges(item.range, this.preview.originalText, item.newText);
+        let highlights = [];
+        for (let range of changes.deletions) {
+          target.addHighlights(highlights, "CocNextEditDelete", range, { combine: false });
+        }
         this.renderedBufnrs.add(target.bufnr);
-        await this.nvim.call("coc#vtext#add", [target.bufnr, this.namespace, line, [[text, item.newText ? "CocNextEditInsert" : "CocNextEditDelete"]], { col }]);
+        let highlightDefs = highlights.map((item2) => [item2.hlGroup, item2.lnum, item2.colStart, item2.colEnd, item2.combine === false ? 0 : 1, 0, 0]);
+        this.nvim.call("coc#highlight#buffer_update", [target.bufnr, this.namespace, highlightDefs, 4096, null], true);
+        for (let position of changes.deletedNewlines) {
+          let col = byteIndex(target.getline(position.line), position.character) + 1;
+          await this.nvim.call("coc#vtext#add", [target.bufnr, this.namespace, position.line, [["\u21B5", "CocNextEditDelete"]], { col, hl_mode: "replace" }]);
+          if (this.session !== session || session.index !== index) return;
+        }
+        for (let insertion of changes.insertions) {
+          let lines = insertion.text.split("\n");
+          let currentLine = target.getline(insertion.position.line);
+          let before = currentLine.slice(0, insertion.position.character);
+          let after = insertion.suffix + target.getline(item.range.end.line).slice(item.range.end.character);
+          let col = byteIndex(currentLine, insertion.position.character) + 1;
+          let options3 = { col, hl_mode: "replace" };
+          let blocks = lines[0] ? [[lines[0], "CocNextEditInsert"]] : [];
+          if (!workspace_default.isVim && !workspace_default.has("nvim-0.10.0")) {
+            let previewLines = lines.map((line, i) => {
+              let result = [];
+              if (i === 0 && before) result.push([before, "Normal"]);
+              if (line) result.push([line, "CocNextEditInsert"]);
+              if (i === lines.length - 1 && after) result.push([after, "Normal"]);
+              return result.length ? result : [[" ", "CocNextEditInsert"]];
+            });
+            options3.virt_lines = previewLines;
+            blocks = [];
+          } else if (lines.length > 1) {
+            options3.virt_lines = lines.slice(1).map((line, i) => {
+              let result = [[line || " ", "CocNextEditInsert"]];
+              if (i === lines.length - 2 && after) result.push([after, "Normal"]);
+              return result;
+            });
+          }
+          await this.nvim.call("coc#vtext#add", [target.bufnr, this.namespace, insertion.position.line, blocks, options3]);
+          if (this.session !== session || session.index !== index) return;
+        }
         if (this.session !== session || session.index !== index) return;
         workspace_default.nvim.createBuffer(target.bufnr).setVar("coc_next_edit_state", 2, true);
         this.state = "preview";
@@ -137899,14 +138029,25 @@ var init_nextEdit = __esm({
         item.newText = newText;
         return { doc, originalText };
       }
-      validCandidate(item) {
+      keepsCursorPosition(doc, item, position, originalText) {
+        if (comparePosition(item.range.start, position) >= 0) return true;
+        if (comparePosition(item.range.end, position) <= 0) {
+          let next = getPosition(position, TextEdit.replace(item.range, item.newText));
+          return next.line === position.line && next.character === position.character;
+        }
+        let cursorOffset = doc.textDocument.offsetAt(position) - doc.textDocument.offsetAt(item.range.start);
+        return keepsCursorPrefix(originalText, item.newText, cursorOffset);
+      }
+      validCandidate(item, source) {
         if (!item?.textDocument || !Number.isInteger(item.textDocument.version) || typeof item.newText !== "string" || !validRangeShape(item.range)) return false;
         let doc = workspace_default.getDocument(item.textDocument.uri);
         if (!doc || !doc.attached) {
           item.newText = item.newText.replace(/\r\n?/g, "\n");
           return true;
         }
-        return !!this.validate(item);
+        let checked = this.validate(item);
+        if (!checked) return false;
+        return !source || item.textDocument.uri !== source.uri || this.keepsCursorPosition(doc, item, source.position, checked.originalText);
       }
       async trigger(bufnr, option = {}, delay3 = 0) {
         this.cancel();
@@ -137932,7 +138073,7 @@ var init_nextEdit = __esm({
         let items = await languages_default.provideNextEdits(doc.textDocument, position, { provider: option.provider, triggerKind: option.autoTrigger ? InlineCompletionTriggerKind.Automatic : InlineCompletionTriggerKind.Invoked }, source.token);
         if (source.token.isCancellationRequested || this.source !== requestId) return false;
         this.source = void 0;
-        let valid = items.filter((item) => this.validCandidate(item));
+        let valid = items.filter((item) => this.validCandidate(item, { uri: doc.uri, position }));
         if (!valid.length) {
           this.cancel();
           return false;
@@ -142054,7 +142195,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-555f5ce 2026-08-23 23:08:12 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-aa47ce3 2026-08-25 14:12:47 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
