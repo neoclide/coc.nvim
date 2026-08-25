@@ -45,6 +45,7 @@ export interface SnippetConfig {
 
 export class SnippetSession {
   public mutex = new Mutex()
+  private insertionMutex = new Mutex()
   private current: Placeholder
   private textDocument: LinesTextDocument
   private tokenSource: CancellationTokenSource
@@ -67,6 +68,10 @@ export class SnippetSession {
   }
 
   public async insertSnippetEdits(edits: SnippetEdit[]): Promise<boolean> {
+    return await this.insertionMutex.use(() => this._insertSnippetEdits(edits))
+  }
+
+  private async _insertSnippetEdits(edits: SnippetEdit[]): Promise<boolean> {
     if (edits.length === 0) return this.isActive
     if (edits.length === 1) return await this.start(toSnippetString(edits[0].snippet), edits[0].range, false)
     const textDocument = this.document.textDocument
