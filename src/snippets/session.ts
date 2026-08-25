@@ -45,7 +45,6 @@ export interface SnippetConfig {
 
 export class SnippetSession {
   public mutex = new Mutex()
-  private insertionMutex = new Mutex()
   private current: Placeholder
   private textDocument: LinesTextDocument
   private tokenSource: CancellationTokenSource
@@ -68,7 +67,7 @@ export class SnippetSession {
   }
 
   public async insertSnippetEdits(edits: SnippetEdit[]): Promise<boolean> {
-    return await this.insertionMutex.use(() => this._insertSnippetEdits(edits))
+    return await this.mutex.use(() => this._insertSnippetEdits(edits))
   }
 
   private async _insertSnippetEdits(edits: SnippetEdit[]): Promise<boolean> {

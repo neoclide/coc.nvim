@@ -176,16 +176,13 @@ describe('SnippetSession', () => {
       let session = await createSession()
       let applying = 0
       let maxApplying = 0
-      const applyEdits = session.document.applyEdits.bind(session.document)
-      session.document.applyEdits = async (...args) => {
+      const start = session.start.bind(session)
+      session.start = async () => {
         applying++
         maxApplying = Math.max(maxApplying, applying)
         await new Promise(resolve => setTimeout(resolve, 20))
-        try {
-          return await applyEdits(...args)
-        } finally {
-          applying--
-        }
+        applying--
+        return true
       }
       try {
         await Promise.all([
@@ -193,7 +190,7 @@ describe('SnippetSession', () => {
           session.insertSnippetEdits([{ range: Range.create(0, 0, 0, 0), snippet: 'bar' }])
         ])
       } finally {
-        session.document.applyEdits = applyEdits
+        session.start = start
       }
       assert.strictEqual(maxApplying, 1)
     })
