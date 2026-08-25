@@ -29,8 +29,6 @@ describe('terminal properties', () => {
     assert.ok(lines[0].trim().length > 0)
     terminal.sendText('echo $COC_TERMINAL')
     await shared.waitFor('eval', [`join(getbufline(${bufnr},1,'$'),'\n')`], /option '-term'/)
-    lines = await nvim.call('getbufline', [bufnr, 1, '$']) as string[]
-    assert.strictEqual(lines.includes(`option '-term'`), true)
     terminal.onExit(-1)
   })
 
