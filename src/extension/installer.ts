@@ -65,21 +65,44 @@ export function registryUrl(home = os.homedir()): URL {
   return res ?? new URL('https://registry.npmjs.org')
 }
 
-export function minReleaseAge(home = os.homedir()): number {
+interface ReleaseAgeConfig {
+  age: number
+  exclude: Set<string>
+}
+
+function npmrcValue(value: string): string {
+  value = value.replace(/\s[;#].*$/, '').trim()
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    return value.slice(1, -1)
+  }
+  return value
+}
+
+function releaseAgeConfig(home = os.homedir()): ReleaseAgeConfig {
+  let config: ReleaseAgeConfig = { age: 0, exclude: new Set() }
   let filepath = path.join(home, '.npmrc')
-  if (!fs.existsSync(filepath)) return 0
+  if (!fs.existsSync(filepath)) return config
   try {
     let content = fs.readFileSync(filepath, 'utf8')
     for (let line of content.split(/\r?\n/)) {
-      let ms = line.match(/^\s*min-release-age\s*=\s*([^#;\s]+)/)
+      let ms = line.match(/^\s*(min-release-age(?:-exclude(?:\[\])?)?)\s*=\s*(.*?)\s*$/)
       if (!ms) continue
-      let seconds = Number(ms[1])
-      return Number.isFinite(seconds) && seconds > 0 ? seconds : 0
+      let value = npmrcValue(ms[2])
+      if (ms[1].startsWith('min-release-age-exclude')) {
+        if (value) config.exclude.add(value)
+      } else {
+        let seconds = Number(value)
+        if (Number.isFinite(seconds) && seconds >= 0) config.age = seconds
+      }
     }
   } catch (e) {
     logger.debug('Error on parse .npmrc:', e)
   }
-  return 0
+  return config
+}
+
+export function minReleaseAge(home = os.homedir()): number {
+  return releaseAgeConfig(home).age
 }
 
 export function isNpmCommand(exePath: string): boolean {
@@ -147,17 +170,21 @@ export class Installer extends EventEmitter implements IInstaller {
     this.log(`Get info from ${registry}`)
     let buffer = await this.fetch(new URL(this.name, registry), { timeout: 10000, buffer: true })
     let res = JSON.parse(buffer.toString())
-    let releaseAge = minReleaseAge()
+    let { age: releaseAge, exclude } = releaseAgeConfig()
+    if (exclude.has(this.name)) releaseAge = 0
     if (!this.version) {
       this.version = res['dist-tags']['latest']
       if (releaseAge > 0) {
         let cutoff = Date.now() - releaseAge * 1000
-        let versions = Object.keys(res.versions ?? {}).filter(version => {
-          let published = Date.parse(res.time?.[version])
-          return Number.isFinite(published) && published <= cutoff
-        })
-        this.version = semver.maxSatisfying(versions, '*') ?? undefined
-        if (!this.version) throw new Error(`${this.def} has no release older than ${releaseAge} seconds.`)
+        let published = Date.parse(res.time?.[this.version])
+        if (!Number.isFinite(published) || published > cutoff) {
+          let versions = Object.keys(res.versions ?? {}).filter(version => {
+            let published = Date.parse(res.time?.[version])
+            return Number.isFinite(published) && published <= cutoff
+          })
+          this.version = semver.maxSatisfying(versions, '*') ?? undefined
+          if (!this.version) throw new Error(`${this.def} has no release older than ${releaseAge} seconds.`)
+        }
       }
     } else if (releaseAge > 0) {
       let published = Date.parse(res.time?.[this.version])
