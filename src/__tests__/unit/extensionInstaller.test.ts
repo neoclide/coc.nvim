@@ -53,6 +53,15 @@ describe('utils', () => {
     assert.strictEqual(minReleaseAge(os.tmpdir()), 259200)
     fs.writeFileSync(rcfile, 'min-release-age=259200\nmin-release-age=0\n', 'utf8')
     assert.strictEqual(minReleaseAge(os.tmpdir()), 0)
+    let originalReleaseAge = process.env.COC_MIN_RELEASE_AGE
+    try {
+      process.env.COC_MIN_RELEASE_AGE = '259200'
+      fs.writeFileSync(rcfile, 'min-release-age=${COC_MIN_RELEASE_AGE}\n', 'utf8')
+      assert.strictEqual(minReleaseAge(os.tmpdir()), 259200)
+    } finally {
+      if (originalReleaseAge == null) delete process.env.COC_MIN_RELEASE_AGE
+      else process.env.COC_MIN_RELEASE_AGE = originalReleaseAge
+    }
     fs.writeFileSync(rcfile, 'min-release-age = invalid\n', 'utf8')
     assert.strictEqual(minReleaseAge(os.tmpdir()), 0)
     fs.rmSync(rcfile, { force: true })
@@ -208,6 +217,11 @@ describe('Installer', () => {
       await assert.rejects(installer.getInfo(), /has no release older/)
 
       fs.writeFileSync(npmrc, 'min-release-age=259200\nmin-release-age-exclude[]=coc-old\nmin-release-age-exclude[]=coc-current\n')
+      installer = new Installer(import.meta.dirname, 'npm', 'coc-old')
+      t.mock.method(installer, 'fetch', () => Promise.resolve(JSON.stringify(packument('coc-old'))))
+      assert.strictEqual((await installer.getInfo()).version, '1.0.0')
+
+      fs.writeFileSync(npmrc, 'min-release-age=259200\nmin-release-age-exclude[]=coc-old\nmin-release-age-exclude=coc-current\n')
       installer = new Installer(import.meta.dirname, 'npm', 'coc-old')
       t.mock.method(installer, 'fetch', () => Promise.resolve(JSON.stringify(packument('coc-old'))))
       assert.strictEqual((await installer.getInfo()).version, '1.0.0')

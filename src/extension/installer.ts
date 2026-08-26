@@ -73,9 +73,9 @@ interface ReleaseAgeConfig {
 function npmrcValue(value: string): string {
   value = value.replace(/\s[;#].*$/, '').trim()
   if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-    return value.slice(1, -1)
+    value = value.slice(1, -1)
   }
-  return value
+  return value.replace(/\$\{([^}]+)\}/g, (_match, name: string) => process.env[name] ?? '')
 }
 
 function releaseAgeConfig(home = os.homedir()): ReleaseAgeConfig {
@@ -84,14 +84,16 @@ function releaseAgeConfig(home = os.homedir()): ReleaseAgeConfig {
   if (!fs.existsSync(filepath)) return config
   try {
     let content = fs.readFileSync(filepath, 'utf8')
+    let excludeIsArray = false
     for (let line of content.split(/\r?\n/)) {
       let ms = line.match(/^\s*(min-release-age(?:-exclude)?)(\[\])?\s*=\s*(.*?)\s*$/)
       if (!ms) continue
       let value = npmrcValue(ms[3])
       if (ms[1] === 'min-release-age-exclude') {
-        // Bare INI assignments replace earlier values, while [] assignments
-        // append to the configured list.
-        if (!ms[2]) config.exclude.clear()
+        // Bare INI assignments replace earlier scalar values. Once [] turns
+        // the key into an array, subsequent assignments append to that array.
+        if (!ms[2] && !excludeIsArray) config.exclude.clear()
+        if (ms[2]) excludeIsArray = true
         if (value) config.exclude.add(value)
       } else {
         let seconds = Number(value)
