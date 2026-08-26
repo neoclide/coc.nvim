@@ -182,6 +182,37 @@ describe('Installer', () => {
       assert.strictEqual((await installer.getInfo()).version, '2.0.0')
     })
 
+    it('should match release age exclusion patterns', async t => {
+      let npmrc = path.join(os.homedir(), '.npmrc')
+      let original = fs.existsSync(npmrc) ? fs.readFileSync(npmrc) : undefined
+      t.after(() => {
+        if (original) fs.writeFileSync(npmrc, original)
+        else fs.rmSync(npmrc, { force: true })
+      })
+      let packument = (name: string) => ({
+        name,
+        'dist-tags': { latest: '1.0.0' },
+        time: { '1.0.0': new Date().toISOString() },
+        versions: {
+          '1.0.0': { version: '1.0.0', dist: { tarball: 'latest' }, engines: { coc: '>=0.0.80' } }
+        }
+      })
+      fs.writeFileSync(npmrc, 'min-release-age=259200\nmin-release-age-exclude[]=@myorg/*\n')
+      let installer = new Installer(import.meta.dirname, 'npm', '@myorg/coc-foo')
+      t.mock.method(installer, 'fetch', () => Promise.resolve(JSON.stringify(packument('@myorg/coc-foo'))))
+      assert.strictEqual((await installer.getInfo()).version, '1.0.0')
+
+      fs.writeFileSync(npmrc, 'min-release-age=259200\nmin-release-age-exclude=coc-old\nmin-release-age-exclude=coc-current\n')
+      installer = new Installer(import.meta.dirname, 'npm', 'coc-old')
+      t.mock.method(installer, 'fetch', () => Promise.resolve(JSON.stringify(packument('coc-old'))))
+      await assert.rejects(installer.getInfo(), /has no release older/)
+
+      fs.writeFileSync(npmrc, 'min-release-age=259200\nmin-release-age-exclude[]=coc-old\nmin-release-age-exclude[]=coc-current\n')
+      installer = new Installer(import.meta.dirname, 'npm', 'coc-old')
+      t.mock.method(installer, 'fetch', () => Promise.resolve(JSON.stringify(packument('coc-old'))))
+      assert.strictEqual((await installer.getInfo()).version, '1.0.0')
+    })
+
     it('should throw when version not found', async t => {
       let installer = new Installer(import.meta.dirname, 'npm', 'coc-omni@1.0.2')
       let spy = t.mock.method(installer, 'fetch', () => {

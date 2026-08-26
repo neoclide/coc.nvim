@@ -4,7 +4,7 @@ import { createLogger } from '../logger'
 import download, { DownloadOptions } from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
 import { loadJson } from '../util/fs'
-import { child_process, fs, os, path, readline, semver } from '../util/node'
+import { child_process, fs, minimatch, os, path, readline, semver } from '../util/node'
 import { toText } from '../util/string'
 import workspace from '../workspace'
 const logger = createLogger('extension-installer')
@@ -85,10 +85,13 @@ function releaseAgeConfig(home = os.homedir()): ReleaseAgeConfig {
   try {
     let content = fs.readFileSync(filepath, 'utf8')
     for (let line of content.split(/\r?\n/)) {
-      let ms = line.match(/^\s*(min-release-age(?:-exclude(?:\[\])?)?)\s*=\s*(.*?)\s*$/)
+      let ms = line.match(/^\s*(min-release-age(?:-exclude)?)(\[\])?\s*=\s*(.*?)\s*$/)
       if (!ms) continue
-      let value = npmrcValue(ms[2])
-      if (ms[1].startsWith('min-release-age-exclude')) {
+      let value = npmrcValue(ms[3])
+      if (ms[1] === 'min-release-age-exclude') {
+        // Bare INI assignments replace earlier values, while [] assignments
+        // append to the configured list.
+        if (!ms[2]) config.exclude.clear()
         if (value) config.exclude.add(value)
       } else {
         let seconds = Number(value)
@@ -171,7 +174,7 @@ export class Installer extends EventEmitter implements IInstaller {
     let buffer = await this.fetch(new URL(this.name, registry), { timeout: 10000, buffer: true })
     let res = JSON.parse(buffer.toString())
     let { age: releaseAge, exclude } = releaseAgeConfig()
-    if (exclude.has(this.name)) releaseAge = 0
+    if ([...exclude].some(pattern => minimatch(this.name, pattern))) releaseAge = 0
     if (!this.version) {
       this.version = res['dist-tags']['latest']
       if (releaseAge > 0) {
