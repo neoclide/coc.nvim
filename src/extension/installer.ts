@@ -65,6 +65,23 @@ export function registryUrl(home = os.homedir()): URL {
   return res ?? new URL('https://registry.npmjs.org')
 }
 
+export function minReleaseAge(home = os.homedir()): number {
+  let filepath = path.join(home, '.npmrc')
+  if (!fs.existsSync(filepath)) return 0
+  try {
+    let content = fs.readFileSync(filepath, 'utf8')
+    for (let line of content.split(/\r?\n/)) {
+      let ms = line.match(/^\s*min-release-age\s*=\s*([^#;\s]+)/)
+      if (!ms) continue
+      let days = Number(ms[1])
+      return Number.isFinite(days) && days > 0 ? days : 0
+    }
+  } catch (e) {
+    logger.debug('Error on parse .npmrc:', e)
+  }
+  return 0
+}
+
 export function isNpmCommand(exePath: string): boolean {
   let name = path.basename(exePath)
   return name === 'npm' || name === 'npm.CMD'
@@ -130,7 +147,25 @@ export class Installer extends EventEmitter implements IInstaller {
     this.log(`Get info from ${registry}`)
     let buffer = await this.fetch(new URL(this.name, registry), { timeout: 10000, buffer: true })
     let res = JSON.parse(buffer.toString())
-    if (!this.version) this.version = res['dist-tags']['latest']
+    let releaseAge = minReleaseAge()
+    if (!this.version) {
+      this.version = res['dist-tags']['latest']
+      if (releaseAge > 0) {
+        let cutoff = Date.now() - releaseAge * 24 * 60 * 60 * 1000
+        let versions = Object.keys(res.versions ?? {}).filter(version => {
+          let published = Date.parse(res.time?.[version])
+          return Number.isFinite(published) && published <= cutoff
+        })
+        this.version = semver.maxSatisfying(versions, '*') ?? undefined
+        if (!this.version) throw new Error(`${this.def} has no release older than ${releaseAge} days.`)
+      }
+    } else if (releaseAge > 0) {
+      let published = Date.parse(res.time?.[this.version])
+      let cutoff = Date.now() - releaseAge * 24 * 60 * 60 * 1000
+      if (!Number.isFinite(published) || published > cutoff) {
+        throw new Error(`${this.def} is not older than ${releaseAge} days.`)
+      }
+    }
     let obj = res['versions'][this.version]
     if (!obj) throw new Error(`${this.def} doesn't exists in ${registry}.`)
     let requiredVersion = obj['engines'] && obj['engines']['coc']

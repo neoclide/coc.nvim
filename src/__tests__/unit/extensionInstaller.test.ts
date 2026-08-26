@@ -3,7 +3,7 @@ import os from 'os'
 import path from 'path'
 import { PassThrough } from 'stream'
 import child_process from 'child_process'
-import { getDependencies, getExtensionDependencies, Info, Installer, isNpmCommand, isYarn, registryUrl } from '../../extension/installer'
+import { getDependencies, getExtensionDependencies, Info, Installer, isNpmCommand, isYarn, minReleaseAge, registryUrl } from '../../extension/installer'
 import { remove } from '../../util/fs'
 
 const rcfile = path.join(os.tmpdir(), '.npmrc')
@@ -42,6 +42,16 @@ describe('utils', () => {
     fs.writeFileSync(rcfile, 'coc.nvim:registry=example.org', 'utf8')
     assert.strictEqual(getUrl().toString(), 'https://registry.npmjs.org/')
     fs.rmSync(rcfile, { force: true, recursive: true })
+  })
+
+  it('should get minimum release age', () => {
+    fs.rmSync(rcfile, { force: true })
+    assert.strictEqual(minReleaseAge(os.tmpdir()), 0)
+    fs.writeFileSync(rcfile, 'min-release-age = 3 # days\n', 'utf8')
+    assert.strictEqual(minReleaseAge(os.tmpdir()), 3)
+    fs.writeFileSync(rcfile, 'min-release-age = invalid\n', 'utf8')
+    assert.strictEqual(minReleaseAge(os.tmpdir()), 0)
+    fs.rmSync(rcfile, { force: true })
   })
 
   it('should parse name & version', async t => {
@@ -107,6 +117,32 @@ describe('Installer', () => {
       })
       let info = await installer.getInfo()
       assert.notStrictEqual(info, undefined)
+    })
+
+    it('should respect min-release-age from npmrc', async t => {
+      let npmrc = path.join(os.homedir(), '.npmrc')
+      let original = fs.existsSync(npmrc) ? fs.readFileSync(npmrc) : undefined
+      t.after(() => {
+        if (original) fs.writeFileSync(npmrc, original)
+        else fs.rmSync(npmrc, { force: true })
+      })
+      fs.writeFileSync(npmrc, 'min-release-age = 3 # days\n')
+      let installer = new Installer(import.meta.dirname, 'npm', 'coc-omni')
+      t.mock.method(installer, 'fetch', () => Promise.resolve(JSON.stringify({
+        name: 'coc-omni',
+        'dist-tags': { latest: '2.0.0' },
+        time: {
+          '1.0.0': new Date(Date.now() - 4 * 86400000).toISOString(),
+          '2.0.0': new Date(Date.now() - 86400000).toISOString()
+        },
+        versions: {
+          '1.0.0': { version: '1.0.0', dist: { tarball: 'old' }, engines: { coc: '>=0.0.80' } },
+          '2.0.0': { version: '2.0.0', dist: { tarball: 'new' }, engines: { coc: '>=0.0.80' } }
+        }
+      })))
+      let info = await installer.getInfo()
+      assert.strictEqual(info.version, '1.0.0')
+      assert.strictEqual(info['dist.tarball'], 'old')
     })
 
     it('should throw when version not found', async t => {
