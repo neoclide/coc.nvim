@@ -71,9 +71,34 @@ interface ReleaseAgeConfig {
 }
 
 function npmrcValue(value: string): string {
-  value = value.replace(/\s[;#].*$/, '').trim()
+  value = value.trim()
   if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-    value = value.slice(1, -1)
+    if (value.startsWith("'")) {
+      value = value.slice(1, -1)
+    } else {
+      try {
+        value = JSON.parse(value) as string
+      } catch {
+        // Keep malformed quoted values unchanged, matching npm's INI parser.
+      }
+    }
+  } else {
+    let result = ''
+    let escaped = false
+    for (let character of value) {
+      if (escaped) {
+        result += '\\;#'.includes(character) ? character : `\\${character}`
+        escaped = false
+      } else if (character === ';' || character === '#') {
+        break
+      } else if (character === '\\') {
+        escaped = true
+      } else {
+        result += character
+      }
+    }
+    if (escaped) result += '\\'
+    value = result.trim()
   }
   return value.replace(/\$\{([^}]+)\}/g, (_match, name: string) => process.env[name] ?? '')
 }
