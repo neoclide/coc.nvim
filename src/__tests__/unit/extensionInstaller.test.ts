@@ -47,8 +47,8 @@ describe('utils', () => {
   it('should get minimum release age', () => {
     fs.rmSync(rcfile, { force: true })
     assert.strictEqual(minReleaseAge(os.tmpdir()), 0)
-    fs.writeFileSync(rcfile, 'min-release-age = 3 # days\n', 'utf8')
-    assert.strictEqual(minReleaseAge(os.tmpdir()), 3)
+    fs.writeFileSync(rcfile, 'min-release-age = 259200 # 3 days in seconds\n', 'utf8')
+    assert.strictEqual(minReleaseAge(os.tmpdir()), 259200)
     fs.writeFileSync(rcfile, 'min-release-age = invalid\n', 'utf8')
     assert.strictEqual(minReleaseAge(os.tmpdir()), 0)
     fs.rmSync(rcfile, { force: true })
@@ -126,7 +126,7 @@ describe('Installer', () => {
         if (original) fs.writeFileSync(npmrc, original)
         else fs.rmSync(npmrc, { force: true })
       })
-      fs.writeFileSync(npmrc, 'min-release-age = 3 # days\n')
+      fs.writeFileSync(npmrc, 'min-release-age = 259200 # 3 days in seconds\n')
       let installer = new Installer(import.meta.dirname, 'npm', 'coc-omni')
       t.mock.method(installer, 'fetch', () => Promise.resolve(JSON.stringify({
         name: 'coc-omni',

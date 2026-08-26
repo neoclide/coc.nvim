@@ -73,8 +73,8 @@ export function minReleaseAge(home = os.homedir()): number {
     for (let line of content.split(/\r?\n/)) {
       let ms = line.match(/^\s*min-release-age\s*=\s*([^#;\s]+)/)
       if (!ms) continue
-      let days = Number(ms[1])
-      return Number.isFinite(days) && days > 0 ? days : 0
+      let seconds = Number(ms[1])
+      return Number.isFinite(seconds) && seconds > 0 ? seconds : 0
     }
   } catch (e) {
     logger.debug('Error on parse .npmrc:', e)
@@ -151,19 +151,19 @@ export class Installer extends EventEmitter implements IInstaller {
     if (!this.version) {
       this.version = res['dist-tags']['latest']
       if (releaseAge > 0) {
-        let cutoff = Date.now() - releaseAge * 24 * 60 * 60 * 1000
+        let cutoff = Date.now() - releaseAge * 1000
         let versions = Object.keys(res.versions ?? {}).filter(version => {
           let published = Date.parse(res.time?.[version])
           return Number.isFinite(published) && published <= cutoff
         })
         this.version = semver.maxSatisfying(versions, '*') ?? undefined
-        if (!this.version) throw new Error(`${this.def} has no release older than ${releaseAge} days.`)
+        if (!this.version) throw new Error(`${this.def} has no release older than ${releaseAge} seconds.`)
       }
     } else if (releaseAge > 0) {
       let published = Date.parse(res.time?.[this.version])
-      let cutoff = Date.now() - releaseAge * 24 * 60 * 60 * 1000
+      let cutoff = Date.now() - releaseAge * 1000
       if (!Number.isFinite(published) || published > cutoff) {
-        throw new Error(`${this.def} is not older than ${releaseAge} days.`)
+        throw new Error(`${this.def} is not older than ${releaseAge} seconds.`)
       }
     }
     let obj = res['versions'][this.version]
