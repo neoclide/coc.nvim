@@ -121,8 +121,8 @@ function releaseAgeConfig(home = os.homedir()): ReleaseAgeConfig {
         if (ms[2]) excludeIsArray = true
         if (value) config.exclude.add(value)
       } else {
-        let seconds = Number(value)
-        if (Number.isFinite(seconds) && seconds >= 0) config.age = seconds
+        let days = Number(value)
+        if (Number.isFinite(days) && days >= 0) config.age = days
       }
     }
   } catch (e) {
@@ -205,7 +205,7 @@ export class Installer extends EventEmitter implements IInstaller {
     if (!this.version) {
       this.version = res['dist-tags']['latest']
       if (releaseAge > 0) {
-        let cutoff = Date.now() - releaseAge * 1000
+        let cutoff = Date.now() - releaseAge * 24 * 60 * 60 * 1000
         let published = Date.parse(res.time?.[this.version])
         if (!Number.isFinite(published) || published > cutoff) {
           let versions = Object.keys(res.versions ?? {}).filter(version => {
@@ -213,14 +213,14 @@ export class Installer extends EventEmitter implements IInstaller {
             return Number.isFinite(published) && published <= cutoff
           })
           this.version = semver.maxSatisfying(versions, '*') ?? undefined
-          if (!this.version) throw new Error(`${this.def} has no release older than ${releaseAge} seconds.`)
+          if (!this.version) throw new Error(`${this.def} has no release older than ${releaseAge} days.`)
         }
       }
     } else if (releaseAge > 0) {
       let published = Date.parse(res.time?.[this.version])
-      let cutoff = Date.now() - releaseAge * 1000
+      let cutoff = Date.now() - releaseAge * 24 * 60 * 60 * 1000
       if (!Number.isFinite(published) || published > cutoff) {
-        throw new Error(`${this.def} is not older than ${releaseAge} seconds.`)
+        throw new Error(`${this.def} is not older than ${releaseAge} days.`)
       }
     }
     let obj = res['versions'][this.version]
