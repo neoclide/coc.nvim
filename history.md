@@ -2,6 +2,11 @@
 
 Notable changes of coc.nvim:
 
+## 2026-08-27
+
+- Support day-based npm `min-release-age` cooldowns and
+  `min-release-age-exclude` patterns when installing or updating extensions.
+
 ## 2026-08-24
 
 - Improve Next Edit previews with cursor-stable candidate filtering,
