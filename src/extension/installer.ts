@@ -65,7 +65,7 @@ export function registryUrl(home = os.homedir()): URL {
   return res ?? new URL('https://registry.npmjs.org')
 }
 
-interface ReleaseAgeConfig {
+export interface ReleaseAgeConfig {
   age: number
   exclude: Set<string>
 }
@@ -103,32 +103,36 @@ function npmrcValue(value: string): string {
   return value.replace(/\$\{([^}]+)\}/g, (_match, name: string) => process.env[name] ?? '')
 }
 
-function releaseAgeConfig(home = os.homedir()): ReleaseAgeConfig {
+export function parseReleaseAgeConfig(content: string): ReleaseAgeConfig {
   let config: ReleaseAgeConfig = { age: 0, exclude: new Set() }
-  let filepath = path.join(home, '.npmrc')
-  if (!fs.existsSync(filepath)) return config
-  try {
-    let content = fs.readFileSync(filepath, 'utf8')
-    let excludeIsArray = false
-    for (let line of content.split(/\r?\n/)) {
-      let ms = line.match(/^\s*(min-release-age(?:-exclude)?)(\[\])?\s*=\s*(.*?)\s*$/)
-      if (!ms) continue
-      let value = npmrcValue(ms[3])
-      if (ms[1] === 'min-release-age-exclude') {
-        // Bare INI assignments replace earlier scalar values. Once [] turns
-        // the key into an array, subsequent assignments append to that array.
-        if (!ms[2] && !excludeIsArray) config.exclude.clear()
-        if (ms[2]) excludeIsArray = true
-        if (value) config.exclude.add(value)
-      } else {
-        let days = Number(value)
-        if (Number.isFinite(days) && days >= 0) config.age = days
-      }
+  let excludeIsArray = false
+  for (let line of content.split(/\r?\n/)) {
+    let ms = line.match(/^\s*(min-release-age(?:-exclude)?)(\[\])?\s*=\s*(.*?)\s*$/)
+    if (!ms) continue
+    let value = npmrcValue(ms[3])
+    if (ms[1] === 'min-release-age-exclude') {
+      // Bare INI assignments replace earlier scalar values. Once [] turns
+      // the key into an array, subsequent assignments append to that array.
+      if (!ms[2] && !excludeIsArray) config.exclude.clear()
+      if (ms[2]) excludeIsArray = true
+      if (value) config.exclude.add(value)
+    } else {
+      let days = Number(value)
+      if (Number.isFinite(days) && days >= 0) config.age = days
     }
+  }
+  return config
+}
+
+function releaseAgeConfig(home = os.homedir()): ReleaseAgeConfig {
+  let filepath = path.join(home, '.npmrc')
+  if (!fs.existsSync(filepath)) return { age: 0, exclude: new Set() }
+  try {
+    return parseReleaseAgeConfig(fs.readFileSync(filepath, 'utf8'))
   } catch (e) {
     logger.debug('Error on parse .npmrc:', e)
   }
-  return config
+  return { age: 0, exclude: new Set() }
 }
 
 export function minReleaseAge(home = os.homedir()): number {

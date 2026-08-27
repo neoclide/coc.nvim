@@ -3,7 +3,7 @@ import os from 'os'
 import path from 'path'
 import { PassThrough } from 'stream'
 import child_process from 'child_process'
-import { getDependencies, getExtensionDependencies, Info, Installer, isNpmCommand, isYarn, minReleaseAge, registryUrl } from '../../extension/installer'
+import { getDependencies, getExtensionDependencies, Info, Installer, isNpmCommand, isYarn, minReleaseAge, parseReleaseAgeConfig, registryUrl } from '../../extension/installer'
 import { remove } from '../../util/fs'
 
 const rcfile = path.join(os.tmpdir(), '.npmrc')
@@ -69,6 +69,31 @@ describe('utils', () => {
     fs.writeFileSync(rcfile, 'min-release-age = invalid\n', 'utf8')
     assert.strictEqual(minReleaseAge(os.tmpdir()), 0)
     fs.rmSync(rcfile, { force: true })
+  })
+
+  it('should parse minimum release age configuration', () => {
+    let originalReleaseAge = process.env.COC_MIN_RELEASE_AGE
+    try {
+      process.env.COC_MIN_RELEASE_AGE = '5'
+      let config = parseReleaseAgeConfig([
+        'min-release-age=invalid',
+        'min-release-age=${COC_MIN_RELEASE_AGE}# days',
+        'min-release-age-exclude=coc-old',
+        'min-release-age-exclude=coc-current',
+        'min-release-age-exclude[]=@myorg/*',
+        'min-release-age-exclude="coc-quoted"',
+        'unrelated=value'
+      ].join('\n'))
+      assert.strictEqual(config.age, 5)
+      assert.deepStrictEqual([...config.exclude], ['coc-current', '@myorg/*', 'coc-quoted'])
+
+      config = parseReleaseAgeConfig('min-release-age=-1\nmin-release-age-exclude=\n')
+      assert.strictEqual(config.age, 0)
+      assert.deepStrictEqual([...config.exclude], [])
+    } finally {
+      if (originalReleaseAge == null) delete process.env.COC_MIN_RELEASE_AGE
+      else process.env.COC_MIN_RELEASE_AGE = originalReleaseAge
+    }
   })
 
   it('should parse name & version', async t => {
