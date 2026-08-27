@@ -72,9 +72,9 @@
     "tslib": "^2.8.1",
     "unidecode": "^1.1.0",
     "vscode-languageserver-protocol": "^3.18.2",
-    "vscode-languageserver-textdocument": "^1.0.12",
+    "vscode-languageserver-textdocument": "^1.0.14",
     "vscode-languageserver-types": "^3.18.0",
-    "vscode-uri": "^3.1.0",
+    "vscode-uri": "^3.2.0",
     "which": "^7.0.0",
     "yauzl": "^3.4.0"
   },
