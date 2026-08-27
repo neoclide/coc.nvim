@@ -116,6 +116,34 @@ describe('LinesTextDocument', () => {
     assert.strictEqual(doc.offsetAt({ line: -1, character: -1 }), 0)
   })
 
+  it('should get line ranges and EOL characters', t => {
+    let cases: Array<[string[], boolean, number[], string[]]> = [
+      [['Hello World'], false, [11], ['']],
+      [[''], false, [0], ['']],
+      [['ABCDE', 'FGHIJ', 'KLMNO'], false, [5, 5, 5], ['\n', '\n', '']],
+      [['ABCDE', 'FGHIJ'], true, [5, 5, 0], ['\n', '\n', '']],
+      [['ABCDE', '', 'FGHIJ'], false, [5, 0, 5], ['\n', '\n', '']],
+      [['', 'ABCDE'], false, [0, 5], ['\n', '']]
+    ]
+    for (let [lines, eol, lineLengths, eolCharacters] of cases) {
+      let doc = createTextDocument(lines, eol)
+      assert.strictEqual(doc.lineCount, lineLengths.length)
+      let reconstructed = ''
+      for (let line = 0; line < doc.lineCount; line++) {
+        let range = Range.create(line, 0, line, lineLengths[line])
+        assert.deepStrictEqual(doc.getLineRange(line), range)
+        assert.strictEqual(doc.getEOLCharacters(line), eolCharacters[line])
+        reconstructed += doc.getText(range) + doc.getEOLCharacters(line)
+      }
+      assert.strictEqual(reconstructed, lines.join('\n') + (eol ? '\n' : ''))
+      assert.deepStrictEqual(doc.getLineRange(-1), Range.create(0, 0, 0, 0))
+      assert.strictEqual(doc.getEOLCharacters(-1), '')
+      let lastLine = doc.lineCount - 1
+      assert.deepStrictEqual(doc.getLineRange(doc.lineCount + 2), Range.create(lastLine, 0, lastLine, lineLengths[lastLine]))
+      assert.strictEqual(doc.getEOLCharacters(doc.lineCount + 2), '')
+    }
+  })
+
   it('should work when eol enabled', t => {
     let doc = createTextDocument(['foo', 'bar'])
     assert.strictEqual(doc.lineCount, 3)

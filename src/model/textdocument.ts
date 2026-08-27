@@ -144,6 +144,16 @@ export class LinesTextDocument implements TextDocument {
     return Math.max(Math.min(lineOffset + position.character, nextLineOffset), lineOffset)
   }
 
+  public getLineRange(line: number): Range {
+    if (line < 0 || this.lineCount === 0) return Range.create(0, 0, 0, 0)
+    let target = Math.min(line, this.lineCount - 1)
+    return Range.create(target, 0, target, this.lines[target]?.length ?? 0)
+  }
+
+  public getEOLCharacters(line: number): string {
+    return line >= 0 && line < this.lineCount - 1 ? '\n' : ''
+  }
+
   private getLineOffsets(): number[] {
     if (this._lineOffsets === undefined) {
       this._lineOffsets = computeLinesOffsets(this.lines, this.eol)
