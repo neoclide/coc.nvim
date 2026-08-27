@@ -115,7 +115,10 @@ export function parseReleaseAgeConfig(content: string): ReleaseAgeConfig {
       // the key into an array, subsequent assignments append to that array.
       if (!ms[2] && !excludeIsArray) config.exclude.clear()
       if (ms[2]) excludeIsArray = true
-      if (value) config.exclude.add(value)
+      for (let pattern of value.split(',')) {
+        pattern = pattern.trim()
+        if (pattern) config.exclude.add(pattern)
+      }
     } else {
       let days = Number(value)
       if (Number.isFinite(days) && days >= 0) config.age = days

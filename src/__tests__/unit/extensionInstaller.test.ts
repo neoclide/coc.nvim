@@ -79,13 +79,13 @@ describe('utils', () => {
         'min-release-age=invalid',
         'min-release-age=${COC_MIN_RELEASE_AGE}# days',
         'min-release-age-exclude=coc-old',
-        'min-release-age-exclude=coc-current',
+        'min-release-age-exclude=coc-current, @myorg/coc-current',
         'min-release-age-exclude[]=@myorg/*',
         'min-release-age-exclude="coc-quoted"',
         'unrelated=value'
       ].join('\n'))
       assert.strictEqual(config.age, 5)
-      assert.deepStrictEqual([...config.exclude], ['coc-current', '@myorg/*', 'coc-quoted'])
+      assert.deepStrictEqual([...config.exclude], ['coc-current', '@myorg/coc-current', '@myorg/*', 'coc-quoted'])
 
       config = parseReleaseAgeConfig('min-release-age=-1\nmin-release-age-exclude=\n')
       assert.strictEqual(config.age, 0)

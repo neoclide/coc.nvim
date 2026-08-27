@@ -239,7 +239,7 @@ cooldown.
 	min-release-age=3
 <
 Use `min-release-age-exclude` to exempt package names or minimatch patterns.
-Repeat the setting with `[]` to configure multiple exclusions.
+Separate multiple exclusions with commas or repeat the setting with `[]`.
 >
 	min-release-age-exclude[]=coc-local
 	min-release-age-exclude[]=@myorg/*
