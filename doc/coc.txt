@@ -231,6 +231,19 @@ To customize the npm registry for coc.nvim, add `coc.nvim:registry` to your
 >
 	coc.nvim:registry=https://registry.mycompany.org/
 <
+To prevent newly published extension versions from being installed before a
+cooldown period has elapsed, set `min-release-age` in `~/.npmrc`.  The value is
+the minimum number of days since publication.  A value of `0` disables the
+cooldown.
+>
+	min-release-age=3
+<
+Use `min-release-age-exclude` to exempt package names or minimatch patterns.
+Separate multiple exclusions with commas or repeat the setting with `[]`.
+>
+	min-release-age-exclude[]=coc-local
+	min-release-age-exclude[]=@myorg/*
+<
 To customize extension folder, configure |g:coc_data_home|.
 
 Uninstall global extensions: ~

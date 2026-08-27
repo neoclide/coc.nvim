@@ -4,7 +4,7 @@ import { createLogger } from '../logger'
 import download, { DownloadOptions } from '../model/download'
 import fetch, { FetchOptions } from '../model/fetch'
 import { loadJson } from '../util/fs'
-import { child_process, fs, os, path, readline, semver } from '../util/node'
+import { child_process, fs, minimatch, os, path, readline, semver } from '../util/node'
 import { toText } from '../util/string'
 import workspace from '../workspace'
 const logger = createLogger('extension-installer')
@@ -63,6 +63,83 @@ export function registryUrl(home = os.homedir()): URL {
     }
   }
   return res ?? new URL('https://registry.npmjs.org')
+}
+
+export interface ReleaseAgeConfig {
+  age: number
+  exclude: Set<string>
+}
+
+function npmrcValue(value: string): string {
+  value = value.trim()
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    if (value.startsWith("'")) {
+      value = value.slice(1, -1)
+    } else {
+      try {
+        value = JSON.parse(value) as string
+      } catch {
+        // Keep malformed quoted values unchanged, matching npm's INI parser.
+      }
+    }
+  } else {
+    let result = ''
+    let escaped = false
+    for (let character of value) {
+      if (escaped) {
+        result += '\\;#'.includes(character) ? character : `\\${character}`
+        escaped = false
+      } else if (character === ';' || character === '#') {
+        break
+      } else if (character === '\\') {
+        escaped = true
+      } else {
+        result += character
+      }
+    }
+    if (escaped) result += '\\'
+    value = result.trim()
+  }
+  return value.replace(/\$\{([^}]+)\}/g, (_match, name: string) => process.env[name] ?? '')
+}
+
+export function parseReleaseAgeConfig(content: string): ReleaseAgeConfig {
+  let config: ReleaseAgeConfig = { age: 0, exclude: new Set() }
+  let excludeIsArray = false
+  for (let line of content.split(/\r?\n/)) {
+    let ms = line.match(/^\s*(min-release-age(?:-exclude)?)(\[\])?\s*=\s*(.*?)\s*$/)
+    if (!ms) continue
+    let value = npmrcValue(ms[3])
+    if (ms[1] === 'min-release-age-exclude') {
+      // Bare INI assignments replace earlier scalar values. Once [] turns
+      // the key into an array, subsequent assignments append to that array.
+      if (!ms[2] && !excludeIsArray) config.exclude.clear()
+      if (ms[2]) excludeIsArray = true
+      for (let pattern of value.split(',')) {
+        pattern = pattern.trim()
+        if (pattern) config.exclude.add(pattern)
+      }
+    } else {
+      let days = Number(value)
+      if (Number.isFinite(days) && days >= 0) config.age = days
+    }
+  }
+  return config
+}
+
+function releaseAgeConfig(home = os.homedir()): ReleaseAgeConfig {
+  let filepath = path.join(home, '.npmrc')
+  if (!fs.existsSync(filepath)) return { age: 0, exclude: new Set() }
+  try {
+    return parseReleaseAgeConfig(fs.readFileSync(filepath, 'utf8'))
+  } catch (e) {
+    logger.debug('Error on parse .npmrc:', e)
+  }
+  return { age: 0, exclude: new Set() }
+}
+
+export function minReleaseAge(home = os.homedir()): number {
+  return releaseAgeConfig(home).age
 }
 
 export function isNpmCommand(exePath: string): boolean {
@@ -130,7 +207,29 @@ export class Installer extends EventEmitter implements IInstaller {
     this.log(`Get info from ${registry}`)
     let buffer = await this.fetch(new URL(this.name, registry), { timeout: 10000, buffer: true })
     let res = JSON.parse(buffer.toString())
-    if (!this.version) this.version = res['dist-tags']['latest']
+    let { age: releaseAge, exclude } = releaseAgeConfig()
+    if ([...exclude].some(pattern => minimatch(this.name, pattern))) releaseAge = 0
+    if (!this.version) {
+      this.version = res['dist-tags']['latest']
+      if (releaseAge > 0) {
+        let cutoff = Date.now() - releaseAge * 24 * 60 * 60 * 1000
+        let published = Date.parse(res.time?.[this.version])
+        if (!Number.isFinite(published) || published > cutoff) {
+          let versions = Object.keys(res.versions ?? {}).filter(version => {
+            let published = Date.parse(res.time?.[version])
+            return Number.isFinite(published) && published <= cutoff
+          })
+          this.version = semver.maxSatisfying(versions, '*') ?? undefined
+          if (!this.version) throw new Error(`${this.def} has no release older than ${releaseAge} days.`)
+        }
+      }
+    } else if (releaseAge > 0) {
+      let published = Date.parse(res.time?.[this.version])
+      let cutoff = Date.now() - releaseAge * 24 * 60 * 60 * 1000
+      if (!Number.isFinite(published) || published > cutoff) {
+        throw new Error(`${this.def} is not older than ${releaseAge} days.`)
+      }
+    }
     let obj = res['versions'][this.version]
     if (!obj) throw new Error(`${this.def} doesn't exists in ${registry}.`)
     let requiredVersion = obj['engines'] && obj['engines']['coc']

@@ -73,7 +73,10 @@ function setupTestEnvironment(editor) {
   // under the separate coc-test-native base.
   const dataHome = path.join(os.tmpdir(), 'coc-test-native', editor ?? 'unit', `${process.pid}-${threadId}`)
   const tmpdir = process.env.TMPDIR = path.join(dataHome, 'tmp')
+  const home = process.env.HOME = path.join(dataHome, 'home')
+  process.env.USERPROFILE = home
   fs.mkdirSync(tmpdir, {recursive: true})
+  fs.mkdirSync(home, {recursive: true})
   fs.mkdirSync(path.join(dataHome, 'mcp'), {recursive: true})
   fs.mkdirSync(path.join(dataHome, 'vimconfig'), {recursive: true})
   process.env.NODE_ENV = 'test'
