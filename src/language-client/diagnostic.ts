@@ -238,6 +238,7 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
   public readonly provider: DiagnosticProvider
   private readonly diagnostics: DiagnosticCollection
   private readonly openRequests: Map<string, RequestState>
+  private readonly pendingDocumentForgets: Map<string, symbol>
   private readonly documentStates: DocumentPullStateTracker
 
   private workspaceErrorCounter: number
@@ -256,6 +257,7 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
 
     this.diagnostics = languages.createDiagnosticCollection(`${client.id}:pull:${defaultValue(options.identifier, client.id)}`)
     this.openRequests = new Map()
+    this.pendingDocumentForgets = new Map()
     this.documentStates = new DocumentPullStateTracker()
     this.workspaceErrorCounter = 0
   }
@@ -282,6 +284,10 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
 
   public forget(kind: PullState, document: TextDocument | URI): void {
     this.documentStates.unTrack(kind, document)
+  }
+
+  public cancelPendingForget(document: TextDocument | URI): void {
+    this.pendingDocumentForgets.delete(DocumentOrUri.asKey(document))
   }
 
   public pull(document: TextDocument | URI, cb?: () => void): void {
@@ -380,8 +386,13 @@ export class DiagnosticRequestor extends BaseFeature<DiagnosticProviderMiddlewar
       if (request !== undefined) {
         this.openRequests.set(key, { state: RequestStateKind.reschedule, document })
       } else {
+        const pendingForget = Symbol()
+        this.pendingDocumentForgets.set(key, pendingForget)
         this.pull(document, () => {
-          this.forget(PullState.document, document)
+          if (this.pendingDocumentForgets.get(key) === pendingForget) {
+            this.pendingDocumentForgets.delete(key)
+            this.forget(PullState.document, document)
+          }
         })
       }
 
@@ -715,16 +726,18 @@ class DiagnosticFeatureProviderImpl implements DiagnosticProviderShape {
     const openFeature = client.getFeature(DidOpenTextDocumentNotification.method)
     disposables.push(openFeature.onNotificationSent(event => {
       const textDocument = event.original
-      if (this.diagnosticRequestor.knowsSameVersion(PullState.document, textDocument)) {
-        return
-      }
       if (matches(textDocument)) {
+        this.diagnosticRequestor.cancelPendingForget(textDocument)
+        if (this.diagnosticRequestor.knowsSameVersion(PullState.document, textDocument)) {
+          return
+        }
         this.diagnosticRequestor.pull(textDocument, () => { addToBackgroundIfNeeded(textDocument) })
       }
     }))
 
     disposables.push(workspace.tabs.onOpen(opened => {
       for (const resource of opened) {
+        this.diagnosticRequestor.cancelPendingForget(resource)
         // We already know about this document. This can happen via a document open.
         if (this.diagnosticRequestor.knows(PullState.document, resource)) {
           continue

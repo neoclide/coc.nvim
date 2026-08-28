@@ -2,7 +2,7 @@ import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import os from 'os'
 import path from 'path'
-import { CancellationToken, DidCloseTextDocumentNotification, DocumentDiagnosticRequest, Position, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, DocumentDiagnosticRequest, Position, TextEdit } from 'vscode-languageserver-protocol'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import * as lsclient from '../../language-client'
@@ -199,6 +199,36 @@ describe('DiagnosticRequestor', () => {
     } finally {
     }
   })
+
+  it('should preserve pull state when a pending forget is cancelled', async t => {
+    let calls = 0
+    let releasePull = () => {}
+    const { manager, client } = createRequestor(t)
+    client.middleware.provideDiagnostics = () => {
+      calls++
+      if (calls === 1) return Promise.resolve({ kind: 'full', items: [] })
+      return new Promise(resolve => {
+        releasePull = () => resolve({ kind: 'full', items: [] })
+      })
+    }
+    t.mock.method(workspace.tabs, 'isVisible', () => true)
+    const doc = createDocument(1)
+    try {
+      await manager.pullAsync(doc)
+      manager.forgetDocument(doc)
+      await shared.waitValue(() => calls, 2)
+      assert.strictEqual(manager['pendingDocumentForgets'].size, 1)
+
+      manager.cancelPendingForget(doc)
+      releasePull()
+      await shared.waitValue(() => manager['openRequests'].size, 0)
+
+      assert.strictEqual(manager.knows(PullState.document, doc), true)
+    } finally {
+      releasePull()
+      manager.dispose()
+    }
+  })
 })
 
 describe('DiagnosticFeature', () => {
@@ -304,6 +334,89 @@ describe('DiagnosticFeature', () => {
     await close
     assert.strictEqual(closeSent, true)
     await client.stop()
+  })
+
+  it('should cancel pending diagnostic forget after didOpen notification', async t => {
+    const doc = await workspace.loadFile(getUri('diagnostic-did-open'), 'edit')
+    const client = await createServer(false, true, {}, options => {
+      options.diagnosticPullOptions = { workspace: false }
+    })
+    try {
+      const feature = client.getFeature(DocumentDiagnosticRequest.method)
+      const provider = feature.getProvider(doc.textDocument)
+      const requestor = provider['diagnosticRequestor']
+      const cancelPendingForget = requestor.cancelPendingForget.bind(requestor)
+      let called = false
+      t.mock.method(requestor, 'cancelPendingForget', document => {
+        if (!(document instanceof URI)) called = true
+        cancelPendingForget(document)
+      })
+      const openFeature = client.getFeature(DidOpenTextDocumentNotification.method)
+      const openProvider = openFeature.getProvider(doc.textDocument)
+      assert.notStrictEqual(openProvider, undefined)
+
+      await openProvider!.send(doc.textDocument)
+
+      assert.strictEqual(called, true)
+    } finally {
+      await client.stop()
+    }
+  })
+
+  it('should preserve pull diagnostics when a tab is reopened', async () => {
+    let calls = 0
+    let holdNextPull = false
+    let pullStarted!: () => void
+    let releasePull!: () => void
+    const started = new Promise<void>(resolve => {
+      pullStarted = resolve
+    })
+    const pending = new Promise<void>(resolve => {
+      releasePull = resolve
+    })
+    const middleware: lsclient.Middleware = {
+      provideDiagnostics: async (document, previousResultId, token, next) => {
+        calls++
+        if (holdNextPull) {
+          holdNextPull = false
+          pullStarted()
+          await pending
+        }
+        return await next(document, previousResultId, token)
+      }
+    }
+    let doc = await workspace.loadFile(getUri('quick-reopen'), 'edit')
+    const uri = doc.uri
+    const bufnr = doc.bufnr
+    let client = await createServer(false, true, middleware, options => {
+      options.diagnosticPullOptions = { onChange: true, workspace: false }
+    })
+    let feature = client.getFeature(DocumentDiagnosticRequest.method)
+    let provider = feature.getProvider(doc.textDocument)
+    const requestor = provider['diagnosticRequestor']
+    try {
+      await shared.waitValue(() => provider.knows(PullState.document, doc.textDocument), true)
+      await shared.waitValue(() => requestor['openRequests'].size, 0)
+
+      holdNextPull = true
+      await workspace.loadFile(getUri('quick-reopen-other'), 'edit')
+      await started
+      assert.strictEqual(requestor['pendingDocumentForgets'].size, 1)
+      await nvim.command(`buffer ${bufnr}`)
+      doc = workspace.getDocument(uri)!
+      await shared.waitValue(() => workspace.tabs.isVisible(doc.textDocument), true)
+      await shared.waitValue(() => requestor['pendingDocumentForgets'].size, 0)
+      releasePull()
+      await shared.waitValue(() => requestor['openRequests'].size, 0)
+
+      assert.strictEqual(provider.knows(PullState.document, doc.textDocument), true)
+      const previousCalls = calls
+      await doc.applyEdits([TextEdit.insert(Position.create(0, 0), 'x')])
+      await shared.waitValue(() => calls > previousCalls, true)
+    } finally {
+      releasePull()
+      await client.stop()
+    }
   })
 
   it('should filter by document selector', async t => {
