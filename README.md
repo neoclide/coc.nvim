@@ -1,590 +1,96 @@
 <p align="center">
   <a href="https://www.vim.org/scripts/script.php?script_id=5779">
-    <img alt="Logo" src="https://github.com/neoclide/coc.nvim/assets/251450/9c2bc011-35f0-4ef5-93ba-bc3f17e65bb7" height="240" />
+    <img alt="coc.nvim logo" src="https://github.com/neoclide/coc.nvim/assets/251450/9c2bc011-35f0-4ef5-93ba-bc3f17e65bb7" height="240">
   </a>
   <p align="center">Make your Vim/Neovim as smart as VS Code</p>
   <p align="center">
     <a href="LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
     <a href="https://github.com/neoclide/coc.nvim/actions"><img alt="Actions" src="https://img.shields.io/github/actions/workflow/status/neoclide/coc.nvim/ci.yml?style=flat-square&branch=master"></a>
     <a href="https://codecov.io/gh/neoclide/coc.nvim"><img alt="Codecov Coverage Status" src="https://img.shields.io/codecov/c/github/neoclide/coc.nvim.svg?style=flat-square"></a>
-    <a href="doc/coc.txt"><img alt="Doc" src="https://img.shields.io/badge/doc-%3Ah%20coc.txt-brightgreen.svg?style=flat-square"></a>
-    <a href="https://deepwiki.com/neoclide/coc.nvim"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
   </p>
 </p>
 
----
-
-<img alt="Custom coc popup menu with snippet support" src="https://github.com/neoclide/coc.nvim/assets/251450/05f60ab8-dcb1-40f7-9e4a-3c03f5db5398" width="60%" />
-
-_Custom popup menu with snippet support_
-
-## Why?
-
-- 🚀 **Fast**: a separate Node.js process that does not slow down Vim most of the time.
-- 💎 **Reliable**: typed language, tested with CI.
-- 🌟 **Featured**: most LSP 3.18 features are supported, see `:h coc-lsp`.
-- ❤️ **Flexible**: [configured like VS Code](https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file), [Coc extensions function similarly to VS Code extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
-
-## Quick Start
-
-Make sure you use Vim >= 9.0.0438 or Neovim >= 0.8.0.
-
-Install [Node.js](https://nodejs.org/en/download/) >= 22.15.0:
-
-```bash
-curl -sL install-node.vercel.app/lts | bash
-```
-
-For [vim-plug](https://github.com/junegunn/vim-plug) users:
-
-```vim
-" Use release branch (recommended)
-Plug 'neoclide/coc.nvim', {'branch': 'release'}
-
-" Or build from source code by using npm
-Plug 'neoclide/coc.nvim', {'branch': 'master', 'do': 'npm ci'}
-```
-
-in your `.vimrc` or `init.vim`, then restart Vim and run `:PlugInstall`.
-
-Check out [Install coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim) for
-more info.
-
-You **have to** install coc extensions or configure language servers for
-LSP support.
-
-Install extensions like this:
-
-    :CocInstall coc-json coc-tsserver
-
-Or you can configure a language server in your `coc-settings.json` (open it using `:CocConfig`) like this:
-
-```json
-{
-  "languageserver": {
-    "go": {
-      "command": "gopls",
-      "rootPatterns": ["go.mod"],
-      "trace.server": "verbose",
-      "filetypes": ["go"]
-    }
-  }
-}
-```
-
-Check out the wiki for more details:
-
-- [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
-- [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
-- [Debug coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Debug-coc.nvim)
-- [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
-- [Environment variables](https://github.com/neoclide/coc.nvim/wiki/Environment-variables)
-- [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
-- [Install coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
-- [Language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
-- [Multiple cursors support](https://github.com/neoclide/coc.nvim/wiki/Multiple-cursors-support)
-- [Nvim notifications integration](https://github.com/neoclide/coc.nvim/wiki/Nvim-notifications-integration)
-- [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
-- [Using the configuration file](https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file)
-- [Using coc extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
-- [Using coc list](https://github.com/neoclide/coc.nvim/wiki/Using-coc-list)
-- [Using snippets](https://github.com/neoclide/coc.nvim/wiki/Using-snippets)
-- [Using workspaceFolders](https://github.com/neoclide/coc.nvim/wiki/Using-workspaceFolders)
-
-Check out `:h coc-nvim` for the Vim interface.
-
-## Example Vim configuration
-
-Configuration is required to make coc.nvim easier to work with, since it
-doesn't change your key-mappings or Vim options. This is done as much as
-possible to avoid conflict with your other plugins.
-
-**❗️Important**: Some Vim plugins can change your key mappings. Please use
-command like`:verbose imap <tab>` to make sure that your keymap has taken effect.
-
-```vim
-" https://raw.githubusercontent.com/neoclide/coc.nvim/master/doc/coc-example-config.vim
-
-" May need for Vim (not Neovim) since coc.nvim calculates byte offset by count
-" utf-8 byte sequence
-set encoding=utf-8
-" Some servers have issues with backup files, see #649
-set nobackup
-set nowritebackup
-
-" Having longer updatetime (default is 4000 ms = 4s) leads to noticeable
-" delays and poor user experience
-set updatetime=300
-
-" Always show the signcolumn, otherwise it would shift the text each time
-" diagnostics appear/become resolved
-set signcolumn=yes
-
-" Use tab for trigger completion with characters ahead and navigate
-" NOTE: There's always complete item selected by default, you may want to enable
-" no select by `"suggest.noselect": true` in your configuration file
-" NOTE: Use command ':verbose imap <tab>' to make sure tab is not mapped by
-" other plugin before putting this into your config
-inoremap <silent><expr> <TAB>
-      \ coc#pum#visible() ? coc#pum#next(1) :
-      \ CheckBackspace() ? "\<Tab>" :
-      \ coc#refresh()
-inoremap <expr><S-TAB> coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"
-
-" Make <CR> to accept selected completion item or notify coc.nvim to format
-" <C-g>u breaks current undo, please make your own choice
-inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
-                              \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
-
-function! CheckBackspace() abort
-  let col = col('.') - 1
-  return !col || getline('.')[col - 1]  =~# '\s'
-endfunction
-
-" Use <c-space> to trigger completion
-if has('nvim')
-  inoremap <silent><expr> <c-space> coc#refresh()
-else
-  inoremap <silent><expr> <c-@> coc#refresh()
-endif
-
-" Use `[g` and `]g` to navigate diagnostics
-" Use `:CocDiagnostics` to get all diagnostics of current buffer in location list
-nmap <silent><nowait> [g <Plug>(coc-diagnostic-prev)
-nmap <silent><nowait> ]g <Plug>(coc-diagnostic-next)
-
-" GoTo code navigation
-nmap <silent><nowait> gd <Plug>(coc-definition)
-nmap <silent><nowait> gy <Plug>(coc-type-definition)
-nmap <silent><nowait> gi <Plug>(coc-implementation)
-nmap <silent><nowait> gr <Plug>(coc-references)
-
-" Use K to show documentation in preview window
-nnoremap <silent> K :call ShowDocumentation()<CR>
-
-function! ShowDocumentation()
-  if CocAction('hasProvider', 'hover')
-    call CocActionAsync('doHover')
-  else
-    call feedkeys('K', 'in')
-  endif
-endfunction
-
-" Highlight the symbol and its references when holding the cursor
-autocmd CursorHold * silent call CocActionAsync('highlight')
-
-" Symbol renaming
-nmap <leader>rn <Plug>(coc-rename)
-
-" Formatting selected code
-xmap <leader>f  <Plug>(coc-format-selected)
-nmap <leader>f  <Plug>(coc-format-selected)
-
-augroup mygroup
-  autocmd!
-  " Setup formatexpr specified filetype(s)
-  autocmd FileType typescript,json setl formatexpr=CocAction('formatSelected')
-augroup end
-
-" Applying code actions to the selected code block
-" Example: `<leader>aap` for current paragraph
-xmap <leader>a  <Plug>(coc-codeaction-selected)
-nmap <leader>a  <Plug>(coc-codeaction-selected)
-
-" Remap keys for applying code actions at the cursor position
-nmap <leader>ac  <Plug>(coc-codeaction-cursor)
-" Remap keys for apply code actions affect whole buffer
-nmap <leader>as  <Plug>(coc-codeaction-source)
-" Apply the most preferred quickfix action to fix diagnostic on the current line
-nmap <leader>qf  <Plug>(coc-fix-current)
-
-" Remap keys for applying refactor code actions
-nmap <silent> <leader>re <Plug>(coc-codeaction-refactor)
-xmap <silent> <leader>r  <Plug>(coc-codeaction-refactor-selected)
-nmap <silent> <leader>r  <Plug>(coc-codeaction-refactor-selected)
-
-" Run the Code Lens action on the current line
-nmap <leader>cl  <Plug>(coc-codelens-action)
-
-" Map function and class text objects
-" NOTE: Requires 'textDocument.documentSymbol' support from the language server
-xmap if <Plug>(coc-funcobj-i)
-omap if <Plug>(coc-funcobj-i)
-xmap af <Plug>(coc-funcobj-a)
-omap af <Plug>(coc-funcobj-a)
-xmap ic <Plug>(coc-classobj-i)
-omap ic <Plug>(coc-classobj-i)
-xmap ac <Plug>(coc-classobj-a)
-omap ac <Plug>(coc-classobj-a)
-
-" Remap <C-f> and <C-b> to scroll float windows/popups
-if has('nvim-0.4.0') || has('patch-8.2.0750')
-  nnoremap <silent><nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<C-f>"
-  nnoremap <silent><nowait><expr> <C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<C-b>"
-  inoremap <silent><nowait><expr> <C-f> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(1)\<cr>" : "\<Right>"
-  inoremap <silent><nowait><expr> <C-b> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(0)\<cr>" : "\<Left>"
-  vnoremap <silent><nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<C-f>"
-  vnoremap <silent><nowait><expr> <C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<C-b>"
-endif
-
-" Use CTRL-S for selections ranges
-" Requires 'textDocument/selectionRange' support of language server
-nmap <silent> <C-s> <Plug>(coc-range-select)
-xmap <silent> <C-s> <Plug>(coc-range-select)
-
-" Add `:Format` command to format current buffer
-command! -nargs=0 Format :call CocActionAsync('format')
-
-" Add `:Fold` command to fold current buffer
-command! -nargs=? Fold :call     CocAction('fold', <f-args>)
-
-" Add `:OR` command for organize imports of the current buffer
-command! -nargs=0 OR   :call     CocActionAsync('runCommand', 'editor.action.organizeImport')
-
-" Add (Neo)Vim's native statusline support
-" NOTE: Please see `:h coc-status` for integrations with external plugins that
-" provide custom statusline: lightline.vim, vim-airline
-set statusline^=%{coc#status()}%{get(b:,'coc_current_function','')}
-
-" Mappings for CoCList
-" Show all diagnostics
-nnoremap <silent><nowait> <space>a  :<C-u>CocList diagnostics<cr>
-" Manage extensions
-nnoremap <silent><nowait> <space>e  :<C-u>CocList extensions<cr>
-" Show commands
-nnoremap <silent><nowait> <space>c  :<C-u>CocList commands<cr>
-" Find symbol of current document
-nnoremap <silent><nowait> <space>o  :<C-u>CocList outline<cr>
-" Search workspace symbols
-nnoremap <silent><nowait> <space>s  :<C-u>CocList -I symbols<cr>
-" Do default action for next item
-nnoremap <silent><nowait> <space>j  :<C-u>CocNext<CR>
-" Do default action for previous item
-nnoremap <silent><nowait> <space>k  :<C-u>CocPrev<CR>
-" Resume latest coc list
-nnoremap <silent><nowait> <space>p  :<C-u>CocListResume<CR>
-```
-
-## Example Lua configuration
-
-NOTE: This only works in Neovim 0.8.0+.
-
-```lua
--- https://raw.githubusercontent.com/neoclide/coc.nvim/master/doc/coc-example-config.lua
-
--- Some servers have issues with backup files, see #649
-vim.opt.backup = false
-vim.opt.writebackup = false
-
--- Having longer updatetime (default is 4000 ms = 4s) leads to noticeable
--- delays and poor user experience
-vim.opt.updatetime = 300
-
--- Always show the signcolumn, otherwise it would shift the text each time
--- diagnostics appeared/became resolved
-vim.opt.signcolumn = "yes"
-
-local keyset = vim.keymap.set
--- Autocomplete
-function _G.check_back_space()
-    local col = vim.fn.col('.') - 1
-    return col == 0 or vim.fn.getline('.'):sub(col, col):match('%s') ~= nil
-end
-
--- Use Tab for trigger completion with characters ahead and navigate
--- NOTE: There's always a completion item selected by default, you may want to enable
--- no select by setting `"suggest.noselect": true` in your configuration file
--- NOTE: Use command ':verbose imap <tab>' to make sure Tab is not mapped by
--- other plugins before putting this into your config
-local opts = {silent = true, noremap = true, expr = true, replace_keycodes = false}
-keyset("i", "<TAB>", 'coc#pum#visible() ? coc#pum#next(1) : v:lua.check_back_space() ? "<TAB>" : coc#refresh()', opts)
-keyset("i", "<S-TAB>", [[coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"]], opts)
-
--- Make <CR> to accept selected completion item or notify coc.nvim to format
--- <C-g>u breaks current undo, please make your own choice
-keyset("i", "<cr>", [[coc#pum#visible() ? coc#pum#confirm() : "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"]], opts)
-
--- Use <c-j> to trigger snippets
-keyset("i", "<c-j>", "<Plug>(coc-snippets-expand-jump)")
--- Use <c-space> to trigger completion
-keyset("i", "<c-space>", "coc#refresh()", {silent = true, expr = true})
-
--- Use `[g` and `]g` to navigate diagnostics
--- Use `:CocDiagnostics` to get all diagnostics of current buffer in location list
-keyset("n", "[g", "<Plug>(coc-diagnostic-prev)", {silent = true})
-keyset("n", "]g", "<Plug>(coc-diagnostic-next)", {silent = true})
-
--- GoTo code navigation
-keyset("n", "gd", "<Plug>(coc-definition)", {silent = true})
-keyset("n", "gy", "<Plug>(coc-type-definition)", {silent = true})
-keyset("n", "gi", "<Plug>(coc-implementation)", {silent = true})
-keyset("n", "gr", "<Plug>(coc-references)", {silent = true})
-
-
--- Use K to show documentation in preview window
-function _G.show_docs()
-    local cw = vim.fn.expand('<cword>')
-    if vim.fn.index({'vim', 'help'}, vim.bo.filetype) >= 0 then
-        vim.api.nvim_command('h ' .. cw)
-    elseif vim.api.nvim_eval('coc#rpc#ready()') then
-        vim.fn.CocActionAsync('doHover')
-    else
-        vim.api.nvim_command('!' .. vim.o.keywordprg .. ' ' .. cw)
-    end
-end
-keyset("n", "K", '<CMD>lua _G.show_docs()<CR>', {silent = true})
-
-
--- Highlight the symbol and its references on a CursorHold event(cursor is idle)
-vim.api.nvim_create_augroup("CocGroup", {})
-vim.api.nvim_create_autocmd("CursorHold", {
-    group = "CocGroup",
-    command = "silent call CocActionAsync('highlight')",
-    desc = "Highlight symbol under cursor on CursorHold"
-})
-
-
--- Symbol renaming
-keyset("n", "<leader>rn", "<Plug>(coc-rename)", {silent = true})
-
-
--- Formatting selected code
-keyset("x", "<leader>f", "<Plug>(coc-format-selected)", {silent = true})
-keyset("n", "<leader>f", "<Plug>(coc-format-selected)", {silent = true})
-
-
--- Setup formatexpr specified filetype(s)
-vim.api.nvim_create_autocmd("FileType", {
-    group = "CocGroup",
-    pattern = "typescript,json",
-    command = "setl formatexpr=CocAction('formatSelected')",
-    desc = "Setup formatexpr specified filetype(s)."
-})
-
--- Apply codeAction to the selected region
--- Example: `<leader>aap` for current paragraph
-local opts = {silent = true, nowait = true}
-keyset("x", "<leader>a", "<Plug>(coc-codeaction-selected)", opts)
-keyset("n", "<leader>a", "<Plug>(coc-codeaction-selected)", opts)
-
--- Remap keys for apply code actions at the cursor position.
-keyset("n", "<leader>ac", "<Plug>(coc-codeaction-cursor)", opts)
--- Remap keys for apply source code actions for current file.
-keyset("n", "<leader>as", "<Plug>(coc-codeaction-source)", opts)
--- Apply the most preferred quickfix action on the current line.
-keyset("n", "<leader>qf", "<Plug>(coc-fix-current)", opts)
-
--- Remap keys for apply refactor code actions.
-keyset("n", "<leader>re", "<Plug>(coc-codeaction-refactor)", { silent = true })
-keyset("x", "<leader>r", "<Plug>(coc-codeaction-refactor-selected)", { silent = true })
-keyset("n", "<leader>r", "<Plug>(coc-codeaction-refactor-selected)", { silent = true })
-
--- Run the Code Lens actions on the current line
-keyset("n", "<leader>cl", "<Plug>(coc-codelens-action)", opts)
-
-
--- Map function and class text objects
--- NOTE: Requires 'textDocument.documentSymbol' support from the language server
-keyset("x", "if", "<Plug>(coc-funcobj-i)", opts)
-keyset("o", "if", "<Plug>(coc-funcobj-i)", opts)
-keyset("x", "af", "<Plug>(coc-funcobj-a)", opts)
-keyset("o", "af", "<Plug>(coc-funcobj-a)", opts)
-keyset("x", "ic", "<Plug>(coc-classobj-i)", opts)
-keyset("o", "ic", "<Plug>(coc-classobj-i)", opts)
-keyset("x", "ac", "<Plug>(coc-classobj-a)", opts)
-keyset("o", "ac", "<Plug>(coc-classobj-a)", opts)
-
-
--- Remap <C-f> and <C-b> to scroll float windows/popups
----@diagnostic disable-next-line: redefined-local
-local opts = {silent = true, nowait = true, expr = true}
-keyset("n", "<C-f>", 'coc#float#has_scroll() ? coc#float#scroll(1) : "<C-f>"', opts)
-keyset("n", "<C-b>", 'coc#float#has_scroll() ? coc#float#scroll(0) : "<C-b>"', opts)
-keyset("i", "<C-f>",
-       'coc#float#has_scroll() ? "<c-r>=coc#float#scroll(1)<cr>" : "<Right>"', opts)
-keyset("i", "<C-b>",
-       'coc#float#has_scroll() ? "<c-r>=coc#float#scroll(0)<cr>" : "<Left>"', opts)
-keyset("v", "<C-f>", 'coc#float#has_scroll() ? coc#float#scroll(1) : "<C-f>"', opts)
-keyset("v", "<C-b>", 'coc#float#has_scroll() ? coc#float#scroll(0) : "<C-b>"', opts)
-
-
--- Use CTRL-S for selections ranges
--- Requires 'textDocument/selectionRange' support of language server
-keyset("n", "<C-s>", "<Plug>(coc-range-select)", {silent = true})
-keyset("x", "<C-s>", "<Plug>(coc-range-select)", {silent = true})
-
-
--- Add `:Format` command to format current buffer
-vim.api.nvim_create_user_command("Format", "call CocAction('format')", {})
-
--- " Add `:Fold` command to fold current buffer
-vim.api.nvim_create_user_command("Fold", "call CocAction('fold', <f-args>)", {nargs = '?'})
-
--- Add `:OR` command for organize imports of the current buffer
-vim.api.nvim_create_user_command("OR", "call CocActionAsync('runCommand', 'editor.action.organizeImport')", {})
-
--- Add (Neo)Vim's native statusline support
--- NOTE: Please see `:h coc-status` for integrations with external plugins that
--- provide custom statusline: lightline.vim, vim-airline
-vim.opt.statusline:prepend("%{coc#status()}%{get(b:,'coc_current_function','')}")
-
--- Mappings for CoCList
--- code actions and coc stuff
----@diagnostic disable-next-line: redefined-local
-local opts = {silent = true, nowait = true}
--- Show all diagnostics
-keyset("n", "<space>a", ":<C-u>CocList diagnostics<cr>", opts)
--- Manage extensions
-keyset("n", "<space>e", ":<C-u>CocList extensions<cr>", opts)
--- Show commands
-keyset("n", "<space>c", ":<C-u>CocList commands<cr>", opts)
--- Find symbol of current document
-keyset("n", "<space>o", ":<C-u>CocList outline<cr>", opts)
--- Search workspace symbols
-keyset("n", "<space>s", ":<C-u>CocList -I symbols<cr>", opts)
--- Do default action for next item
-keyset("n", "<space>j", ":<C-u>CocNext<cr>", opts)
--- Do default action for previous item
-keyset("n", "<space>k", ":<C-u>CocPrev<cr>", opts)
--- Resume latest coc list
-keyset("n", "<space>p", ":<C-u>CocListResume<cr>", opts)
-```
-
-## MCP Server
-
-coc.nvim can act as a [Model Context Protocol](https://modelcontextprotocol.io) server so agents like OpenAI Codex can read editor buffers (including unsaved changes), query the language servers and apply edits that stay in sync with Vim/Neovim.
-
-The MCP server can expose read and write operations to connected clients. Only connect trusted clients, and use `mcp.allowedPaths`, `mcp.deniedPaths` and `mcp.allowedTools` to restrict access when needed.
-
-Auto start it in `coc-settings.json` (disabled by default):
-
-```json
-{
-  "mcp": {
-    "autoStart": true
-  }
-}
-```
-
-Register the stdio bridge in `~/.codex/config.toml`:
-
-```toml
-[mcp_servers.coc]
-command = "node"
-args = ["/path/to/coc.nvim/bin/coc-mcp.js"]
-enabled = true
-```
-
-Run `codex mcp list` to verify the server, then call tools such as `document/read`, `lsp/references` or `workspace/apply_edit`. See [doc/coc-mcp.txt](doc/coc-mcp.txt) for the interface specification. List the available tools in vim with `:CocCommand mcp.status` or via the MCP `tools/list` request.
-
-During initialization, the bridge waits up to five seconds for a usable coc.nvim connection before returning an error. Start vim/nvim with coc.nvim and `"mcp.autoStart": true`, or run `:CocCommand mcp.start`, before launching Codex. Set `COC_MCP_STARTUP_TIMEOUT_MS` to change the timeout.
-
-## Articles
-
-- [coc.nvim 插件体系介绍](https://zhuanlan.zhihu.com/p/65524706)
-- [CocList 入坑指南](https://zhuanlan.zhihu.com/p/71846145)
-- [Create coc.nvim extension to improve Vim experience](https://medium.com/@chemzqm/create-coc-nvim-extension-to-improve-vim-experience-4461df269173)
-- [How to write a coc.nvim extension (and why)](https://samroeca.com/coc-plugin.html)
-
-## Troubleshooting
-
-Try these steps if you experience problems with coc.nvim:
-
-- Ensure your Vim version is >= 9.0.0438 or your Neovim version is >= 0.8.0 using `:version`
-- If a service failed to start, use `:CocInfo` or `:checkhealth` if you use Neovim
-- Check the coc.nvim log with `:CocOpenLog`
-- If you have issues with the language server, it's recommended to [check out
-  the language server output](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server#using-output-channel)
-
-## Feedback
-
-- Have a question? Start a discussion on [GitHub Discussions](https://github.com/neoclide/coc.nvim/discussions).
-- File a bug in [GitHub Issues](https://github.com/neoclide/coc.nvim/issues).
-
-## Backers
-
-[Become a backer](https://opencollective.com/cocnvim#backer) and get your image on our README on GitHub with a link to your site.
-
-### Enterprise sponsors
-
-| Logo | Sponsor | Website |
-| --- | --- | --- |
-| <img src="https://images.opencollective.com/mfbtech/avatar/256.png" width="64" alt="MFB Technologies"> | [MFB Technologies](https://mfbtech.com) | <https://mfbtech.com> |
-| <img src="https://images.opencollective.com/sentry/avatar/256.png" width="64" alt="Sentry"> | [Sentry](https://sentry.io/welcome/) | <https://sentry.io/welcome/> |
-
-### Individual backers
-
-| Avatar | Backer | Link |
-| --- | --- | --- |
-| <img src="https://images.opencollective.com/daquexian/avatar/256.png" width="32" alt="daquexian"> | [daquexian](https://opencollective.com/daquexian) | <https://opencollective.com/daquexian> |
-| <img src="https://images.opencollective.com/okan/avatar/256.png" width="32" alt="Okan Esen"> | [Okan Esen](https://okanesen.com) | <https://okanesen.com> |
-| <img src="https://images.opencollective.com/guest-63c9b283/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-63c9b283) | <https://opencollective.com/guest-63c9b283> |
-| <img src="https://images.opencollective.com/npearson72/avatar/256.png" width="32" alt="Nathan Pearson"> | [Nathan Pearson](https://opencollective.com/npearson72) | <https://opencollective.com/npearson72> |
-| <img src="https://images.opencollective.com/chip-camden/avatar/256.png" width="32" alt="Chip Camden"> | [Chip Camden](https://opencollective.com/chip-camden) | <https://opencollective.com/chip-camden> |
-| <img src="https://images.opencollective.com/slomo/avatar/256.png" width="32" alt="Sebastian Dröge"> | [Sebastian Dröge](https://coaxion.net) | <https://coaxion.net> |
-| <img src="https://images.opencollective.com/guest-bce8e2de/avatar/256.png" width="32" alt="leland J Kwong"> | [leland J Kwong](https://opencollective.com/guest-bce8e2de) | <https://opencollective.com/guest-bce8e2de> |
-| <img src="https://images.opencollective.com/incognito-439fb655/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/incognito-439fb655) | <https://opencollective.com/incognito-439fb655> |
-| <img src="https://images.opencollective.com/esroyo/avatar/256.png" width="32" alt="Carles Escrig"> | [Carles Escrig](https://opencollective.com/esroyo) | <https://opencollective.com/esroyo> |
-| <img src="https://images.opencollective.com/pablo/avatar/256.png" width="32" alt="PablO"> | [PablO](https://opencollective.com/pablo) | <https://opencollective.com/pablo> |
-| <img src="https://images.opencollective.com/incognito-c2aa65ce/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/incognito-c2aa65ce) | <https://opencollective.com/incognito-c2aa65ce> |
-| <img src="https://images.opencollective.com/user-288d165e/avatar/256.png" width="32" alt="Omer"> | [Omer](https://opencollective.com/user-288d165e) | <https://opencollective.com/user-288d165e> |
-| <img src="https://images.opencollective.com/nils-b/avatar/256.png" width="32" alt="Nils B"> | [Nils B](https://opencollective.com/nils-b) | <https://opencollective.com/nils-b> |
-| <img src="https://images.opencollective.com/chafic-najjar/avatar/256.png" width="32" alt="Chafic Najjar"> | [Chafic Najjar](https://opencollective.com/chafic-najjar) | <https://opencollective.com/chafic-najjar> |
-| <img src="https://images.opencollective.com/guest-3bc439f2/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-3bc439f2) | <https://opencollective.com/guest-3bc439f2> |
-| <img src="https://images.opencollective.com/incognito-e073348a/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/incognito-e073348a) | <https://opencollective.com/incognito-e073348a> |
-| <img src="https://images.opencollective.com/guest-0e9e75ad/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-0e9e75ad) | <https://opencollective.com/guest-0e9e75ad> |
-| <img src="https://images.opencollective.com/guest-8bb82c78/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-8bb82c78) | <https://opencollective.com/guest-8bb82c78> |
-| <img src="https://images.opencollective.com/guest-812018c9/avatar/256.png" width="32" alt="Денис Житняков"> | [Денис Житняков](https://opencollective.com/guest-812018c9) | <https://opencollective.com/guest-812018c9> |
-| <img src="https://images.opencollective.com/guest-343a0a8e/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-343a0a8e) | <https://opencollective.com/guest-343a0a8e> |
-| <img src="https://images.opencollective.com/guest-8112f063/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-8112f063) | <https://opencollective.com/guest-8112f063> |
-| <img src="https://images.opencollective.com/guest-edf2c072/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-edf2c072) | <https://opencollective.com/guest-edf2c072> |
-| <img src="https://images.opencollective.com/incognito-9e1c6c17/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/incognito-9e1c6c17) | <https://opencollective.com/incognito-9e1c6c17> |
-| <img src="https://images.opencollective.com/user-bf5a2d9b/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/user-bf5a2d9b) | <https://opencollective.com/user-bf5a2d9b> |
-| <img src="https://images.opencollective.com/balamurali-m/avatar/256.png" width="32" alt="Balamurali M"> | [Balamurali M](https://opencollective.com/balamurali-m) | <https://opencollective.com/balamurali-m> |
-| <img src="https://images.opencollective.com/guest-ebc136ce/avatar/256.png" width="32" alt="Ben"> | [Ben](https://opencollective.com/guest-ebc136ce) | <https://opencollective.com/guest-ebc136ce> |
-| <img src="https://images.opencollective.com/guest-e65d50cf/avatar/256.png" width="32" alt="Bert"> | [Bert](https://opencollective.com/guest-e65d50cf) | <https://opencollective.com/guest-e65d50cf> |
-| <img src="https://images.opencollective.com/cheng-jiang/avatar/256.png" width="32" alt="Cheng JIANG"> | [Cheng JIANG](https://blog.alexcj96.com) | <https://blog.alexcj96.com> |
-| <img src="https://images.opencollective.com/emilio-arenas/avatar/256.png" width="32" alt="Emilio Arenas"> | [Emilio Arenas](https://opencollective.com/emilio-arenas) | <https://opencollective.com/emilio-arenas> |
-| <img src="https://images.opencollective.com/ison/avatar/256.png" width="32" alt="ISON"> | [ISON](https://opencollective.com/ison) | <https://opencollective.com/ison> |
-| <img src="https://images.opencollective.com/guest-fdfb2885/avatar/256.png" width="32" alt="Julius"> | [Julius](https://opencollective.com/guest-fdfb2885) | <https://opencollective.com/guest-fdfb2885> |
-| <img src="https://images.opencollective.com/guest-fc8171f6/avatar/256.png" width="32" alt="Juraj Andris"> | [Juraj Andris](https://opencollective.com/guest-fc8171f6) | <https://opencollective.com/guest-fc8171f6> |
-| <img src="https://images.opencollective.com/justus-grunow/avatar/256.png" width="32" alt="Justus Grunow"> | [Justus Grunow](https://opencollective.com/justus-grunow) | <https://opencollective.com/justus-grunow> |
-| <img src="https://images.opencollective.com/guest-e6a5c729/avatar/256.png" width="32" alt="Mauricio Poppe"> | [Mauricio Poppe](https://opencollective.com/guest-e6a5c729) | <https://opencollective.com/guest-e6a5c729> |
-| <img src="https://images.opencollective.com/guest-fc7d356e/avatar/256.png" width="32" alt="Nick TomTHomas"> | [Nick TomTHomas](https://opencollective.com/guest-fc7d356e) | <https://opencollective.com/guest-fc7d356e> |
-| <img src="https://images.opencollective.com/guest-974b3e1e/avatar/256.png" width="32" alt="Proton"> | [Proton](https://opencollective.com/guest-974b3e1e) | <https://opencollective.com/guest-974b3e1e> |
-| <img src="https://images.opencollective.com/guest-307058fe/avatar/256.png" width="32" alt="Thomas Etter"> | [Thomas Etter](https://opencollective.com/guest-307058fe) | <https://opencollective.com/guest-307058fe> |
-| <img src="https://images.opencollective.com/tim-brown/avatar/256.png" width="32" alt="Tim Brown"> | [Tim Brown](https://brimtown.com) | <https://brimtown.com> |
-| <img src="https://images.opencollective.com/wolido/avatar/256.png" width="32" alt="Wolido"> | [Wolido](https://opencollective.com/wolido) | <https://opencollective.com/wolido> |
-| <img src="https://images.opencollective.com/guest-a1626275/avatar/256.png" width="32" alt="狗娃子"> | [狗娃子](https://opencollective.com/guest-a1626275) | <https://opencollective.com/guest-a1626275> |
-| <img src="https://images.opencollective.com/mortymacs/avatar/256.png" width="32" alt="Mort"> | [Mort](https://opencollective.com/mortymacs) | <https://opencollective.com/mortymacs> |
-| <img src="https://images.opencollective.com/guest-bc027749/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-bc027749) | <https://opencollective.com/guest-bc027749> |
-| <img src="https://images.opencollective.com/guest-fdb12847/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-fdb12847) | <https://opencollective.com/guest-fdb12847> |
-| <img src="https://images.opencollective.com/guest-7a04bc76/avatar/256.png" width="32" alt="Emi"> | [Emi](https://opencollective.com/guest-7a04bc76) | <https://opencollective.com/guest-7a04bc76> |
-| <img src="https://images.opencollective.com/luncytb/avatar/256.png" width="32" alt="LuncyTB"> | [LuncyTB](https://opencollective.com/luncytb) | <https://opencollective.com/luncytb> |
-| <img src="https://images.opencollective.com/guest-7ac14515/avatar/256.png" width="32" alt="Mohammad Banisaeid"> | [Mohammad Banisaeid](https://opencollective.com/guest-7ac14515) | <https://opencollective.com/guest-7ac14515> |
-| <img src="https://images.opencollective.com/moti/avatar/256.png" width="32" alt="Moti"> | [Moti](https://opencollective.com/moti) | <https://opencollective.com/moti> |
-| <img src="https://images.opencollective.com/guest-44e11602/avatar/256.png" width="32" alt="Nachiket"> | [Nachiket](https://opencollective.com/guest-44e11602) | <https://opencollective.com/guest-44e11602> |
-| <img src="https://images.opencollective.com/oleksii-usatov/avatar/256.png" width="32" alt="Oleksii Usatov"> | [Oleksii Usatov](https://opencollective.com/oleksii-usatov) | <https://opencollective.com/oleksii-usatov> |
-| <img src="https://images.opencollective.com/guest-e4e855af/avatar/256.png" width="32" alt="Otávio Schwanck dos Santos"> | [Otávio Schwanck dos Santos](https://opencollective.com/guest-e4e855af) | <https://opencollective.com/guest-e4e855af> |
-| <img src="https://images.opencollective.com/robert-zhang/avatar/256.png" width="32" alt="Robert Zhang"> | [Robert Zhang](https://opencollective.com/robert-zhang) | <https://opencollective.com/robert-zhang> |
-| <img src="https://images.opencollective.com/guest-47c6b301/avatar/256.png" width="32" alt="Shank"> | [Shank](https://opencollective.com/guest-47c6b301) | <https://opencollective.com/guest-47c6b301> |
-| <img src="https://images.opencollective.com/guest-30886871/avatar/256.png" width="32" alt="Thomas"> | [Thomas](https://opencollective.com/guest-30886871) | <https://opencollective.com/guest-30886871> |
-| <img src="https://images.opencollective.com/rammiah/avatar/256.png" width="32" alt="rammiah"> | [rammiah](https://opencollective.com/rammiah) | <https://opencollective.com/rammiah> |
-| <img src="https://images.opencollective.com/yaegassy/avatar/256.png" width="32" alt="yaegassy"> | [yaegassy](https://opencollective.com/yaegassy) | <https://opencollective.com/yaegassy> |
-| <img src="https://images.opencollective.com/lord63/avatar/256.png" width="32" alt="lord63"> | [lord63](https://opencollective.com/lord63) | <https://opencollective.com/lord63> |
-| <img src="https://images.opencollective.com/guest-44f008fe/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-44f008fe) | <https://opencollective.com/guest-44f008fe> |
-| <img src="https://images.opencollective.com/guest-b28877fa/avatar/256.png" width="32" alt="Anonymous"> | [Anonymous](https://opencollective.com/guest-b28877fa) | <https://opencollective.com/guest-b28877fa> |
-| <img src="https://images.opencollective.com/linhan/avatar/256.png" width="32" alt="Linhan"> | [Linhan](https://opencollective.com/linhan) | <https://opencollective.com/linhan> |
-| <img src="https://images.opencollective.com/guest-36196702/avatar/256.png" width="32" alt="Mika"> | [Mika](https://opencollective.com/guest-36196702) | <https://opencollective.com/guest-36196702> |
-| <img src="https://images.opencollective.com/guest-7f75235b/avatar/256.png" width="32" alt="Ruiqi Zhu"> | [Ruiqi Zhu](https://opencollective.com/guest-7f75235b) | <https://opencollective.com/guest-7f75235b> |
-| <img src="https://images.opencollective.com/yutkat/avatar/256.png" width="32" alt="Yuta Katayama"> | [Yuta Katayama](https://opencollective.com/yutkat) | <https://opencollective.com/yutkat> |
-| <img src="https://images.opencollective.com/guest-c9a81109/avatar/256.png" width="32" alt="luobing Dai"> | [luobing Dai](https://opencollective.com/guest-c9a81109) | <https://opencollective.com/guest-c9a81109> |
-| <img src="https://images.opencollective.com/sternelee/avatar/256.png" width="32" alt="sternelee"> | [sternelee](https://opencollective.com/sternelee) | <https://opencollective.com/sternelee> |
-| <img src="https://images.opencollective.com/unclebill/avatar/256.png" width="32" alt="unclebill"> | [unclebill](https://github.com/unclebill) | <https://github.com/unclebill> |
-| <img src="https://images.opencollective.com/juan-ramirez1/avatar/256.png" width="32" alt="Juan Ramirez"> | [Juan Ramirez](https://opencollective.com/juan-ramirez1) | <https://opencollective.com/juan-ramirez1> |
-| <img src="https://images.opencollective.com/guest-87c17e2a/avatar/256.png" width="32" alt="Breno Vieira"> | [Breno Vieira](https://opencollective.com/guest-87c17e2a) | <https://opencollective.com/guest-87c17e2a> |
-
-<a href="https://opencollective.com/cocnvim#backer" target="_blank"><img src="https://images.opencollective.com/static/images/become_backer.svg"></a>
+<h2 align="center"><a href="https://cocnvim.com/">Visit cocnvim.com</a></h2>
+
+coc.nvim is an IntelliSense engine for Vim and Neovim. It brings VS Code-like completion, diagnostics, navigation, refactoring, and extension support to both editors through a Node.js service.
+
+## Quick start
+
+See [Install coc.nvim](https://cocnvim.com/install).
+
+## Sponsors
+
+<p>
+  <a href="https://mfbtech.com"><img src="https://images.opencollective.com/mfbtech/avatar/256.png" width="48" alt="MFB Technologies"></a>
+  <a href="https://sentry.io/welcome/"><img src="https://images.opencollective.com/sentry/avatar/256.png" width="48" alt="Sentry"></a>
+  <a href="https://opencollective.com/daquexian"><img src="https://images.opencollective.com/daquexian/avatar/256.png" width="48" alt="daquexian"></a>
+  <a href="https://okanesen.com"><img src="https://images.opencollective.com/okan/avatar/256.png" width="48" alt="Okan Esen"></a>
+  <a href="https://opencollective.com/guest-63c9b283"><img src="https://images.opencollective.com/guest-63c9b283/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/npearson72"><img src="https://images.opencollective.com/npearson72/avatar/256.png" width="48" alt="Nathan Pearson"></a>
+  <a href="https://opencollective.com/chip-camden"><img src="https://images.opencollective.com/chip-camden/avatar/256.png" width="48" alt="Chip Camden"></a>
+  <a href="https://coaxion.net"><img src="https://images.opencollective.com/slomo/avatar/256.png" width="48" alt="Sebastian Dröge"></a>
+  <a href="https://opencollective.com/guest-bce8e2de"><img src="https://images.opencollective.com/guest-bce8e2de/avatar/256.png" width="48" alt="leland J Kwong"></a>
+  <a href="https://opencollective.com/incognito-439fb655"><img src="https://images.opencollective.com/incognito-439fb655/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/esroyo"><img src="https://images.opencollective.com/esroyo/avatar/256.png" width="48" alt="Carles Escrig"></a>
+  <a href="https://opencollective.com/pablo"><img src="https://images.opencollective.com/pablo/avatar/256.png" width="48" alt="PablO"></a>
+  <a href="https://opencollective.com/incognito-c2aa65ce"><img src="https://images.opencollective.com/incognito-c2aa65ce/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/user-288d165e"><img src="https://images.opencollective.com/user-288d165e/avatar/256.png" width="48" alt="Omer"></a>
+  <a href="https://opencollective.com/nils-b"><img src="https://images.opencollective.com/nils-b/avatar/256.png" width="48" alt="Nils B"></a>
+  <a href="https://opencollective.com/chafic-najjar"><img src="https://images.opencollective.com/chafic-najjar/avatar/256.png" width="48" alt="Chafic Najjar"></a>
+  <a href="https://opencollective.com/guest-3bc439f2"><img src="https://images.opencollective.com/guest-3bc439f2/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/incognito-e073348a"><img src="https://images.opencollective.com/incognito-e073348a/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/guest-0e9e75ad"><img src="https://images.opencollective.com/guest-0e9e75ad/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/guest-8bb82c78"><img src="https://images.opencollective.com/guest-8bb82c78/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/guest-812018c9"><img src="https://images.opencollective.com/guest-812018c9/avatar/256.png" width="48" alt="Денис Житняков"></a>
+  <a href="https://opencollective.com/guest-343a0a8e"><img src="https://images.opencollective.com/guest-343a0a8e/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/guest-8112f063"><img src="https://images.opencollective.com/guest-8112f063/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/guest-edf2c072"><img src="https://images.opencollective.com/guest-edf2c072/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/incognito-9e1c6c17"><img src="https://images.opencollective.com/incognito-9e1c6c17/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/user-bf5a2d9b"><img src="https://images.opencollective.com/user-bf5a2d9b/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/balamurali-m"><img src="https://images.opencollective.com/balamurali-m/avatar/256.png" width="48" alt="Balamurali M"></a>
+  <a href="https://opencollective.com/guest-ebc136ce"><img src="https://images.opencollective.com/guest-ebc136ce/avatar/256.png" width="48" alt="Ben"></a>
+  <a href="https://opencollective.com/guest-e65d50cf"><img src="https://images.opencollective.com/guest-e65d50cf/avatar/256.png" width="48" alt="Bert"></a>
+  <a href="https://blog.alexcj96.com"><img src="https://images.opencollective.com/cheng-jiang/avatar/256.png" width="48" alt="Cheng JIANG"></a>
+  <a href="https://opencollective.com/emilio-arenas"><img src="https://images.opencollective.com/emilio-arenas/avatar/256.png" width="48" alt="Emilio Arenas"></a>
+  <a href="https://opencollective.com/ison"><img src="https://images.opencollective.com/ison/avatar/256.png" width="48" alt="ISON"></a>
+  <a href="https://opencollective.com/guest-fdfb2885"><img src="https://images.opencollective.com/guest-fdfb2885/avatar/256.png" width="48" alt="Julius"></a>
+  <a href="https://opencollective.com/guest-fc8171f6"><img src="https://images.opencollective.com/guest-fc8171f6/avatar/256.png" width="48" alt="Juraj Andris"></a>
+  <a href="https://opencollective.com/justus-grunow"><img src="https://images.opencollective.com/justus-grunow/avatar/256.png" width="48" alt="Justus Grunow"></a>
+  <a href="https://opencollective.com/guest-e6a5c729"><img src="https://images.opencollective.com/guest-e6a5c729/avatar/256.png" width="48" alt="Mauricio Poppe"></a>
+  <a href="https://opencollective.com/guest-fc7d356e"><img src="https://images.opencollective.com/guest-fc7d356e/avatar/256.png" width="48" alt="Nick TomTHomas"></a>
+  <a href="https://opencollective.com/guest-974b3e1e"><img src="https://images.opencollective.com/guest-974b3e1e/avatar/256.png" width="48" alt="Proton"></a>
+  <a href="https://opencollective.com/guest-307058fe"><img src="https://images.opencollective.com/guest-307058fe/avatar/256.png" width="48" alt="Thomas Etter"></a>
+  <a href="https://brimtown.com"><img src="https://images.opencollective.com/tim-brown/avatar/256.png" width="48" alt="Tim Brown"></a>
+  <a href="https://opencollective.com/wolido"><img src="https://images.opencollective.com/wolido/avatar/256.png" width="48" alt="Wolido"></a>
+  <a href="https://opencollective.com/guest-a1626275"><img src="https://images.opencollective.com/guest-a1626275/avatar/256.png" width="48" alt="狗娃子"></a>
+  <a href="https://opencollective.com/mortymacs"><img src="https://images.opencollective.com/mortymacs/avatar/256.png" width="48" alt="Mort"></a>
+  <a href="https://opencollective.com/guest-bc027749"><img src="https://images.opencollective.com/guest-bc027749/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/guest-fdb12847"><img src="https://images.opencollective.com/guest-fdb12847/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/guest-7a04bc76"><img src="https://images.opencollective.com/guest-7a04bc76/avatar/256.png" width="48" alt="Emi"></a>
+  <a href="https://opencollective.com/luncytb"><img src="https://images.opencollective.com/luncytb/avatar/256.png" width="48" alt="LuncyTB"></a>
+  <a href="https://opencollective.com/guest-7ac14515"><img src="https://images.opencollective.com/guest-7ac14515/avatar/256.png" width="48" alt="Mohammad Banisaeid"></a>
+  <a href="https://opencollective.com/moti"><img src="https://images.opencollective.com/moti/avatar/256.png" width="48" alt="Moti"></a>
+  <a href="https://opencollective.com/guest-44e11602"><img src="https://images.opencollective.com/guest-44e11602/avatar/256.png" width="48" alt="Nachiket"></a>
+  <a href="https://opencollective.com/oleksii-usatov"><img src="https://images.opencollective.com/oleksii-usatov/avatar/256.png" width="48" alt="Oleksii Usatov"></a>
+  <a href="https://opencollective.com/guest-e4e855af"><img src="https://images.opencollective.com/guest-e4e855af/avatar/256.png" width="48" alt="Otávio Schwanck dos Santos"></a>
+  <a href="https://opencollective.com/robert-zhang"><img src="https://images.opencollective.com/robert-zhang/avatar/256.png" width="48" alt="Robert Zhang"></a>
+  <a href="https://opencollective.com/guest-47c6b301"><img src="https://images.opencollective.com/guest-47c6b301/avatar/256.png" width="48" alt="Shank"></a>
+  <a href="https://opencollective.com/guest-30886871"><img src="https://images.opencollective.com/guest-30886871/avatar/256.png" width="48" alt="Thomas"></a>
+  <a href="https://opencollective.com/rammiah"><img src="https://images.opencollective.com/rammiah/avatar/256.png" width="48" alt="rammiah"></a>
+  <a href="https://opencollective.com/yaegassy"><img src="https://images.opencollective.com/yaegassy/avatar/256.png" width="48" alt="yaegassy"></a>
+  <a href="https://opencollective.com/lord63"><img src="https://images.opencollective.com/lord63/avatar/256.png" width="48" alt="lord63"></a>
+  <a href="https://opencollective.com/guest-44f008fe"><img src="https://images.opencollective.com/guest-44f008fe/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/guest-b28877fa"><img src="https://images.opencollective.com/guest-b28877fa/avatar/256.png" width="48" alt="Anonymous"></a>
+  <a href="https://opencollective.com/linhan"><img src="https://images.opencollective.com/linhan/avatar/256.png" width="48" alt="Linhan"></a>
+  <a href="https://opencollective.com/guest-36196702"><img src="https://images.opencollective.com/guest-36196702/avatar/256.png" width="48" alt="Mika"></a>
+  <a href="https://opencollective.com/guest-7f75235b"><img src="https://images.opencollective.com/guest-7f75235b/avatar/256.png" width="48" alt="Ruiqi Zhu"></a>
+  <a href="https://opencollective.com/yutkat"><img src="https://images.opencollective.com/yutkat/avatar/256.png" width="48" alt="Yuta Katayama"></a>
+  <a href="https://opencollective.com/guest-c9a81109"><img src="https://images.opencollective.com/guest-c9a81109/avatar/256.png" width="48" alt="luobing Dai"></a>
+  <a href="https://opencollective.com/sternelee"><img src="https://images.opencollective.com/sternelee/avatar/256.png" width="48" alt="sternelee"></a>
+  <a href="https://github.com/unclebill"><img src="https://images.opencollective.com/unclebill/avatar/256.png" width="48" alt="unclebill"></a>
+  <a href="https://opencollective.com/juan-ramirez1"><img src="https://images.opencollective.com/juan-ramirez1/avatar/256.png" width="48" alt="Juan Ramirez"></a>
+  <a href="https://opencollective.com/guest-87c17e2a"><img src="https://images.opencollective.com/guest-87c17e2a/avatar/256.png" width="48" alt="Breno Vieira"></a>
+</p>
 
 ## Contributors
 
@@ -918,16 +424,3 @@ Try these steps if you experience problems with coc.nvim:
 <!-- prettier-ignore-end -->
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-
-<!-- ALL-CONTRIBUTORS-LIST:END -->
-
-This project follows the [all-contributors](https://allcontributors.org) specification.
-Contributions of any kind are welcome!
-
-## License
-
-[MIT](./LICENSE.md)

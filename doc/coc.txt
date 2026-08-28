@@ -182,10 +182,10 @@ Language servers are services that provide LSP features; they can be provided
 by |coc-extensions| or |coc-config-languageserver|.
 
 To get language server for your language, see:
-https://github.com/neoclide/coc.nvim/wiki/Language-servers
+https://cocnvim.com/docs/language-servers
 
 To debug language server, see:
-https://github.com/neoclide/coc.nvim/wiki/Debug-language-server
+https://cocnvim.com/docs/debug-language-server
 
 ==============================================================================
 EXTENSIONS						*coc-extensions*
@@ -512,10 +512,10 @@ Features triggered by the language server: ~
   • Work done progress (use |coc-notification|).
 
 To make coc.nvim provide LSP features for your languages, check out
-https://github.com/neoclide/coc.nvim/wiki/Language-servers
+https://cocnvim.com/docs/language-servers
 
 To debug issues with a language server, check out
-https://github.com/neoclide/coc.nvim/wiki/Debug-language-server
+https://cocnvim.com/docs/debug-language-server
 
 ------------------------------------------------------------------------------
 DOCUMENT 						*coc-document*
@@ -4691,7 +4691,7 @@ FAQ							*coc-faq*
 
 ------------------------------------------------------------------------------
 
-Check out https://github.com/neoclide/coc.nvim/wiki/F.A.Q
+Check out https://cocnvim.com/docs/f.a.q
 
 ==============================================================================
 CHANGELOG						*coc-changelog*
