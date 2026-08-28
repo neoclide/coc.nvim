@@ -119166,6 +119166,7 @@ var init_diagnostic = __esm({
       provider;
       diagnostics;
       openRequests;
+      pendingDocumentForgets;
       documentStates;
       workspaceErrorCounter;
       workspaceCancellation;
@@ -119180,6 +119181,7 @@ var init_diagnostic = __esm({
         this.provider = this.createProvider();
         this.diagnostics = languages_default.createDiagnosticCollection(`${client.id}:pull:${defaultValue(options3.identifier, client.id)}`);
         this.openRequests = /* @__PURE__ */ new Map();
+        this.pendingDocumentForgets = /* @__PURE__ */ new Map();
         this.documentStates = new DocumentPullStateTracker();
         this.workspaceErrorCounter = 0;
       }
@@ -119201,6 +119203,9 @@ var init_diagnostic = __esm({
       }
       forget(kind, document2) {
         this.documentStates.unTrack(kind, document2);
+      }
+      cancelPendingForget(document2) {
+        this.pendingDocumentForgets.delete(DocumentOrUri.asKey(document2));
       }
       pull(document2, cb) {
         if (this.isDisposed) {
@@ -119284,8 +119289,13 @@ var init_diagnostic = __esm({
           if (request2 !== void 0) {
             this.openRequests.set(key, { state: "reschedule" /* reschedule */, document: document2 });
           } else {
+            const pendingForget = /* @__PURE__ */ Symbol();
+            this.pendingDocumentForgets.set(key, pendingForget);
             this.pull(document2, () => {
-              this.forget(1 /* document */, document2);
+              if (this.pendingDocumentForgets.get(key) === pendingForget) {
+                this.pendingDocumentForgets.delete(key);
+                this.forget(1 /* document */, document2);
+              }
             });
           }
           this.forget(2 /* workspace */, document2);
@@ -119561,10 +119571,11 @@ var init_diagnostic = __esm({
         const openFeature = client.getFeature(import_node4.DidOpenTextDocumentNotification.method);
         disposables.push(openFeature.onNotificationSent((event) => {
           const textDocument = event.original;
-          if (this.diagnosticRequestor.knowsSameVersion(1 /* document */, textDocument)) {
-            return;
-          }
           if (matches(textDocument)) {
+            this.diagnosticRequestor.cancelPendingForget(textDocument);
+            if (this.diagnosticRequestor.knowsSameVersion(1 /* document */, textDocument)) {
+              return;
+            }
             this.diagnosticRequestor.pull(textDocument, () => {
               addToBackgroundIfNeeded(textDocument);
             });
@@ -119572,6 +119583,7 @@ var init_diagnostic = __esm({
         }));
         disposables.push(workspace_default.tabs.onOpen((opened) => {
           for (const resource of opened) {
+            this.diagnosticRequestor.cancelPendingForget(resource);
             if (this.diagnosticRequestor.knows(1 /* document */, resource)) {
               continue;
             }
@@ -142307,7 +142319,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-e4b6285 2026-08-27 17:00:29 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-0d18c58 2026-08-28 13:37:58 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
