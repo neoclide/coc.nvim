@@ -138950,6 +138950,17 @@ function fixChangeParams(e2) {
         changes[0].range = Range.create(start.line, 0, end.line, 0);
       }
     }
+    if (emptyRange(range) && range.start.character == 0) {
+      let lines = text.split(/\r?\n/);
+      let last = lines[lines.length - 1];
+      let nest = lines.length > 1 ? lines[lines.length - 2] : "";
+      let prev = originalLines[range.start.line - 1];
+      if (last == "" && nest.startsWith(SEPARATOR) && prev == nest) {
+        changes[0].text = prev + "\n" + lines.slice(0, -2).join("\n") + "\n";
+        let { start, end } = range;
+        changes[0].range = Range.create(start.line - 1, 0, end.line - 1, 0);
+      }
+    }
   } else {
     let lines = original.split(/\r?\n/);
     let last = lines[lines.length - 1];
@@ -142319,7 +142330,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-0d18c58 2026-08-28 13:37:58 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-73a9399 2026-08-31 19:17:48 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

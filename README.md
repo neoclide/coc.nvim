@@ -16,7 +16,8 @@ coc.nvim is an IntelliSense engine for Vim and Neovim. It brings VS Code-like co
 
 ## Quick start
 
-See [Install coc.nvim](https://cocnvim.com/install).
+See [Install coc.nvim](https://cocnvim.com/install) for installation instructions
+and example Vim and Neovim configurations.
 
 ## Sponsors
 
