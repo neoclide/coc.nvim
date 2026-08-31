@@ -1158,7 +1158,7 @@ Use `extensions` section for extension related configurations. Deprecated config
 
 ## 2022-03-12
 
-- Avoid use `<sapce><bs>` for cancel completion.
+- Avoid use `<space><bs>` for cancel completion.
 
 ## 2022-03-05
 
