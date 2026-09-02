@@ -393,6 +393,22 @@ describe('InstallBuffer', () => {
     global.__TEST__ = true
   })
 
+  it('should escape extension buffer name', async t => {
+    let cwd = await nvim.call('getcwd') as string
+    let folder = createFolder()
+    fs.mkdirSync(path.join(folder, 'c'))
+    await nvim.setDirectory(folder)
+    try {
+      let buf = new InstallBuffer({ isUpdate: true, updateUIInTab: false })
+      disposables.push(buf)
+      await buf.start(['coc-json'])
+      assert.strictEqual(await nvim.call('bufname', ['%']), '[Coc Extensions]')
+    } finally {
+      await nvim.command('silent! bwipeout!')
+      await nvim.setDirectory(cwd)
+    }
+  })
+
   it('should draw buffer with stats', async t => {
     let buf = new InstallBuffer({ isUpdate: true, updateUIInTab: true })
     disposables.push(buf)
