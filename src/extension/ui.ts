@@ -215,13 +215,8 @@ export class InstallBuffer implements InstallUI {
     // `[scratch]`; reusing the named buffer also avoids leaking a new buffer
     // on every show (#5061)
     let name = '[Coc Extensions]'
-    if (isSync) {
-      nvim.command(`edit ${name}`, true)
-    } else if (this.settings.updateUIInTab) {
-      nvim.command(`tabnew ${name}`, true)
-    } else {
-      nvim.command(`vs ${name}`, true)
-    }
+    let command = isSync ? 'edit' : this.settings.updateUIInTab ? 'tabnew' : 'vs'
+    nvim.command(`execute '${command} '.fnameescape('${name}')`, true)
     nvim.call('bufnr', ['%'], true)
     nvim.command('setl buftype=nofile bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1', true)
     if (!isSync) nvim.command('nnoremap <silent><nowait><buffer> q :q<CR>', true)
