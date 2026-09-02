@@ -132701,13 +132701,8 @@ var init_ui3 = __esm({
         let { nvim } = workspace_default;
         nvim.pauseNotification();
         let name2 = "[Coc Extensions]";
-        if (isSync) {
-          nvim.command(`edit ${name2}`, true);
-        } else if (this.settings.updateUIInTab) {
-          nvim.command(`tabnew ${name2}`, true);
-        } else {
-          nvim.command(`vs ${name2}`, true);
-        }
+        let command = isSync ? "edit" : this.settings.updateUIInTab ? "tabnew" : "vs";
+        nvim.command(`execute '${command} '.fnameescape('${name2}')`, true);
         nvim.call("bufnr", ["%"], true);
         nvim.command("setl buftype=nofile bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1", true);
         if (!isSync) nvim.command("nnoremap <silent><nowait><buffer> q :q<CR>", true);
@@ -142330,7 +142325,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-78a63c1 2026-09-01 02:36:20 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-cf1e7ea 2026-09-02 18:05:48 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
