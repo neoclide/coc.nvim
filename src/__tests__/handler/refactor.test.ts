@@ -95,6 +95,14 @@ describe('fixChangeParams', () => {
     e = fixChangeParams(e)
     assert.deepStrictEqual(e.contentChanges[0].range, Range.create(0, 0, 0, 0))
     assert.strictEqual(e.contentChanges[0].text, '\u3000bar\nfoo\n')
+
+    e = createChangeParams(Range.create(1, 0, 1, 0), '\u3000bar\n', '', [
+      '\u3000bar',
+      'baz'
+    ])
+    e = fixChangeParams(e)
+    assert.deepStrictEqual(e.contentChanges[0].range, Range.create(0, 0, 0, 0))
+    assert.strictEqual(e.contentChanges[0].text, '\u3000bar\n')
   })
 })
 

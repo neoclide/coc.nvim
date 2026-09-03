@@ -653,7 +653,7 @@ export function fixChangeParams(e: DidChangeTextDocumentParams): DidChangeTextDo
       let nest = lines.length > 1 ? lines[lines.length - 2] : ''
       let prev = originalLines[range.start.line - 1]
       if (last == '' && nest.startsWith(SEPARATOR) && prev == nest) {
-        changes[0].text = prev + '\n' + lines.slice(0, -2).join('\n') + '\n'
+        changes[0].text = [prev, ...lines.slice(0, -2)].join('\n') + '\n'
         let { start, end } = range
         changes[0].range = Range.create(start.line - 1, 0, end.line - 1, 0)
       }
