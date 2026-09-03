@@ -11,7 +11,7 @@ function escapeQuote(input: string): string {
  * servers can append thousands of lines, and keeping every line in Node memory
  * (and joining them all when the buffer is opened) grows unbounded.
  */
-const MAX_LINE_COUNT = 10000
+const MAX_LINE_COUNT = 50000
 
 export default class BufferChannel implements OutputChannel {
   private lines: string[] = ['']
