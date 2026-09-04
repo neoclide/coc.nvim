@@ -341,7 +341,6 @@ export def SearchChangePosition(newStr: string, oldStr: string, diff: dict<any>)
   # newStr index
   var index = 0
   # Until used reached diff.oldStart
-  var i = 0
   for d in diffs
     if d.type ==# '-'
       used += 1

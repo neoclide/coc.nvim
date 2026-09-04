@@ -10,7 +10,6 @@ const diagnostic_hlgroups = ['CocUnusedHighlight', 'CocDeprecatedHighlight', 'Co
 const maxCount = get(g:, 'coc_highlight_maximum_count', 500)
 const maxTimePerBatchMs = 16
 var maxEditCount = get(g:, 'coc_edits_maximum_count', 200)
-var saved_event_ignore: string = ''
 # Per (bufnr, namespace) highlight generation and the latest pending batch
 # timer. A new set/update/clear bumps the generation and stops the old timer
 # so stale batches can never write back after a newer result was applied.
@@ -353,7 +352,7 @@ def Calc_padding_size(bufnr: number, indent: string): number
   const tabSize: number = getbufvar(bufnr, '&shiftwidth') ?? getbufvar(bufnr, '&tabstop', 8)
   var padding: number = 0
   for character in indent
-    if character == "\t"
+    if character ==# "\t"
       padding += tabSize - (padding % tabSize)
     else
       padding += 1
@@ -379,7 +378,7 @@ def Add_vtext_item(bufnr: number, ns: number, opts: dict<any>, pre: string, prio
   endif
   var first: bool = true
   final base: dict<any> = { 'priority': priority }
-  if propColumn == 0 && align != 'overlay'
+  if propColumn == 0 && align !=# 'overlay'
     base.text_align = align
   endif
   if has_key(opts, 'text_wrap')
@@ -472,7 +471,6 @@ enddef
 def Apply_changes(bufnr: number, changes: list<any>): void
   const start_time = reltime()
   const total = len(changes)
-  var timeout: bool = false
   var i = total - 1
   while i >= 0
     const item = changes[i]
@@ -499,7 +497,6 @@ export def Set_lines(bufnr: number, changedtick: number, original: list<string>,
     var start_row: number = start
     var end_row: number = end
     var replace = copy(replacement)
-    var finished: bool = false
     var change_list = copy(changes)
     var delta: number = 0
     if current && type(col) == v:t_number

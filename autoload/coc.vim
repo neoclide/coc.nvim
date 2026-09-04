@@ -1,8 +1,7 @@
 scriptencoding utf-8
 let g:coc_user_config = get(g:, 'coc_user_config', {})
 let g:coc_global_extensions = get(g:, 'coc_global_extensions', [])
-let g:coc_selected_text = ''
-let g:coc_vim_commands = []
+let g:coc_vim_commands = get(g:, 'coc_vim_commands', [])
 let s:watched_keys = []
 let s:is_vim = !has('nvim')
 let s:utf = has('nvim') || &encoding =~# '^utf'
@@ -35,14 +34,14 @@ function! coc#clearGroups(prefix) abort
 endfunction
 
 " add vim command to CocCommand list
-function! coc#add_command(id, cmd, ...)
+function! coc#add_command(id, cmd, ...) abort
   let config = {'id':a:id, 'cmd':a:cmd, 'title': get(a:,1,'')}
   call add(g:coc_vim_commands, config)
   if !coc#rpc#ready() | return | endif
   call coc#rpc#notify('addCommand', [config])
 endfunction
 
-function! coc#on_enter()
+function! coc#on_enter() abort
   call coc#rpc#notify('CocAutocmd', ['Enter', bufnr('%')])
   return ''
 endfunction
@@ -96,7 +95,7 @@ function! coc#_insert_keymap(key, ...) abort
 endfunction
 
 " used for statusline
-function! coc#status(...)
+function! coc#status(...) abort
   let info = get(b:, 'coc_diagnostic_info', {})
   let msgs = []
   if !empty(info) && get(info, 'error', 0)
@@ -112,18 +111,18 @@ function! coc#status(...)
   return trim(join(msgs, ' ') . ' ' . status)
 endfunction
 
-function! coc#config(section, value)
+function! coc#config(section, value) abort
   let g:coc_user_config[a:section] = a:value
   call coc#rpc#notify('updateConfig', [a:section, a:value])
 endfunction
 
 " Deprecated, use variable instead.
-function! coc#add_extension(...)
+function! coc#add_extension(...) abort
   if a:0 == 0 | return | endif
   call extend(g:coc_global_extensions, a:000)
 endfunction
 
-function! coc#_watch(key)
+function! coc#_watch(key) abort
   if s:is_vim | return | endif
   if index(s:watched_keys, a:key) == -1
     call add(s:watched_keys, a:key)
@@ -131,7 +130,7 @@ function! coc#_watch(key)
   endif
 endfunction
 
-function! coc#_unwatch(key)
+function! coc#_unwatch(key) abort
   if s:is_vim | return | endif
   let idx = index(s:watched_keys, a:key)
   if idx != -1
@@ -140,17 +139,17 @@ function! coc#_unwatch(key)
   endif
 endfunction
 
-function! s:GlobalChange(dict, key, val)
+function! s:GlobalChange(dict, key, val) abort
   call coc#rpc#notify('GlobalChange', [a:key, get(a:val, 'old', v:null), get(a:val, 'new', v:null)])
 endfunction
 
-function! coc#on_notify(id, method, Cb)
+function! coc#on_notify(id, method, Cb) abort
   let key = a:id. '-'.a:method
   let s:callbacks[key] = a:Cb
   call coc#rpc#notify('registerNotification', [a:id, a:method])
 endfunction
 
-function! coc#do_notify(id, method, result)
+function! coc#do_notify(id, method, result) abort
   let key = a:id. '-'.a:method
   let Fn = s:callbacks[key]
   if !empty(Fn)
@@ -158,13 +157,13 @@ function! coc#do_notify(id, method, result)
   endif
 endfunction
 
-function! coc#start(...)
+function! coc#start(...) abort
   call CocActionAsync('startCompletion', get(a:, 1, {}))
   return ''
 endfunction
 
 " Could be used by coc extensions
-function! coc#_cancel(...)
+function! coc#_cancel(...) abort
   call coc#pum#close()
 endfunction
 
@@ -184,7 +183,7 @@ function! coc#_suggest_variables() abort
       \ }
 endfunction
 
-function! coc#_remote_fns(name)
+function! coc#_remote_fns(name) abort
   let res = []
   for fn in s:all_fns
     if exists('*coc#source#'.a:name.'#'.fn)
