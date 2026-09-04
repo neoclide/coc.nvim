@@ -509,10 +509,9 @@ enddef
 # Change buffer texts with text properties kept.
 export def SetBufferText(bufnr: number, start_row: number, start_col: number, end_row: number, end_col: number, replacement: list<string>): void
   # Improve speed for replace lines
-  if start_col == 0 && end_col == 0 && (empty(replacement) || replacement[len(replacement) - 1] == '')
+  if start_col == 0 && end_col == 0 && (empty(replacement) || replacement[len(replacement) - 1] ==# '')
     ReplaceBufLines(bufnr, start_row, end_row, replacement)
   else
-    const lines = getbufline(bufnr, start_row + 1, end_row + 1)
     final new_props = []
     const props = prop_list(start_row + 1, {
       'bufnr': bufnr,

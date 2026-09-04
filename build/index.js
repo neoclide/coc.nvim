@@ -73195,7 +73195,7 @@ var MAX_LINE_COUNT, BufferChannel;
 var init_outputChannel = __esm({
   "src/model/outputChannel.ts"() {
     "use strict";
-    MAX_LINE_COUNT = 1e4;
+    MAX_LINE_COUNT = 5e4;
     BufferChannel = class {
       constructor(name2, nvim, onDispose, maxLineCount = MAX_LINE_COUNT) {
         this.name = name2;
@@ -142325,7 +142325,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-e827a5e 2026-09-03 16:55:51 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-4e94a19 2026-09-04 18:36:16 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
