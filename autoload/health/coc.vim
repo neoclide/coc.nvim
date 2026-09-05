@@ -1,5 +1,6 @@
 scriptencoding utf-8
 let s:root = expand('<sfile>:h:h:h')
+let s:install_advice = 'See https://cocnvim.com/install for installation instructions.'
 
 function! s:report_ok(report) abort
   if has('nvim-0.10')
@@ -28,7 +29,7 @@ endfunction
 function! s:checkVim(test, name, patchlevel) abort
   if a:test
     if !has(a:patchlevel)
-      call s:report_error(a:name . ' version not satisfied, ' . a:patchlevel . ' and above required')
+      call s:report_error(a:name . ' version not satisfied, ' . a:patchlevel . ' and above required', s:install_advice)
       return 0
     else
       call s:report_ok(a:name . ' version satisfied')
@@ -42,20 +43,20 @@ function! s:checkEnvironment() abort
   let valid
     \ = s:checkVim(has('nvim'), 'nvim', 'nvim-0.8.0')
     \ + s:checkVim(!has('nvim'), 'vim', 'patch-9.0.0438')
-  let node = get(g:, 'coc_node_path', $COC_NODE_PATH == '' ? 'node' : $COC_NODE_PATH)
+  let node = get(g:, 'coc_node_path', $COC_NODE_PATH ==# '' ? 'node' : $COC_NODE_PATH)
   if !executable(node)
     let valid = 0
-    call s:report_error('Executable node.js not found, install node.js from http://nodejs.org/')
+    call s:report_error('Executable node.js not found, install node.js from http://nodejs.org/', s:install_advice)
   endif
   let output = system(shellescape(node) . ' --version')
   if v:shell_error && output !=# ""
     let valid = 0
-    call s:report_error(output)
+    call s:report_error(output, s:install_advice)
   endif
   let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
   if empty(ms)
     let valid = 0
-    call s:report_error('Unable to detect version of node, make sure your node executable is http://nodejs.org/')
+    call s:report_error('Unable to detect version of node, make sure your node executable is http://nodejs.org/', s:install_advice)
   elseif str2nr(ms[1]) < 22 || (str2nr(ms[1]) == 22 && str2nr(ms[2]) < 15)
     let valid = 0
     call s:report_warn('Node.js version '.trim(output).' < 22.15.0, please upgrade node.js')
@@ -76,16 +77,16 @@ function! s:checkEnvironment() abort
   return valid
 endfunction
 
-function! s:checkCommand()
+function! s:checkCommand() abort
   let file = s:root.'/build/index.js'
   if filereadable(file)
     call s:report_ok('Javascript bundle build/index.js found')
   else
-    call s:report_error('Javascript entry not found, please compile coc.nvim by npm run build.')
+    call s:report_error('Javascript entry not found, please compile coc.nvim by npm run build.', s:install_advice)
   endif
 endfunction
 
-function! s:checkAutocmd()
+function! s:checkAutocmd() abort
   let cmds = ['CursorHold', 'CursorHoldI', 'CursorMovedI', 'InsertCharPre', 'TextChangedI']
   for cmd in cmds
     let lines = split(execute('verbose autocmd '.cmd), '\n')
