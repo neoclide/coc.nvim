@@ -14,6 +14,8 @@ import * as ui from '../core/ui'
 import events from '../events'
 import type { VirtualTextItem } from '../handler/inlayHint/buffer'
 import languages from '../languages'
+import snippetManager from '../snippets/manager'
+import type { SnippetEdit } from '../snippets/session'
 import { sameFile } from '../util/fs'
 import workspace from '../workspace'
 
@@ -1410,6 +1412,59 @@ describe('notify', () => {
 })
 
 describe('document', () => {
+  it('should synchronize consecutive snippet edits with a busy Vim (#5419)', async t => {
+    // Reduced from the rust-analyzer edits attached to #5419.
+    const content = [
+      '    let body_offset = hir::InFile { file_id, value: fn_body.syntax().text_range() }',
+      '        .original_node_file_range_opt(sema.db)',
+      '        .expect("cannot map fn body to original range")',
+      '        .0',
+      '        .range',
+      '        .start();',
+      '    let (editor, body) = SyntaxEditor::with_ast_node(fn_body);'
+    ]
+    const expected = [
+      '    let original_node_file_range_opt = hir::InFile { file_id, value: fn_body.syntax().text_range() }',
+      '        .original_node_file_range_opt(sema.db)',
+      '        .expect("cannot map fn body to original range");',
+      '    let body_offset = original_node_file_range_opt',
+      '        .0',
+      '        .range',
+      '        .start();',
+      content[6]
+    ]
+    const edits: SnippetEdit[] = [
+      { range: Range.create(0, 8, 0, 19), snippet: '$0original_node_file_range_opt' },
+      { range: Range.create(0, 22, 3, 10), snippet: 'hir::InFile { file_id, value: fn_body.syntax().text_range() }' },
+      { range: Range.create(4, 9, 4, 14), snippet: 'original_node_file_range_opt(sema.db)' },
+      { range: Range.create(5, 9, 5, 14), snippet: 'expect' },
+      { range: Range.create(5, 15, 5, 15), snippet: '"cannot map fn body to original range"' },
+      { range: Range.create(6, 4, 6, 4), snippet: 'let body_offset = original_node_file_range_opt\n        .0\n        .range\n        .start();\n    ' }
+    ]
+    const filepath = await createTmpFile(content.join('\n') + '\n', disposables)
+    const doc = await shared.createDocument(filepath)
+    const apply = doc.applyEdits.bind(doc)
+    t.mock.method(doc, 'applyEdits', async (...args: Parameters<typeof doc.applyEdits>) => {
+      // Keep the real editor busy so its change events arrive after applyEdits
+      // returns. :sleep also processes channel messages, so it cannot do this.
+      nvim.command('let g:coc_test_edit_start = reltime() | while reltimefloat(reltime(g:coc_test_edit_start)) < 0.04 | endwhile | unlet g:coc_test_edit_start', true)
+      return await apply(...args)
+    })
+    for (let i = 0; i < 3; i++) {
+      await snippetManager.insertBufferSnippets(doc.bufnr, edits)
+      await doc.patchChange()
+      assert.deepStrictEqual(await doc.buffer.lines, expected, `buffer on iteration ${i}`)
+      assert.deepStrictEqual(doc.textDocument.lines, expected, `document on iteration ${i}`)
+      const session = snippetManager.getSession(doc.bufnr)
+      assert.deepStrictEqual(session?.placeholder?.range, Range.create(0, 8, 0, 8))
+      session.deactivate()
+      await nvim.command('normal! u')
+      await doc.patchChange()
+      assert.deepStrictEqual(await doc.buffer.lines, content)
+      assert.deepStrictEqual(doc.textDocument.lines, content)
+    }
+  })
+
   async function shouldEqual(doc, synced = false): Promise<void> {
     let lines = synced ? doc.textDocument.lines : doc.getLines()
     let cur = await doc.buffer.lines

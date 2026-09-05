@@ -180,14 +180,23 @@ export class SnippetSession {
     const resolver = new SnippetVariableResolver(this.nvim, workspace.workspaceFolderControl)
     let snippet = new CocSnippet(snip, textEdits[0].range.start, this.nvim, resolver)
     await snippet.init()
-    this.activate(snippet)
-    // reverse insert needed
+    this._paused = false
+    const edits: TextEdit[] = []
+    // Build nested snippets in reverse order so the original ranges stay valid.
+    // Apply their resolved text together: intermediate buffer events can otherwise
+    // overwrite the document snapshot used by the next edit (#5419).
     for (let i = len - 1; i >= 0; i--) {
       let idx = i + 1
       this.current = snip.placeholders.find(o => o.index === idx)
       let edit = textEdits[i]
-      await this.start(edit.newText, edit.range, false)
+      if (edit.newText.length === 0) continue
+      const nested = await snippet.replaceWithSnippet(edit.range, edit.newText, this.current)
+      this.current = nested.first
+      edits.unshift(TextEdit.replace(edit.range, nested.toString()))
+      this.nvim.call('coc#compat#del_var', ['coc_selected_text'], true)
     }
+    await this.applyEdits(edits)
+    this.activate(snippet)
     return this.isActive
   }
 
