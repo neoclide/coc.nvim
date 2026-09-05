@@ -142,14 +142,22 @@ function! coc#snippet#select(start, end, text) abort
   endif
 endfunction
 
-function! coc#snippet#move(position) abort
+function! coc#snippet#move(position, ...) abort
   let m = mode()
   if m ==? 's'
     call feedkeys("\<Esc>", 'in')
   endif
   let pos = coc#snippet#to_cursor(a:position)
   call cursor(pos)
-  if pos[1] > strlen(getline(pos[0]))
+  " A final tabstop from a workspace edit only positions the cursor.
+  if get(a:, 1, 0) && m ==# 'n'
+    return
+  endif
+  let append = pos[1] > strlen(getline(pos[0]))
+  if s:is_vim && m ==# 'n'
+    " startinsert from a channel callback waits for the next Normal command.
+    call feedkeys(append ? 'A' : 'i', 'in')
+  elseif append
     startinsert!
   else
     startinsert

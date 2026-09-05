@@ -1,4 +1,5 @@
 import completion from '../completion'
+import commands from '../commands'
 import { getCurrentPlugin } from '../attach'
 import * as shared from './sharedUtil'
 import type { Buffer, Neovim, Tabpage, Window } from '@chemzqm/neovim'
@@ -1412,6 +1413,92 @@ describe('notify', () => {
 })
 
 describe('document', () => {
+  for (const [snippet, initialMode, expectedMode, expectedLine, expectedCol] of [
+    ['let $0var_name = ', 'n', 'n', 'let var_name = ', 5],
+    ['let $0var_name = ', 'i', 'i', 'let var_name = ', 5],
+    ['let var_name = $0', 'n', 'n', 'let var_name = ', 15],
+    ['let var_name = $0', 'i', 'i', 'let var_name = ', 16],
+    ['let $1var_name = $0', 'n', 'i', 'let var_name = ', 5],
+    ['let var_name = $1$0', 'n', 'i', 'let var_name = ', 16],
+    ['let ${1:x}var_name = $0', 'n', 's', 'let xvar_name = ', 5],
+    ['let ${0:x}var_name = ', 'n', 's', 'let xvar_name = ', 5]
+  ] as const) {
+    it(`should apply snippet edit without a delayed mode change: ${snippet} from ${initialMode} (#5750)`, async () => {
+      const doc = await shared.createDocument()
+      let applied = false
+      const jumps: { line: string, active: boolean }[] = []
+      const listener = events.on('PlaceholderJump', bufnr => {
+        if (bufnr === doc.bufnr) jumps.push({ line: doc.getline(0), active: snippetManager.isActivated(bufnr) })
+      })
+      const registration = commands.registerCommand('test.applySnippetEdit', async () => {
+        await workspace.applyEdit({ documentChanges: [{
+          textDocument: { uri: doc.uri, version: null },
+          edits: [{ range: Range.create(0, 0, 0, 0), snippet: { kind: 'snippet', value: snippet } }]
+        }] })
+        applied = true
+      })
+      try {
+        await nvim.command("nnoremap <buffer> . <Cmd>call coc#rpc#notify('runCommand', ['test.applySnippetEdit'])<CR>")
+        if (initialMode === 'i') {
+          await nvim.input('i')
+          await shared.waitFor('mode', [], 'i')
+          await commands.executeCommand('test.applySnippetEdit')
+        } else {
+          await nvim.command("call feedkeys('.', 'mt')")
+          await shared.waitValue(() => applied, true)
+        }
+        await shared.waitFor('mode', [], expectedMode)
+        assert.strictEqual(await nvim.line, expectedLine)
+        assert.strictEqual(await nvim.call('col', '.'), expectedCol)
+        // The edit is installed before the jump, and final-tabstop cleanup
+        // still happens after the jump event.
+        assert.deepStrictEqual(jumps, [{ line: expectedLine, active: true }])
+        if (expectedMode === 'n') {
+          await nvim.input('ll')
+          await shared.wait(30)
+          assert.strictEqual(await nvim.call('mode'), 'n')
+          assert.strictEqual(await nvim.line, expectedLine)
+          assert.strictEqual(snippetManager.isActivated(doc.bufnr), false)
+        } else {
+          await nvim.input('Q')
+          await shared.waitValue(async () => (await nvim.line).includes('Q'), true)
+          assert.strictEqual(await nvim.line, expectedMode === 's'
+            ? 'let Qvar_name = '
+            : expectedLine.slice(0, expectedCol - 1) + 'Q' + expectedLine.slice(expectedCol - 1))
+        }
+      } finally {
+        listener.dispose()
+        registration.dispose()
+        await editorReset()
+      }
+    })
+  }
+
+  it('should still expand and navigate snippets in Vim (#5750)', async () => {
+    try {
+      await shared.createDocument()
+      await snippetManager.insertSnippet('a$0b')
+      await shared.waitFor('mode', [], 'i')
+      await nvim.input('Q')
+      await shared.waitFor('getline', ['.'], 'aQb')
+      await editorReset()
+      const doc = await shared.createDocument()
+      await snippetManager.insertSnippet('${1:x} $2 end$0')
+      await shared.waitFor('mode', [], 's')
+      await snippetManager.nextPlaceholder()
+      await shared.waitFor('mode', [], 'i')
+      assert.strictEqual(await nvim.call('col', '.'), 3)
+      await nvim.input('Q')
+      await shared.waitFor('getline', ['.'], 'x Q end')
+      await snippetManager.nextPlaceholder()
+      await shared.waitFor('col', ['.'], 8)
+      assert.strictEqual(await nvim.call('mode'), 'i')
+      assert.strictEqual(snippetManager.isActivated(doc.bufnr), false)
+    } finally {
+      await editorReset()
+    }
+  })
+
   it('should synchronize consecutive snippet edits with a busy Vim (#5419)', async t => {
     // Reduced from the rust-analyzer edits attached to #5419.
     const content = [

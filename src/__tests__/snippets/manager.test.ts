@@ -206,6 +206,35 @@ describe('snippet provider', () => {
   })
 
   describe('insertBufferSnippets()', () => {
+    for (const [snippet, initialMode, expectedMode, expectedCol] of [
+      ['let $0var_name = ', 'n', 'n', 5],
+      ['let $0var_name = ', 'i', 'i', 5],
+      ['let var_name = $0', 'n', 'n', 15],
+      ['let var_name = $0', 'i', 'i', 16],
+      ['let $1var_name = $0', 'n', 'i', 5],
+      ['let ${1:x}var_name = $0', 'n', 's', 5],
+      ['let ${0:x}var_name = ', 'n', 's', 5]
+    ] as const) {
+      it(`should preserve snippet edit modes: ${snippet} from ${initialMode} (#5750)`, async () => {
+        if (initialMode === 'i') {
+          await nvim.input('i')
+          await shared.waitFor('mode', [], 'i')
+        }
+        await workspace.applyEdit({ documentChanges: [{
+          textDocument: { uri: doc.uri, version: null },
+          edits: [{ range: Range.create(0, 0, 0, 0), snippet: { kind: 'snippet', value: snippet } }]
+        }] })
+        await shared.waitFor('mode', [], expectedMode)
+        assert.strictEqual(await nvim.call('col', '.'), expectedCol)
+        if (expectedMode === 'n') {
+          await nvim.input('ll')
+          assert.strictEqual(await nvim.call('mode'), 'n')
+          assert.strictEqual(await nvim.line, 'let var_name = ')
+          assert.strictEqual(snippetManager.isActivated(doc.bufnr), false)
+        }
+      })
+    }
+
     it('should insert snippets', async t => {
       let doc = await shared.createDocument()
       await shared.createDocument()

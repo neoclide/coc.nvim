@@ -133,7 +133,7 @@ export class SnippetManager {
     await session.synchronize()
     let isActive = await session.insertSnippetEdits(snippetEdits)
     if (isActive && select && workspace.bufnr === bufnr) {
-      await session.selectCurrentPlaceholder()
+      await session.selectCurrentPlaceholder(true, true)
     }
     return isActive
   }

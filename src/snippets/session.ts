@@ -316,13 +316,13 @@ export class SnippetSession {
     await this.selectPlaceholder(p, true, false)
   }
 
-  public async selectCurrentPlaceholder(triggerAutocmd = true): Promise<void> {
+  public async selectCurrentPlaceholder(triggerAutocmd = true, preserveFinalMode = false): Promise<void> {
     await this.forceSynchronize()
     let { placeholder } = this
-    if (placeholder) await this.selectPlaceholder(placeholder, triggerAutocmd)
+    if (placeholder) await this.selectPlaceholder(placeholder, triggerAutocmd, true, preserveFinalMode)
   }
 
-  public async selectPlaceholder(placeholder: CocSnippetPlaceholder | undefined, triggerAutocmd = true, forward = true): Promise<void> {
+  public async selectPlaceholder(placeholder: CocSnippetPlaceholder | undefined, triggerAutocmd = true, forward = true, preserveFinalMode = false): Promise<void> {
     let { nvim, document } = this
     if (!document || !placeholder) return
     this._selected = true
@@ -338,7 +338,7 @@ export class SnippetSession {
       // pum not work when use request during request.
       nvim.call('coc#snippet#show_choices', [start.line + 1, col, end, placeholder.value], true)
     } else {
-      await this.select(placeholder)
+      await this.select(placeholder, preserveFinalMode && placeholder.index === 0)
       this.highlights()
     }
     if (triggerAutocmd) nvim.call('coc#util#do_autocmd', ['CocJumpPlaceholder'], true)
@@ -388,13 +388,13 @@ export class SnippetSession {
     this.nvim.resumeNotification(true, true)
   }
 
-  private async select(placeholder: CocSnippetPlaceholder): Promise<void> {
+  private async select(placeholder: CocSnippetPlaceholder, preserveMode = false): Promise<void> {
     let { range, value } = placeholder
     let { nvim } = this
     if (value.length > 0) {
       await nvim.call('coc#snippet#select', [range.start, range.end, value])
     } else {
-      await nvim.call('coc#snippet#move', [range.start])
+      await nvim.call('coc#snippet#move', [range.start, preserveMode])
     }
     nvim.redrawVim()
   }
