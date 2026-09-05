@@ -103384,13 +103384,20 @@ var init_session = __esm({
         const resolver2 = new SnippetVariableResolver(this.nvim, workspace_default.workspaceFolderControl);
         let snippet = new CocSnippet(snip, textEdits[0].range.start, this.nvim, resolver2);
         await snippet.init();
-        this.activate(snippet);
+        this._paused = false;
+        const edits = [];
         for (let i2 = len - 1; i2 >= 0; i2--) {
           let idx = i2 + 1;
           this.current = snip.placeholders.find((o2) => o2.index === idx);
           let edit2 = textEdits[i2];
-          await this.start(edit2.newText, edit2.range, false);
+          if (edit2.newText.length === 0) continue;
+          const nested = await snippet.replaceWithSnippet(edit2.range, edit2.newText, this.current);
+          this.current = nested.first;
+          edits.unshift(TextEdit.replace(edit2.range, nested.toString()));
+          this.nvim.call("coc#compat#del_var", ["coc_selected_text"], true);
         }
+        await this.applyEdits(edits);
+        this.activate(snippet);
         return this.isActive;
       }
       async start(inserted, range, select = true, context) {
@@ -103497,12 +103504,12 @@ var init_session = __esm({
         const p2 = this.snippet.getPlaceholderOnJump(this.current, false);
         await this.selectPlaceholder(p2, true, false);
       }
-      async selectCurrentPlaceholder(triggerAutocmd = true) {
+      async selectCurrentPlaceholder(triggerAutocmd = true, preserveFinalMode = false) {
         await this.forceSynchronize();
         let { placeholder } = this;
-        if (placeholder) await this.selectPlaceholder(placeholder, triggerAutocmd);
+        if (placeholder) await this.selectPlaceholder(placeholder, triggerAutocmd, true, preserveFinalMode);
       }
-      async selectPlaceholder(placeholder, triggerAutocmd = true, forward = true) {
+      async selectPlaceholder(placeholder, triggerAutocmd = true, forward = true, preserveFinalMode = false) {
         let { nvim, document: document2 } = this;
         if (!document2 || !placeholder) return;
         this._selected = true;
@@ -103517,7 +103524,7 @@ var init_session = __esm({
           wordsSource.startcol = col - 1;
           nvim.call("coc#snippet#show_choices", [start.line + 1, col, end, placeholder.value], true);
         } else {
-          await this.select(placeholder);
+          await this.select(placeholder, preserveFinalMode && placeholder.index === 0);
           this.highlights();
         }
         if (triggerAutocmd) nvim.call("coc#util#do_autocmd", ["CocJumpPlaceholder"], true);
@@ -103564,13 +103571,13 @@ var init_session = __esm({
         buf.highlightRanges(NAME_SPACE2, "CocSnippetVisual", ranges);
         this.nvim.resumeNotification(true, true);
       }
-      async select(placeholder) {
+      async select(placeholder, preserveMode = false) {
         let { range, value } = placeholder;
         let { nvim } = this;
         if (value.length > 0) {
           await nvim.call("coc#snippet#select", [range.start, range.end, value]);
         } else {
-          await nvim.call("coc#snippet#move", [range.start]);
+          await nvim.call("coc#snippet#move", [range.start, preserveMode]);
         }
         nvim.redrawVim();
       }
@@ -103899,7 +103906,7 @@ var init_manager3 = __esm({
         await session.synchronize();
         let isActive = await session.insertSnippetEdits(snippetEdits);
         if (isActive && select && workspace_default.bufnr === bufnr) {
-          await session.selectCurrentPlaceholder();
+          await session.selectCurrentPlaceholder(true, true);
         }
         return isActive;
       }
@@ -142325,7 +142332,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-4e94a19 2026-09-04 18:36:16 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-2b0a0fe 2026-09-05 20:43:36 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

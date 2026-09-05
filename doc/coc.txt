@@ -1253,6 +1253,12 @@ Nested snippets: ~
 Snippets can be nested; when you jump to a tabstop of the parent snippet,
 it's not possible to jump back again (this works like UltiSnips).
 
+Snippet edits: ~
+
+When a workspace edit selects an empty final tabstop ($0), the cursor moves
+without leaving Normal mode. In Insert mode, insertion continues at the tabstop.
+Other empty tabstops enter Insert mode; placeholders with text enter Select mode.
+
 Related configurations: ~
 
   • |g:coc_snippet_prev|
@@ -2075,7 +2081,9 @@ g:coc_node_args						*g:coc_node_args*
 >
 	let g:coc_node_args = ['--nolazy', '--inspect-brk=6045']
 <
-	Default: []
+	Default: ['--no-warnings', '--experimental-vm-modules']
+
+	Note: --experimental-vm-modules is needed for load ESM extensions.
 
 g:coc_status_error_sign					*g:coc_status_error_sign*
 

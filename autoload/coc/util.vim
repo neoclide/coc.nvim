@@ -43,7 +43,7 @@ function! coc#util#semantic_hlgroups() abort
 endfunction
 
 " get cursor position
-function! coc#util#cursor()
+function! coc#util#cursor() abort
   return [line('.') - 1, coc#string#character_length(strpart(getline('.'), 0, col('.') - 1))]
 endfunction
 
@@ -72,7 +72,7 @@ function! coc#util#synname() abort
   return synIDattr(synID(line('.'), col('.') - 1, 1), 'name')
 endfunction
 
-function! coc#util#version()
+function! coc#util#version() abort
   if s:is_vim
     return string(v:versionlong)
   endif
@@ -81,7 +81,7 @@ function! coc#util#version()
   return lines[0]
 endfunction
 
-function! coc#util#check_refresh(bufnr)
+function! coc#util#check_refresh(bufnr) abort
   if !bufloaded(a:bufnr)
     return 0
   endif
@@ -116,11 +116,11 @@ function! coc#util#diagnostic_info(bufnr, checkInsert) abort
       \ }
 endfunction
 
-function! coc#util#job_command()
+function! coc#util#job_command() abort
   if (has_key(g:, 'coc_node_path'))
     let node = expand(g:coc_node_path)
   else
-    let node = $COC_NODE_PATH == '' ? 'node' : $COC_NODE_PATH
+    let node = $COC_NODE_PATH ==# '' ? 'node' : $COC_NODE_PATH
   endif
   if !executable(node)
     echohl Error | echom '[coc.nvim] "'.node.'" is not executable, checkout https://nodejs.org/en/download/' | echohl None
@@ -139,14 +139,14 @@ function! coc#util#job_command()
   return [node] + get(g:, 'coc_node_args', default) + [s:root.'/build/index.js']
 endfunction
 
-function! coc#util#open_file(cmd, file)
+function! coc#util#open_file(cmd, file) abort
   let file = coc#util#node_to_win32unix(a:file)
   execute a:cmd .' '.fnameescape(fnamemodify(file, ':~:.'))
   return bufnr('%')
 endfunction
 
 function! coc#util#jump(cmd, filepath, ...) abort
-  if a:cmd != 'pedit'
+  if a:cmd !=# 'pedit'
     silent! normal! m'
   endif
   let path = coc#util#node_to_win32unix(a:filepath)
@@ -207,7 +207,7 @@ function! s:safer_open(cmd, file) abort
     " - https://github.com/neoclide/coc-java/issues/82
     " - https://github.com/vim-jp/issues/issues/6
     let buf = bufadd(a:file)
-    if a:cmd != 'edit'
+    if a:cmd !=# 'edit'
       " Open split, tab, etc. by a:cmd.
       execute a:cmd
     endif
@@ -271,7 +271,7 @@ function! coc#util#variables(bufnr) abort
   return variables
 endfunction
 
-function! coc#util#with_callback(method, args, cb)
+function! coc#util#with_callback(method, args, cb) abort
   function! s:Cb() closure
     try
       let res = call(a:method, a:args)
@@ -284,11 +284,11 @@ function! coc#util#with_callback(method, args, cb)
   call timer_start(timeout, {-> s:Cb() })
 endfunction
 
-function! coc#util#timer(method, args)
+function! coc#util#timer(method, args) abort
   call timer_start(0, { -> s:Call(a:method, a:args)})
 endfunction
 
-function! s:Call(method, args)
+function! s:Call(method, args) abort
   try
     call call(a:method, a:args)
     " don't redraw for command-line/prompt mode
@@ -301,7 +301,7 @@ function! s:Call(method, args)
 endfunction
 
 " Global vim information
-function! coc#util#vim_info()
+function! coc#util#vim_info() abort
   return {
         \ 'root': coc#util#win32unix_to_node(s:root),
         \ 'apiversion': s:vim_api_version,
@@ -355,7 +355,7 @@ function! coc#util#check_jump_autocmd() abort
   return v:false
 endfunction
 
-function! coc#util#all_state()
+function! coc#util#all_state() abort
   return {
         \ 'bufnr': bufnr('%'),
         \ 'winid': win_getid(),
@@ -478,7 +478,7 @@ function! coc#util#editor_infos() abort
   return result
 endfunction
 
-function! coc#util#getpid()
+function! coc#util#getpid() abort
   if !s:is_win32unix
     return getpid()
   endif
@@ -548,7 +548,7 @@ function! coc#util#bufsize(bufnr) abort
   return strlen(join(getbufline(a:bufnr, 1, '$'), '\n'))
 endfunction
 
-function! coc#util#get_config_home(...)
+function! coc#util#get_config_home(...) abort
   let skip_convert = get(a:, 1, 0)
   let dir = ''
   if !empty(get(g:, 'coc_config_home', ''))

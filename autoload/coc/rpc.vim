@@ -6,7 +6,7 @@ let s:is_vim = !has('nvim')
 let s:chan_id = 0
 let s:root = expand('<sfile>:h:h:h')
 
-function! coc#rpc#start_server()
+function! coc#rpc#start_server() abort
   let test = get(g:, 'coc_node_env', '') ==# 'test'
   if test && !s:is_vim && !exists('$COC_NVIM_REMOTE_ADDRESS')
     " server already started, chan_id could be available later
@@ -76,7 +76,7 @@ function! coc#rpc#started() abort
   return !empty(s:client)
 endfunction
 
-function! coc#rpc#ready()
+function! coc#rpc#ready() abort
   if empty(s:client) || s:client['running'] == 0
     return 0
   endif
@@ -97,7 +97,7 @@ function! coc#rpc#get_channel() abort
   return coc#client#get_channel(s:client)
 endfunction
 
-function! coc#rpc#kill()
+function! coc#rpc#kill() abort
   let pid = get(g:, 'coc_process_pid', 0)
   if !pid | return | endif
   if s:is_win
@@ -107,7 +107,7 @@ function! coc#rpc#kill()
   endif
 endfunction
 
-function! coc#rpc#show_errors()
+function! coc#rpc#show_errors() abort
   let client = coc#client#get_client('coc')
   if !empty(client)
     let lines = get(client, 'stderr', [])
