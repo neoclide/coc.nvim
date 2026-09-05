@@ -48,14 +48,14 @@ endfunction
 " Used by popup prompt on vim
 function! CocPopupCallback(bufnr, arglist) abort
   if len(a:arglist) == 2
-    if a:arglist[0] == 'confirm'
+    if a:arglist[0] ==# 'confirm'
       call coc#rpc#notify('PromptInsert', [a:arglist[1], a:bufnr])
-    elseif a:arglist[0] == 'exit'
+    elseif a:arglist[0] ==# 'exit'
       " notify exit for vim terminal prompt to ensure cleanup
       call coc#rpc#notify('PromptExit', [a:bufnr])
       execute 'silent! bd! '.a:bufnr
       "call coc#rpc#notify('PromptUpdate', [a:arglist[1]])
-    elseif a:arglist[0] == 'change'
+    elseif a:arglist[0] ==# 'change'
       let text = a:arglist[1]
       let current = getbufvar(a:bufnr, 'current', '')
       if text !=# current
@@ -69,7 +69,7 @@ function! CocPopupCallback(bufnr, arglist) abort
               \ }
         call coc#rpc#notify('CocAutocmd', ['TextChangedI', a:bufnr, info])
       endif
-    elseif a:arglist[0] == 'send'
+    elseif a:arglist[0] ==# 'send'
       call coc#rpc#notify('PromptKeyPress', [a:bufnr, a:arglist[1]])
     endif
   endif
@@ -118,7 +118,7 @@ function! CocLocationsAsync(id, method, ...) abort
   return s:AsyncRequest('findLocations', args)
 endfunction
 
-function! CocRequestAsync(...)
+function! CocRequestAsync(...) abort
   return s:AsyncRequest('sendRequest', a:000)
 endfunction
 
@@ -161,12 +161,12 @@ function! s:LoadedExtensions(...) abort
   return join(list, "\n")
 endfunction
 
-function! s:InstallOptions(...)abort
+function! s:InstallOptions(...) abort
   let list = ['-terminal', '-sync']
   return join(list, "\n")
 endfunction
 
-function! s:OpenConfig()
+function! s:OpenConfig() abort
   let home = coc#util#get_config_home(1)
   if !isdirectory(home)
     echohl MoreMsg
@@ -331,7 +331,7 @@ function! s:HandleWinClosed(winid) abort
   call s:Autocmd('WinClosed', a:winid)
 endfunction
 
-function! s:SyncAutocmd(...)
+function! s:SyncAutocmd(...) abort
   if !get(g:, 'coc_workspace_initialized', 0)
     return
   endif
@@ -365,7 +365,7 @@ function! s:VimEnter() abort
   call s:Highlight()
 endfunction
 
-function! s:Enable(initialize)
+function! s:Enable(initialize) abort
   if get(g:, 'coc_enabled', 0) == 1
     return
   endif
@@ -668,13 +668,13 @@ function! s:Highlight() abort
   endfor
 endfunction
 
-function! s:ShowInfo()
+function! s:ShowInfo() abort
   if coc#rpc#ready()
     call coc#rpc#notify('showInfo', [])
   else
     let lines = []
     echomsg 'coc.nvim service not started, checking environment...'
-    let node = get(g:, 'coc_node_path', $COC_NODE_PATH == '' ? 'node' : $COC_NODE_PATH)
+    let node = get(g:, 'coc_node_path', $COC_NODE_PATH ==# '' ? 'node' : $COC_NODE_PATH)
     if !executable(node)
       call add(lines, 'Error: '.node.' is not executable!')
     else
@@ -708,15 +708,15 @@ function! s:CursorRangeFromSelected(type, ...) abort
   call coc#rpc#request('cursorsSelect', [bufnr('%'), 'operator', a:type])
 endfunction
 
-function! s:FormatFromSelected(type)
+function! s:FormatFromSelected(type) abort
   call CocActionAsync('formatSelected', a:type)
 endfunction
 
-function! s:CodeActionFromSelected(type)
+function! s:CodeActionFromSelected(type) abort
   call CocActionAsync('codeAction', a:type)
 endfunction
 
-function! s:CodeActionRefactorFromSelected(type)
+function! s:CodeActionRefactorFromSelected(type) abort
   call CocActionAsync('codeAction', a:type, ['refactor'] ,v:true)
 endfunction
 
