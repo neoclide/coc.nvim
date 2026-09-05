@@ -2081,7 +2081,9 @@ g:coc_node_args						*g:coc_node_args*
 >
 	let g:coc_node_args = ['--nolazy', '--inspect-brk=6045']
 <
-	Default: []
+	Default: ['--no-warnings', '--experimental-vm-modules']
+
+	Note: --experimental-vm-modules is needed for load ESM extensions.
 
 g:coc_status_error_sign					*g:coc_status_error_sign*
 
