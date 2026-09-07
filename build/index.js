@@ -82710,6 +82710,7 @@ var init_floatFactory = __esm({
       nvim;
       winid = 0;
       _bufnr = 0;
+      reusableBufnr = 0;
       closeToken = 0;
       targetBufnr;
       mutex = new Mutex();
@@ -82830,7 +82831,8 @@ var init_floatFactory = __esm({
         let autoHide = opts.autoHide === false ? false : true;
         if (autoHide) config.autohide = 1;
         this.unbind();
-        let arr = await this.nvim.call("coc#dialog#create_cursor_float", [this.winid, this._bufnr, lines, config]);
+        let arr = await this.nvim.call("coc#dialog#create_cursor_float", [this.winid, this.reusableBufnr, lines, config]);
+        if (!isFalsyOrEmpty(arr)) this.reusableBufnr = arr[3];
         if (isFalsyOrEmpty(arr) || this.closeToken > token) {
           let winid2 = arr && arr.length > 0 ? arr[2] : this.winid;
           if (winid2) {
@@ -142332,7 +142334,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-2b0a0fe 2026-09-05 20:43:36 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-b787542 2026-09-07 23:41:56 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -142355,7 +142357,7 @@ var init_workspace3 = __esm({
           let content = fs.readFileSync(file, { encoding: "utf8" });
           lines.push(...content.split(/\r?\n/).map((line) => stripAnsi(line)));
         }
-        await this.nvim.command("vnew +setl\\ buftype=nofile\\ bufhidden=wipe\\ nobuflisted [Coc Info]");
+        await this.nvim.command("vnew +setl\\ buftype=nofile\\ bufhidden=wipe\\ nobuflisted \\[Coc Info\\]");
         let buf = await this.nvim.buffer;
         await buf.setLines(lines, { start: 0, end: -1, strictIndexing: false });
       }
