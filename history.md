@@ -2,6 +2,11 @@
 
 Notable changes of coc.nvim:
 
+## 2026-09-08
+
+- Fix multi-cursor uppercase and lowercase conversion overwriting different
+  selected words with the same text (#5755).
+
 ## 2026-08-27
 
 - Support day-based npm `min-release-age` cooldowns and

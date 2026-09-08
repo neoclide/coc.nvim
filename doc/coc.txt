@@ -1396,6 +1396,17 @@ Use |coc-config-cursors| to change cursors related key-mappings.
 Use highlight group |CocCursorRange| to change default range highlight.
 Use |b:coc_cursors_activated| to check if cursors session is activated.
 
+When a change converts the entire text of one selected range to uppercase or
+lowercase, the other ranges are converted independently. For example, select
+`alpha`, `beta` and `gamma`, then use `viwU` or `gUiw` to get `ALPHA`, `BETA` and
+`GAMMA`. Use `viwu` or `guiw` to convert to lowercase.
+
+This is detected from the text change: the new text must exactly match the
+editor's uppercase or lowercase conversion of the original selected text.
+An equivalent text replacement is treated as a case conversion too. If the
+current range is already in the requested case, no text change occurs and the
+other ranges are not converted.
+
 							*coc-refactor-buffer*
 
 A refactor buffer is a special buffer with |coc-cursors| enabled, normally

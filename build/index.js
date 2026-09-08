@@ -90643,10 +90643,12 @@ var init_manager = __esm({
         return res;
       }
       /**
-       * Get readonly diagnostics for a buffer
+       * Get readonly diagnostics for a buffer or URI
        */
-      getDiagnostics(buf) {
+      getDiagnostics(buffer) {
         let res = {};
+        let buf = typeof buffer === "string" ? this.buffers?.getItem(buffer) : buffer;
+        if (!buf) return res;
         for (let collection of this.collections) {
           if (!collection.has(buf.uri)) continue;
           res[collection.name] = this.getDiagnosticsByCollection(buf, collection);
@@ -135066,21 +135068,51 @@ var init_session4 = __esm({
         this.doc = null;
       }
       async applySingleEdit(textRange, edit2) {
-        let { doc, ranges } = this;
+        let { doc } = this;
+        let ranges = this.ranges.slice();
+        let version2 = doc.version;
+        let text = textRange.text;
+        let start = edit2.range.start.character - textRange.position.character;
+        let end = edit2.range.end.character - textRange.position.character;
+        let newText = text.slice(0, start) + edit2.newText + text.slice(end);
+        let converted;
+        if (newText !== text && (newText.toUpperCase() === text.toUpperCase() || newText.toLowerCase() === text.toLowerCase() || text !== text.toUpperCase() && newText === newText.toUpperCase() || text !== text.toLowerCase() && newText === newText.toLowerCase())) {
+          let cases = await this.nvim.call("map", [ranges.map((r2) => r2.text), "[toupper(v:val), tolower(v:val)]"]);
+          if (!this.activated || !this.doc) return;
+          if (doc.version !== version2 || ranges.length !== this.ranges.length || ranges.some((r2, i2) => r2 !== this.ranges[i2])) {
+            this.cancel();
+            return;
+          }
+          let source = cases[ranges.indexOf(textRange)];
+          if (source[0] === newText) converted = cases.map((pair) => pair[0]);
+          else if (source[1] === newText) converted = cases.map((pair) => pair[1]);
+        }
         let after = ranges.filter((r2) => r2 !== textRange && r2.position.line == textRange.position.line);
         after.forEach((r2) => r2.adjustFromEdit(edit2));
         let change = getChange(textRange, edit2.range, edit2.newText);
-        let delta = getDelta(change);
-        ranges.forEach((r2) => r2.applyChange(change));
+        let deltas = ranges.map((r2, i2) => {
+          let length = r2.text.length;
+          if (converted) {
+            r2.applyTextChange({ offset: 0, remove: length, insert: converted[i2] });
+          } else {
+            r2.applyChange(change);
+          }
+          return r2.text.length - length;
+        });
         let edits = ranges.filter((r2) => r2 !== textRange).map((o2) => o2.textEdit);
         this.changing = true;
-        await doc.applyEdits(edits, true, true);
-        this.changing = false;
-        if (delta != 0) {
-          for (let r2 of ranges) {
-            let n2 = getBeforeCount(r2, this.ranges, textRange);
-            r2.move(n2 * delta);
-          }
+        try {
+          await doc.applyEdits(edits, true, true);
+        } finally {
+          this.changing = false;
+        }
+        if (!this.activated || !this.doc) return;
+        let offset = 0;
+        for (let i2 = 0; i2 < ranges.length; i2++) {
+          let r2 = ranges[i2];
+          if (i2 == 0 || r2.line !== ranges[i2 - 1].line) offset = 0;
+          r2.move(offset);
+          if (r2 !== textRange) offset += deltas[i2];
         }
         this.doHighlights();
       }
@@ -142334,7 +142366,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-b787542 2026-09-07 23:41:56 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-0a71372 2026-09-08 14:15:26 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
