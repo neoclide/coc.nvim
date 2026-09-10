@@ -134670,13 +134670,22 @@ var init_completion2 = __esm({
 
 // src/cursors/util.ts
 function splitRange(doc, range) {
+  let { start, end } = range;
+  if (start.line === end.line) {
+    return start.character === end.character ? [] : [Range.create(start.line, start.character, end.line, end.character)];
+  }
   let splited = [];
-  for (let i2 = range.start.line; i2 <= range.end.line; i2++) {
-    let curr = toText(doc.getline(i2));
-    let sc = i2 == range.start.line ? range.start.character : 0;
-    let ec = i2 == range.end.line ? range.end.character : curr.length;
-    if (sc == ec) continue;
-    splited.push(Range.create(i2, sc, i2, ec));
+  let startLength = doc.getline(start.line).length;
+  if (start.character !== startLength) {
+    splited.push(Range.create(start.line, start.character, start.line, startLength));
+  }
+  for (let i2 = start.line + 1; i2 < end.line; i2++) {
+    let curr = doc.getline(i2);
+    if (curr.length === 0) continue;
+    splited.push(Range.create(i2, 0, i2, curr.length));
+  }
+  if (end.character !== 0) {
+    splited.push(Range.create(end.line, 0, end.line, end.character));
   }
   return splited;
 }
@@ -134743,7 +134752,6 @@ var init_util7 = __esm({
     "use strict";
     init_main();
     init_object();
-    init_string();
     init_textedit();
   }
 });
@@ -142366,7 +142374,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-0a71372 2026-09-08 14:15:26 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-6985351 2026-09-10 04:57:14 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
