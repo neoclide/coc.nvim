@@ -2633,8 +2633,19 @@ coc#inline#accept([{kind}]) 					*coc#inline#accept()*
 
 	Parameters: ~
 		{kind} 	Optional accept kind of inline completion, one of
-		"all", "word", "line". Defaults to "all", which accepts the
-		full insert text of the completion item.
+		"all", "word", "line", "line+indent". Defaults to "all".
+		"all" accepts the full insert text of the completion item.
+		"word" accepts the next word.
+		"line" accepts the first line of the remaining suggestion,
+		without a newline.
+		"line+indent" also accepts the following newline and the
+		indentation of the next line, placing the cursor after that
+		indentation. For a single-line suggestion, it behaves like
+		"line".
+
+	Example: accept a line and the next line's indentation: >vim
+		inoremap <silent><expr> <C-l> coc#inline#accept('line+indent')
+<
 
 	Note: this function uses |CocActionAsync()|, use it in key-mappings
 	instead of API.

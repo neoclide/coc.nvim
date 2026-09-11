@@ -58338,6 +58338,82 @@ var init_logger = __esm({
   }
 });
 
+// src/util/extensionId.ts
+var extensionId_exports = {};
+__export(extensionId_exports, {
+  extensionContext: () => extensionContext,
+  extensionIdSymbol: () => extensionIdSymbol,
+  getExtensionId: () => getExtensionId,
+  prefixExtensionError: () => prefixExtensionError,
+  setExtensionId: () => setExtensionId,
+  wrapCallbackWithExtension: () => wrapCallbackWithExtension
+});
+function getExtensionId(target) {
+  if (typeof target === "function" || typeof target === "object" && target !== null) {
+    return target[extensionIdSymbol];
+  }
+  return void 0;
+}
+function setExtensionId(target, extensionId) {
+  if (typeof target === "function" || typeof target === "object" && target !== null) {
+    try {
+      Object.defineProperty(target, extensionIdSymbol, {
+        value: extensionId,
+        enumerable: false,
+        configurable: true,
+        writable: true
+      });
+    } catch (e2) {
+    }
+  }
+}
+function wrapCallbackWithExtension(callback, extensionId) {
+  const wrapped = function(...args) {
+    try {
+      const res = extensionContext.run(extensionId, () => callback.apply(this, args));
+      if (res != null && typeof res.then === "function") {
+        return Promise.resolve(res).catch((e2) => {
+          throw prefixExtensionError(e2, extensionId);
+        });
+      }
+      return res;
+    } catch (e2) {
+      throw prefixExtensionError(e2, extensionId);
+    }
+  };
+  setExtensionId(wrapped, extensionId);
+  return wrapped;
+}
+function prefixExtensionError(error, extensionId) {
+  if (typeof error !== "object" || error === null) return error;
+  let target = error;
+  let originalMessage = "";
+  try {
+    if (typeof target.message === "string") {
+      originalMessage = target.message;
+    }
+  } catch (e2) {
+    return error;
+  }
+  if (originalMessage.startsWith("[extension:")) return error;
+  const message = `[extension: ${extensionId}] ${originalMessage}`;
+  try {
+    target.message = message;
+  } catch (e2) {
+    return new Error(message, { cause: error });
+  }
+  return error;
+}
+var import_node_async_hooks, extensionContext, extensionIdSymbol;
+var init_extensionId = __esm({
+  "src/util/extensionId.ts"() {
+    "use strict";
+    import_node_async_hooks = require("node:async_hooks");
+    extensionContext = new import_node_async_hooks.AsyncLocalStorage();
+    extensionIdSymbol = /* @__PURE__ */ Symbol.for("coc.nvim.internal.extensionId");
+  }
+});
+
 // node_modules/@msgpack/msgpack/dist.esm/utils/utf8.mjs
 function utf8Count(str) {
   const strLength = str.length;
@@ -70056,71 +70132,6 @@ var init_string = __esm({
       [177984, 178207, "cjkideograph"],
       [194560, 195103, "cjkideograph"]
     ];
-  }
-});
-
-// src/util/extensionId.ts
-function getExtensionId(target) {
-  if (typeof target === "function" || typeof target === "object" && target !== null) {
-    return target[extensionIdSymbol];
-  }
-  return void 0;
-}
-function setExtensionId(target, extensionId) {
-  if (typeof target === "function" || typeof target === "object" && target !== null) {
-    try {
-      Object.defineProperty(target, extensionIdSymbol, {
-        value: extensionId,
-        enumerable: false,
-        configurable: true,
-        writable: true
-      });
-    } catch (e2) {
-    }
-  }
-}
-function wrapCallbackWithExtension(callback, extensionId) {
-  const wrapped = function(...args) {
-    try {
-      const res = callback.apply(this, args);
-      if (res != null && typeof res.then === "function") {
-        return Promise.resolve(res).catch((e2) => {
-          throw prefixExtensionError(e2, extensionId);
-        });
-      }
-      return res;
-    } catch (e2) {
-      throw prefixExtensionError(e2, extensionId);
-    }
-  };
-  setExtensionId(wrapped, extensionId);
-  return wrapped;
-}
-function prefixExtensionError(error, extensionId) {
-  if (typeof error !== "object" || error === null) return error;
-  let target = error;
-  let originalMessage = "";
-  try {
-    if (typeof target.message === "string") {
-      originalMessage = target.message;
-    }
-  } catch (e2) {
-    return error;
-  }
-  if (originalMessage.startsWith("[extension:")) return error;
-  const message = `[extension: ${extensionId}] ${originalMessage}`;
-  try {
-    target.message = message;
-  } catch (e2) {
-    return new Error(message, { cause: error });
-  }
-  return error;
-}
-var extensionIdSymbol;
-var init_extensionId = __esm({
-  "src/util/extensionId.ts"() {
-    "use strict";
-    extensionIdSymbol = /* @__PURE__ */ Symbol.for("coc.nvim.internal.extensionId");
   }
 });
 
@@ -131949,6 +131960,7 @@ var init_manager5 = __esm({
     init_array();
     init_constants();
     init_errors();
+    init_extensionId();
     init_extensionRegistry();
     init_fs();
     init_is();
@@ -132327,7 +132339,7 @@ var init_manager5 = __esm({
               timing.start();
               try {
                 let isEmpty2 = typeof packageJSON.engines.coc === "undefined";
-                ext = await createExtensionAsync(id2, filename, isEmpty2, options3, subscriptions);
+                ext = await extensionContext.run(id2, () => createExtensionAsync(id2, filename, isEmpty2, options3, subscriptions));
                 let context = {
                   subscriptions,
                   extensionPath: extensionPath2,
@@ -132337,7 +132349,7 @@ var init_manager5 = __esm({
                   storagePath: path.join(this.folder, `${id2}-data`),
                   logger: createLogger(`extension:${id2}`)
                 };
-                let res = await Promise.resolve(ext.activate(context));
+                let res = await extensionContext.run(id2, () => ext.activate(context));
                 isActive = true;
                 exports2 = res;
                 this._onDidActiveExtension.fire(extension);
@@ -132382,7 +132394,7 @@ var init_manager5 = __esm({
             disposeExtension(id2);
             if (ext && typeof ext.deactivate === "function") {
               try {
-                await Promise.resolve(ext.deactivate());
+                await Promise.resolve(extensionContext.run(id2, () => ext.deactivate()));
                 ext = void 0;
               } catch (e2) {
                 logger54.error(`Error on ${id2} deactivate: `, e2);
@@ -137876,8 +137888,15 @@ var init_inline = __esm({
             insertedText = insertedText.slice(0, total + 1);
             insertedLength = insertedText.length;
           } else if (kind == "line") {
-            const insertText = insertedText.split("\n")[0];
+            const insertedLines = insertedText.split("\n");
+            const insertText = insertedLines[0];
             insertedLength = insertText.length;
+            insertedText = insertText;
+          } else if (kind == "line+indent") {
+            const insertedLines = insertedText.split("\n");
+            const insertText = insertedLines[0] + (insertedLines.length == 1 ? "" : "\n" + insertedLines[1].match(/^\s*/)[0]);
+            insertedLength = insertText.length;
+            insertedText = insertText;
           } else {
             insertedText = getInsertText(item, window_default.activeTextEditor.options);
             if (itemRange) {
@@ -142374,7 +142393,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-6985351 2026-09-10 04:57:14 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-00993ba 2026-09-11 20:38:15 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -143163,6 +143182,7 @@ var init_attach = __esm({
 // entry-ns:index.js
 if (global.__isMain) {
   const { createLogger: createLogger2 } = (init_logger(), __toCommonJS(logger_exports));
+  const { extensionContext: extensionContext2 } = (init_extensionId(), __toCommonJS(extensionId_exports));
   const logger74 = createLogger2("server");
   Object.defineProperty(console, "log", {
     value() {
@@ -143170,9 +143190,11 @@ if (global.__isMain) {
     }
   });
   process.on("uncaughtException", function(err) {
-    let msg = "Uncaught exception: " + err.message;
+    const id2 = extensionContext2.getStore();
+    const owner = id2 ? "[extension: " + id2 + "] " : "";
+    let msg = owner + "Uncaught exception: " + err.message;
     console.error(msg);
-    logger74.error("uncaughtException", err.stack);
+    logger74.error(owner + "uncaughtException", err);
   });
   process.on("unhandledRejection", function(reason, p2) {
     if (reason instanceof Error) {
@@ -143189,7 +143211,8 @@ if (global.__isMain) {
     } else {
       console.error("UnhandledRejection: " + reason);
     }
-    logger74.error("unhandledRejection ", p2, reason);
+    const id2 = extensionContext2.getStore();
+    logger74.error((id2 ? "[extension: " + id2 + "] " : "") + "unhandledRejection ", p2, reason);
   });
   const attach2 = (init_attach(), __toCommonJS(attach_exports)).default;
   attach2({ reader: process.stdin, writer: process.stdout });

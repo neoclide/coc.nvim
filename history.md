@@ -2,6 +2,15 @@
 
 Notable changes of coc.nvim:
 
+## 2026-09-11
+
+- Include `[extension: <id>]` in uncaught exception and unhandled rejection
+  logs when the owning extension's async context is available, including
+  socket errors whose stacks contain only Node.js internals.
+- Fix inline completion's `line` acceptance inserting the entire suggestion.
+  Add `line+indent` to `coc#inline#accept()` to accept the first line plus the
+  following newline and indentation (#5756).
+
 ## 2026-09-08
 
 - Fix multi-cursor uppercase and lowercase conversion overwriting different
