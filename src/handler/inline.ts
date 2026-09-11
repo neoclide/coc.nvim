@@ -32,7 +32,7 @@ export interface InlineSuggestConfig {
   triggerCompletionWait: number
 }
 
-export type AcceptKind = 'all' | 'word' | 'line'
+export type AcceptKind = 'all' | 'word' | 'line' | 'line+indent'
 
 export function formatInsertText(text: string, opts: FormattingOptions): string {
   let lines = text.split(/\r?\n/)
@@ -330,10 +330,17 @@ export default class InlineCompletion {
         }
         insertedText = insertedText.slice(0, total + 1)
         insertedLength = insertedText.length
-      } else if (kind == 'line') {
-        // get the first line of insertedText
-        const insertText = insertedText.split('\n')[0]
-        insertedLength = insertText.length
+      } else if (kind == "line") {
+        const insertedLines = insertedText.split("\n");
+        const insertText = insertedLines[0];
+        insertedLength = insertText.length;
+        insertedText = insertText;
+      } else if (kind == "line+indent") {
+        const insertedLines = insertedText.split("\n");
+        const insertText = insertedLines[0] + (insertedLines.length == 1 ? "" :
+            "\n" + insertedLines[1].match(/^\s*/)[0]);
+        insertedLength = insertText.length;
+        insertedText = insertText;
       } else {
         insertedText = getInsertText(item, window.activeTextEditor.options)
         if (itemRange) {
