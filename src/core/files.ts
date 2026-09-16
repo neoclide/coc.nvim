@@ -378,15 +378,22 @@ export default class Files {
           })
         }
       }
+      let originalContent: Buffer | undefined
+      if (exists && Array.isArray(recovers)) {
+        originalContent = fs.readFileSync(filepath)
+        recovers.push(() => {
+          fs.writeFileSync(filepath, originalContent)
+        })
+      }
       fs.writeFileSync(filepath, '', 'utf8')
-      if (Array.isArray(recovers)) {
+      if (!exists && Array.isArray(recovers)) {
         recovers.push(() => {
           fs.rmSync(filepath, { force: true, recursive: true })
         })
       }
       let doc = await this.loadResource(filepath)
       let bufnr = doc.bufnr
-      if (Array.isArray(recovers)) {
+      if (!exists && Array.isArray(recovers)) {
         recovers.push(() => {
           void events.fire('BufUnload', [bufnr])
           return nvim.command(`silent! bd! ${bufnr}`)
@@ -470,6 +477,13 @@ export default class Files {
     if (!loaded && !oldStat) throw errors.fileNotExists(oldPath)
     let file = { newUri: URI.file(newPath), oldUri: URI.file(oldPath) }
     if (!opts.skipEvent) await this.fireWaitUntilEvent(this._onWillRenameFiles, { files: [file] }, recovers)
+    if (exists && Array.isArray(recovers)) {
+      let backup = path.join(path.dirname(newPath), `.coc-rename-${crypto.randomUUID()}`)
+      fs.renameSync(newPath, backup)
+      recovers.push(() => {
+        fs.renameSync(backup, newPath)
+      })
+    }
     if (loaded) {
       let bufnr = await nvim.call('coc#ui#rename_file', [oldPath, newPath, oldStat != null]) as number
       await this.documents.onBufCreate(bufnr)

@@ -514,6 +514,43 @@ describe('applyEdits()', () => {
     assertContent('foo\n', 'bar\n')
   })
 
+  it('should restore overwritten files on undo', async t => {
+    let created = await shared.createTmpFile('create-original', disposables)
+    let source = await shared.createTmpFile('rename-source', disposables)
+    let destination = await shared.createTmpFile('rename-original', disposables)
+    let edit: WorkspaceEdit = {
+      documentChanges: [
+        CreateFile.create(URI.file(created).toString(), { overwrite: true }),
+        RenameFile.create(URI.file(source).toString(), URI.file(destination).toString(), { overwrite: true })
+      ]
+    }
+    assert.strictEqual(await workspace.applyEdit(edit), true)
+    assert.strictEqual(fs.readFileSync(created, 'utf8'), '')
+    assert.strictEqual(fs.readFileSync(destination, 'utf8'), 'rename-source')
+    await workspace.files.undoWorkspaceEdit()
+    assert.strictEqual(fs.readFileSync(created, 'utf8'), 'create-original')
+    assert.strictEqual(fs.readFileSync(source, 'utf8'), 'rename-source')
+    assert.strictEqual(fs.readFileSync(destination, 'utf8'), 'rename-original')
+  })
+
+  it('should restore overwritten files when a later operation fails', async t => {
+    let created = await shared.createTmpFile('create-original', disposables)
+    let source = await shared.createTmpFile('rename-source', disposables)
+    let destination = await shared.createTmpFile('rename-original', disposables)
+    let missing = path.join(tmpdir, crypto.randomUUID())
+    let edit: WorkspaceEdit = {
+      documentChanges: [
+        CreateFile.create(URI.file(created).toString(), { overwrite: true }),
+        RenameFile.create(URI.file(source).toString(), URI.file(destination).toString(), { overwrite: true }),
+        RenameFile.create(URI.file(missing).toString(), URI.file(`${missing}-new`).toString())
+      ]
+    }
+    assert.strictEqual(await workspace.applyEdit(edit), false)
+    assert.strictEqual(fs.readFileSync(created, 'utf8'), 'create-original')
+    assert.strictEqual(fs.readFileSync(source, 'utf8'), 'rename-source')
+    assert.strictEqual(fs.readFileSync(destination, 'utf8'), 'rename-original')
+  })
+
   it('should should support annotations', async t => {
     async function assertEdit(t: TestContext, confirm: boolean, description: string | undefined): Promise<void> {
       let doc = await shared.createDocument(crypto.randomUUID())
