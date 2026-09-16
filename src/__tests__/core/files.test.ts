@@ -1,5 +1,6 @@
 import * as shared from '../sharedUtil'
 import commands from '../../commands'
+import Files from '../../core/files'
 import events from '../../events'
 import { getOriginalLine, RecoverFunc } from '../../model/editInspect'
 import RelativePattern from '../../model/relativePattern'
@@ -549,6 +550,41 @@ describe('applyEdits()', () => {
     assert.strictEqual(fs.readFileSync(created, 'utf8'), 'create-original')
     assert.strictEqual(fs.readFileSync(source, 'utf8'), 'rename-source')
     assert.strictEqual(fs.readFileSync(destination, 'utf8'), 'rename-original')
+  })
+
+  it('should cleanup recovery storage when edit state is replaced', async t => {
+    let first = await shared.createTmpFile('first-original', disposables)
+    let second = await shared.createTmpFile('second-original', disposables)
+    let firstEdit: WorkspaceEdit = {
+      documentChanges: [CreateFile.create(URI.file(first).toString(), { overwrite: true })]
+    }
+    assert.strictEqual(await workspace.applyEdit(firstEdit), true)
+    let files = workspace.files as any
+    let firstState = files.editState
+    let firstFolder = files.recoveryFolders.get(firstState.recovers) as string
+    assert.strictEqual(fs.existsSync(firstFolder), true)
+
+    let secondEdit: WorkspaceEdit = {
+      documentChanges: [CreateFile.create(URI.file(second).toString(), { overwrite: true })]
+    }
+    assert.strictEqual(await workspace.applyEdit(secondEdit), true)
+    assert.strictEqual(fs.existsSync(firstFolder), false)
+    let secondState = files.editState
+    let secondFolder = files.recoveryFolders.get(secondState.recovers) as string
+    assert.strictEqual(fs.existsSync(secondFolder), true)
+    await workspace.files.undoWorkspaceEdit()
+    assert.strictEqual(fs.existsSync(secondFolder), false)
+  })
+
+  it('should cleanup recovery storage when files are disposed', t => {
+    let files = new Files(undefined, undefined, undefined, undefined)
+    let recovers: RecoverFunc[] = []
+    let folder = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-edit-test-'))
+    let internal = files as any
+    internal.recoveryFolders.set(recovers, folder)
+    internal.editState = { edit: {}, changes: {}, recovers, applied: true }
+    files.dispose()
+    assert.strictEqual(fs.existsSync(folder), false)
   })
 
   it('should should support annotations', async t => {

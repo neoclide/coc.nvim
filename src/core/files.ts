@@ -210,6 +210,7 @@ export default class Files {
   private env: Env
   private window: Window
   private editState: EditState | undefined
+  private recoveryFolders = new WeakMap<RecoverFunc[], string>()
   private _onDidCreateFiles = new Emitter<FileCreateEvent>()
   private _onDidRenameFiles = new Emitter<FileRenameEvent>()
   private _onDidDeleteFiles = new Emitter<FileDeleteEvent>()
@@ -378,11 +379,11 @@ export default class Files {
           })
         }
       }
-      let originalContent: Buffer | undefined
       if (exists && Array.isArray(recovers)) {
-        originalContent = fs.readFileSync(filepath)
+        let backup = path.join(this.getRecoveryFolder(recovers), crypto.randomUUID())
+        fs.copyFileSync(filepath, backup)
         recovers.push(() => {
-          fs.writeFileSync(filepath, originalContent)
+          fs.copyFileSync(backup, filepath)
         })
       }
       fs.writeFileSync(filepath, '', 'utf8')
@@ -478,10 +479,11 @@ export default class Files {
     let file = { newUri: URI.file(newPath), oldUri: URI.file(oldPath) }
     if (!opts.skipEvent) await this.fireWaitUntilEvent(this._onWillRenameFiles, { files: [file] }, recovers)
     if (exists && Array.isArray(recovers)) {
-      let backup = path.join(path.dirname(newPath), `.coc-rename-${crypto.randomUUID()}`)
-      fs.renameSync(newPath, backup)
+      let backup = path.join(this.getRecoveryFolder(recovers), crypto.randomUUID())
+      fs.cpSync(newPath, backup, { recursive: true, preserveTimestamps: true })
       recovers.push(() => {
-        fs.renameSync(backup, newPath)
+        fs.rmSync(newPath, { force: true, recursive: true })
+        fs.cpSync(backup, newPath, { recursive: true, preserveTimestamps: true })
       })
     }
     if (loaded) {
@@ -587,12 +589,17 @@ export default class Files {
       }
       // nothing changed
       if (recovers.length === 0) return true
-      if (!nested) this.editState = { edit: { documentChanges, changeAnnotations: edit.changeAnnotations }, changes, recovers, applied: true }
+      if (!nested) {
+        this.discardEditState()
+        this.editState = { edit: { documentChanges, changeAnnotations: edit.changeAnnotations }, changes, recovers, applied: true }
+      }
       this.nvim.redrawVim()
+      if (nested) this.cleanupRecoveryFolder(recovers)
     } catch (e) {
       logger.error('Error on applyEdits:', edit, e)
       if (!nested) void this.window.showErrorMessage(`Error on applyEdits: ${e}`)
       await this.undoChanges(recovers)
+      this.cleanupRecoveryFolder(recovers)
       return false
     }
     // avoid message when change current file only.
@@ -606,6 +613,28 @@ export default class Files {
       let fn = recovers.pop()
       await Promise.resolve(fn())
     }
+  }
+
+  private getRecoveryFolder(recovers: RecoverFunc[]): string {
+    let folder = this.recoveryFolders.get(recovers)
+    if (!folder) {
+      folder = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-edit-'))
+      this.recoveryFolders.set(recovers, folder)
+    }
+    return folder
+  }
+
+  private cleanupRecoveryFolder(recovers: RecoverFunc[]): void {
+    let folder = this.recoveryFolders.get(recovers)
+    if (!folder) return
+    this.recoveryFolders.delete(recovers)
+    fs.rmSync(folder, { force: true, recursive: true })
+  }
+
+  private discardEditState(): void {
+    if (!this.editState) return
+    this.cleanupRecoveryFolder(this.editState.recovers)
+    this.editState = undefined
   }
 
   public async inspectEdit(): Promise<void> {
@@ -625,6 +654,7 @@ export default class Files {
     }
     editState.applied = false
     await this.undoChanges(editState.recovers)
+    this.cleanupRecoveryFolder(editState.recovers)
   }
 
   public async redoWorkspaceEdit(): Promise<void> {
@@ -633,8 +663,12 @@ export default class Files {
       void this.window.showWarningMessage(`No workspace edit to redo`)
       return
     }
-    this.editState = undefined
+    this.discardEditState()
     await this.applyEdit(editState.edit)
+  }
+
+  public dispose(): void {
+    this.discardEditState()
   }
 
   public validateChanges(documentChanges: ReadonlyArray<DocumentChange>): void {

@@ -765,6 +765,7 @@ export class Workspace {
 
   public dispose(): void {
     channels.dispose()
+    this.files.dispose()
     this.autocmds.dispose()
     this.statusLine.dispose()
     this.watchers.dispose()
