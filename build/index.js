@@ -97043,6 +97043,7 @@ var init_files = __esm({
       env;
       window;
       editState;
+      recoveryFolders = /* @__PURE__ */ new WeakMap();
       _onDidCreateFiles = new import_node4.Emitter();
       _onDidRenameFiles = new import_node4.Emitter();
       _onDidDeleteFiles = new import_node4.Emitter();
@@ -97195,15 +97196,22 @@ var init_files = __esm({
               });
             }
           }
+          if (exists && Array.isArray(recovers)) {
+            let backup = path.join(this.getRecoveryFolder(recovers), crypto2.randomUUID());
+            fs.copyFileSync(filepath, backup);
+            recovers.push(() => {
+              fs.copyFileSync(backup, filepath);
+            });
+          }
           fs.writeFileSync(filepath, "", "utf8");
-          if (Array.isArray(recovers)) {
+          if (!exists && Array.isArray(recovers)) {
             recovers.push(() => {
               fs.rmSync(filepath, { force: true, recursive: true });
             });
           }
           let doc = await this.loadResource(filepath);
           let bufnr = doc.bufnr;
-          if (Array.isArray(recovers)) {
+          if (!exists && Array.isArray(recovers)) {
             recovers.push(() => {
               void events_default.fire("BufUnload", [bufnr]);
               return nvim.command(`silent! bd! ${bufnr}`);
@@ -97285,6 +97293,14 @@ var init_files = __esm({
         if (!loaded && !oldStat) throw fileNotExists(oldPath);
         let file = { newUri: u.file(newPath), oldUri: u.file(oldPath) };
         if (!opts.skipEvent) await this.fireWaitUntilEvent(this._onWillRenameFiles, { files: [file] }, recovers);
+        if (exists && Array.isArray(recovers)) {
+          let backup = path.join(this.getRecoveryFolder(recovers), crypto2.randomUUID());
+          fs.cpSync(newPath, backup, { recursive: true, preserveTimestamps: true });
+          recovers.push(() => {
+            fs.rmSync(newPath, { force: true, recursive: true });
+            fs.cpSync(backup, newPath, { recursive: true, preserveTimestamps: true });
+          });
+        }
         if (loaded) {
           let bufnr = await nvim.call("coc#ui#rename_file", [oldPath, newPath, oldStat != null]);
           await this.documents.onBufCreate(bufnr);
@@ -97384,12 +97400,17 @@ var init_files = __esm({
             }
           }
           if (recovers.length === 0) return true;
-          if (!nested) this.editState = { edit: { documentChanges, changeAnnotations: edit2.changeAnnotations }, changes, recovers, applied: true };
+          if (!nested) {
+            this.discardEditState();
+            this.editState = { edit: { documentChanges, changeAnnotations: edit2.changeAnnotations }, changes, recovers, applied: true };
+          }
           this.nvim.redrawVim();
+          if (nested) this.cleanupRecoveryFolder(recovers);
         } catch (e2) {
           logger20.error("Error on applyEdits:", edit2, e2);
           if (!nested) void this.window.showErrorMessage(`Error on applyEdits: ${e2}`);
           await this.undoChanges(recovers);
+          this.cleanupRecoveryFolder(recovers);
           return false;
         }
         if (nested || currentOnly) return true;
@@ -97401,6 +97422,25 @@ var init_files = __esm({
           let fn = recovers.pop();
           await Promise.resolve(fn());
         }
+      }
+      getRecoveryFolder(recovers) {
+        let folder = this.recoveryFolders.get(recovers);
+        if (!folder) {
+          folder = fs.mkdtempSync(path.join(os.tmpdir(), "coc-edit-"));
+          this.recoveryFolders.set(recovers, folder);
+        }
+        return folder;
+      }
+      cleanupRecoveryFolder(recovers) {
+        let folder = this.recoveryFolders.get(recovers);
+        if (!folder) return;
+        this.recoveryFolders.delete(recovers);
+        fs.rmSync(folder, { force: true, recursive: true });
+      }
+      discardEditState() {
+        if (!this.editState) return;
+        this.cleanupRecoveryFolder(this.editState.recovers);
+        this.editState = void 0;
       }
       async inspectEdit() {
         if (!this.editState) {
@@ -97418,6 +97458,7 @@ var init_files = __esm({
         }
         editState.applied = false;
         await this.undoChanges(editState.recovers);
+        this.cleanupRecoveryFolder(editState.recovers);
       }
       async redoWorkspaceEdit() {
         let { editState } = this;
@@ -97425,8 +97466,11 @@ var init_files = __esm({
           void this.window.showWarningMessage(`No workspace edit to redo`);
           return;
         }
-        this.editState = void 0;
+        this.discardEditState();
         await this.applyEdit(editState.edit);
+      }
+      dispose() {
+        this.discardEditState();
       }
       validateChanges(documentChanges) {
         let { documents } = this;
@@ -99209,6 +99253,7 @@ var init_workspace = __esm({
        */
       dispose() {
         channels_default.dispose();
+        this.files.dispose();
         this.autocmds.dispose();
         this.statusLine.dispose();
         this.watchers.dispose();
@@ -142393,7 +142438,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-00993ba 2026-09-11 20:38:15 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-099a14b 2026-09-16 22:39:09 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
