@@ -210,6 +210,18 @@ describe('applyEdits()', () => {
     assert.deepStrictEqual(newLines, ['foo', 'bar'])
   })
 
+  it('should preserve literal text in mixed snippet edits', async t => {
+    let filepath = await shared.createTmpFile('foo\nbar\n')
+    let doc = await shared.createDocument(filepath)
+    let versioned = VersionedTextDocumentIdentifier.create(doc.uri, doc.version)
+    let textEdit = TextEdit.insert(Position.create(0, 0), 'echo "$1"\n')
+    let snippetEdit: SnippetTextEdit = { range: Range.create(2, 0, 2, 0), snippet: StringValue.createSnippet('after($1)') }
+    let change = TextDocumentEdit.create(versioned, [textEdit, snippetEdit])
+
+    assert.strictEqual(await workspace.applyEdit({ documentChanges: [change] }), true)
+    assert.deepStrictEqual(doc.textDocument.lines, ['echo "$1"', 'foo', 'bar', 'after()'])
+  })
+
   it('should not apply TextEdit if version miss match', async t => {
     let doc = await shared.createDocument()
     let versioned = VersionedTextDocumentIdentifier.create(doc.uri, 10)

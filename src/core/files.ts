@@ -10,6 +10,7 @@ import { createLogger } from '../logger'
 import Document from '../model/document'
 import EditInspect, { EditState, RecoverFunc } from '../model/editInspect'
 import type { SnippetEdit } from '../snippets/session'
+import { SnippetString } from '../snippets/string'
 import { DocumentChange, Env, GlobPattern } from '../types'
 import * as errors from '../util/errors'
 import { isFile, isParentFolder, normalizeFilePath, statAsync, uriToFsPath } from '../util/fs'
@@ -556,7 +557,7 @@ export default class Files {
               if (SnippetTextEdit.is(edit)) {
                 return { range: edit.range, snippet: edit.snippet.value }
               }
-              return { range: edit.range, snippet: edit.newText }
+              return { range: edit.range, snippet: new SnippetString().appendText(edit.newText).value }
             }))
             let oldLines = doc.textDocument.lines
             await commands.executeCommand('editor.action.insertBufferSnippets', doc.bufnr, snippetEdits, doc.bufnr === events.bufnr)
