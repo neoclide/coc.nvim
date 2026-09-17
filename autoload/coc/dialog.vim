@@ -589,6 +589,7 @@ function! coc#dialog#change_loading(winid, loading) abort
             \ 'zindex': 900,
             \ }
         let winid = nvim_open_win(bufnr, v:false, opts)
+        call setwinvar(winid, '&statusline', '')
         call setwinvar(winid, '&winhl', getwinvar(a:winid, '&winhl'))
       endif
       call setwinvar(winid, 'kind', 'loading')

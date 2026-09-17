@@ -96997,6 +96997,90 @@ var init_editInspect = __esm({
   }
 });
 
+// src/snippets/string.ts
+var SnippetString;
+var init_string2 = __esm({
+  "src/snippets/string.ts"() {
+    "use strict";
+    SnippetString = class _SnippetString {
+      /**
+       * @internal
+       */
+      static isSnippetString(thing) {
+        if (thing instanceof _SnippetString) {
+          return true;
+        }
+        if (!thing) {
+          return false;
+        }
+        return typeof thing.value === "string";
+      }
+      static _escape(value) {
+        return value.replace(/\$|}|\\/g, "\\$&");
+      }
+      _tabstop = 1;
+      value;
+      constructor(value) {
+        this.value = value || "";
+      }
+      appendText(str) {
+        this.value += _SnippetString._escape(str);
+        return this;
+      }
+      appendTabstop(num = this._tabstop++) {
+        this.value += "$";
+        this.value += num;
+        return this;
+      }
+      appendPlaceholder(value, num = this._tabstop++) {
+        if (typeof value === "function") {
+          const nested = new _SnippetString();
+          nested._tabstop = this._tabstop;
+          value(nested);
+          this._tabstop = nested._tabstop;
+          value = nested.value;
+        } else {
+          value = _SnippetString._escape(value);
+        }
+        this.value += "${";
+        this.value += num;
+        this.value += ":";
+        this.value += value;
+        this.value += "}";
+        return this;
+      }
+      appendChoice(values, num = this._tabstop++) {
+        const value = values.map((s2) => s2.replaceAll(/[|\\,]/g, "\\$&")).join(",");
+        this.value += "${";
+        this.value += num;
+        this.value += "|";
+        this.value += value;
+        this.value += "|}";
+        return this;
+      }
+      appendVariable(name2, defaultValue2) {
+        if (typeof defaultValue2 === "function") {
+          const nested = new _SnippetString();
+          nested._tabstop = this._tabstop;
+          defaultValue2(nested);
+          this._tabstop = nested._tabstop;
+          defaultValue2 = nested.value;
+        } else if (typeof defaultValue2 === "string") {
+          defaultValue2 = defaultValue2.replace(/\$|}/g, "\\$&");
+        }
+        this.value += "${";
+        this.value += name2;
+        if (defaultValue2) {
+          this.value += ":";
+          this.value += defaultValue2;
+        }
+        this.value += "}";
+        return this;
+      }
+    };
+  }
+});
+
 // src/core/files.ts
 function fileMatch(root, relpath, pattern) {
   let filepath = path.join(root, relpath);
@@ -97021,9 +97105,11 @@ var init_files = __esm({
     init_events();
     init_logger();
     init_editInspect();
+    init_string2();
     init_errors();
     init_fs();
     init_node();
+    init_object();
     init_protocol();
     init_string();
     init_textedit();
@@ -97344,9 +97430,10 @@ var init_files = __esm({
       /**
        * Apply WorkspaceEdit.
        */
-      async applyEdit(edit2, nested) {
+      async applyEdit(edit2, originRecovers) {
         let documentChanges = toDocumentChanges(edit2);
-        let recovers = [];
+        const isNested = Array.isArray(originRecovers);
+        const recovers = [];
         let currentOnly = false;
         try {
           let denied = await this.promptAnnotations(documentChanges, edit2.changeAnnotations);
@@ -97366,7 +97453,7 @@ var init_files = __esm({
                   if (SnippetTextEdit.is(edit3)) {
                     return { range: edit3.range, snippet: edit3.snippet.value };
                   }
-                  return { range: edit3.range, snippet: edit3.newText };
+                  return { range: edit3.range, snippet: new SnippetString().appendText(edit3.newText).value };
                 }));
                 let oldLines = doc.textDocument.lines;
                 await commands_default.executeCommand("editor.action.insertBufferSnippets", doc.bufnr, snippetEdits, doc.bufnr === events_default.bufnr);
@@ -97376,17 +97463,19 @@ var init_files = __esm({
                 revertEdit = await doc.applyEdits(edits, false, uri === currentUri);
               }
               if (revertEdit) {
-                let version2 = doc.version;
                 let { newText, range } = revertEdit;
+                let start = range.start.line;
+                let end = range.end.line;
+                let lines = doc.getLines(start, end);
                 changes[uri] = {
                   uri,
-                  lnum: range.start.line + 1,
-                  newLines: doc.getLines(range.start.line, range.end.line),
+                  lnum: start + 1,
+                  newLines: lines,
                   oldLines: newText.endsWith("\n") ? newText.slice(0, -1).split("\n") : newText.split("\n")
                 };
                 recovers.push(async () => {
                   let doc2 = this.documents.getDocument(uri);
-                  if (!doc2 || !doc2.attached || doc2.version !== version2) return;
+                  if (!doc2 || !doc2.attached || !equals(doc2.getLines(start, end), lines)) return;
                   await doc2.applyEdits([revertEdit]);
                   textDocument.version = doc2.version;
                 });
@@ -97400,20 +97489,21 @@ var init_files = __esm({
             }
           }
           if (recovers.length === 0) return true;
-          if (!nested) {
+          if (isNested) {
+            originRecovers.push(...recovers);
+          } else {
             this.discardEditState();
             this.editState = { edit: { documentChanges, changeAnnotations: edit2.changeAnnotations }, changes, recovers, applied: true };
           }
           this.nvim.redrawVim();
-          if (nested) this.cleanupRecoveryFolder(recovers);
         } catch (e2) {
           logger20.error("Error on applyEdits:", edit2, e2);
-          if (!nested) void this.window.showErrorMessage(`Error on applyEdits: ${e2}`);
+          if (!isNested) void this.window.showErrorMessage(`Error on applyEdits: ${e2}`);
           await this.undoChanges(recovers);
           this.cleanupRecoveryFolder(recovers);
           return false;
         }
-        if (nested || currentOnly) return true;
+        if (isNested || currentOnly) return true;
         void this.window.showInformationMessage(`Use ':wa' to save changes or ':CocCommand workspace.inspectEdit' to inspect.`);
         return true;
       }
@@ -97563,7 +97653,7 @@ var init_files = __esm({
                 return;
               }
               if (edit2 && WorkspaceEdit.is(edit2)) {
-                return this.applyEdit(edit2, true);
+                return this.applyEdit(edit2, recovers);
               }
             });
             promises.push(promise);
@@ -130587,90 +130677,6 @@ var init_mcp = __esm({
   }
 });
 
-// src/snippets/string.ts
-var SnippetString;
-var init_string2 = __esm({
-  "src/snippets/string.ts"() {
-    "use strict";
-    SnippetString = class _SnippetString {
-      /**
-       * @internal
-       */
-      static isSnippetString(thing) {
-        if (thing instanceof _SnippetString) {
-          return true;
-        }
-        if (!thing) {
-          return false;
-        }
-        return typeof thing.value === "string";
-      }
-      static _escape(value) {
-        return value.replace(/\$|}|\\/g, "\\$&");
-      }
-      _tabstop = 1;
-      value;
-      constructor(value) {
-        this.value = value || "";
-      }
-      appendText(str) {
-        this.value += _SnippetString._escape(str);
-        return this;
-      }
-      appendTabstop(num = this._tabstop++) {
-        this.value += "$";
-        this.value += num;
-        return this;
-      }
-      appendPlaceholder(value, num = this._tabstop++) {
-        if (typeof value === "function") {
-          const nested = new _SnippetString();
-          nested._tabstop = this._tabstop;
-          value(nested);
-          this._tabstop = nested._tabstop;
-          value = nested.value;
-        } else {
-          value = _SnippetString._escape(value);
-        }
-        this.value += "${";
-        this.value += num;
-        this.value += ":";
-        this.value += value;
-        this.value += "}";
-        return this;
-      }
-      appendChoice(values, num = this._tabstop++) {
-        const value = values.map((s2) => s2.replaceAll(/[|\\,]/g, "\\$&")).join(",");
-        this.value += "${";
-        this.value += num;
-        this.value += "|";
-        this.value += value;
-        this.value += "|}";
-        return this;
-      }
-      appendVariable(name2, defaultValue2) {
-        if (typeof defaultValue2 === "function") {
-          const nested = new _SnippetString();
-          nested._tabstop = this._tabstop;
-          defaultValue2(nested);
-          this._tabstop = nested._tabstop;
-          defaultValue2 = nested.value;
-        } else if (typeof defaultValue2 === "string") {
-          defaultValue2 = defaultValue2.replace(/\$|}/g, "\\$&");
-        }
-        this.value += "${";
-        this.value += name2;
-        if (defaultValue2) {
-          this.value += ":";
-          this.value += defaultValue2;
-        }
-        this.value += "}";
-        return this;
-      }
-    };
-  }
-});
-
 // src/model/line.ts
 var LineBuilder;
 var init_line = __esm({
@@ -142438,7 +142444,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-099a14b 2026-09-16 22:39:09 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-6f8f36c 2026-09-17 20:07:52 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
