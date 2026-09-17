@@ -69,7 +69,6 @@ describe('FloatFactory', () => {
       try {
         await floatFactory.show([{ filetype: 'txt', content: 'float' }], {
           border: [1, 1, 1, 1],
-          buttons: ['OK'],
           close: true
         })
         let winid = floatFactory.window!.id
