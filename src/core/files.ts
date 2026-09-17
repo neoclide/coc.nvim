@@ -531,9 +531,10 @@ export default class Files {
   /**
    * Apply WorkspaceEdit.
    */
-  public async applyEdit(edit: WorkspaceEdit, nested?: boolean): Promise<boolean> {
+  public async applyEdit(edit: WorkspaceEdit, originRecovers?: RecoverFunc[]): Promise<boolean> {
     let documentChanges = toDocumentChanges(edit)
-    let recovers: RecoverFunc[] = []
+    const isNested = Array.isArray(originRecovers)
+    const recovers = []
     let currentOnly = false
     try {
       let denied = await this.promptAnnotations(documentChanges, edit.changeAnnotations)
@@ -589,21 +590,22 @@ export default class Files {
       }
       // nothing changed
       if (recovers.length === 0) return true
-      if (!nested) {
+      if (isNested) {
+        originRecovers.push(...recovers)
+      } else {
         this.discardEditState()
         this.editState = { edit: { documentChanges, changeAnnotations: edit.changeAnnotations }, changes, recovers, applied: true }
       }
       this.nvim.redrawVim()
-      if (nested) this.cleanupRecoveryFolder(recovers)
     } catch (e) {
       logger.error('Error on applyEdits:', edit, e)
-      if (!nested) void this.window.showErrorMessage(`Error on applyEdits: ${e}`)
+      if (!isNested) void this.window.showErrorMessage(`Error on applyEdits: ${e}`)
       await this.undoChanges(recovers)
       this.cleanupRecoveryFolder(recovers)
       return false
     }
     // avoid message when change current file only.
-    if (nested || currentOnly) return true
+    if (isNested || currentOnly) return true
     void this.window.showInformationMessage(`Use ':wa' to save changes or ':CocCommand workspace.inspectEdit' to inspect.`)
     return true
   }
@@ -764,7 +766,7 @@ export default class Files {
             return
           }
           if (edit && WorkspaceEdit.is(edit)) {
-            return this.applyEdit(edit, true)
+            return this.applyEdit(edit, recovers)
           }
         })
         promises.push(promise)
