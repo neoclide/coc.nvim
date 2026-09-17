@@ -64,6 +64,28 @@ describe('FloatFactory', () => {
       assert.strictEqual(floatFactory.window, null)
     })
 
+    it('should clear statusline for neovim float windows', async () => {
+      await nvim.command('setlocal statusline=custom')
+      try {
+        await floatFactory.show([{ filetype: 'txt', content: 'float' }], {
+          border: [1, 1, 1, 1],
+          buttons: ['OK'],
+          close: true
+        })
+        let winid = floatFactory.window!.id
+        let related = await nvim.call('getwinvar', [winid, 'related']) as number[]
+        let winids = [winid, ...related]
+        assert.ok(winids.length > 1)
+        for (let winid of winids) {
+          let statusline = await nvim.call('nvim_get_option_value', ['statusline', { scope: 'local', win: winid }])
+          assert.strictEqual(statusline, '')
+        }
+      } finally {
+        floatFactory.close()
+        await nvim.command('setlocal statusline&')
+      }
+    })
+
     it('should close when MenuPopupChanged', async t => {
       let docs: Documentation[] = [{
         filetype: 'markdown',

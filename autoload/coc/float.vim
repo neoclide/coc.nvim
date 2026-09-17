@@ -1461,6 +1461,7 @@ endfunction
 
 function! s:set_float_defaults(winid, config) abort
   if !s:is_vim
+    call setwinvar(a:winid, '&statusline', '')
     let hlgroup = get(a:config, 'highlight', 'CocFloating')
     call setwinvar(a:winid, '&winhl', 'Normal:'.hlgroup.',FoldColumn:'.hlgroup)
     call setwinvar(a:winid, 'border', get(a:config, 'border', []))
@@ -1499,6 +1500,7 @@ function! s:nvim_add_related(winid, target, kind, winhl, related) abort
   if a:winid <= 0
     return
   endif
+  call setwinvar(a:winid, '&statusline', '')
   if exists('&statuscolumn')
     call setwinvar(a:winid, '&statuscolumn', '')
   endif
