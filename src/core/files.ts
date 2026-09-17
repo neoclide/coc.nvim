@@ -14,6 +14,7 @@ import { DocumentChange, Env, GlobPattern } from '../types'
 import * as errors from '../util/errors'
 import { isFile, isParentFolder, normalizeFilePath, statAsync, uriToFsPath } from '../util/fs'
 import { crypto, fs, glob, minimatch, os, path } from '../util/node'
+import { equals } from '../util/object'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
 import { byteIndex } from '../util/string'
 import { createFilteredChanges, getConfirmAnnotations, getRevertEdit, mergeSortEdits, toDocumentChanges } from '../util/textedit'
@@ -565,17 +566,19 @@ export default class Files {
             revertEdit = await doc.applyEdits(edits as TextEdit[], false, uri === currentUri)
           }
           if (revertEdit) {
-            let version = doc.version
             let { newText, range } = revertEdit
+            let start = range.start.line
+            let end = range.end.line
+            let lines = doc.getLines(start, end)
             changes[uri] = {
               uri,
-              lnum: range.start.line + 1,
-              newLines: doc.getLines(range.start.line, range.end.line),
+              lnum: start + 1,
+              newLines: lines,
               oldLines: newText.endsWith('\n') ? newText.slice(0, -1).split('\n') : newText.split('\n')
             }
             recovers.push(async () => {
               let doc = this.documents.getDocument(uri)
-              if (!doc || !doc.attached || doc.version !== version) return
+              if (!doc || !doc.attached || !equals(doc.getLines(start, end), lines)) return
               await doc.applyEdits([revertEdit])
               textDocument.version = doc.version
             })

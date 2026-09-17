@@ -515,6 +515,25 @@ describe('applyEdits()', () => {
     assertContent('foo\n', 'bar\n')
   })
 
+  it('should undo multiple document changes for the same document', async t => {
+    const file = await shared.createTmpFile('first\nsecond\n')
+    const doc = await shared.createDocument(file)
+    const changes = [
+      TextDocumentEdit.create({ uri: doc.uri, version: null }, [
+        TextEdit.insert(Position.create(0, 0), 'changed ')
+      ]),
+      TextDocumentEdit.create({ uri: doc.uri, version: null }, [
+        TextEdit.insert(Position.create(1, 0), 'also changed ')
+      ])
+    ]
+    assert.strictEqual(await workspace.applyEdit({ documentChanges: changes }), true)
+    assert.strictEqual(doc.getDocumentContent(), 'changed first\nalso changed second\n')
+
+    await workspace.files.undoWorkspaceEdit()
+
+    assert.strictEqual(doc.getDocumentContent(), 'first\nsecond\n')
+  })
+
   it('should undo nested workspace edit returned by onWillRenameFiles', async t => {
     const folder = fs.mkdtempSync(path.join(tmpdir, 'nested-undo-'))
     const oldPath = path.join(folder, 'old.ts')
@@ -550,6 +569,32 @@ describe('applyEdits()', () => {
     assert.strictEqual(doc.getline(0), 'import "./old"')
     assert.deepStrictEqual(await doc.buffer.lines, ['import "./old"'])
     assert.strictEqual(called, 1)
+  })
+
+  it('should revert nested workspace edit when rename fails', async t => {
+    const folder = fs.mkdtempSync(path.join(tmpdir, 'nested-revert-'))
+    const oldPath = path.join(folder, 'old.ts')
+    const newPath = path.join(folder, 'missing', 'new.ts')
+    const importPath = path.join(folder, 'index.ts')
+    fs.writeFileSync(oldPath, 'export {}\n')
+    fs.writeFileSync(importPath, 'import "./old"\n')
+    const doc = await shared.createDocument(importPath)
+    workspace.onWillRenameFiles(e => {
+      e.waitUntil(Promise.resolve({
+        changes: {
+          [doc.uri]: [TextEdit.replace(Range.create(0, 0, 0, 14), 'import "./new"')]
+        }
+      }))
+    }, null, disposables)
+
+    assert.strictEqual(await workspace.applyEdit({
+      documentChanges: [RenameFile.create(URI.file(oldPath).toString(), URI.file(newPath).toString())]
+    }), false)
+
+    assert.strictEqual(fs.existsSync(oldPath), true)
+    assert.strictEqual(fs.existsSync(newPath), false)
+    assert.strictEqual(doc.getline(0), 'import "./old"')
+    assert.deepStrictEqual(await doc.buffer.lines, ['import "./old"'])
   })
 
   it('should restore overwritten files on undo', async t => {
