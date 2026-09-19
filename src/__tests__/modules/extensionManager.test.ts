@@ -106,6 +106,30 @@ describe('ExtensionManager', () => {
   }
 
   describe('activateExtensions()', () => {
+    it('should wait for always-active extensions', async t => {
+      tmpfolder = createFolder()
+      createExtension(tmpfolder, {
+        name: 'wait-activation',
+        engines: { coc: '>=0.0.1' },
+        activationEvents: ['*']
+      })
+      let manager = create(tmpfolder)
+      await manager.loadExtension(tmpfolder)
+      let rejectActivation: () => void = () => {}
+      t.mock.method(manager, 'activate', () => new Promise<boolean>((_, reject) => {
+        rejectActivation = () => reject(new Error('activation failed'))
+      }))
+      let activation = manager.activateExtensions()
+      let state = await Promise.race([
+        activation.then(() => 'settled' as const),
+        new Promise<'pending'>(resolve => setTimeout(() => resolve('pending'), 20))
+      ])
+      rejectActivation()
+      let results = await activation
+      assert.strictEqual(state, 'pending')
+      assert.strictEqual(results[0].status, 'rejected')
+    })
+
     it('should attribute command errors to the registering extension', async t => {
       tmpfolder = createFolder()
       let manager = create(tmpfolder)

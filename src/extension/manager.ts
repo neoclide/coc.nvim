@@ -136,7 +136,7 @@ export class ExtensionManager {
       const { extension } = this.extensions.get(key)
       const activationEvents = extension.packageJSON.activationEvents
       if (!activationEvents || activationEvents.includes('*')) {
-        promises.push(void this.activate(key))
+        promises.push(this.activate(key).then(() => undefined))
       } else {
         void this.autoActivate(key, extension)
       }
