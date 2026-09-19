@@ -495,6 +495,48 @@ describe('ExtensionManager', () => {
       assert.strictEqual(manager.getExtension('coc-ext-main').extension.isActive, true)
     })
 
+    it('should activate diamond dependencies without treating them as circular', async t => {
+      tmpfolder = createFolder()
+      let manager = create(tmpfolder)
+
+      let sharedFolder = path.join(tmpfolder, 'coc-shared')
+      createExtension(sharedFolder, {
+        name: 'coc-shared',
+        engines: { coc: '>=0.0.1' }
+      }, `let count = 0
+exports.activate = async () => {
+  count++
+  await new Promise(resolve => setTimeout(resolve, 20))
+  return { count }
+}`)
+
+      for (let name of ['coc-left', 'coc-right']) {
+        let folder = path.join(tmpfolder, name)
+        createExtension(folder, {
+          name,
+          engines: { coc: '>=0.0.1' },
+          extensionDependencies: ['coc-shared']
+        })
+        await manager.loadExtension(folder)
+      }
+
+      let mainFolder = path.join(tmpfolder, 'coc-main')
+      createExtension(mainFolder, {
+        name: 'coc-main',
+        engines: { coc: '>=0.0.1' },
+        extensionDependencies: ['coc-left', 'coc-right']
+      })
+
+      await manager.loadExtension(sharedFolder)
+      await manager.loadExtension(mainFolder)
+
+      assert.strictEqual(await manager.activate('coc-main'), true)
+      assert.strictEqual(manager.getExtension('coc-left').extension.isActive, true)
+      assert.strictEqual(manager.getExtension('coc-right').extension.isActive, true)
+      let sharedExports = manager.getExtension('coc-shared').extension.exports as Record<string, unknown>
+      assert.strictEqual(sharedExports.count, 1)
+    })
+
     it('should fail when dependency activation fails', async t => {
       tmpfolder = createFolder()
       let manager = create(tmpfolder)
