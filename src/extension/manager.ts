@@ -5,7 +5,7 @@ import events from '../events'
 import { ExtensionExport, ExtensionLoadOptions, createExtensionAsync, disposeExtension } from '../extension/loader'
 import { createLogger } from '../logger'
 import Memos from '../model/memos'
-import { disposeAll, wait } from '../util'
+import { disposeAll, getConditionValue, wait } from '../util'
 import { splitArray, toArray } from '../util/array'
 import { configHome, dataHome } from '../util/constants'
 import { onUnexpectedError } from '../util/errors'
@@ -301,7 +301,7 @@ export class ExtensionManager {
 
   public async deactivate(id: string): Promise<void> {
     let item = this.extensions.get(id)
-    if (!item || !item.extension.isActive) return
+    if (!item) return
     await Promise.resolve(item.deactivate())
   }
 
@@ -471,6 +471,8 @@ export class ExtensionManager {
     let id = packageJSON.name
     if (this.states.isDisabled(id)) return
     let isActive = false
+    let isActivating = false
+    let activationAbandoned = false
     let result: Promise<API> | undefined
     let filename = options?.sourceCode
       ? path.join(root, 'index.js')
@@ -483,6 +485,8 @@ export class ExtensionManager {
     let extension: Extension<API> = {
       activate: (): Promise<API> => {
         if (result) return result
+        isActivating = true
+        activationAbandoned = false
         result = new Promise(async (resolve, reject) => {
           timing.start()
           try {
@@ -498,12 +502,27 @@ export class ExtensionManager {
               logger: createLogger(`extension:${id}`)
             }
             let res = await extensionContext.run(id, () => ext.activate(context))
+            isActivating = false
+            if (activationAbandoned) {
+              let items = Array.from(new Set(subscriptions))
+              subscriptions.length = 0
+              disposeAll(items)
+              if (ext && typeof ext.deactivate === 'function') {
+                await Promise.resolve(extensionContext.run(id, () => ext.deactivate()))
+              }
+              ext = undefined
+              result = undefined
+              timing.stop()
+              resolve(res)
+              return
+            }
             isActive = true
             exports = res
             this._onDidActiveExtension.fire(extension)
             timing.stop()
             resolve(res)
           } catch (e) {
+            isActivating = false
             logger.error(`Error on active extension ${id}:`, e)
             reject(e as Error)
           }
@@ -535,6 +554,17 @@ export class ExtensionManager {
       filepath: filename,
       events: getEvents(packageJSON.activationEvents),
       deactivate: async () => {
+        if (isActivating && result) {
+          const timeout = getConditionValue(1000, 50)
+          const completed = await Promise.race([
+            result.then(() => true, () => true),
+            wait(timeout).then(() => false)
+          ])
+          if (!completed) {
+            activationAbandoned = true
+            logger.warn(`Activation of extension ${id} did not finish within ${timeout}ms before deactivation`)
+          }
+        }
         if (!isActive) return
         isActive = false
         result = undefined
