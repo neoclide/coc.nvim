@@ -132066,7 +132066,7 @@ var init_manager5 = __esm({
           const { extension } = this.extensions.get(key);
           const activationEvents = extension.packageJSON.activationEvents;
           if (!activationEvents || activationEvents.includes("*")) {
-            promises.push(void this.activate(key));
+            promises.push(this.activate(key).then(() => void 0));
           } else {
             void this.autoActivate(key, extension);
           }
@@ -132194,7 +132194,7 @@ var init_manager5 = __esm({
           logger54.warn(`Circular dependency detected: ${id2}`);
           return false;
         }
-        activating.add(id2);
+        activating = new Set(activating).add(id2);
         const { packageJSON } = extension;
         if (packageJSON.extensionDependencies?.length > 0) {
           const deps = packageJSON.extensionDependencies;
@@ -132218,7 +132218,7 @@ var init_manager5 = __esm({
       }
       async deactivate(id2) {
         let item = this.extensions.get(id2);
-        if (!item || !item.extension.isActive) return;
+        if (!item) return;
         await Promise.resolve(item.deactivate());
       }
       /**
@@ -132376,6 +132376,8 @@ var init_manager5 = __esm({
         let id2 = packageJSON.name;
         if (this.states.isDisabled(id2)) return;
         let isActive = false;
+        let isActivating = false;
+        let activationAbandoned = false;
         let result;
         let filename = options3?.sourceCode ? path.join(root, "index.js") : path.join(root, packageJSON.main || "index.js");
         let extensionPath2 = extensionType === 2 /* SingleFile */ ? filename : root;
@@ -132386,6 +132388,8 @@ var init_manager5 = __esm({
         let extension = {
           activate: () => {
             if (result) return result;
+            isActivating = true;
+            activationAbandoned = false;
             result = new Promise(async (resolve, reject) => {
               timing.start();
               try {
@@ -132401,12 +132405,27 @@ var init_manager5 = __esm({
                   logger: createLogger(`extension:${id2}`)
                 };
                 let res = await extensionContext.run(id2, () => ext.activate(context));
+                isActivating = false;
+                if (activationAbandoned) {
+                  let items = Array.from(new Set(subscriptions));
+                  subscriptions.length = 0;
+                  disposeAll(items);
+                  if (ext && typeof ext.deactivate === "function") {
+                    await Promise.resolve(extensionContext.run(id2, () => ext.deactivate()));
+                  }
+                  ext = void 0;
+                  result = void 0;
+                  timing.stop();
+                  resolve(res);
+                  return;
+                }
                 isActive = true;
                 exports2 = res;
                 this._onDidActiveExtension.fire(extension);
                 timing.stop();
                 resolve(res);
               } catch (e2) {
+                isActivating = false;
                 logger54.error(`Error on active extension ${id2}:`, e2);
                 reject(e2);
               }
@@ -132438,6 +132457,17 @@ var init_manager5 = __esm({
           filepath: filename,
           events: getEvents(packageJSON.activationEvents),
           deactivate: async () => {
+            if (isActivating && result) {
+              const timeout2 = getConditionValue(1e3, 50);
+              const completed = await Promise.race([
+                result.then(() => true, () => true),
+                wait(timeout2).then(() => false)
+              ]);
+              if (!completed) {
+                activationAbandoned = true;
+                logger54.warn(`Activation of extension ${id2} did not finish within ${timeout2}ms before deactivation`);
+              }
+            }
             if (!isActive) return;
             isActive = false;
             result = void 0;
@@ -142444,7 +142474,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-6f8f36c 2026-09-17 20:07:52 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-ddf70ee 2026-09-19 14:43:06 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
