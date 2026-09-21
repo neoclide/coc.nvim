@@ -368,7 +368,11 @@ export function getReplaceRange(item: CompletionItem, defaultRange: EditRange | 
     if (Range.is(editRange)) {
       range = editRange
     } else {
-      range = insertMode == InsertMode.Insert ? editRange.insert : editRange.replace
+      // Always uses `insert.range` on insert mode, `replace.range` on replace mode
+      // if `insert.range` larger than `replace.range`, fallbacks to `insert` mode
+      // The insert range must be contained the replace range
+      range = insertMode == InsertMode.Insert || editRange.insert.end.character > editRange.replace.end.character
+        ? editRange.insert : editRange.replace
     }
   }
   // start character must contains character for completion
