@@ -6,6 +6,8 @@ import type { URI } from 'vscode-uri'
 import type RelativePattern from './model/relativePattern'
 import type { LinesTextDocument } from './model/textdocument'
 
+export type IStringDictionary<V> = Record<string, V>
+
 export type { IConfigurationChangeEvent } from './configuration/types'
 
 export type GlobPattern = string | RelativePattern

@@ -1,6 +1,6 @@
 import type { Buffer, Window } from '@chemzqm/neovim'
 import type { ProviderResult } from '../provider/index'
-import type { LocationWithTarget } from '../types'
+import type { AnsiHighlight, LocationWithTarget } from '../types'
 import type { CancellationToken } from '../util/protocol'
 
 export interface LocationWithLine {
@@ -27,11 +27,6 @@ export interface ListItem {
 
 export interface ListItemWithScore extends ListItem {
   score?: number
-}
-
-export interface AnsiHighlight {
-  span: [number, number]
-  hlGroup: string
 }
 
 export interface ListItemsEvent {

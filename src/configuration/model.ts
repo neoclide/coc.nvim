@@ -1,9 +1,10 @@
 'use strict'
-import { IConfigurationModel, IOverrides, IStringDictionary } from './types'
+import { IConfigurationModel, IOverrides } from './types'
 import { distinct } from '../util/array'
 import { objectLiteral } from '../util/is'
 import { deepClone, deepFreeze, equals } from '../util/object'
 import { addToValueTree, getConfigurationValue, removeFromValueTree } from './util'
+import { IStringDictionary } from '../types'
 
 export class ConfigurationModel implements IConfigurationModel {
 

@@ -10,9 +10,29 @@ export interface Progress {
   report(value: { message?: string; increment?: number }): void
 }
 
-export interface ProgressOptions<R> {
+/**
+ * Value-object describing where and how progress should show.
+ */
+export interface ProgressOptions {
+
+  /**
+   * A human-readable string which will be used to describe the
+   * operation.
+   */
   title?: string
+
+  /**
+   * Controls if a cancel button should show to allow the user to
+   * cancel the long running operation.
+   */
   cancellable?: boolean
+  /**
+   * Extension or language-client id
+   */
+  source?: string
+}
+
+interface ProgressNotificationOptions<R> extends ProgressOptions {
   task: (progress: Progress, token: CancellationToken) => Thenable<R>
 }
 
@@ -28,7 +48,7 @@ export default class ProgressNotification<R> extends Notification {
   private tokenSource: CancellationTokenSource
   private readonly _onDidFinish = new Emitter<R>()
   public readonly onDidFinish: Event<R> = this._onDidFinish.event
-  constructor(nvim: Neovim, private option: ProgressOptions<R>) {
+  constructor(nvim: Neovim, private option: ProgressNotificationOptions<R>) {
     super(nvim, {
       kind: 'progress',
       title: option.title,

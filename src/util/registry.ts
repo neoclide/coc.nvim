@@ -1,5 +1,6 @@
 import type { IConfigurationPropertySchema } from '../configuration/registry'
-import { ConfigurationScope, IStringDictionary } from '../configuration/types'
+import { ConfigurationScope } from '../configuration/types'
+import { IStringDictionary } from '../types'
 import { assert } from './errors'
 import { objectLiteral } from './is'
 import { deepClone, toObject } from './object'

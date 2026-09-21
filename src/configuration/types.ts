@@ -2,12 +2,6 @@ import type { TextDocument } from 'vscode-languageserver-textdocument'
 import type { WorkspaceFolder } from 'vscode-languageserver-types'
 import type { URI } from 'vscode-uri'
 
-/**
- * An interface for a JavaScript object that
- * acts a dictionary. The keys are strings.
- */
-export type IStringDictionary<V> = Record<string, V>
-
 export enum ConfigurationTarget {
   Default,
   User,

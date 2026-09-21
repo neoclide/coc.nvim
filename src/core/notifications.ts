@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { WorkspaceConfiguration } from '../configuration/types'
 import Notification, { MessageItem, NotificationConfig, NotificationKind, NotificationPreferences, toButtons, toTitles } from '../model/notification'
-import ProgressNotification, { formatMessage, Progress } from '../model/progress'
+import ProgressNotification, { formatMessage, Progress, ProgressOptions } from '../model/progress'
 import StatusLine from '../model/status'
 import { defaultValue } from '../util'
 import { parseExtensionName } from '../util/extensionRegistry'
@@ -34,28 +34,6 @@ interface NotificationConfiguration {
   minProgressWidth: number
   timeout: number
   winblend: number
-}
-
-/**
- * Value-object describing where and how progress should show.
- */
-export interface ProgressOptions {
-
-  /**
-   * A human-readable string which will be used to describe the
-   * operation.
-   */
-  title?: string
-
-  /**
-   * Controls if a cancel button should show to allow the user to
-   * cancel the long running operation.
-   */
-  cancellable?: boolean
-  /**
-   * Extension or language-client id
-   */
-  source?: string
 }
 
 export class Notifications {
