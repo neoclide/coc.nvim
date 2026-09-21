@@ -104838,7 +104838,7 @@ function getReplaceRange(item, defaultRange, character, insertMode) {
     if (Range.is(editRange)) {
       range = editRange;
     } else {
-      range = insertMode == "insert" /* Insert */ ? editRange.insert : editRange.replace;
+      range = insertMode == "insert" /* Insert */ || editRange.insert.end.character > editRange.replace.end.character ? editRange.insert : editRange.replace;
     }
   }
   if (range && number(character) && range.start.character > character) range.start.character = character;
@@ -130614,7 +130614,7 @@ var init_mcp = __esm({
         if (workspace_default.nvim) {
           workspace_default.nvim.setVar("coc_mcp_started", 0, true);
         }
-        logger51.info("MCP server stopped");
+        if (server) logger51.info("MCP server stopped");
       }
       dispose() {
         this.stop();
@@ -142474,7 +142474,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-ddf70ee 2026-09-19 14:43:06 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-be9d3e3 2026-09-21 18:42:51 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
