@@ -1,4 +1,5 @@
 'use strict'
+import { IStringDictionary } from '../types'
 import { isFalsyOrEmpty, toArray } from './array'
 import { pluginRoot } from './constants'
 import { isParentFolder, sameFile } from './fs'
@@ -8,8 +9,6 @@ import { fs } from './node'
 import { toObject } from './object'
 import { Registry } from './registry'
 import { toText } from './string'
-
-export type IStringDictionary<V> = Record<string, V>
 
 /**
  * Contains static extension infos
