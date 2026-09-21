@@ -4,6 +4,7 @@ import os from 'os'
 import path from 'path'
 import events from '../../events'
 import { gracefulExit, setExitHook } from '../../exit'
+import { createLogger } from '../../logger'
 import { getInstanceFilePath, readDiscoveryFile } from '../../mcp/auth'
 import mcp from '../../mcp'
 import { McpServer } from '../../mcp/server'
@@ -87,11 +88,14 @@ describe('mcp service', () => {
     }
   })
 
-  it('does nothing when disabled', async () => {
+  it('does nothing when disabled', async t => {
     workspace.configurations.updateMemoryConfig({ 'mcp.autoStart': false })
     await mcp.start()
     assert.strictEqual(mcp.running, false)
     assert.strictEqual(fs.existsSync(getInstanceFilePath(process.pid)), false)
+    let infoSpy = t.mock.method(createLogger('mcp'), 'info', () => { })
+    mcp.stop()
+    assert.strictEqual(infoSpy.mock.callCount(), 0)
   })
 
   it('starts even when disabled when forced', async () => {

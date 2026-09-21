@@ -237,7 +237,7 @@ class McpService implements Disposable {
     if (workspace.nvim) {
       workspace.nvim.setVar('coc_mcp_started', 0, true)
     }
-    logger.info('MCP server stopped')
+    if (server) logger.info('MCP server stopped')
   }
 
   public dispose(): void {
