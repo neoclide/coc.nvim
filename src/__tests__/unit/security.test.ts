@@ -333,4 +333,45 @@ describe('mcp security hardening', () => {
     client.close()
     server.dispose()
   })
+
+  it('client cancel releases the session queue when the tool ignores cancellation', async () => {
+    let started = false
+    let registry = new ToolRegistry()
+    registry.register({
+      name: 'never-write',
+      description: 'Never settles',
+      inputSchema: { type: 'object' },
+      handler: () => {
+        started = true
+        return new Promise(() => {})
+      }
+    })
+    let server = new McpServer({
+      transport: 'tcp',
+      host: '127.0.0.1',
+      port: 0,
+      token: 'sec-token',
+      authRequired: true,
+      maxClients: 2,
+      maxRequestsPerSecond: 1000,
+      timeout: 0
+    }, registry)
+    let address = await server.listen()
+    let client = new TestClient(address.port)
+    try {
+      await authInit(client)
+      void client.request(100, 'tools/call', { name: 'never-write', arguments: {} }).catch(() => {})
+      await pollUntil(() => started, 1000)
+      client.notify('notifications/cancelled', { requestId: 100 })
+      let ping = client.request(101, 'ping').then(() => true)
+      let completed = await Promise.race([
+        ping,
+        new Promise<boolean>(resolve => setTimeout(() => resolve(false), 100))
+      ])
+      assert.strictEqual(completed, true)
+    } finally {
+      client.close()
+      server.dispose()
+    }
+  })
 })
