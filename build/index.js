@@ -79128,17 +79128,20 @@ function score(selector, uri, languageId, caseInsensitive = isWindows || isMacin
     }
     if (pattern) {
       let relativePattern;
+      let filepath = u2.fsPath;
       if (import_node4.RelativePattern.is(pattern)) {
         relativePattern = pattern.pattern;
         let baseUri = u.parse(typeof pattern.baseUri === "string" ? pattern.baseUri : pattern.baseUri.uri);
         if (u2.scheme !== "file" || !isParentFolder(baseUri.fsPath, u2.fsPath, true)) {
           return 0;
         }
+        filepath = path.relative(baseUri.fsPath, u2.fsPath).split(path.sep).join("/");
+        if (relativePattern.startsWith("/")) filepath = `/${filepath}`;
       } else {
         relativePattern = pattern;
       }
       let p2 = caseInsensitive ? relativePattern.toLowerCase() : relativePattern;
-      let f2 = caseInsensitive ? u2.fsPath.toLowerCase() : u2.fsPath;
+      let f2 = caseInsensitive ? filepath.toLowerCase() : filepath;
       if (p2 === f2 || minimatch(f2, p2, { dot: true })) {
         ret = Math.max(ret, 5);
       } else {
@@ -127140,10 +127143,19 @@ async function handleToolCall(server, session, id2, params) {
     } else {
       resultPromise = callPromise;
     }
+    let cancelWait = () => {
+    };
+    resultPromise = Promise.race([
+      resultPromise,
+      new Promise((_2, reject) => {
+        cancelWait = () => reject(new ToolCancelledError());
+      })
+    ]);
     session.pending.set(id2, {
       cancel: () => {
         cancelled = true;
         tokenSource.cancel();
+        cancelWait();
         finish(() => {
         });
       },
@@ -127341,7 +127353,7 @@ async function handleMessage(server, session, msg) {
       if (isRequest) session.sendError(id2, JSONRPC_METHOD_NOT_FOUND, `Method not found: ${method}`);
   }
 }
-var logger46, ToolTimeoutError;
+var logger46, ToolTimeoutError, ToolCancelledError;
 var init_dispatcher = __esm({
   "src/mcp/dispatcher.ts"() {
     "use strict";
@@ -127353,6 +127365,8 @@ var init_dispatcher = __esm({
     init_resources();
     logger46 = createLogger("mcp-dispatcher");
     ToolTimeoutError = class extends Error {
+    };
+    ToolCancelledError = class extends Error {
     };
   }
 });
@@ -142474,7 +142488,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-be9d3e3 2026-09-21 18:42:51 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-54c3dd3 2026-09-22 21:51:57 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
