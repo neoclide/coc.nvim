@@ -5,6 +5,7 @@ import { OutputChannel } from '../types'
 import { fs, path } from '../util/node'
 import { Disposable } from '../util/protocol'
 import { pluginRoot } from '../util/constants'
+import { isParentFolder } from '../util/fs'
 import { ChangeCallback, createChangeFilter, FileChange, FileChangeItem, FileChangeKind, FileWatcherClient } from './fileWatcher'
 
 const logger = createLogger('core-parcel-watcher')
@@ -19,6 +20,8 @@ interface ParcelEvent {
 
 interface ParcelOptions {
   backend: ParcelBackend
+  ignorePaths?: string[]
+  ignoreGlobs?: string[]
 }
 
 interface ParcelBinding {
@@ -39,6 +42,31 @@ interface NormalizedEvent {
   key: string
   previous?: IndexedEntry
   current?: IndexedEntry
+}
+
+const isGlob = require('is-glob') as (value: string) => boolean
+const picomatch = require('picomatch') as {
+  makeRe(pattern: string, options: { dot: boolean, windows: boolean }): RegExp
+}
+
+export function createParcelOptions(root: string, backend: ParcelBackend, ignored: readonly string[]): ParcelOptions {
+  let options: ParcelOptions = { backend }
+  for (let value of ignored) {
+    if (!value) continue
+    if (isGlob(value)) {
+      let regex = picomatch.makeRe(value, { dot: true, windows: process.platform === 'win32' })
+      if (options.ignoreGlobs) options.ignoreGlobs.push(regex.source)
+      else options.ignoreGlobs = [regex.source]
+    } else {
+      let filepath = path.resolve(root, value)
+      // ignoredFolders also contains roots that should never be watched (for
+      // example "/"). Only descendant paths are native subtree exclusions.
+      if (!isParentFolder(root, filepath)) continue
+      if (options.ignorePaths) options.ignorePaths.push(filepath)
+      else options.ignorePaths = [filepath]
+    }
+  }
+  return options
 }
 
 export function normalizeWatcherPath(filepath: string, platform = process.platform): string {
@@ -139,6 +167,8 @@ export default class ParcelWatcher implements FileWatcherClient {
   private processing = Promise.resolve()
   private binding: ParcelBinding | undefined
   private watchRoot: string
+  private options: ParcelOptions
+  private ignoreGlobs: RegExp[] = []
   private ready = false
   private disposed = false
   private callback: (error: Error | null, events: ParcelEvent[]) => void
@@ -149,6 +179,7 @@ export default class ParcelWatcher implements FileWatcherClient {
     private readonly target: ParcelWatcherTarget,
     private readonly channel?: OutputChannel
   ) {
+    this.options = { backend: target.backend }
     this.callback = (error, events) => {
       if (this.disposed) return
       if (error) {
@@ -165,7 +196,7 @@ export default class ParcelWatcher implements FileWatcherClient {
     }
   }
 
-  public static async createClient(root: string, channel?: OutputChannel, isCancelled: () => boolean = () => false): Promise<ParcelWatcher> {
+  public static async createClient(root: string, channel?: OutputChannel, isCancelled: () => boolean = () => false, ignored: readonly string[] = []): Promise<ParcelWatcher> {
     let target = getParcelWatcherTarget()
     if (!target) throw new Error(`No Parcel watcher binary for ${process.platform}-${process.arch}`)
     let filepath = path.join(pluginRoot, 'bin', 'watcher', target.filename)
@@ -173,7 +204,9 @@ export default class ParcelWatcher implements FileWatcherClient {
     try {
       watcher.binding = loadBinding(filepath)
       watcher.watchRoot = normalizeWatcherPath(await fs.promises.realpath(watcher.root).catch(() => watcher.root))
-      await watcher.binding.subscribe(watcher.watchRoot, watcher.callback, { backend: target.backend })
+      watcher.options = createParcelOptions(watcher.watchRoot, target.backend, ignored)
+      watcher.ignoreGlobs = (watcher.options.ignoreGlobs ?? []).map(source => new RegExp(source))
+      await watcher.binding.subscribe(watcher.watchRoot, watcher.callback, watcher.options)
       let entries = await watcher.scanDirectory('', isCancelled)
       if (watcher.disposed || isCancelled()) throw new Error('Parcel watcher creation cancelled')
       for (let entry of entries) watcher.setEntry(entry)
@@ -213,7 +246,7 @@ export default class ParcelWatcher implements FileWatcherClient {
     let binding = this.binding
     this.binding = undefined
     if (binding && this.watchRoot) {
-      void binding.unsubscribe(this.watchRoot, this.callback, { backend: this.target.backend }).catch(error => {
+      void binding.unsubscribe(this.watchRoot, this.callback, this.options).catch(error => {
         logger.error('Error unsubscribing Parcel watcher', error)
       })
     }
@@ -288,7 +321,7 @@ export default class ParcelWatcher implements FileWatcherClient {
 
   private async normalizeEvent(event: ParcelEvent): Promise<NormalizedEvent | undefined> {
     let name = this.relativeEventPath(event.path)
-    if (!name) return undefined
+    if (!name || this.isIgnored(name)) return undefined
     let key = this.entryKey(name)
     let previous = this.entries.get(key)
     let current = event.type === 'delete' ? undefined : await this.readEntry(name)
@@ -308,9 +341,25 @@ export default class ParcelWatcher implements FileWatcherClient {
     return path.join(this.watchRoot, ...name.split('/'))
   }
 
+  private isIgnored(name: string): boolean {
+    let filepath = this.physicalPath(name)
+    if (this.options.ignorePaths?.some(ignored => isParentFolder(ignored, filepath, true))) return true
+    return this.ignoreGlobs.some(regex => regex.test(name))
+  }
+
   private async readEntry(name: string): Promise<IndexedEntry | undefined> {
     try {
-      let stat = await fs.promises.lstat(this.physicalPath(name))
+      let filepath = this.physicalPath(name)
+      let stat = await fs.promises.lstat(filepath)
+      if (stat.isSymbolicLink()) {
+        try {
+          let target = await fs.promises.stat(filepath)
+          if (target.isFile()) return { name, type: 'f', size: target.size, mtime_ms: target.mtimeMs }
+        } catch (_e) {
+          // Keep dangling links indexed as non-file entries.
+        }
+        return { name, type: 'o' }
+      }
       let type: FileChangeKind = stat.isFile() ? 'f' : stat.isDirectory() ? 'd' : 'o'
       return { name, type, size: type === 'f' ? stat.size : undefined, mtime_ms: type === 'f' ? stat.mtimeMs : undefined }
     } catch (_e) {
@@ -331,10 +380,11 @@ export default class ParcelWatcher implements FileWatcherClient {
       }
       for (let dirent of entries) {
         let name = folder ? `${folder}/${dirent.name}` : dirent.name
+        if (this.isIgnored(name)) continue
         if (dirent.isDirectory()) {
           result.push({ name, type: 'd' })
           pending.push(name)
-        } else if (dirent.isFile()) {
+        } else if (dirent.isFile() || dirent.isSymbolicLink()) {
           let entry = await this.readEntry(name)
           if (entry) result.push(entry)
         } else {

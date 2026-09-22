@@ -7,6 +7,8 @@ Notable changes of coc.nvim:
 - Use bundled Parcel watcher native backends for filesystem events on supported
   desktop platforms, with Watchman retained as an explicit override and a
   fallback when the native watcher is unavailable.
+- Forward `fileSystemWatch.ignoredFolders` to the bundled native watcher and
+  ignore `.git` and `node_modules` directory trees by default.
 
 ## 2026-09-11
 

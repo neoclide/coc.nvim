@@ -188,7 +188,15 @@ export class Workspace {
     let watchmanPath = watchConfig.watchmanPath
     if (!watchmanPath) watchmanPath = initialConfiguration.inspect<string>('coc.preferences.watchmanPath').globalValue
     if (typeof watchmanPath === 'string') watchmanPath = this.expand(watchmanPath)
-    let ignoredFolders = defaultValue(watchConfig.ignoredFolders, ["${tmpdir}", "/private/tmp", "/"])
+    let ignoredFolders = defaultValue(watchConfig.ignoredFolders, [
+      "${tmpdir}",
+      "/private/tmp",
+      "/",
+      "**/.git",
+      "**/.git/**",
+      "**/node_modules",
+      "**/node_modules/**"
+    ])
     let enable = getConditionValue(watchConfig.enable == null ? true : !!watchConfig.enable, false)
     return {
       watchmanPath,

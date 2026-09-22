@@ -108,7 +108,7 @@ export class FileSystemWatcherManager {
         client = await Watchman.createClient(watchmanPath, root, this.channel)
       } else {
         try {
-          client = await ParcelWatcher.createClient(root, this.channel, () => this.disposed || generation !== this.generationOf(root))
+          client = await ParcelWatcher.createClient(root, this.channel, () => this.disposed || generation !== this.generationOf(root), this.config.ignoredFolders)
         } catch (error) {
           if (this.disposed || generation !== this.generationOf(root)) return false
           this.channel?.appendLine(`Unable to use Parcel watcher for ${root}: ${error}`)
@@ -283,7 +283,10 @@ export class FileSystemWatcher implements IFileSystemWatcher {
       }
     }
     this.subscribe = client.subscription
-    let disposable = client.subscribe(pattern, onChange)
+    // Relative patterns are matched against basePath in onChange. The client
+    // filters names relative to its own root, so the bare pattern would drop
+    // changes below a nested base before onChange receives them.
+    let disposable = client.subscribe(basePath ? '**/*' : pattern, onChange)
     this._onDidListen.fire()
     this.disposables.push(disposable)
   }

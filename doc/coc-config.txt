@@ -149,7 +149,12 @@ FILESYSTEMWATCH 					*coc-config-fileSystemWatch*
 	List of folders that should not be watched for file changes;
 	environment variables and minimatch patterns can be used.
 
-	Scope: `application`, default: `["/private/tmp", "/", "${tmpdir}"]`
+	The bundled native watcher forwards these entries to its backend, avoiding
+	OS watcher resources for ignored directory trees. Set an empty list to
+	disable the defaults.
+
+	Scope: `application`, default: `["/private/tmp", "/", "${tmpdir}",
+	"**/.git", "**/.git/**", "**/node_modules", "**/node_modules/**"]`
 
 ------------------------------------------------------------------------------
 EXTENSIONS

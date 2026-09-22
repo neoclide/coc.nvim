@@ -1321,7 +1321,7 @@
     },
     "fileSystemWatch.ignoredFolders": {
       "type": "array",
-      "default": ["/private/tmp", "/", "${tmpdir}"],
+      "default": ["/private/tmp", "/", "${tmpdir}", "**/.git", "**/.git/**", "**/node_modules", "**/node_modules/**"],
       "scope": "application",
       "description": "List of folders that should not be watched for file changes; environment variables and minimatch patterns can be used.",
       "items": {
