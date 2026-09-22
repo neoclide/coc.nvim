@@ -140,5 +140,8 @@ describe('score()', () => {
     assert.strictEqual(funcs.score({ pattern: { pattern: '/*', baseUri: '/tmp' } }, 'untitled:///1', 'vim', false), 0)
     assert.strictEqual(funcs.score({ pattern: { pattern: '/**', baseUri: '/tmp' } }, 'file:///tmp/a/b', 'vim'), 5)
     assert.strictEqual(funcs.score({ pattern: { pattern: '/**', baseUri: '/tmp' } }, 'file:///foo', 'vim'), 0)
+    assert.strictEqual(funcs.score({ pattern: { pattern: 'src/*.ts', baseUri: 'file:///project' } }, 'file:///project/src/a.ts', 'vim', false), 5)
+    assert.strictEqual(funcs.score({ pattern: { pattern: 'src/*.ts', baseUri: 'file:///project' } }, 'file:///other/src/a.ts', 'vim', false), 0)
+    assert.strictEqual(funcs.score({ pattern: 'src/*.ts' }, 'file:///project/src/a.ts', 'vim', false), 0)
   })
 })
