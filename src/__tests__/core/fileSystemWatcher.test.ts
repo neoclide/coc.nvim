@@ -298,6 +298,29 @@ describe('ParcelWatcher', () => {
     }
   })
 
+  it('should treat atomic replacement of an indexed file as an update', async t => {
+    if (!getParcelWatcherTarget()) return t.skip('unsupported platform')
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-parcel-replace-'))
+    let target = path.join(root, 'target.txt')
+    let replacement = path.join(root, '.target.tmp')
+    fs.writeFileSync(target, 'old')
+    let client = await ParcelWatcher.createClient(root, shared.createNullChannel())
+    let changes: FileChangeItem[] = []
+    let disposable = client.subscribe('**/*.txt', change => changes.push(...change.files))
+    try {
+      fs.writeFileSync(replacement, 'new')
+      fs.renameSync(replacement, target)
+      await shared.waitValue(() => changes.some(change => change.name === 'target.txt'), true)
+      let change = changes.find(change => change.name === 'target.txt')
+      assert.strictEqual(change?.exists, true)
+      assert.strictEqual(change?.new, false)
+    } finally {
+      disposable.dispose()
+      client.dispose()
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it('should apply ignored folders in the bundled native watcher', async t => {
     if (!getParcelWatcherTarget()) return t.skip('unsupported platform')
     let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-parcel-ignore-'))

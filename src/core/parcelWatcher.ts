@@ -294,7 +294,7 @@ export default class ParcelWatcher implements FileWatcherClient {
         }
       } else {
         this.setEntry(entry)
-        if (entry.type === 'f') addChange(this.fileChange(entry, true, item.event.type === 'create'))
+        if (entry.type === 'f') addChange(this.fileChange(entry, true, item.event.type === 'create' && item.previous?.type !== 'f'))
       }
     }
     let files = Array.from(changes.values())
