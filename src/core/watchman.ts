@@ -2,8 +2,9 @@
 import type { Client } from 'fb-watchman'
 import { createLogger } from '../logger'
 import { OutputChannel } from '../types'
-import { minimatch, path } from '../util/node'
+import { path } from '../util/node'
 import { Disposable } from '../util/protocol'
+import { ChangeCallback, createChangeFilter, FileChange, FileChangeItem, FileWatcherClient } from './fileWatcher'
 const logger = createLogger('core-watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch', 'field-new']
 
@@ -14,28 +15,13 @@ export interface WatchResponse {
   relative_path?: string
 }
 
-export interface FileChangeItem {
-  size: number
-  name: string
-  exists: boolean
-  new: boolean
-  type: 'f' | 'd'
-  mtime_ms: number
-}
-
-export interface FileChange {
-  root: string
-  subscription: string
-  files: FileChangeItem[]
-}
-
-export type ChangeCallback = (FileChange) => void
+export type { FileChange, FileChangeItem } from './fileWatcher'
 
 /**
  * Watchman wrapper for fb-watchman client
  * @public
  */
-export default class Watchman {
+export default class Watchman implements FileWatcherClient {
   private client: Client
   private relative_path: string | undefined
   private _listeners: ((change: FileChange) => void)[] = []
@@ -121,11 +107,10 @@ export default class Watchman {
   }
 
   public subscribe(globPattern: string, cb: ChangeCallback): Disposable {
+    let filterChanges = createChangeFilter(globPattern)
     let fn = (change: FileChange) => {
-      let { files } = change
-      files = files.filter(f => f.type == 'f' && minimatch(f.name, globPattern, { dot: true }))
-      if (!files.length) return
-      let ev: FileChange = Object.assign({}, change)
+      let ev = filterChanges(change)
+      if (!ev) return
       if (this.relative_path) ev.root = path.resolve(change.root, this.relative_path)
       this.appendOutput(`file change of "${globPattern}" detected: ${JSON.stringify(ev, null, 2)}`)
       cb(ev)

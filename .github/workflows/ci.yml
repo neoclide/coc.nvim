@@ -9,6 +9,29 @@ on:
       - master
 
 jobs:
+  watcher-binary:
+    if: github.event.pull_request.draft == false
+    name: Watcher binary (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Test bundled watcher binary
+        run: npm run test:watcher-binary
+
   test:
     if: github.event.pull_request.draft == false
     timeout-minutes: 60

@@ -156,24 +156,26 @@ the project root.
 ==============================================================================
 File system watch					*coc-filesystemwatch*
 
-Watchman https://facebook.github.io/watchman/ is used by coc.nvim to provide
-file change detection to extensions and language servers. The watchman
-command is detected from your `$PATH`; the feature silently fails when
-watchman isn't working.
+Bundled native backends from https://github.com/parcel-bundler/watcher are
+used by coc.nvim to provide file change detection to extensions and language
+servers. macOS uses FSEvents, Linux uses inotify, Windows uses
+ReadDirectoryChangesW, and FreeBSD uses kqueue.
 
-Watchman automatically watches |coc-workspace-folders| for file events by
-default.
+Watchman https://facebook.github.io/watchman/ is used when configured
+explicitly, or as a fallback when a compatible bundled backend cannot be
+loaded. File watching silently fails when neither backend is available.
 
-Use the following command to open the output channel of watchman: >
+Workspace folders are watched recursively for file events by default.
+
+Use the following command to open the file watcher output channel: >
 	:CocCommand workspace.showOutput watchman
 <
 
 Use configuration |coc-config-fileSystemWatch| to change the behavior of file
 system watching.
 
-Note: The default filesystem watch limit can be easily exceeded for many
-projects; check out
-https://facebook.github.io/watchman/docs/install#system-specific-preparation
+Note: Linux inotify limits can be exceeded for projects with many folders.
+Increase the system inotify watch limit or configure Watchman when this occurs.
 
 ==============================================================================
 LANGUAGESERVER 						*coc-languageserver*

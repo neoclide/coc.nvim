@@ -2,6 +2,12 @@
 
 Notable changes of coc.nvim:
 
+## 2026-09-22
+
+- Use bundled Parcel watcher native backends for filesystem events on supported
+  desktop platforms, with Watchman retained as an explicit override and a
+  fallback when the native watcher is unavailable.
+
 ## 2026-09-11
 
 - Include `[extension: <id>]` in uncaught exception and unhandled rejection

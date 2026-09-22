@@ -450,7 +450,8 @@ export class Workspace {
   }
 
   /**
-   * Create a FileSystemWatcher instance, doesn't fail when watchman not found.
+   * Create a FileSystemWatcher instance. The returned watcher remains valid
+   * when no native or Watchman backend is available, but emits no events.
    */
   public createFileSystemWatcher(globPattern: GlobPattern, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
     return this.fileSystemWatchers.createFileSystemWatcher(globPattern, ignoreCreate, ignoreChange, ignoreDelete)

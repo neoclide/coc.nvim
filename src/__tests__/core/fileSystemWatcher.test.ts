@@ -1,6 +1,8 @@
 import * as shared from '../sharedUtil'
 import Configurations from '../../configuration/index'
+import { FileChange, FileWatcherClient } from '../../core/fileWatcher'
 import { FileSystemWatcher, FileSystemWatcherManager } from '../../core/fileSystemWatcher'
+import ParcelWatcher, { detectLinuxLibc, getParcelWatcherTarget, normalizeWatcherPath, relativeWatcherPath, watcherPathKey } from '../../core/parcelWatcher'
 import Watchman, { FileChangeItem } from '../../core/watchman'
 import WorkspaceFolderController from '../../core/workspaceFolder'
 import RelativePattern from '../../model/relativePattern'
@@ -68,7 +70,7 @@ before(() => new Promise<void>(done => {
   let userConfigFile = path.join(process.env.COC_VIMCONFIG, 'coc-settings.json')
   configurations = new Configurations(userConfigFile, undefined)
   workspaceFolder = new WorkspaceFolderController(configurations)
-  watcherManager = new FileSystemWatcherManager(workspaceFolder, defaultConfig)
+  watcherManager = new FileSystemWatcherManager(workspaceFolder, { ...defaultConfig, watchmanPath: 'watchman' })
   Object.assign(watcherManager, { disabled: false })
   watcherManager.attach(shared.createNullChannel())
   // create a mock sever for watchman
@@ -240,6 +242,166 @@ describe('Watchman#createClient', () => {
   })
 })
 
+describe('ParcelWatcher', () => {
+  it('should normalize platform paths used by the event index', () => {
+    assert.strictEqual(normalizeWatcherPath('\\\\?\\C:\\work\\src\\a.ts', 'win32'), 'C:\\work\\src\\a.ts')
+    assert.strictEqual(normalizeWatcherPath('\\\\?\\UNC\\server\\share\\a.ts', 'win32'), '\\\\server\\share\\a.ts')
+    assert.strictEqual(relativeWatcherPath('\\\\?\\C:\\work', 'C:\\work\\src\\a.ts', 'win32'), 'src/a.ts')
+    assert.strictEqual(relativeWatcherPath('C:\\work', '\\\\?\\C:\\work\\src\\a.ts', 'win32'), 'src/a.ts')
+    assert.strictEqual(watcherPathKey('C:\\WORK\\A.ts', 'win32'), watcherPathKey('c:\\work\\a.ts', 'win32'))
+    assert.strictEqual(watcherPathKey('/tmp/cafe\u0301', 'darwin'), watcherPathKey('/tmp/caf\u00e9', 'darwin'))
+  })
+
+  it('should default to glibc only when Linux runtime reporting is unavailable', () => {
+    assert.strictEqual(detectLinuxLibc(undefined), 'glibc')
+    assert.strictEqual(detectLinuxLibc({ header: {} }), 'musl')
+    assert.strictEqual(detectLinuxLibc({ header: { glibcVersionRuntime: '2.39' } }), 'glibc')
+  })
+
+  it('should resolve supported desktop targets', () => {
+    assert.deepStrictEqual(getParcelWatcherTarget('darwin', 'x64'), { backend: 'fs-events', filename: 'darwin-x64.node' })
+    assert.deepStrictEqual(getParcelWatcherTarget('darwin', 'arm64'), { backend: 'fs-events', filename: 'darwin-arm64.node' })
+    assert.deepStrictEqual(getParcelWatcherTarget('win32', 'x64'), { backend: 'windows', filename: 'win32-x64.node' })
+    assert.deepStrictEqual(getParcelWatcherTarget('win32', 'arm64'), { backend: 'windows', filename: 'win32-arm64.node' })
+    assert.deepStrictEqual(getParcelWatcherTarget('linux', 'x64', 'glibc'), { backend: 'inotify', filename: 'linux-x64-glibc.node' })
+    assert.deepStrictEqual(getParcelWatcherTarget('linux', 'arm64', 'musl'), { backend: 'inotify', filename: 'linux-arm64-musl.node' })
+    assert.deepStrictEqual(getParcelWatcherTarget('linux', 'arm', 'glibc'), { backend: 'inotify', filename: 'linux-arm-glibc.node' })
+    assert.deepStrictEqual(getParcelWatcherTarget('freebsd', 'x64'), { backend: 'kqueue', filename: 'freebsd-x64.node' })
+    assert.strictEqual(getParcelWatcherTarget('android', 'arm64'), undefined)
+    assert.strictEqual(getParcelWatcherTarget('linux', 'ppc64', 'glibc'), undefined)
+  })
+
+  it('should emit normalized file events from the bundled native watcher', async t => {
+    if (!getParcelWatcherTarget()) return t.skip('unsupported platform')
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-parcel-watch-'))
+    let client = await ParcelWatcher.createClient(root, shared.createNullChannel())
+    let changes: FileChangeItem[] = []
+    let disposable = client.subscribe('**/*.txt', change => changes.push(...change.files))
+    try {
+      fs.writeFileSync(path.join(root, 'created.txt'), 'one')
+      await shared.waitValue(() => changes.some(change => change.name === 'created.txt' && change.new), true)
+      fs.writeFileSync(path.join(root, 'ignored.js'), 'one')
+      await wait(100)
+      assert.strictEqual(changes.some(change => change.name === 'ignored.js'), false)
+    } finally {
+      disposable.dispose()
+      client.dispose()
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('should normalize directory create and delete events from the native watcher', async t => {
+    if (!getParcelWatcherTarget()) return t.skip('unsupported platform')
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-parcel-folders-'))
+    let external = `${root}-external`
+    fs.mkdirSync(path.join(root, 'deleted', 'nested'), { recursive: true })
+    fs.writeFileSync(path.join(root, 'deleted', 'one.txt'), 'one')
+    fs.writeFileSync(path.join(root, 'deleted', 'nested', 'two.txt'), 'two')
+    let client = await ParcelWatcher.createClient(root, shared.createNullChannel())
+    let changes: FileChangeItem[] = []
+    let disposable = client.subscribe('**/*', change => changes.push(...change.files))
+    try {
+      fs.rmSync(path.join(root, 'deleted'), { recursive: true })
+      await shared.waitValue(() => changes.filter(change => !change.exists).length, 2)
+      assert.deepStrictEqual(changes.filter(change => !change.exists).map(change => change.name).sort(), [
+        'deleted/nested/two.txt',
+        'deleted/one.txt'
+      ])
+
+      changes.length = 0
+      fs.mkdirSync(path.join(external, 'nested'), { recursive: true })
+      fs.writeFileSync(path.join(external, 'one.txt'), 'one')
+      fs.writeFileSync(path.join(external, 'nested', 'two.txt'), 'two')
+      fs.renameSync(external, path.join(root, 'imported'))
+      await shared.waitValue(() => changes.filter(change => change.exists).length, 2)
+      assert.deepStrictEqual(changes.filter(change => change.exists).map(change => change.name).sort(), [
+        'imported/nested/two.txt',
+        'imported/one.txt'
+      ])
+
+      changes.length = 0
+      fs.mkdirSync(path.join(root, 'empty'))
+      await wait(300)
+      fs.rmSync(path.join(root, 'empty'), { recursive: true })
+      fs.mkdirSync(path.join(root, 'unrelated'))
+      fs.writeFileSync(path.join(root, 'unrelated', 'new.txt'), 'new')
+      await shared.waitValue(() => changes.some(change => change.name === 'unrelated/new.txt'), true)
+      await wait(150)
+      assert.strictEqual(changes.some(change => change.name === 'empty/new.txt'), false)
+    } finally {
+      disposable.dispose()
+      client.dispose()
+      fs.rmSync(root, { recursive: true, force: true })
+      fs.rmSync(external, { recursive: true, force: true })
+    }
+  })
+
+  it('should normalize directory rename through a symlink root', async t => {
+    if (!getParcelWatcherTarget()) return t.skip('unsupported platform')
+    let parent = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-parcel-symlink-'))
+    let physicalRoot = path.join(parent, 'project')
+    let root = path.join(parent, 'link')
+    fs.mkdirSync(path.join(physicalRoot, 'old', 'nested'), { recursive: true })
+    fs.writeFileSync(path.join(physicalRoot, 'old', 'one.txt'), 'one')
+    fs.writeFileSync(path.join(physicalRoot, 'old', 'nested', 'two.txt'), 'two')
+    fs.symlinkSync(physicalRoot, root, process.platform === 'win32' ? 'junction' : 'dir')
+    let client = await ParcelWatcher.createClient(root, shared.createNullChannel())
+    let watcher = new FileSystemWatcher('**/*.txt', false, false, false)
+    let renames: string[] = []
+    watcher.onDidRename(event => renames.push(`${event.oldUri.fsPath}->${event.newUri.fsPath}`))
+    watcher.listen(root, client)
+    try {
+      fs.renameSync(path.join(physicalRoot, 'old'), path.join(physicalRoot, 'new'))
+      await shared.waitValue(() => renames.length, 2)
+      assert.ok(renames.every(rename => rename.includes(`${path.sep}old${path.sep}`) && rename.includes(`${path.sep}new${path.sep}`)))
+    } finally {
+      watcher.dispose()
+      client.dispose()
+      fs.rmSync(parent, { recursive: true, force: true })
+    }
+  })
+
+  it('should infer directory rename from normalized file events', () => {
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-directory-rename-'))
+    let listener: ((change: FileChange) => void) | undefined
+    let client: FileWatcherClient = {
+      root,
+      subscription: 'fake',
+      subscribe: (_pattern, callback) => {
+        listener = callback
+        return Disposable.create(() => {})
+      },
+      dispose: () => {}
+    }
+    let watcher = new FileSystemWatcher('**/*.txt', false, false, false)
+    let renames: string[] = []
+    let creates: string[] = []
+    let deletes: string[] = []
+    watcher.onDidRename(event => renames.push(`${event.oldUri.fsPath}->${event.newUri.fsPath}`))
+    watcher.onDidCreate(uri => creates.push(uri.fsPath))
+    watcher.onDidDelete(uri => deletes.push(uri.fsPath))
+    watcher.listen(root, client)
+    try {
+      listener!({
+        root,
+        subscription: 'fake',
+        files: [
+          { name: 'old-folder/one.txt', exists: false, new: false, type: 'f', size: 3, mtime_ms: 1 },
+          { name: 'new-folder/one.txt', exists: true, new: true, type: 'f', size: 3, mtime_ms: 1 },
+          { name: 'old-folder/two.txt', exists: false, new: false, type: 'f', size: 3, mtime_ms: 2 },
+          { name: 'new-folder/two.txt', exists: true, new: true, type: 'f', size: 3, mtime_ms: 2 }
+        ]
+      })
+      assert.strictEqual(renames.length, 2)
+      assert.strictEqual(creates.length, 2)
+      assert.strictEqual(deletes.length, 2)
+    } finally {
+      watcher.dispose()
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
 describe('fileSystemWatcher', () => {
 
   async function createWatcher(pattern: GlobPattern, ignoreCreateEvents = false, ignoreChangeEvents = false, ignoreDeleteEvents = false): Promise<FileSystemWatcher> {
@@ -346,13 +508,27 @@ describe('fileSystemWatcher', () => {
     })
     await shared.wait(50)
     let changes: FileChangeItem[] = [
-      createFileChange(`a`, false, false),
-      createFileChange(`b`, true, true),
+      createFileChange(`a`, false, false, 1),
+      createFileChange(`b`, true, true, 1),
     ]
     sendSubscription(watcher.subscribe, cwd, changes)
     await shared.waitValue(() => {
       return called
     }, true)
+  })
+
+  it('should not infer file rename without matching metadata', async t => {
+    let watcher = await createWatcher('**/*', false, false, false)
+    let called = false
+    watcher.onDidRename(() => {
+      called = true
+    })
+    sendSubscription(watcher.subscribe, cwd, [
+      { name: 'deleted', exists: false, new: false, type: 'f' },
+      createFileChange('created', true, true, 1),
+    ])
+    await wait(20)
+    assert.strictEqual(called, false)
   })
 
   it('should not watch for events', async t => {
@@ -412,10 +588,19 @@ describe('fileSystemWatcher', () => {
 })
 
 describe('create FileSystemWatcherManager', () => {
+  function createFakeClient(root: string): FileWatcherClient {
+    return {
+      root,
+      subscription: 'fake',
+      subscribe: () => Disposable.create(() => {}),
+      dispose: () => {}
+    }
+  }
+
   it('should attach to existing workspace folder', async t => {
     let workspaceFolder = new WorkspaceFolderController(configurations)
     workspaceFolder.addWorkspaceFolder(cwd, false)
-    let watcherManager = new FileSystemWatcherManager(workspaceFolder, { ...defaultConfig, enable: false })
+    let watcherManager = new FileSystemWatcherManager(workspaceFolder, { ...defaultConfig, enable: false, watchmanPath: 'watchman' })
     watcherManager.disabled = false
     watcherManager.attach(shared.createNullChannel())
     await watcherManager.createClient(cwd)
@@ -449,11 +634,76 @@ describe('create FileSystemWatcherManager', () => {
     }
   })
 
+  it('should fall back to Watchman when Parcel watcher creation fails', async t => {
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-fallback-'))
+    let folderControl = new WorkspaceFolderController(configurations)
+    let manager = new FileSystemWatcherManager(folderControl, defaultConfig)
+    manager.disabled = false
+    let originalSock = process.env.WATCHMAN_SOCK
+    process.env.WATCHMAN_SOCK = ''
+    let parcel = t.mock.method(ParcelWatcher, 'createClient', () => Promise.reject(new Error('missing binary')))
+    let watchman = t.mock.method(Watchman, 'createClient', () => Promise.resolve(createFakeClient(root)))
+    t.mock.method(manager, 'getWatchmanPath', () => Promise.resolve('watchman'))
+    try {
+      let client = await manager.createClient(root)
+      assert.notStrictEqual(client, false)
+      assert.strictEqual(parcel.mock.callCount(), 1)
+      assert.strictEqual(watchman.mock.callCount(), 1)
+    } finally {
+      manager.dispose()
+      process.env.WATCHMAN_SOCK = originalSock
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('should prefer Parcel when WATCHMAN_SOCK is set', async t => {
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-parcel-first-'))
+    let folderControl = new WorkspaceFolderController(configurations)
+    let manager = new FileSystemWatcherManager(folderControl, defaultConfig)
+    manager.disabled = false
+    let originalSock = process.env.WATCHMAN_SOCK
+    process.env.WATCHMAN_SOCK = sockPath
+    let parcel = t.mock.method(ParcelWatcher, 'createClient', () => Promise.resolve(createFakeClient(root) as ParcelWatcher))
+    let watchman = t.mock.method(Watchman, 'createClient', () => Promise.reject(new Error('should not run')))
+    try {
+      let client = await manager.createClient(root)
+      assert.notStrictEqual(client, false)
+      assert.strictEqual(parcel.mock.callCount(), 1)
+      assert.strictEqual(watchman.mock.callCount(), 0)
+    } finally {
+      manager.dispose()
+      process.env.WATCHMAN_SOCK = originalSock
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('should honor an explicit Watchman path without starting Parcel', async t => {
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-explicit-'))
+    let folderControl = new WorkspaceFolderController(configurations)
+    let manager = new FileSystemWatcherManager(folderControl, { ...defaultConfig, watchmanPath: '/custom/watchman' })
+    manager.disabled = false
+    let originalSock = process.env.WATCHMAN_SOCK
+    process.env.WATCHMAN_SOCK = sockPath
+    let parcel = t.mock.method(ParcelWatcher, 'createClient', () => Promise.reject(new Error('should not run')))
+    let watchman = t.mock.method(Watchman, 'createClient', () => Promise.resolve(createFakeClient(root)))
+    try {
+      let client = await manager.createClient(root)
+      assert.notStrictEqual(client, false)
+      assert.strictEqual(parcel.mock.callCount(), 0)
+      assert.strictEqual(watchman.mock.callCount(), 1)
+      assert.strictEqual(watchman.mock.calls[0].arguments[0], '/custom/watchman')
+    } finally {
+      manager.dispose()
+      process.env.WATCHMAN_SOCK = originalSock
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it('disposes a client whose creation completes after the folder was removed', async t => {
     let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-race-'))
     let folderControl = new WorkspaceFolderController(configurations)
     folderControl.addWorkspaceFolder(root, false)
-    let watcherManager = new FileSystemWatcherManager(folderControl, { ...defaultConfig, enable: true, ignoredFolders: [] })
+    let watcherManager = new FileSystemWatcherManager(folderControl, { ...defaultConfig, enable: true, ignoredFolders: [], watchmanPath: 'watchman' })
     watcherManager.disabled = false
     let resolveClient: (c: any) => void = () => {}
     let createSpy = t.mock.method(Watchman, 'createClient', () => new Promise(resolve => {
@@ -481,7 +731,7 @@ describe('create FileSystemWatcherManager', () => {
     let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-race-'))
     let folderControl = new WorkspaceFolderController(configurations)
     folderControl.addWorkspaceFolder(root, false)
-    let watcherManager = new FileSystemWatcherManager(folderControl, { ...defaultConfig, enable: true, ignoredFolders: [] })
+    let watcherManager = new FileSystemWatcherManager(folderControl, { ...defaultConfig, enable: true, ignoredFolders: [], watchmanPath: 'watchman' })
     watcherManager.disabled = false
     let resolveClient: (c: any) => void = () => {}
     let createSpy = t.mock.method(Watchman, 'createClient', () => new Promise(resolve => {
