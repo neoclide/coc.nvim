@@ -826,56 +826,64 @@ exports.activate = async () => {
       }
     })
 
-    it('should abandon activation after unload timeout', async t => {
-      tmpfolder = createFolder()
-      let name = `timed-out-activation-${crypto.randomUUID().slice(0, 8)}`
-      let command = `${name}.command`
-      let extFolder = path.join(tmpfolder, 'node_modules', name)
-      createExtension(extFolder, {
-        name,
-        main: 'index.js',
-        engines: { coc: '>=0.0.1' }
-      }, [
-        "const { commands } = require('coc.nvim')",
-        'let release',
-        'let deactivateCount = 0',
-        'exports.release = () => release()',
-        'exports.getDeactivateCount = () => deactivateCount',
-        'exports.activate = async context => {',
-        '  await new Promise(resolve => { release = resolve })',
-        `  context.subscriptions.push(commands.registerCommand('${command}', () => {}))`,
-        '}',
-        'exports.deactivate = () => { deactivateCount++ }'
-      ].join('\n'))
-      let manager = create(tmpfolder)
-      let previous = global.__isMain
-      global.__isMain = true
-      try {
-        await manager.loadExtension(extFolder)
-        let item = manager.getExtension(name)
-        let activeEvents = 0
-        manager.onDidActiveExtension(extension => {
-          if (extension.id === name) activeEvents++
-        }, null, disposables)
-        let scopeLogger = (logger as any).loggers.get('extensions-manager')
-        let warn = t.mock.method(scopeLogger, 'warn')
-        let activation = item.extension.activate()
-        await shared.waitValue(() => item.extension.module != null, true)
-        let module = item.extension.module as { release: () => void; getDeactivateCount: () => number }
-        await manager.unloadExtension(name)
-        assert.strictEqual(warn.mock.calls.some(call => String(call.arguments[0]).includes(name)), true)
-        module.release()
-        await activation
-        assert.strictEqual(item.extension.isActive, false)
-        assert.strictEqual(activeEvents, 0)
-        assert.strictEqual(commands.has(command), false)
-        assert.strictEqual(module.getDeactivateCount(), 1)
-      } finally {
-        if (commands.has(command)) commands.unregister(command)
-        if (previous === undefined) delete global.__isMain
-        else global.__isMain = previous
-      }
-    })
+    for (const outcome of ['success', 'reject', 'reject-with-cleanup-error']) {
+      it(`should clean up abandoned activation after unload timeout (${outcome})`, async t => {
+        tmpfolder = createFolder()
+        let name = `timed-out-activation-${crypto.randomUUID().slice(0, 8)}`
+        let command = `${name}.command`
+        let extFolder = path.join(tmpfolder, 'node_modules', name)
+        createExtension(extFolder, {
+          name,
+          main: 'index.js',
+          engines: { coc: '>=0.0.1' }
+        }, [
+          "const { commands } = require('coc.nvim')",
+          'let release',
+          'let deactivateCount = 0',
+          'exports.release = () => release()',
+          'exports.getDeactivateCount = () => deactivateCount',
+          'exports.activate = async context => {',
+          '  await new Promise(resolve => { release = resolve })',
+          `  context.subscriptions.push(commands.registerCommand('${command}', () => {}))`,
+          ...(outcome === 'success' ? [] : ["  throw new Error('activation failed after timeout')"]),
+          '}',
+          `exports.deactivate = () => { deactivateCount++; ${outcome === 'reject-with-cleanup-error' ? "throw new Error('cleanup failed')" : ''} }`
+        ].join('\n'))
+        let manager = create(tmpfolder)
+        let previous = global.__isMain
+        global.__isMain = true
+        try {
+          await manager.loadExtension(extFolder)
+          let item = manager.getExtension(name)
+          let activeEvents = 0
+          manager.onDidActiveExtension(extension => {
+            if (extension.id === name) activeEvents++
+          }, null, disposables)
+          let scopeLogger = (logger as any).loggers.get('extensions-manager')
+          let warn = t.mock.method(scopeLogger, 'warn')
+          let activation = item.extension.activate()
+          await shared.waitValue(() => item.extension.module != null, true)
+          let module = item.extension.module as { release: () => void; getDeactivateCount: () => number }
+          await manager.unloadExtension(name)
+          assert.strictEqual(warn.mock.calls.some(call => String(call.arguments[0]).includes(name)), true)
+          module.release()
+          if (outcome === 'success') {
+            await activation
+          } else {
+            await assert.rejects(activation, /activation failed after timeout/)
+          }
+          assert.strictEqual(item.extension.isActive, false)
+          assert.strictEqual(activeEvents, 0)
+          assert.strictEqual(commands.has(command), false)
+          assert.strictEqual(module.getDeactivateCount(), 1)
+          assert.strictEqual(item.extension.module, undefined)
+        } finally {
+          if (commands.has(command)) commands.unregister(command)
+          if (previous === undefined) delete global.__isMain
+          else global.__isMain = previous
+        }
+      })
+    }
 
     it('should dispose duplicated extension subscriptions once', async () => {
       tmpfolder = createFolder()
