@@ -139,6 +139,18 @@ describe('NativeWatcher unit', () => {
     assert.deepStrictEqual(options, { ignorePaths: [path.join(root, 'cache')] })
   })
 
+  it('rebases absolute ignore globs against logical and canonical roots', () => {
+    let root = path.resolve('physical', 'project')
+    let logicalRoot = path.resolve('links', 'project')
+    for (let base of [logicalRoot, root]) {
+      let options = createNativeOptions(root, logicalRoot, [path.join(base, 'vendor', '**')])
+      let regex = new RegExp(options.ignoreGlobs[0])
+      assert.strictEqual(regex.test('vendor/package/index.ts'), true)
+      assert.strictEqual(regex.test('src/index.ts'), false)
+    }
+    assert.deepStrictEqual(createNativeOptions(root, logicalRoot, [path.resolve('unrelated', '**')]), {})
+  })
+
   it('keeps native batches separate, including file and directory replacement', async t => {
     let binding = getBinding(t)
     if (!binding) return

@@ -95,6 +95,11 @@ export function createNativeOptions(root: string, logicalRoot: string, ignored: 
   for (let value of ignored) {
     if (!value) continue
     if (isGlob(value)) {
+      if (path.isAbsolute(value)) {
+        let relative = relativeWatcherPath(logicalRoot, value) ?? relativeWatcherPath(root, value)
+        if (!relative) continue
+        value = relative
+      }
       let regex = picomatch.makeRe(value, { dot: true, windows: process.platform === 'win32' })
       ;(options.ignoreGlobs ??= []).push(regex.source)
       continue

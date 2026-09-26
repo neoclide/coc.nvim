@@ -539,21 +539,25 @@ describe('NativeWatcher', () => {
     if (!getNativeWatcherTarget()) return t.skip('unsupported platform')
     let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-native-ignore-'))
     let ignored = path.join(root, 'nested', 'path-ignored')
-    let client = await NativeWatcher.createClient(root, shared.createNullChannel(), () => false, [ignored, '**/ignored', '**/ignored/**'])
+    let globIgnored = path.join(root, 'glob-ignored')
+    let client = await NativeWatcher.createClient(root, shared.createNullChannel(), () => false, [ignored, '**/ignored', '**/ignored/**', path.join(globIgnored, '**')])
     let changes: FileChangeItem[] = []
     let disposable = client.subscribe('**/*.txt', change => changes.push(...change.files))
     try {
       fs.mkdirSync(path.join(root, 'nested', 'ignored'), { recursive: true })
       fs.mkdirSync(ignored, { recursive: true })
+      fs.mkdirSync(globIgnored)
       fs.mkdirSync(path.join(root, 'visible'))
       fs.writeFileSync(path.join(root, 'nested', 'ignored', 'hidden.txt'), 'hidden')
       fs.writeFileSync(path.join(ignored, 'path-hidden.txt'), 'hidden')
+      fs.writeFileSync(path.join(globIgnored, 'glob-hidden.txt'), 'hidden')
       fs.writeFileSync(path.join(root, 'visible', 'shown.txt'), 'shown')
       await shared.waitValue(() => changes.some(change => change.name === 'visible/shown.txt'), true)
       fs.writeFileSync(path.join(root, 'visible', 'barrier.txt'), 'barrier')
       await shared.waitValue(() => changes.some(change => change.name === 'visible/barrier.txt'), true)
       assert.strictEqual(changes.some(change => change.name === 'nested/ignored/hidden.txt'), false)
       assert.strictEqual(changes.some(change => change.name === 'nested/path-ignored/path-hidden.txt'), false)
+      assert.strictEqual(changes.some(change => change.name === 'glob-ignored/glob-hidden.txt'), false)
     } finally {
       disposable.dispose()
       client.dispose()
@@ -655,16 +659,22 @@ describe('NativeWatcher', () => {
     let watcher = new FileSystemWatcher('**/*.txt', false, false, false)
     let renames: string[] = []
     let changes: string[] = []
+    let ready = false
     watcher.onDidRename(event => renames.push(`${event.oldUri.fsPath}->${event.newUri.fsPath}`))
     watcher.onDidChange(uri => changes.push(uri.fsPath))
+    client.subscribe('barrier', () => { ready = true })
     watcher.listen(root, client)
     try {
+      // Flush startup events so they cannot coalesce with the rename.
+      fs.writeFileSync(path.join(physicalRoot, 'barrier'), 'ready')
+      await shared.waitValue(() => ready, true)
       fs.renameSync(path.join(physicalRoot, 'old'), path.join(physicalRoot, 'new'))
       await shared.waitValue(() => renames.length, 2)
       assert.deepStrictEqual(renames.sort(), [
         `${path.join(root, 'old', 'nested', 'two.txt')}->${path.join(root, 'new', 'nested', 'two.txt')}`,
         `${path.join(root, 'old', 'one.txt')}->${path.join(root, 'new', 'one.txt')}`
       ].sort())
+      changes.length = 0
       fs.appendFileSync(path.join(physicalRoot, 'new', 'one.txt'), 'changed')
       await shared.waitValue(() => changes, [path.join(root, 'new', 'one.txt')])
     } finally {
