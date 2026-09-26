@@ -131,10 +131,11 @@ FILESYSTEMWATCH 					*coc-config-fileSystemWatch*
 
 "fileSystemWatch.watchmanPath" 				*coc-config-fileSystemWatch-watchmanPath*
 
-	Executable path for https://facebook.github.io/watchman/. Setting this
-	explicitly uses Watchman instead of the bundled native watcher. Watchman is
-	also detected from $PATH as a fallback when no compatible native watcher is
-	available.
+	Executable path for https://facebook.github.io/watchman/. When nonempty,
+	coc.nvim tries this Watchman executable once before falling back to the
+	bundled native watcher. Otherwise, coc.nvim tries the native watcher first,
+	then looks up Watchman on $PATH if it fails. When neither works, file
+	watching fails silently and writes trace logs to the watchman output channel.
 	
 	Scope: `application`, default: `null`
 

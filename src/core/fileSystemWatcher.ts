@@ -9,7 +9,7 @@ import { isFolderIgnored, isParentFolder, sameFile } from '../util/fs'
 import { minimatch, path, which } from '../util/node'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import { FileChange, FileWatcherClient } from './fileWatcher'
-import ParcelWatcher from './parcelWatcher'
+import NativeWatcher from './nativeWatcher'
 import Watchman from './watchman'
 import type WorkspaceFolderControl from './workspaceFolder'
 const logger = createLogger('fileSystemWatcher')
@@ -80,6 +80,7 @@ export class FileSystemWatcherManager {
   }
 
   public async createClient(root: string, skipCheck = false): Promise<FileWatcherClient | false | undefined> {
+    if (this.disposed) return false
     if (!skipCheck && (this.disabled || isFolderIgnored(root, this.config.ignoredFolders))) return
     if (this.has(root)) return this.waitClient(root)
     let pending = this.creating.get(root)
@@ -102,19 +103,29 @@ export class FileSystemWatcherManager {
 
   private async createClientInner(root: string, generation: number): Promise<FileWatcherClient | false | undefined> {
     try {
-      let client: FileWatcherClient
-      if (this.config.watchmanPath != null) {
-        let watchmanPath = await this.getWatchmanPath()
-        client = await Watchman.createClient(watchmanPath, root, this.channel)
-      } else {
+      let client: FileWatcherClient | undefined
+      let backends = this.config.watchmanPath ? ['watchman', 'native'] : ['native', 'watchman']
+      for (let backend of backends) {
+        if (this.disposed || generation !== this.generationOf(root)) return false
         try {
-          client = await ParcelWatcher.createClient(root, this.channel, () => this.disposed || generation !== this.generationOf(root), this.config.ignoredFolders)
+          this.channel?.appendLine(`Trying ${backend} watcher for ${root}`)
+          if (backend === 'native') {
+            client = await NativeWatcher.createClient(root, this.channel, () => this.disposed || generation !== this.generationOf(root), this.config.ignoredFolders)
+          } else {
+            let watchmanPath = await this.getWatchmanPath()
+            this.channel?.appendLine(`Watchman executable: ${watchmanPath}`)
+            if (this.disposed || generation !== this.generationOf(root)) return false
+            client = await Watchman.createClient(watchmanPath, root, this.channel)
+          }
+          this.channel?.appendLine(`Using ${backend} watcher for ${root}`)
+          break
         } catch (error) {
-          if (this.disposed || generation !== this.generationOf(root)) return false
-          this.channel?.appendLine(`Unable to use Parcel watcher for ${root}: ${error}`)
-          let watchmanPath = await this.getWatchmanPath()
-          client = await Watchman.createClient(watchmanPath, root, this.channel)
+          this.channel?.appendLine(`Unable to use ${backend} watcher for ${root}: ${error}`)
         }
+      }
+      if (!client) {
+        this.channel?.appendLine(`No file watcher backend available for ${root}`)
+        return false
       }
       // The folder was removed or the manager disposed while the client was
       // being created: the client must be closed, never published.
@@ -135,7 +146,7 @@ export class FileSystemWatcherManager {
   }
 
   public async getWatchmanPath(): Promise<string> {
-    let watchmanPath = this.config.watchmanPath ?? WATCHMAN_COMMAND
+    let watchmanPath = this.config.watchmanPath || WATCHMAN_COMMAND
     if (!process.env.WATCHMAN_SOCK) {
       watchmanPath = await which(watchmanPath, { all: false })
     }
@@ -245,6 +256,19 @@ export class FileSystemWatcher implements IFileSystemWatcher {
           } else {
             if (!ignoreChangeEvents) this._onDidChange.fire(uri)
           }
+        }
+      }
+      let renamePairs = new Map<string, { oldFile?: typeof files[number], newFile?: typeof files[number] }>()
+      for (let file of files) {
+        if (!file.renameId) continue
+        let pair = renamePairs.get(file.renameId) ?? {}
+        if (file.exists) pair.newFile = file
+        else pair.oldFile = file
+        renamePairs.set(file.renameId, pair)
+      }
+      for (let pair of renamePairs.values()) {
+        if (pair.oldFile && pair.newFile) {
+          fireRename(path.join(root, pair.oldFile.name), path.join(root, pair.newFile.name))
         }
       }
       // file rename

@@ -11,6 +11,7 @@ export interface FileChangeItem {
   new: boolean
   type: FileChangeKind
   mtime_ms?: number
+  renameId?: string
 }
 
 export interface FileChange {

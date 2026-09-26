@@ -2,6 +2,16 @@
 
 Notable changes of coc.nvim:
 
+## 2026-09-26
+
+- Replace Parcel watcher binaries with bundled native-watcher binaries on
+  macOS, Linux, and Windows. Native watcher events exclude symlinks and special
+  entries. A symlink workspace root is resolved to its real path before
+  subscribing.
+- A configured nonempty `fileSystemWatch.watchmanPath` now tries Watchman once
+  before the native watcher. Without it, coc.nvim tries the native watcher
+  first and looks up Watchman only after native watcher initialization fails.
+
 ## 2026-09-22
 
 - Use bundled Parcel watcher native backends for filesystem events on supported

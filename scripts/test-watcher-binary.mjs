@@ -1,5 +1,5 @@
+import { appendFile, mkdtemp, realpath, rename, rm, unlink, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
-import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -8,69 +8,71 @@ const require = createRequire(import.meta.url)
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 
 function getTarget() {
-  if (process.platform === 'darwin' && (process.arch === 'x64' || process.arch === 'arm64')) {
-    return { backend: 'fs-events', file: `darwin-${process.arch}.node` }
-  }
-  if (process.platform === 'win32' && (process.arch === 'x64' || process.arch === 'arm64')) {
-    return { backend: 'windows', file: `win32-${process.arch}.node` }
-  }
-  if (process.platform === 'freebsd' && process.arch === 'x64') {
-    return { backend: 'kqueue', file: 'freebsd-x64.node' }
-  }
-  if (process.platform === 'linux' && (process.arch === 'x64' || process.arch === 'arm64' || process.arch === 'arm')) {
+  if (process.platform === 'darwin' && (process.arch === 'x64' || process.arch === 'arm64')) return `darwin-${process.arch}.node`
+  if (process.platform === 'win32' && (process.arch === 'x64' || process.arch === 'arm64')) return `win32-${process.arch}.node`
+  if (process.platform === 'linux' && (process.arch === 'x64' || process.arch === 'arm64')) {
     let report
     try {
       report = process.report?.getReport()
     } catch {}
     const libc = typeof report !== 'object' || report == null || typeof report.header?.glibcVersionRuntime === 'string' ? 'glibc' : 'musl'
-    return { backend: 'inotify', file: `linux-${process.arch}-${libc}.node` }
+    return `linux-${process.arch}-${libc}.node`
   }
   throw new Error(`No bundled watcher for ${process.platform}-${process.arch}`)
 }
 
-function pathKey(filepath) {
-  if (process.platform === 'win32') {
-    if (filepath.toLowerCase().startsWith('\\\\?\\unc\\')) {
-      filepath = `\\\\${filepath.slice(8)}`
-    } else if (filepath.startsWith('\\\\?\\')) {
-      filepath = filepath.slice(4)
-    }
-  } else if (process.platform === 'darwin') {
-    filepath = filepath.normalize('NFC')
-  }
-  return process.platform === 'darwin' || process.platform === 'win32' ? filepath.toLowerCase() : filepath
-}
-
-const target = getTarget()
-const binary = join(scriptDir, '..', 'bin', 'watcher', target.file)
-const binding = require(binary)
+const binary = getTarget()
+const binding = require(join(scriptDir, '..', 'bin', 'watcher', binary))
 const root = await mkdtemp(join(tmpdir(), 'coc-watcher-smoke-'))
 const watchRoot = await realpath(root)
-const createdFile = join(watchRoot, 'created.txt')
-const createdFileKey = pathKey(createdFile)
-let timeout
-let callback
+const created = join(watchRoot, 'created.txt')
+const renamed = join(watchRoot, 'renamed.txt')
+let handler
+let rejectWait
+const callback = (error, events) => handler?.(error, events)
 
-try {
-  const eventReceived = new Promise((resolve, reject) => {
-    timeout = setTimeout(() => reject(new Error(`No event received from ${target.file}`)), 15000)
-    callback = (error, events) => {
+function waitFor(predicate, action) {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      rejectWait = undefined
+      reject(new Error(`Timed out waiting for ${binary}`))
+    }, 15000)
+    rejectWait = reject
+    handler = (error, events) => {
       if (error) {
+        clearTimeout(timeout)
+        rejectWait = undefined
         reject(error)
-      } else if (events.some(event => {
-        const eventPath = pathKey(event.path)
-        return eventPath === createdFileKey && event.type === 'create'
-      })) {
+        return
+      }
+      if (events.some(predicate)) {
+        clearTimeout(timeout)
+        rejectWait = undefined
         resolve()
       }
     }
+    void action().catch(error => {
+      clearTimeout(timeout)
+      rejectWait = undefined
+      reject(error)
+    })
   })
-  await binding.subscribe(watchRoot, callback, { backend: target.backend })
-  await writeFile(createdFile, 'watcher smoke test')
-  await eventReceived
-  console.log(`Verified ${target.file} with ${target.backend}`)
+}
+
+try {
+  await binding.subscribe(watchRoot, callback, {})
+  await waitFor(event => event.path === created && event.type === 'create' && event.kind === 'file', () => writeFile(created, 'watcher smoke test'))
+  await waitFor(event => event.path === created && event.type === 'update' && event.kind === 'file', () => appendFile(created, '\nupdated'))
+  const renameEvents = []
+  await waitFor(event => {
+    if (event.kind === 'file' && (event.path === created || event.path === renamed)) renameEvents.push(event)
+    const deleted = renameEvents.find(item => item.path === created && item.type === 'delete' && typeof item.renameId === 'string')
+    return deleted != null && renameEvents.some(item => item.path === renamed && item.type === 'create' && item.renameId === deleted.renameId)
+  }, () => rename(created, renamed))
+  await waitFor(event => event.path === renamed && event.type === 'delete' && event.kind === 'file', () => unlink(renamed))
+  console.log(`Verified ${binary}`)
 } finally {
-  clearTimeout(timeout)
-  if (callback) await binding.unsubscribe(watchRoot, callback, { backend: target.backend })
+  await binding.unsubscribe(watchRoot, callback, {})
+  if (rejectWait) rejectWait(new Error('Watcher smoke test stopped'))
   await rm(root, { recursive: true, force: true })
 }
