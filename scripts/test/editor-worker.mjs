@@ -2,6 +2,7 @@
 import {run} from 'node:test'
 import * as cp from 'node:child_process'
 import crypto from 'node:crypto'
+import {on} from 'node:events'
 import net from 'node:net'
 import os from 'node:os'
 import path from 'node:path'
@@ -28,7 +29,7 @@ async function main(options) {
   const captured = []
   let suiteFailures = 0
   let durationMs = 0
-  const session = createEditorSession()
+  const session = createEditorSession(abort.signal)
   process.send?.({type: 'progress', file, state: {status: 'running', durationMs: 0}})
   try {
     await session.start(editor)
@@ -133,7 +134,7 @@ function requestCompiledRecords(files) {
   })
 }
 
-function createEditorSession() {
+function createEditorSession(signal) {
   // SSH and Git Bash set SHELL to different programs on Windows. Use the
   // native shell so Vim chooses the matching quoting and redirection flags.
   if (process.platform === 'win32') process.env.SHELL = process.env.COMSPEC
@@ -155,11 +156,20 @@ function createEditorSession() {
   }
 
   async function startNvim() {
-    proc = cp.spawn(process.env.NVIM_COMMAND ?? 'nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {cwd: nvimCwd})
+    proc = cp.spawn(process.env.NVIM_COMMAND ?? 'nvim', [
+      '-u', vimrc, '-i', 'NONE', '--embed',
+      '--cmd', "autocmd VimEnter * call rpcnotify(1, 'CocAutocmd', 'CocTestReady')",
+    ], {cwd: nvimCwd})
     proc.unref()
     plugin = attach({proc})
     const {nvim} = plugin
-    await nvim.uiAttach(160, 80, {})
+    // Cold startup can exceed the RPC client's 3s request timeout on Windows.
+    // Wait for VimEnter under the worker deadline before issuing requests.
+    const notifications = on(nvim, 'notification', {signal})
+    nvim.notify('nvim_ui_attach', [160, 80, {}])
+    for await (const [method, args] of notifications) {
+      if (method === 'CocAutocmd' && args[0] === 'CocTestReady') break
+    }
     nvim.call('coc#rpc#set_channel', [1], true)
     nvim.on('vim_error', error => {
       if (typeof error === 'string' && error.startsWith('Lua')) console.error('Error from vim: ', error)

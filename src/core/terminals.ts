@@ -40,9 +40,10 @@ export default class Terminals {
   public readonly onDidOpenTerminal: Event<TerminalModel> = this._onDidOpenTerminal.event
 
   constructor() {
-    events.on('BufUnload', bufnr => {
+    events.on('BufUnload', (bufnr, status) => {
       if (this._terminals.has(bufnr)) {
         let terminal = this._terminals.get(bufnr)
+        if (status != null) terminal.onExit(status)
         this._onDidCloseTerminal.fire(terminal)
         this._terminals.delete(bufnr)
       }

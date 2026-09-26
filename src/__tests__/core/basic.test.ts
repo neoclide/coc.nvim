@@ -801,6 +801,11 @@ describe('create terminal', () => {
   })
 
   it('should have exit code', async t => {
+    // Neovim's default TermClose handler removes a successful default-shell
+    // terminal before the job's on_exit callback runs.
+    let shell = await nvim.getOption('shell') as string
+    t.after(async () => { await nvim.setOption('shell', shell) })
+    await nvim.setOption('shell', which.sync('bash'))
     let exitStatus
     terminals.onDidCloseTerminal(terminal => {
       exitStatus = terminal.exitStatus
@@ -815,7 +820,7 @@ describe('create terminal', () => {
     await shared.waitValue(() => {
       return exitStatus != null
     }, true)
-    assert.notStrictEqual(exitStatus.code, undefined)
+    assert.strictEqual(exitStatus.code, 0)
   })
 
   it('tracks exit status for each terminal independently', async () => {

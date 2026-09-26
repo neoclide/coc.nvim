@@ -434,7 +434,8 @@ function! s:Enable(initialize) abort
     autocmd CursorHold          * call s:Autocmd('CursorHold', +expand('<abuf>'), [line('.'), col('.')], win_getid())
     autocmd CursorHoldI         * call s:Autocmd('CursorHoldI', +expand('<abuf>'), [line('.'), col('.')], win_getid())
     autocmd BufNewFile,BufReadPost * call s:Autocmd('BufCreate', +expand('<abuf>'))
-    autocmd BufUnload           * call s:Autocmd('BufUnload', +expand('<abuf>'))
+    " Neovim can unload a terminal inside TermClose, before its on_exit callback.
+    autocmd BufUnload           * call s:Autocmd('BufUnload', +expand('<abuf>'), get(v:event, 'status', v:null))
     autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'), bufname(+expand('<abuf>')), getbufvar(+expand('<abuf>'), 'changedtick'))
     autocmd FocusGained         * if mode() !~# '^c' | call s:Autocmd('FocusGained') | endif
     autocmd FocusLost           * call s:Autocmd('FocusLost')

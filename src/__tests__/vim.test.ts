@@ -958,6 +958,9 @@ describe('client API', () => {
 
   it('should out_write', async t => {
     await editorReset()
+    // Clear the previous message synchronously; nvim.command('echo ...') is
+    // deferred on Vim and could otherwise erase the output written below.
+    await nvim.call('execute', ['echo ""', ''])
     nvim.outWrite('foo')
     nvim.outWriteLine('bar')
     await shared.waitValue(() => shared.getCmdline(), 'foobar')
