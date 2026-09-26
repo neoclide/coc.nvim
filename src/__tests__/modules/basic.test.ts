@@ -4,6 +4,7 @@ import * as shared from '../sharedUtil'
 // startup overhead.
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
+import which from 'which'
 import { Disposable } from 'vscode-languageserver-protocol'
 import sources from '../../completion/sources'
 import { ISource, SourceType } from '../../completion/types'
@@ -120,7 +121,7 @@ describe('task test', () => {
         resolve(lines)
       })
     })
-    await task.start({ cmd: '/bin/sh', args: [file] })
+    await task.start({ cmd: which.sync('sh'), args: [file] })
     let lines = await p
     assert.deepStrictEqual(lines, ['foo'])
   })
@@ -139,7 +140,7 @@ describe('task test', () => {
       })
     })
     await task.start({
-      cmd: '/bin/sh',
+      cmd: which.sync('sh'),
       args: [file],
       env: {
         NODE_ENV: 'production',
@@ -164,7 +165,7 @@ describe('task test', () => {
         resolve(lines)
       })
     })
-    await task.start({ cmd: '/bin/sh', args: [file] })
+    await task.start({ cmd: which.sync('sh'), args: [file] })
     let lines = await p
     assert.deepStrictEqual(lines, ['3', '', '4'])
     task.dispose()

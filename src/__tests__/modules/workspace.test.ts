@@ -35,7 +35,7 @@ describe('workspace properties', () => {
     assert.ok(nvim)
     assert.strictEqual(documents.length, 1)
     assert.strictEqual(textDocuments.length, 1)
-    assert.strictEqual(cwd, process.cwd())
+    assert.strictEqual(cwd, URI.file(process.cwd()).fsPath)
     let floatSupported = workspace.floatSupported
     assert.strictEqual(floatSupported, true)
     let { pluginRoot } = workspace
@@ -50,7 +50,7 @@ describe('workspace properties', () => {
     let folder = workspace.getWorkspaceFolder(URI.parse('lsp:/1'))
     assert.strictEqual(folder, undefined)
     let rootPath = await shared.doAction('currentWorkspacePath')
-    assert.strictEqual(rootPath, process.cwd())
+    assert.strictEqual(rootPath, URI.file(process.cwd()).fsPath)
   })
 
   it('should get filetyps', async t => {
@@ -261,7 +261,7 @@ describe('workspace methods', () => {
     // import.meta.dirname so ${fileDirname} matches path.dirname(import.meta.dirname).
     await shared.edit(path.join(path.dirname(import.meta.dirname), 'bar.ts'))
     assert.ok(workspace.expand('${file}').includes('bar'))
-    assert.strictEqual(workspace.expand('${fileDirname}'), path.dirname(import.meta.dirname))
+    assert.strictEqual(workspace.expand('${fileDirname}'), URI.file(path.dirname(import.meta.dirname)).fsPath)
     assert.strictEqual(workspace.expand('${fileExtname}'), '.ts')
     assert.strictEqual(workspace.expand('${fileBasename}'), 'bar.ts')
     assert.strictEqual(workspace.expand('${fileBasenameNoExtension}'), 'bar')

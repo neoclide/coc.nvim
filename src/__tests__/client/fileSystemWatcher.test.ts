@@ -60,7 +60,7 @@ class CustomWatcher implements IFileSystemWatcher {
 describe('FileSystemWatcherFeature', () => {
   it('should hook file events from client configuration', async t => {
     let res = asRelativePattern({ baseUri: { name: 'name', uri: '/tmp' }, pattern: '**' })
-    assert.strictEqual(res.baseUri.fsPath, '/tmp')
+    assert.strictEqual(res.baseUri.fsPath, URI.file('/tmp').fsPath)
     let client: LanguageClient
     let watcher = new CustomWatcher()
     let called = false

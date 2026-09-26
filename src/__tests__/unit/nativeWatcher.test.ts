@@ -8,6 +8,7 @@ import os from 'os'
 import path from 'path'
 import { createRequire } from 'module'
 import { pluginRoot } from '../../util/constants'
+import { URI } from 'vscode-uri'
 
 interface NativeEvent {
   path: string
@@ -48,7 +49,7 @@ function createRoot(): { root: string, dispose: () => void } {
   let parent = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-native-unit-'))
   let root = path.join(parent, 'root')
   fs.mkdirSync(root)
-  return { root: fs.realpathSync(root), dispose: () => fs.rmSync(parent, { recursive: true, force: true }) }
+  return { root: URI.file(fs.realpathSync.native(root)).fsPath, dispose: () => fs.rmSync(parent, { recursive: true, force: true }) }
 }
 
 function getBinding(t: { skip(message?: string): void }): NativeBinding | undefined {

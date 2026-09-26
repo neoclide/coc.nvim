@@ -5,7 +5,7 @@ import { createLogger } from '../logger'
 import { FileWatchConfig, GlobPattern, IFileSystemWatcher, OutputChannel } from '../types'
 import { disposeAll, isTester } from '../util'
 import { splitArray } from '../util/array'
-import { isFolderIgnored, isParentFolder, sameFile } from '../util/fs'
+import { isFolderIgnored, isParentFolder, normalizeFilePath, sameFile } from '../util/fs'
 import { minimatch, path, which } from '../util/node'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import { FileChange, FileWatcherClient } from './fileWatcher'
@@ -66,6 +66,7 @@ export class FileSystemWatcherManager {
   }
 
   public waitClient(root: string): Promise<FileWatcherClient | false | undefined> {
+    root = normalizeFilePath(root)
     if (this.clientsMap.has(root)) return Promise.resolve(this.clientsMap.get(root))
     let pending = this.creating.get(root)
     if (pending) return pending
@@ -80,6 +81,7 @@ export class FileSystemWatcherManager {
   }
 
   public async createClient(root: string, skipCheck = false): Promise<FileWatcherClient | false | undefined> {
+    root = normalizeFilePath(root)
     if (this.disposed) return false
     if (!skipCheck && (this.disabled || isFolderIgnored(root, this.config.ignoredFolders))) return
     if (this.has(root)) return this.waitClient(root)

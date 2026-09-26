@@ -2,6 +2,7 @@ import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
 import { TerminalModel } from '../../model/terminal'
+import { sameFile } from '../../util/fs'
 
 let nvim: Neovim
 let terminal: TerminalModel
@@ -23,10 +24,11 @@ describe('terminal properties', () => {
 
   it('should have correct cwd and env', async t => {
     let bufnr = terminal.bufnr
-    terminal.sendText('echo $PWD')
-    await shared.waitFor('eval', [`join(getbufline(${bufnr},1,'$'),'\n')`], /\S/)
-    let lines = await nvim.call('getbufline', [bufnr, 1, '$']) as string[]
-    assert.ok(lines[0].trim().length > 0)
+    terminal.sendText('node -p "process.cwd()"')
+    await shared.waitValue(async () => {
+      let lines = await nvim.call('getbufline', [bufnr, 1, '$']) as string[]
+      return lines.some(line => sameFile(line.trim(), import.meta.dirname))
+    }, true)
     terminal.sendText('echo $COC_TERMINAL')
     await shared.waitFor('eval', [`join(getbufline(${bufnr},1,'$'),'\n')`], /option '-term'/)
     terminal.onExit(-1)

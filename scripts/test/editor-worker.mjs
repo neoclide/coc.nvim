@@ -134,6 +134,9 @@ function requestCompiledRecords(files) {
 }
 
 function createEditorSession() {
+  // SSH and Git Bash set SHELL to different programs on Windows. Use the
+  // native shell so Vim chooses the matching quoting and redirection flags.
+  if (process.platform === 'win32') process.env.SHELL = process.env.COMSPEC
   const bundle = globalThis.__cocBundle
   const attach = bundle['src/attach'].default
   const {terminate} = bundle['src/util/processes']
@@ -173,14 +176,17 @@ function createEditorSession() {
       })
     })
     const address = await listenOnVim(server)
-    proc = cp.spawn(process.env.VIM_COMMAND ?? 'vim', ['--clean', '--not-a-term', '-u', vimrc], {
+    proc = cp.spawn(process.env.VIM_COMMAND ?? 'vim', ['-f', '--clean', '--not-a-term', '-u', vimrc], {
       stdio: 'pipe',
       cwd: nvimCwd,
       env: {COC_NVIM_REMOTE_ADDRESS: address, ...process.env},
     })
     proc.on('error', error => console.error(error))
-    proc.on('exit', code => {
-      if (code) console.error('vim exit with code ' + code)
+    proc.on('exit', (code, signal) => {
+      if (!stopped) {
+        const error = new Error(`vim exited unexpectedly (${signal ?? code})`)
+        process.send?.({type: 'error', error: serializeError(error)})
+      }
     })
     await connected
   }

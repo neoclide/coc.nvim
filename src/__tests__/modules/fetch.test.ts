@@ -676,17 +676,11 @@ describe('download', () => {
   })
 
   it('should throw on agent error', async t => {
-    let noProxy = process.env.no_proxy
-    delete process.env.NO_PROXY
-    delete process.env.no_proxy
-    process.env.HTTP_PROXY = `http://127.0.0.1`
+    shared.updateConfiguration('http.proxy', 'http://127.0.0.1:1')
     try {
       await assert.rejects(() => download(`http://127.0.0.1:${port}/json`, { dest: tempdir }), /using proxy/)
     } finally {
-      delete process.env.HTTP_PROXY
-      if (noProxy == null) delete process.env.no_proxy
-      else process.env.no_proxy = noProxy
-      process.env.NO_PROXY = '*'
+      shared.updateConfiguration('http.proxy', '')
     }
     let fn = async () => {
       let agent = new http.Agent({ keepAlive: true })

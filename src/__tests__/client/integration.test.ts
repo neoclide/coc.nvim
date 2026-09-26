@@ -622,6 +622,7 @@ describe('Client integration', () => {
     await assert.rejects(async () => {
       let option: lsclient.ServerOptions = {
         command: 'foobar',
+        options: { shell: false },
         transport: lsclient.TransportKind.pipe
       }
       await testLanguageServer(option, {})
@@ -659,6 +660,7 @@ describe('Client integration', () => {
     await assert.rejects(async () => {
       let option: lsclient.ServerOptions = {
         command: 'foobar',
+        options: { shell: false },
         transport: {
           kind: lsclient.TransportKind.socket,
           port: 9998
@@ -716,6 +718,7 @@ describe('Client integration', () => {
     let serverModule = path.join(import.meta.dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
       command: 'not_exists',
+      options: { shell: false },
       args: [serverModule, '--stdio']
     }
     let clientOptions: lsclient.LanguageClientOptions = {
@@ -957,6 +960,7 @@ describe('Client integration', () => {
     it('should reject start when command is not found', async t => {
       let serverOptions: lsclient.ServerOptions = {
         command: path.join(import.meta.dirname, './server/not-found-command'),
+        options: { shell: false },
         args: ['--stdio'],
         transport: lsclient.TransportKind.stdio
       }

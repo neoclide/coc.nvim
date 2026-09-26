@@ -74,7 +74,7 @@ export function normalizeWatcherPath(filepath: string, platform = process.platfo
     else if (filepath.startsWith('\\\\?\\')) filepath = filepath.slice(4)
     return path.win32.normalize(filepath)
   }
-  filepath = path.normalize(filepath)
+  filepath = path.posix.normalize(filepath)
   return platform === 'darwin' ? filepath.normalize('NFC') : filepath
 }
 

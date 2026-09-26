@@ -583,7 +583,7 @@ describe('Installer', () => {
     })
 
     it('should install dependencies', async t => {
-      let npm = path.resolve(import.meta.dirname, '../npm')
+      let npm = path.resolve(import.meta.dirname, process.platform === 'win32' ? '../npm.cmd' : '../npm')
       tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
       fs.mkdirSync(tmpfolder)
       let installer = new Installer(tmpfolder, npm, 'coc-omni')

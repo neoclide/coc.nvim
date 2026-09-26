@@ -362,7 +362,7 @@ describe('formatting', () => {
     let cwd = process.cwd()
     assert.match(formatUri('http://www.example.com', cwd), new RegExp('http'))
     assert.match(formatUri(URI.file(import.meta.filename).toString(), cwd), new RegExp('list'))
-    assert.match(formatUri(URI.file(os.tmpdir()).toString(), cwd), new RegExp(os.tmpdir()))
+    assert.strictEqual(formatUri(URI.file(os.tmpdir()).toString(), cwd), URI.file(os.tmpdir()).fsPath)
   })
 
   it('should fixWidth', t => {

@@ -1576,7 +1576,7 @@ describe('native sources', () => {
   })
 
   it('should getDirectory', t => {
-    assert.strictEqual(getDirectory('a/b', '/home'), '/home/a')
+    assert.strictEqual(getDirectory('a/b', '/home'), path.join('/home', 'a'))
     assert.strictEqual(getDirectory(import.meta.dirname, '/home'), path.dirname(import.meta.dirname))
   })
 

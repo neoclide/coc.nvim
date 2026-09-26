@@ -310,7 +310,7 @@ describe('codeLenes feature', () => {
   })
 
   it('should refresh for failed codeLens request', async t => {
-    let called = 0
+    let fail = true
     let fn = t.mock.fn()
     disposables.push(commands.registerCommand('__save', (...args) => {
       fn(...args)
@@ -320,8 +320,7 @@ describe('codeLenes feature', () => {
     }))
     disposables.push(languages.registerCodeLensProvider([{ language: '*' }], {
       provideCodeLenses: () => {
-        called++
-        if (called == 1) {
+        if (fail) {
           return null
         }
         return [{
@@ -339,13 +338,13 @@ describe('codeLenes feature', () => {
       }
     }))
     let doc = await shared.createDocument('example.js')
-    // Wait for the initial debounced fetch, not only BufferSync creation.
-    // Otherwise checkProvider() can become the first fetch and the test never
-    // exercises recovery from the provider's initial null result.
+    // Keep failing until this document shows the other provider's lens.
+    // Background fetches for other buffers must not consume the failure.
     await shared.waitValue(() => {
       let item = codeLens.buffers.getItem(doc.buffer.id)
-      return called === 1 && item?.currentCodeLens?.length === 1
+      return item?.currentCodeLens?.length === 1
     }, true)
+    fail = false
     await nvim.call('setline', [1, ['a', 'b', 'c']])
     await codeLens.checkProvider()
     let markers = await doc.buffer.getExtMarks(srcId, 0, -1)

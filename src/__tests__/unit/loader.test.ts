@@ -200,7 +200,7 @@ exports.activate = () => {
     let ext = createExtension('builtins', path.join(folder, 'index.js'), false)
     let res = ext.activate({} as any)
     assert.strictEqual(res.samePath, true)
-    assert.strictEqual(res.joined, 'a/b')
+    assert.strictEqual(res.joined, path.join('a', 'b'))
     assert.strictEqual(res.sameProc, true)
     assert.strictEqual(res.facadeProc, true)
   })

@@ -377,7 +377,8 @@ describe('DiagnosticFeature', () => {
     const middleware: lsclient.Middleware = {
       provideDiagnostics: async (document, previousResultId, token, next) => {
         calls++
-        if (holdNextPull) {
+        // The newly opened tab also starts a pull; hold the closing document's.
+        if (holdNextPull && (document instanceof URI ? document.toString() : document.uri) === uri) {
           holdNextPull = false
           pullStarted()
           await pending

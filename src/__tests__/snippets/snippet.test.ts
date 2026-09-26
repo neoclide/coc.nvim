@@ -187,7 +187,7 @@ describe('CocSnippet', () => {
 
     it('should resolve uppercase variables', async t => {
       let doc = await shared.createDocument()
-      let fsPath = URI.parse(doc.uri).fsPath
+      let fsPath = await doc.buffer.name
       await assertResult('$TM_FILENAME', path.basename(fsPath))
       await assertResult('$TM_FILENAME_BASE', path.basename(fsPath, path.extname(fsPath)))
       await assertResult('$TM_DIRECTORY', path.dirname(fsPath))
@@ -485,7 +485,7 @@ describe('CocSnippet', () => {
 
   describe('code block initialize', () => {
     it('should init shell code block', async t => {
-      await assertResult('`echo "hello"` world', 'hello world', {})
+      await assertResult('`echo hello` world', 'hello world', {})
     })
 
     it('should init vim block', async t => {
@@ -495,7 +495,7 @@ describe('CocSnippet', () => {
     })
 
     it('should init code block in placeholders', async t => {
-      await assertResult('f ${1:`echo "b"`}', 'f b', {})
+      await assertResult('f ${1:`echo b`}', 'f b', {})
       await assertResult('f ${1:`!v "b"`}', 'f b', {})
       await assertResult('f ${1:`!p snip.rv = "b"`}', 'f b', {})
     })

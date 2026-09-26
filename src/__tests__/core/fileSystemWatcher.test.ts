@@ -215,10 +215,10 @@ describe('Watchman#subscribe', () => {
     disposables.push(client)
     await client.watchProject(cwd)
     let called = false
-    let disposable = client.subscribe(`${cwd}/*`, () => {
+    let disposable = client.subscribe('*', () => {
       called = true
     })
-    let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
+    let changes: FileChangeItem[] = [createFileChange('a')]
     sendSubscription(client.subscription, cwd, changes)
     await shared.waitValue(() => called, true)
     assert.strictEqual(called, true)
@@ -231,8 +231,8 @@ describe('Watchman#subscribe', () => {
     watchResponse = { watch: cwd, relative_path: 'foo' }
     await client.watchProject(cwd)
     let fn = t.mock.fn()
-    let disposable = client.subscribe(`${cwd}/*`, fn)
-    let changes: FileChangeItem[] = [createFileChange(`${cwd}/a`)]
+    let disposable = client.subscribe('*', fn)
+    let changes: FileChangeItem[] = [createFileChange('a')]
     sendSubscription(client.subscription, cwd, changes)
     await wait(30)
     assert.ok(fn.mock.callCount() > 0)
@@ -360,7 +360,7 @@ describe('NativeWatcher', () => {
       path.join(canonicalRoot, 'canonical-ignore')
     ])
     options = createNativeOptions('/project', '/project/link', ['/project/link/cache'])
-    assert.deepStrictEqual(options.ignorePaths, ['/project/cache'])
+    assert.deepStrictEqual(options.ignorePaths, [path.resolve('/project/cache')])
   })
 
   it('delivers callbacks received before subscribe resolves', async t => {
@@ -369,7 +369,7 @@ describe('NativeWatcher', () => {
     let parent = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-native-startup-'))
     let createdRoot = path.join(parent, 'project')
     fs.mkdirSync(createdRoot)
-    let physicalRoot = fs.realpathSync(createdRoot)
+    let physicalRoot = fs.realpathSync.native(createdRoot)
     let binding = nodeRequire(path.join(pluginRoot, 'bin', 'watcher', target.filename)) as {
       subscribe: (root: string, callback: (error: Error | null, events: Array<{ path: string, type: 'create', kind: 'file' }>) => void, options: unknown) => Promise<void>
       unsubscribe: (root: string, callback: unknown, options: unknown) => Promise<void>
@@ -417,7 +417,7 @@ describe('NativeWatcher', () => {
       fs.rmSync(parent, { recursive: true, force: true })
       return t.skip('symbolic links unavailable')
     }
-    let canonicalRoot = fs.realpathSync(project)
+    let canonicalRoot = fs.realpathSync.native(project)
     let binding = nodeRequire(path.join(pluginRoot, 'bin', 'watcher', target.filename)) as {
       subscribe: (root: string, callback: unknown, options: unknown) => Promise<void>
       unsubscribe: (root: string, callback: unknown, options: unknown) => Promise<void>
@@ -589,7 +589,15 @@ describe('NativeWatcher', () => {
     let disposable = client.subscribe('*.txt', change => changes.push(...change.files))
     try {
       fs.unlinkSync(existing)
-      createLink(created)
+      // Windows exposes an ordinary file while constructing a symlink.
+      // Move a completed link into the watched tree to test link filtering.
+      let incoming = `${root}-incoming.txt`
+      try {
+        createLink(incoming)
+        fs.renameSync(incoming, created)
+      } finally {
+        fs.rmSync(incoming, { force: true })
+      }
       fs.writeFileSync(path.join(root, 'visible.txt'), 'barrier')
       await shared.waitValue(() => changes.some(change => change.name === 'visible.txt'), true)
       assert.strictEqual(changes.some(change => change.name === 'existing.txt' || change.name === 'created.txt'), false)
@@ -848,7 +856,7 @@ describe('fileSystemWatcher', () => {
     ]
     sendSubscription(watcher.subscribe, cwd, changes)
     await shared.waitValue(() => fn.mock.calls.length, 1)
-    assert.strictEqual(fn.mock.calls[0].arguments[0].fsPath, path.join(cwd, 'src/index.ts'))
+    assert.strictEqual(fn.mock.calls[0].arguments[0].fsPath, URI.file(path.join(cwd, 'src/index.ts')).fsPath)
   })
 
   it('should use relative pattern #2', async t => {
@@ -1001,7 +1009,7 @@ describe('fileSystemWatcher', () => {
     sendSubscription(watcher.subscribe, import.meta.dirname, changes)
     await shared.waitValue(() => {
       return uri?.fsPath
-    }, path.join(import.meta.dirname, 'a'))
+    }, URI.file(path.join(import.meta.dirname, 'a')).fsPath)
   })
 })
 

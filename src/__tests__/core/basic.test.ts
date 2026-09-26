@@ -804,7 +804,7 @@ describe('create terminal', () => {
     let exitStatus
     terminals.onDidCloseTerminal(terminal => {
       exitStatus = terminal.exitStatus
-    })
+    }, null, disposables)
     let terminal = await terminals.createTerminal(nvim, {
       name: `test-${crypto.randomUUID()}`,
       shellPath: which.sync('bash'),
@@ -816,6 +816,23 @@ describe('create terminal', () => {
       return exitStatus != null
     }, true)
     assert.notStrictEqual(exitStatus.code, undefined)
+  })
+
+  it('tracks exit status for each terminal independently', async () => {
+    let first = await terminals.createTerminal(nvim, { shellPath: which.sync('bash') })
+    let second = await terminals.createTerminal(nvim, { shellPath: which.sync('bash') })
+    let firstBufnr = first.bufnr
+    let closed: TerminalModel[] = []
+    terminals.onDidCloseTerminal(terminal => closed.push(terminal), null, disposables)
+    first.sendText('exit 7', true)
+    await shared.waitValue(() => first.exitStatus?.code, 7)
+    await shared.waitFor('bufloaded', [firstBufnr], 0)
+    assert.strictEqual(await nvim.call('bufloaded', [second.bufnr]), 1)
+    assert.strictEqual(second.exitStatus, undefined)
+    assert.deepStrictEqual(closed, [first])
+    second.sendText('exit 0', true)
+    await shared.waitValue(() => closed.length, 2)
+    assert.strictEqual(second.exitStatus.code, 0)
   })
 
   it('should return false on show when buffer unloaded', async t => {

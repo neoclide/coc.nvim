@@ -10,7 +10,7 @@ import { getConditionValue } from '../util'
 import { distinct, isFalsyOrEmpty, toArray } from '../util/array'
 import { isCancellationError } from '../util/errors'
 import { Extensions as ExtensionsInfo, IExtensionRegistry } from '../util/extensionRegistry'
-import { checkFolder, isDirectory, isFolderIgnored, isParentFolder, resolveRoot, uriToFsPath } from '../util/fs'
+import { checkFolder, isDirectory, isFolderIgnored, isParentFolder, resolveRoot, sameFile, uriToFsPath } from '../util/fs'
 import { path } from '../util/node'
 import { toObject } from '../util/object'
 import { CancellationToken, CancellationTokenSource, Emitter, Event } from '../util/protocol'
@@ -203,7 +203,7 @@ export default class WorkspaceFolderController {
   public renameWorkspaceFolder(oldPath: string, newPath: string): void {
     let added: WorkspaceFolder = toWorkspaceFolder(newPath)
     if (!added) return
-    let idx = this._workspaceFolders.findIndex(f => URI.parse(f.uri).fsPath == oldPath)
+    let idx = this._workspaceFolders.findIndex(f => sameFile(URI.parse(f.uri).fsPath, oldPath))
     if (idx == -1) return
     let removed = this.workspaceFolders[idx]
     this._workspaceFolders.splice(idx, 1, added)

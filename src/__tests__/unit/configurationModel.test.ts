@@ -1,6 +1,7 @@
 import { join } from 'path'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
+import { normalizeFilePath } from '../../util/fs'
 import { Configuration } from '../../configuration/configuration'
 import { AllKeysConfigurationChangeEvent, ConfigurationChangeEvent } from '../../configuration/event'
 import { ConfigurationModel } from '../../configuration/model'
@@ -562,7 +563,7 @@ describe('Configuration', () => {
     con.addFolderConfiguration('/a/b/c', new ConfigurationModel())
     con.addFolderConfiguration('/a', new ConfigurationModel())
     let res = con.resolveFolder('/a/b/c/d/e')
-    assert.strictEqual(res, '/a/b/c')
+    assert.strictEqual(res, normalizeFilePath('/a/b/c'))
   })
 
   test('inspect for overrideIdentifiers', () => {

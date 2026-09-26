@@ -584,6 +584,8 @@ describe('applyEdits()', () => {
   })
 
   it('should revert nested workspace edit when rename fails', async t => {
+    // The expected error can open a hit-enter prompt with long Windows paths.
+    t.mock.method(window, 'showErrorMessage', async () => undefined)
     const folder = fs.mkdtempSync(path.join(tmpdir, 'nested-revert-'))
     const oldPath = path.join(folder, 'old.ts')
     const newPath = path.join(folder, 'missing', 'new.ts')
@@ -1173,13 +1175,14 @@ describe('getOriginalLine', () => {
     })
 
     it('should open untitled document', async t => {
-      let doc = await workspace.openTextDocument(URI.parse(`untitled:///a/b.js`))
-      assert.strictEqual(doc.uri, 'file:///a/b.js')
+      let uri = URI.file(path.resolve('/a/b.js'))
+      let doc = await workspace.openTextDocument(uri.with({ scheme: 'untitled' }))
+      assert.strictEqual(doc.uri, uri.toString())
     })
 
     it('should load file that exists', async t => {
       let doc = await workspace.openTextDocument(URI.file(import.meta.filename))
-      assert.strictEqual(URI.parse(doc.uri).fsPath, import.meta.filename)
+      assert.strictEqual(URI.parse(doc.uri).fsPath, URI.file(import.meta.filename).fsPath)
     })
   })
 })

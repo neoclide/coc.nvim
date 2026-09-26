@@ -189,6 +189,9 @@ describe('vim api', () => {
     // scratch buffer should carry a meaningful name (#5061)
     let bufname = await nvim.call('bufname', ['%']) as string
     assert.strictEqual(bufname, '[Coc Info]')
+    let bufnr = await nvim.call('bufnr', ['%'])
+    await handler.showInfo()
+    assert.strictEqual(await nvim.call('bufnr', ['%']), bufnr)
     await nvim.command('bd!')
   })
   it('should escape info buffer name', async t => {
@@ -599,13 +602,14 @@ describe('call_function', () => {
 describe('client API', () => {
   it('stops and restarts a task without evaluating the Job as a number', async t => {
     let id = `vim-task-${Date.now()}`
-    let started = await nvim.call('coc#task#start', [id, { cmd: 'sleep', args: ['30'] }])
+    let opts = { cmd: process.execPath, args: ['-e', 'setInterval(() => {}, 1000)'] }
+    let started = await nvim.call('coc#task#start', [id, opts])
     assert.strictEqual(started, true)
     // stop() must not throw E910 (Using a Job as a Number)
     await nvim.call('coc#task#stop', [id])
     await shared.waitValue(async () => await nvim.call('coc#task#running', [id]), false)
     // restarting the same id stops the old job first without E910
-    started = await nvim.call('coc#task#start', [id, { cmd: 'sleep', args: ['30'] }])
+    started = await nvim.call('coc#task#start', [id, opts])
     assert.strictEqual(started, true)
     await nvim.call('coc#task#stop', [id])
     await shared.waitValue(async () => await nvim.call('coc#task#running', [id]), false)
@@ -614,8 +618,9 @@ describe('client API', () => {
   it('runs node version checks with spaces in the executable path', async t => {
     let dir = path.join(os.tmpdir(), `coc node check-${crypto.randomUUID()}`)
     fs.mkdirSync(dir, { recursive: true })
-    let node = path.join(dir, 'my node')
-    fs.writeFileSync(node, '#!/bin/sh\necho "v22.15.0"\n', { mode: 0o755 })
+    let node = path.join(dir, process.platform === 'win32' ? 'my node.cmd' : 'my node')
+    let script = process.platform === 'win32' ? '@echo off\r\necho v22.15.0\r\n' : '#!/bin/sh\necho "v22.15.0"\n'
+    fs.writeFileSync(node, script, { mode: 0o755 })
     let saved = await nvim.eval('exists("g:coc_node_path") ? g:coc_node_path : ""') as string
     try {
       let code = [
@@ -755,7 +760,8 @@ describe('client API', () => {
     fs.writeFileSync(file, 'c\n')
     let value = 'foo bar'
     await nvim.setOption('wildignore', value)
-    await nvim.exec(`autocmd BufReadPre ${file} throw 'boom'`)
+    let pattern = await nvim.call('fnameescape', [file.replace(/\\/g, '/')]) as string
+    await nvim.exec(`autocmd BufReadPre ${pattern} throw 'boom'`)
     let tabs = await nvim.call('tabpagenr', ['$'])
     try {
       let err: Error | undefined
@@ -767,7 +773,7 @@ describe('client API', () => {
       assert.ok(err)
       assert.strictEqual(await nvim.getOption('wildignore'), value)
     } finally {
-      await nvim.exec(`autocmd! BufReadPre ${file}`)
+      await nvim.exec(`autocmd! BufReadPre ${pattern}`)
       await nvim.setOption('wildignore', '')
       while (await nvim.call('tabpagenr', ['$']) > tabs) {
         await nvim.command('silent! tabclose!')
@@ -951,19 +957,16 @@ describe('client API', () => {
   })
 
   it('should out_write', async t => {
+    await editorReset()
     nvim.outWrite('foo')
     nvim.outWriteLine('bar')
-    let env = workspace.env
-    let line = await shared.getCmdline(env.lines - 1)
-    assert.strictEqual(line, 'foobar')
+    await shared.waitValue(() => shared.getCmdline(), 'foobar')
   })
 
   it('should err_write', async t => {
     nvim.errWrite('foo')
     nvim.errWriteLine('bar')
-    let env = workspace.env
-    let line = await shared.getCmdline(env.lines - 1)
-    assert.strictEqual(line, 'foobar')
+    await shared.waitValue(() => shared.getCmdline(), 'foobar')
   })
 
   it('should create namespace', async t => {
@@ -1378,8 +1381,11 @@ describe('Popup', () => {
     await nvim.command(`call popup_clear()`)
   })
 
-  it('should create inputBox', async t => {
+  // requestInput already uses input() on Windows: terminal prompt events are
+  // unsupported there (#5352).
+  it('should create inputBox', { skip: process.platform === 'win32' }, async t => {
     let input = await getCurrentPlugin().window.createInputBox('title', '')
+    disposables.push(input)
     input.title = 'new title'
     let curr: string
     input.onDidChange(text => {
@@ -1392,8 +1398,9 @@ describe('Popup', () => {
     input.dispose()
   })
 
-  it('updates the visible input value programmatically', async t => {
+  it('updates the visible input value programmatically', { skip: process.platform === 'win32' }, async t => {
     let input = await getCurrentPlugin().window.createInputBox('title', 'old')
+    disposables.push(input)
     let changed: string | undefined
     input.onDidChange(v => {
       changed = v

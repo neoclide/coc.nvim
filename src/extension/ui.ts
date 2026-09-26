@@ -210,19 +210,19 @@ export class InstallBuffer implements InstallUI {
   private async show(): Promise<void> {
     let isSync = events.requesting === true
     let { nvim } = workspace
-    nvim.pauseNotification()
     // Name the buffer so `:ls!` shows a meaningful entry instead of
     // `[scratch]`; reusing the named buffer also avoids leaking a new buffer
     // on every show (#5061)
     let name = '[Coc Extensions]'
-    let command = isSync ? 'edit' : this.settings.updateUIInTab ? 'tabnew' : 'vs'
-    nvim.command(`execute '${command} '.fnameescape('${name}')`, true)
-    nvim.call('bufnr', ['%'], true)
+    let bufnr = await nvim.call('bufadd', [name]) as number
+    let command = isSync ? 'buffer' : this.settings.updateUIInTab ? 'tab sbuffer' : 'vertical sbuffer'
+    nvim.pauseNotification()
+    nvim.command(`${command} ${bufnr}`, true)
     nvim.command('setl buftype=nofile bufhidden=wipe noswapfile nobuflisted wrap undolevels=-1', true)
     if (!isSync) nvim.command('nnoremap <silent><nowait><buffer> q :q<CR>', true)
     this.highlight()
-    let res = await nvim.resumeNotification()
-    this.bufnr = res[0][1] as number
+    await nvim.resumeNotification()
+    this.bufnr = bufnr
     this.interval = setInterval(() => {
       this.draw()
     }, interval)

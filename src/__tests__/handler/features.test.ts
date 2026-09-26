@@ -33,7 +33,7 @@ let linkedEditingHandler: LinkedEditingHandler
 let links: LinksHandler
 let refactor: Refactor
 let wordPattern: string | undefined
-let cmd = path.resolve(import.meta.dirname, '../rg')
+let cmd = path.resolve(import.meta.dirname, process.platform === 'win32' ? '../rg.cmd' : '../rg')
 let cwd = process.cwd()
 
 before(async () => {

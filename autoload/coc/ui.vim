@@ -319,7 +319,7 @@ function! coc#ui#rename_file(oldPath, newPath, write) abort
   if bufnr == -1
     throw 'Unable to get bufnr of '.oldPath
   endif
-  if oldPath =~? newPath && (s:is_mac || s:is_win || s:is_win32unix)
+  if oldPath ==? newPath && (s:is_mac || s:is_win || s:is_win32unix)
     return coc#ui#safe_rename(bufnr, oldPath, newPath, a:write)
   endif
   if bufloaded(newPath)

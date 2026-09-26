@@ -113,7 +113,7 @@ connection.onProgress(WorkDoneProgress.type, '4b3a71d0-2b3f-46af-be2c-2827f54857
 })
 
 connection.onNotification('printMessage', () => {
-  process.stdin.write('stdin\n')
+  process.stderr.write('stderr\n')
   process.stdout.write('stdout\n')
 })
 

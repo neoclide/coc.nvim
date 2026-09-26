@@ -138,6 +138,10 @@ jobs:
           NVIM_COMMAND: ${{ steps.nvim.outputs.executable }}
           COVERAGE_ARGS: ${{ runner.os == 'Linux' && matrix.versions.neovim == 'stable' && '--coverage' || '' }}
         run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            # Console Vim cannot resize its screen without a Windows console.
+            export VIM_COMMAND="${VIM_COMMAND%vim.exe}gvim.exe"
+          fi
           node --enable-source-maps scripts/test/cli.mjs -j 2 $COVERAGE_ARGS
 
       - name: Codecov

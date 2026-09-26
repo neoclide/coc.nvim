@@ -863,7 +863,7 @@ describe('mcp server hardening', () => {
     server.dispose()
   })
 
-  it('serves unix sockets on macOS/Linux', async () => {
+  it('serves unix sockets on macOS/Linux', { skip: process.platform === 'win32' }, async () => {
     let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-unix-'))
     let socketPath = path.join(dir, 'mcp.sock')
     let server = new McpServer({

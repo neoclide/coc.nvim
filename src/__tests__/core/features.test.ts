@@ -396,7 +396,7 @@ describe('jumpTo()', () => {
     await nvim.command('setl buftype=nofile')
     let buf = await nvim.buffer
     let name = await buf.name
-    assert.match(name, new RegExp('/foo'))
+    assert.strictEqual(path.basename(name), 'foo')
     await buf.setLines(['foo', 'bar'], { start: 0, end: -1, strictIndexing: false })
     await workspace.jumpTo(uri, { line: 1, character: 1 })
     let pos = await nvim.call('getcurpos') as number[]
@@ -418,7 +418,7 @@ describe('jumpTo()', () => {
     await workspace.jumpTo(uri)
     let buf = await nvim.buffer
     let name = await buf.name
-    assert.match(name, new RegExp('/foo'))
+    assert.strictEqual(path.basename(name), 'foo')
   })
 
   it('should jumpTo custom uri scheme', async t => {
@@ -481,7 +481,7 @@ describe('WorkspaceFolderController', () => {
   describe('asRelativePath()', () => {
     function assertAsRelativePath(input: string | URI, expected: string, includeWorkspace?: boolean) {
       const actual = workspaceFolder.getRelativePath(input, includeWorkspace)
-      assert.strictEqual(actual, expected)
+      assert.strictEqual(actual.split(path.sep).join('/'), expected)
     }
 
     it('should get relative path', async t => {
@@ -551,7 +551,7 @@ describe('WorkspaceFolderController', () => {
       let filepath = path.join(process.cwd(), 'a/b')
       workspaceFolder.setWorkspaceFolders([process.cwd()])
       res = workspaceFolder.getWorkspaceFolder(URI.file(filepath))
-      assert.strictEqual(URI.parse(res.uri).fsPath, process.cwd())
+      assert.strictEqual(URI.parse(res.uri).fsPath, URI.file(process.cwd()).fsPath)
 
       const nonWorkspaceFolderFilePath = path.join(path.dirname(process.cwd()), 'NonWorkspaceFolder/file')
       res = workspaceFolder.getWorkspaceFolder(URI.file(nonWorkspaceFolderFilePath))

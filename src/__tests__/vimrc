@@ -11,6 +11,8 @@ set expandtab
 set noshowmode
 set shortmess=aFtW
 set noruler
+set fileformat=unix
+set fileformats=unix,dos
 
 let s:dir = expand('<sfile>:h')
 let s:root = expand('<sfile>:h:h:h')

@@ -3,6 +3,16 @@ let s:is_vim = !has('nvim')
 let s:channel_map = {}
 let s:is_win = has('win32') || has('win64')
 
+function! s:OnExit(bufnr, status) abort
+  call coc#rpc#notify('CocAutocmd', ['TermExit', a:bufnr, a:status])
+  if has_key(s:channel_map, a:bufnr)
+    call remove(s:channel_map, a:bufnr)
+  endif
+  if a:status == 0
+    execute 'silent! bd! '.a:bufnr
+  endif
+endfunction
+
 " start terminal, return [bufnr, pid]
 function! coc#terminal#start(cmd, cwd, env, strict) abort
   if s:is_vim && !has('terminal')
@@ -25,22 +35,12 @@ function! coc#terminal#start(cmd, cwd, env, strict) abort
   " editor process global environment, so a failed start cannot leak vars.
   let env = copy(a:env)
 
-  function! s:OnExit(status) closure
-    call coc#rpc#notify('CocAutocmd', ['TermExit', bufnr, a:status])
-    if has_key(s:channel_map, bufnr)
-      call remove(s:channel_map, bufnr)
-    endif
-    if a:status == 0
-      execute 'silent! bd! '.bufnr
-    endif
-  endfunction
-
   if s:is_vim
     let res = term_start(a:cmd, {
           \ 'cwd': cwd,
           \ 'term_kill': s:is_win ? 'kill' : 'term',
           \ 'term_finish': 'close',
-          \ 'exit_cb': {job, status -> s:OnExit(status)},
+          \ 'exit_cb': {job, status -> s:OnExit(bufnr, status)},
           \ 'curwin': 1,
           \ 'env': env,
           \})
@@ -56,7 +56,7 @@ function! coc#terminal#start(cmd, cwd, env, strict) abort
       let job_id = termopen(a:cmd, {
             \ 'cwd': cwd,
             \ 'pty': v:true,
-            \ 'on_exit': {job, status -> s:OnExit(status)},
+            \ 'on_exit': {job, status -> s:OnExit(bufnr, status)},
             \ 'env': env,
             \ 'clear_env': a:strict ? v:true : v:false
             \ })
