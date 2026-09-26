@@ -29,7 +29,8 @@ let server: net.Server
 let client: net.Socket
 const cwd = path.resolve(import.meta.dirname, '../../..')
 const nodeRequire = createRequire(import.meta.url)
-const sockPath = path.join(os.tmpdir(), `watchman-fake-${crypto.randomUUID()}`)
+const socketName = `watchman-fake-${crypto.randomUUID()}`
+const sockPath = process.platform === 'win32' ? `\\\\.\\pipe\\${socketName}` : path.join(os.tmpdir(), socketName)
 process.env.WATCHMAN_SOCK = sockPath
 
 let workspaceFolder: WorkspaceFolderControllerType
@@ -134,7 +135,7 @@ describe('FileSystemWatcherManager.disabled', () => {
 after(async () => {
   watcherManager.dispose()
   server.close()
-  await remove(sockPath)
+  if (process.platform !== 'win32') await remove(sockPath)
 })
 
 describe('watchman', () => {
@@ -344,7 +345,7 @@ describe('NativeWatcher', () => {
     let options = createNativeOptions(root, root, ['/', root, 'node_modules', '**/.git/**'])
     assert.deepStrictEqual(options.ignorePaths, [path.resolve('/workspace/node_modules')])
     assert.strictEqual(options.ignoreGlobs?.length, 1)
-    assert.strictEqual(new RegExp(options.ignoreGlobs[0]).test('.git/config'), true)
+    assert.strictEqual(new RegExp(options.ignoreGlobs[0]).test(path.join('.git', 'config')), true)
   })
 
   it('maps logical and canonical ignored paths to the native root', () => {

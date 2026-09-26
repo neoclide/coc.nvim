@@ -165,8 +165,8 @@ describe('NativeWatcher unit', () => {
     for (let base of [logicalRoot, root]) {
       let options = createNativeOptions(root, logicalRoot, [path.join(base, 'vendor', '**')])
       let regex = new RegExp(options.ignoreGlobs[0])
-      assert.strictEqual(regex.test('vendor/package/index.ts'), true)
-      assert.strictEqual(regex.test('src/index.ts'), false)
+      assert.strictEqual(regex.test(path.join('vendor', 'package', 'index.ts')), true)
+      assert.strictEqual(regex.test(path.join('src', 'index.ts')), false)
     }
     assert.deepStrictEqual(createNativeOptions(root, logicalRoot, [path.resolve('unrelated', '**')]), {})
   })
