@@ -52,7 +52,7 @@ export class FileSystemWatcherManager {
         createClient(folder)
       })
       e.removed.forEach(folder => {
-        let root = URI.parse(folder.uri).fsPath
+        let root = normalizeFilePath(URI.parse(folder.uri).fsPath)
         // Invalidate any in-flight creation for this root so its client is
         // disposed before it can be published or subscribed.
         this.invalidate(root)

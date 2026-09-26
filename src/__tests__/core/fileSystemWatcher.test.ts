@@ -1516,6 +1516,52 @@ describe('create FileSystemWatcherManager', () => {
     }
   })
 
+  for (let pending of [false, true]) {
+    it(`removes ${pending ? 'pending' : 'active'} clients for non-normalized workspace roots`, async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-remove-root-'))
+      try {
+        for (let folderPath of [
+          root + path.sep,
+          `${path.dirname(root)}${path.sep}${path.sep}${path.basename(root)}`,
+          `${root}${path.sep}child${path.sep}..`
+        ]) {
+          let folders = new WorkspaceFolderController(configurations)
+          folders.addWorkspaceFolder(folderPath, false)
+          let manager = new FileSystemWatcherManager(folders, { ...defaultConfig, watchmanPath: 'watchman' })
+          manager.disabled = false
+          let resolveClient!: (client: FileWatcherClient) => void
+          let clientPromise = new Promise<FileWatcherClient>(resolve => { resolveClient = resolve })
+          let create = t.mock.method(Watchman, 'createClient', () => clientPromise)
+          let client = createFakeClient(root)
+          let dispose = t.mock.method(client, 'dispose')
+          let created = 0
+          manager.onDidCreateClient(() => created++)
+          try {
+            manager.attach(shared.createNullChannel())
+            let creating = manager.createClient(folderPath)
+            await shared.waitValue(() => create.mock.callCount(), 1)
+            if (!pending) {
+              resolveClient(client)
+              assert.strictEqual(await creating, client)
+            }
+            folders.removeWorkspaceFolder(folderPath)
+            if (pending) resolveClient(client)
+            assert.strictEqual(await creating, pending ? false : client)
+            assert.strictEqual(dispose.mock.callCount(), 1)
+            assert.strictEqual(manager['clientsMap'].size, 0)
+            assert.strictEqual(created, pending ? 0 : 1)
+          } finally {
+            manager.dispose()
+            resolveClient(client)
+            create.mock.restore()
+          }
+        }
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true })
+      }
+    })
+  }
+
   it('disposes a client whose creation completes after the folder was removed', async t => {
     let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-race-'))
     let folderControl = new WorkspaceFolderController(configurations)
