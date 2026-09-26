@@ -156,24 +156,32 @@ the project root.
 ==============================================================================
 File system watch					*coc-filesystemwatch*
 
-Watchman https://facebook.github.io/watchman/ is used by coc.nvim to provide
-file change detection to extensions and language servers. The watchman
-command is detected from your `$PATH`; the feature silently fails when
-watchman isn't working.
+Bundled binaries from https://github.com/neoclide/native-watcher provide file
+change detection to extensions and language servers. macOS uses FSEvents,
+Linux uses inotify, and Windows uses ReadDirectoryChangesW. The native watcher
+reports regular files and directories; it skips symlinks and special entries.
+A symlink workspace root is resolved to its real path before subscribing.
+On Linux with glibc below 2.28, coc.nvim skips the native watcher and uses the
+existing Watchman fallback when available. Failures are reported only in the
+watchman output channel.
 
-Watchman automatically watches |coc-workspace-folders| for file events by
-default.
+When |coc-config-fileSystemWatch-watchmanPath| is nonempty, its Watchman
+executable is tried once before the bundled native watcher. Otherwise, the
+native watcher is tried first and Watchman is looked up on $PATH only if it
+fails. File watching silently fails when neither works; trace logs are written
+to the watchman output channel.
 
-Use the following command to open the output channel of watchman: >
+Workspace folders are watched recursively for file events by default.
+
+Use the following command to open the file watcher output channel: >
 	:CocCommand workspace.showOutput watchman
 <
 
 Use configuration |coc-config-fileSystemWatch| to change the behavior of file
 system watching.
 
-Note: The default filesystem watch limit can be easily exceeded for many
-projects; check out
-https://facebook.github.io/watchman/docs/install#system-specific-preparation
+Note: Linux inotify limits can be exceeded for projects with many folders.
+Increase the system inotify watch limit or configure Watchman when this occurs.
 
 ==============================================================================
 LANGUAGESERVER 						*coc-languageserver*

@@ -665,7 +665,7 @@ export class ExtensionManager {
       }, global.__TEST__ === true))
     } else {
       let client = await workspace.fileSystemWatchers.createClient(item.directory, true)
-      if (!client) throw new Error('watchman not found')
+      if (!client) throw new Error('file watcher not available')
       void window.showInformationMessage(`watching ${item.directory}`)
       client.subscribe('**/*.js', async () => {
         this.reloadExtension(id).then(() => {

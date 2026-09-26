@@ -1,8 +1,8 @@
 'use strict'
-import type { ChildProcess, ExecOptions } from 'child_process'
+import type { ChildProcess, ExecFileOptions, ExecOptions } from 'child_process'
 import { pluginRoot } from './constants'
 import { CancellationError } from './errors'
-import { child_process, path, which } from './node'
+import { child_process, path, promisify, which } from './node'
 import { platform, Platform } from './platform'
 import iconv from 'iconv-lite'
 import { CancellationToken, Disposable } from './protocol'
@@ -25,6 +25,30 @@ export function executable(command: string): boolean {
     return false
   }
   return true
+}
+
+/** Execute a file with a timeout in milliseconds, or a cancellation token. */
+export async function execWithTimeout(file: string, args: string[], opts: ExecFileOptions = {}, timeout: number | CancellationToken = 5000): Promise<{ stdout: string, stderr: string }> {
+  if (typeof timeout !== 'number' && timeout.isCancellationRequested) throw new CancellationError()
+  let pending = promisify(child_process.execFile)(file, args, { ...opts, encoding: 'utf8' })
+  let disposable: Disposable
+  let cancelled = new Promise<never>((_resolve, reject) => {
+    let cancel = () => {
+      pending.child.kill('SIGKILL')
+      reject(new CancellationError())
+    }
+    if (typeof timeout === 'number') {
+      let timer = setTimeout(cancel, timeout)
+      disposable = Disposable.create(() => clearTimeout(timer))
+    } else {
+      disposable = timeout.onCancellationRequested(cancel)
+    }
+  })
+  try {
+    return await Promise.race([pending, cancelled])
+  } finally {
+    disposable.dispose()
+  }
 }
 
 export function runCommand(cmd: string, opts: ExecOptions & { encoding?: string } = {}, timeout?: CancellationToken | number, isWindows = platform === Platform.Windows): Promise<string> {

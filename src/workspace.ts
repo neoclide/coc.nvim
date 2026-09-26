@@ -188,7 +188,15 @@ export class Workspace {
     let watchmanPath = watchConfig.watchmanPath
     if (!watchmanPath) watchmanPath = initialConfiguration.inspect<string>('coc.preferences.watchmanPath').globalValue
     if (typeof watchmanPath === 'string') watchmanPath = this.expand(watchmanPath)
-    let ignoredFolders = defaultValue(watchConfig.ignoredFolders, ["${tmpdir}", "/private/tmp", "/"])
+    let ignoredFolders = defaultValue(watchConfig.ignoredFolders, [
+      "${tmpdir}",
+      "/private/tmp",
+      "/",
+      "**/.git",
+      "**/.git/**",
+      "**/node_modules",
+      "**/node_modules/**"
+    ])
     let enable = getConditionValue(watchConfig.enable == null ? true : !!watchConfig.enable, false)
     return {
       watchmanPath,
@@ -450,7 +458,8 @@ export class Workspace {
   }
 
   /**
-   * Create a FileSystemWatcher instance, doesn't fail when watchman not found.
+   * Create a FileSystemWatcher instance. The returned watcher remains valid
+   * when no native or Watchman backend is available, but emits no events.
    */
   public createFileSystemWatcher(globPattern: GlobPattern, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
     return this.fileSystemWatchers.createFileSystemWatcher(globPattern, ignoreCreate, ignoreChange, ignoreDelete)

@@ -322,7 +322,7 @@ async function runUnitThreads(
     files.length,
     Number.isInteger(concurrency) ? concurrency : os.availableParallelism()
   ))
-  const isolated = new Set(ISOLATED_UNIT_TESTS)
+  const isolated = new Set(ISOLATED_UNIT_TESTS.map(file => path.normalize(file)))
   const isolatedBatches = files.filter(file => isolated.has(file)).map(file => [file])
   const sharedFiles = files.filter(file => !isolated.has(file))
   const reserved = Math.min(isolatedBatches.length, Math.max(0, maxWorkers - 1))

@@ -10806,8 +10806,8 @@ declare module 'coc.nvim' {
      */
     export function computeWordRanges(uri: string | number, range: Range, token?: CancellationToken): Promise<{ [word: string]: Range[] } | null>
     /**
-     * Create a FileSystemWatcher instance, when watchman doesn't exist, the
-     * returned FileSystemWatcher can still be used, but not work at all.
+     * Create a FileSystemWatcher instance. When no supported native or Watchman
+     * backend exists, the returned watcher can still be used but emits no events.
      */
     export function createFileSystemWatcher(globPattern: GlobPattern, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
     /**

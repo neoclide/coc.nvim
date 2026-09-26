@@ -2,8 +2,10 @@
 import type { Client } from 'fb-watchman'
 import { createLogger } from '../logger'
 import { OutputChannel } from '../types'
-import { minimatch, path } from '../util/node'
+import { path } from '../util/node'
+import { execWithTimeout } from '../util/processes'
 import { Disposable } from '../util/protocol'
+import { ChangeCallback, createChangeFilter, FileChange, FileChangeItem, FileWatcherClient } from './fileWatcher'
 const logger = createLogger('core-watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch', 'field-new']
 
@@ -14,40 +16,51 @@ export interface WatchResponse {
   relative_path?: string
 }
 
-export interface FileChangeItem {
-  size: number
-  name: string
-  exists: boolean
-  new: boolean
-  type: 'f' | 'd'
-  mtime_ms: number
-}
-
-export interface FileChange {
-  root: string
-  subscription: string
-  files: FileChangeItem[]
-}
-
-export type ChangeCallback = (FileChange) => void
+export type { FileChange, FileChangeItem } from './fileWatcher'
 
 /**
  * Watchman wrapper for fb-watchman client
  * @public
  */
-export default class Watchman {
+export default class Watchman implements FileWatcherClient {
   private client: Client
   private relative_path: string | undefined
   private _listeners: ((change: FileChange) => void)[] = []
   private _root: string
   public subscription: string | undefined
+  public readonly supportsRenameId = false
 
-  constructor(binaryPath: string, private channel?: OutputChannel) {
+  constructor(binaryPath: string, private channel?: OutputChannel, socketPath?: string) {
     const watchman = require('fb-watchman')
     this.client = new watchman.Client({
       watchmanBinaryPath: binaryPath
     })
     this.client.setMaxListeners(300)
+    if (socketPath) {
+      let client = this.client
+      let connect = client.connect.bind(client)
+      client.connect = () => {
+        let previous = process.env.WATCHMAN_SOCK
+        process.env.WATCHMAN_SOCK = socketPath
+        try {
+          // fb-watchman has no socket-path option. It reads WATCHMAN_SOCK
+          // synchronously before creating the socket, so restore it before
+          // returning and never expose it across asynchronous work.
+          connect()
+        } finally {
+          if (previous == null) delete process.env.WATCHMAN_SOCK
+          else process.env.WATCHMAN_SOCK = previous
+        }
+      }
+    }
+    this.client.on('error', error => {
+      logger.error('Watchman client error', error)
+      this.appendOutput(`Watchman client error: ${error}`, 'Error')
+      // fb-watchman reports connection and spawn failures only through this
+      // event. Ending the client cancels the pending command so initialization
+      // can fail and the manager can try its other backend.
+      this.dispose()
+    })
   }
 
   public get root(): string {
@@ -121,11 +134,10 @@ export default class Watchman {
   }
 
   public subscribe(globPattern: string, cb: ChangeCallback): Disposable {
+    let filterChanges = createChangeFilter(globPattern)
     let fn = (change: FileChange) => {
-      let { files } = change
-      files = files.filter(f => f.type == 'f' && minimatch(f.name, globPattern, { dot: true }))
-      if (!files.length) return
-      let ev: FileChange = Object.assign({}, change)
+      let ev = filterChanges(change)
+      if (!ev) return
       if (this.relative_path) ev.root = path.resolve(change.root, this.relative_path)
       this.appendOutput(`file change of "${globPattern}" detected: ${JSON.stringify(ev, null, 2)}`)
       cb(ev)
@@ -155,7 +167,26 @@ export default class Watchman {
   public static async createClient(binaryPath: string, root: string, channel?: OutputChannel): Promise<Watchman> {
     let watchman: Watchman
     try {
-      watchman = new Watchman(binaryPath, channel)
+      let socketPath: string | undefined
+      if (!process.env.WATCHMAN_SOCK) {
+        try {
+          let { stdout, stderr } = await execWithTimeout(binaryPath, ['--no-pretty', 'get-sockname'], { windowsHide: true })
+          if (stderr) channel?.appendLine(`Watchman get-sockname stderr: ${stderr}`)
+          let value: unknown = JSON.parse(stdout)
+          if (typeof value !== 'object' || value == null || typeof (value as { sockname?: unknown }).sockname !== 'string' || (value as { sockname: string }).sockname.length === 0) {
+            throw new Error(`Invalid Watchman socket response: ${stdout}`)
+          }
+          socketPath = (value as { sockname: string }).sockname
+        } catch (error) {
+          let stderr = (error as { stderr?: string | Buffer }).stderr
+          if (stderr) channel?.appendLine(`Watchman get-sockname stderr: ${stderr}`)
+          channel?.appendLine(`Watchman get-sockname failed: ${error}`)
+          throw error
+        }
+      }
+      if (socketPath) channel?.appendLine(`Watchman socket: ${socketPath}`)
+      else channel?.appendLine(`Watchman socket from WATCHMAN_SOCK: ${process.env.WATCHMAN_SOCK}`)
+      watchman = new Watchman(binaryPath, channel, socketPath)
       let valid = await watchman.checkCapability()
       if (!valid) throw new Error('required capabilities do not exist.')
       let watching = await watchman.watchProject(root)

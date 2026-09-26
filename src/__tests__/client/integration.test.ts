@@ -844,13 +844,16 @@ describe('Client integration', () => {
     await assert.rejects(startServer(() => {
       n++
       return n == 1
-    }), Error)
+    }), { code: 1, message: 'message' })
     await shared.waitValue(() => {
       return n
     }, 2)
-    await assert.rejects(startServer(undefined), Error)
+    await shared.waitValue(() => client.state, lsclient.State.Stopped)
+    await assert.rejects(startServer(undefined), { code: 1, message: 'message' })
+    await shared.waitValue(() => client.state, lsclient.State.Stopped)
 
-    await assert.rejects(startServer(undefined, 'normalThrow'), Error)
+    await assert.rejects(startServer(undefined, 'normalThrow'), /normal throw error/)
+    await shared.waitValue(() => client.state, lsclient.State.Stopped)
     progressOnInitialization = true
     await assert.rejects(async () => {
       client = await startServer(undefined, 'utf8')

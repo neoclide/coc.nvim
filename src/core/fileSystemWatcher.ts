@@ -8,7 +8,9 @@ import { splitArray } from '../util/array'
 import { isFolderIgnored, isParentFolder, sameFile } from '../util/fs'
 import { minimatch, path, which } from '../util/node'
 import { Disposable, Emitter, Event } from '../util/protocol'
-import Watchman, { FileChange } from './watchman'
+import { FileChange, FileWatcherClient } from './fileWatcher'
+import NativeWatcher from './nativeWatcher'
+import Watchman from './watchman'
 import type WorkspaceFolderControl from './workspaceFolder'
 const logger = createLogger('fileSystemWatcher')
 const WATCHMAN_COMMAND = 'watchman'
@@ -19,10 +21,10 @@ export interface RenameEvent {
 }
 
 export class FileSystemWatcherManager {
-  private clientsMap: Map<string, Watchman> = new Map()
+  private clientsMap: Map<string, FileWatcherClient> = new Map()
   private disposables: Disposable[] = []
   private channel: OutputChannel | undefined
-  private creating: Map<string, Promise<Watchman | false | undefined>> = new Map()
+  private creating: Map<string, Promise<FileWatcherClient | false | undefined>> = new Map()
   private generations = new Map<string, number>()
   private disposed = false
   public static watchers: Set<FileSystemWatcher> = new Set()
@@ -63,7 +65,7 @@ export class FileSystemWatcherManager {
     }, null, this.disposables)
   }
 
-  public waitClient(root: string): Promise<Watchman | false | undefined> {
+  public waitClient(root: string): Promise<FileWatcherClient | false | undefined> {
     if (this.clientsMap.has(root)) return Promise.resolve(this.clientsMap.get(root))
     let pending = this.creating.get(root)
     if (pending) return pending
@@ -77,7 +79,8 @@ export class FileSystemWatcherManager {
     })
   }
 
-  public async createClient(root: string, skipCheck = false): Promise<Watchman | false | undefined> {
+  public async createClient(root: string, skipCheck = false): Promise<FileWatcherClient | false | undefined> {
+    if (this.disposed) return false
     if (!skipCheck && (this.disabled || isFolderIgnored(root, this.config.ignoredFolders))) return
     if (this.has(root)) return this.waitClient(root)
     let pending = this.creating.get(root)
@@ -98,10 +101,32 @@ export class FileSystemWatcherManager {
     this.generations.set(root, this.generationOf(root) + 1)
   }
 
-  private async createClientInner(root: string, generation: number): Promise<Watchman | false | undefined> {
+  private async createClientInner(root: string, generation: number): Promise<FileWatcherClient | false | undefined> {
     try {
-      let watchmanPath = await this.getWatchmanPath()
-      let client = await Watchman.createClient(watchmanPath, root, this.channel)
+      let client: FileWatcherClient | undefined
+      let backends = this.config.watchmanPath ? ['watchman', 'native'] : ['native', 'watchman']
+      for (let backend of backends) {
+        if (this.disposed || generation !== this.generationOf(root)) return false
+        try {
+          this.channel?.appendLine(`Trying ${backend} watcher for ${root}`)
+          if (backend === 'native') {
+            client = await NativeWatcher.createClient(root, this.channel, () => this.disposed || generation !== this.generationOf(root), this.config.ignoredFolders)
+          } else {
+            let watchmanPath = await this.getWatchmanPath()
+            this.channel?.appendLine(`Watchman executable: ${watchmanPath}`)
+            if (this.disposed || generation !== this.generationOf(root)) return false
+            client = await Watchman.createClient(watchmanPath, root, this.channel)
+          }
+          this.channel?.appendLine(`Using ${backend} watcher for ${root}`)
+          break
+        } catch (error) {
+          this.channel?.appendLine(`Unable to use ${backend} watcher for ${root}: ${error}`)
+        }
+      }
+      if (!client) {
+        this.channel?.appendLine(`No file watcher backend available for ${root}`)
+        return false
+      }
       // The folder was removed or the manager disposed while the client was
       // being created: the client must be closed, never published.
       if (this.disposed || generation !== this.generationOf(root)) {
@@ -115,13 +140,13 @@ export class FileSystemWatcherManager {
       this._onDidCreateClient.fire(root)
       return client
     } catch (e) {
-      if (this.channel) this.channel.appendLine(`Error on create watchman client: ${e}`)
+      if (this.channel) this.channel.appendLine(`Error on create file watcher client: ${e}`)
       return false
     }
   }
 
   public async getWatchmanPath(): Promise<string> {
-    let watchmanPath = this.config.watchmanPath ?? WATCHMAN_COMMAND
+    let watchmanPath = this.config.watchmanPath || WATCHMAN_COMMAND
     if (!process.env.WATCHMAN_SOCK) {
       watchmanPath = await which(watchmanPath, { all: false })
     }
@@ -185,7 +210,7 @@ export class FileSystemWatcher implements IFileSystemWatcher {
   ) {
   }
 
-  public listen(root: string, client: Watchman): void {
+  public listen(root: string, client: FileWatcherClient): void {
     let { globPattern,
       ignoreCreateEvents,
       ignoreChangeEvents,
@@ -201,17 +226,26 @@ export class FileSystemWatcher implements IFileSystemWatcher {
       if (!isParentFolder(root, basePath, true)) return
     }
     const onChange = (change: FileChange) => {
-      let { root, files } = change
-      if (basePath && !sameFile(root, basePath)) {
-        files = files.filter(f => {
-          if (f.type != 'f') return false
-          let fullpath = path.join(root, f.name)
+      let { root } = change
+      let renames = new Set<string>()
+      let fireRename = (oldPath: string, newPath: string): void => {
+        let key = `${oldPath}\0${newPath}`
+        if (renames.has(key)) return
+        renames.add(key)
+        this._onDidRename.fire({ oldUri: URI.file(oldPath), newUri: URI.file(newPath) })
+      }
+      let matches = (name: string): boolean => {
+        // The backend subscription already applied string patterns. Relative
+        // patterns still need their base path checked here.
+        if (!basePath) return true
+        let fullpath = path.join(root, name)
+        if (!sameFile(root, basePath)) {
           if (!isParentFolder(basePath, fullpath)) return false
           return minimatch(path.relative(basePath, fullpath), pattern, { dot: true })
-        })
-      } else {
-        files = files.filter(f => f.type == 'f' && minimatch(f.name, pattern, { dot: true }))
+        }
+        return minimatch(name, pattern, { dot: true })
       }
+      let files = change.files.filter(file => file.type === 'f' && matches(file.name))
       for (let file of files) {
         let uri = URI.file(path.join(root, file.name))
         if (!file.exists) {
@@ -224,35 +258,62 @@ export class FileSystemWatcher implements IFileSystemWatcher {
           }
         }
       }
+      if (client.supportsRenameId) {
+        let renamePairs = new Map<string, { oldFile?: typeof files[number], newFile?: typeof files[number] }>()
+        for (let file of files) {
+          if (!file.renameId) continue
+          let pair = renamePairs.get(file.renameId) ?? {}
+          if (file.exists) pair.newFile = file
+          else pair.oldFile = file
+          renamePairs.set(file.renameId, pair)
+        }
+        for (let pair of renamePairs.values()) {
+          if (pair.oldFile && pair.newFile) {
+            fireRename(path.join(root, pair.oldFile.name), path.join(root, pair.newFile.name))
+          }
+        }
+        return
+      }
       // file rename
       if (files.length == 2 && files[0].exists !== files[1].exists) {
         let oldFile = files.find(o => o.exists !== true)
         let newFile = files.find(o => o.exists === true)
-        if (oldFile.size == newFile.size) {
-          this._onDidRename.fire({
-            oldUri: URI.file(path.join(root, oldFile.name)),
-            newUri: URI.file(path.join(root, newFile.name))
-          })
+        if (oldFile.size != null
+          && newFile.size != null
+          && oldFile.mtime_ms != null
+          && newFile.mtime_ms != null
+          && oldFile.size == newFile.size
+          && oldFile.mtime_ms == newFile.mtime_ms) {
+          fireRename(path.join(root, oldFile.name), path.join(root, newFile.name))
         }
       }
       // detect folder rename
       if (files.length > 2 && files.length % 2 == 0) {
         let [oldFiles, newFiles] = splitArray(files, o => o.exists === false)
         if (oldFiles.length == newFiles.length) {
+          let candidates = new Map<string, typeof newFiles>()
+          for (let newFile of newFiles) {
+            if (newFile.size == null || newFile.mtime_ms == null) continue
+            let key = `${newFile.size}\0${newFile.mtime_ms}`
+            let items = candidates.get(key)
+            if (items) items.push(newFile)
+            else candidates.set(key, [newFile])
+          }
           for (let oldFile of oldFiles) {
-            let newFile = newFiles.find(o => o.size == oldFile.size && o.mtime_ms == oldFile.mtime_ms)
+            if (oldFile.size == null || oldFile.mtime_ms == null) continue
+            let newFile = candidates.get(`${oldFile.size}\0${oldFile.mtime_ms}`)?.shift()
             if (newFile) {
-              this._onDidRename.fire({
-                oldUri: URI.file(path.join(root, oldFile.name)),
-                newUri: URI.file(path.join(root, newFile.name))
-              })
+              fireRename(path.join(root, oldFile.name), path.join(root, newFile.name))
             }
           }
         }
       }
     }
     this.subscribe = client.subscription
-    let disposable = client.subscribe(pattern, onChange)
+    // Relative patterns are matched against basePath in onChange. The client
+    // filters names relative to its own root, so the bare pattern would drop
+    // changes below a nested base before onChange receives them.
+    let disposable = client.subscribe(basePath ? '**/*' : pattern, onChange)
     this._onDidListen.fire()
     this.disposables.push(disposable)
   }

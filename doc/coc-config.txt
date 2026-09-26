@@ -131,8 +131,11 @@ FILESYSTEMWATCH 					*coc-config-fileSystemWatch*
 
 "fileSystemWatch.watchmanPath" 				*coc-config-fileSystemWatch-watchmanPath*
 
-	Executable path for https://facebook.github.io/watchman/; detected
-	from $PATH by default.
+	Executable path for https://facebook.github.io/watchman/. When nonempty,
+	coc.nvim tries this Watchman executable once before falling back to the
+	bundled native watcher. Otherwise, coc.nvim tries the native watcher first,
+	then looks up Watchman on $PATH if it fails. When neither works, file
+	watching fails silently and writes error logs to the watchman output channel.
 	
 	Scope: `application`, default: `null`
 
@@ -147,7 +150,15 @@ FILESYSTEMWATCH 					*coc-config-fileSystemWatch*
 	List of folders that should not be watched for file changes;
 	environment variables and minimatch patterns can be used.
 
-	Scope: `application`, default: `["/private/tmp", "/", "${tmpdir}"]`
+	The bundled native watcher forwards these entries to its backend, avoiding
+	OS watcher resources for ignored directory trees. Set an empty list to
+	disable the defaults.
+	Native ignore patterns use minimatch syntax, except for Unicode POSIX
+	character classes such as `[[:alpha:]]`, which the native regex engine
+	does not support.
+
+	Scope: `application`, default: `["/private/tmp", "/", "${tmpdir}",
+	"**/.git", "**/.git/**", "**/node_modules", "**/node_modules/**"]`
 
 ------------------------------------------------------------------------------
 EXTENSIONS
