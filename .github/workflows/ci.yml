@@ -9,37 +9,21 @@ on:
       - master
 
 jobs:
-  watcher-binary:
+  test:
     if: github.event.pull_request.draft == false
-    name: Watcher binary (${{ matrix.os }})
+    timeout-minutes: 60
+    name: Test (${{ matrix.os }}, Vim ${{ matrix.versions.vim }}, Neovim ${{ matrix.versions.neovim }})
     runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: bash
+
     strategy:
       fail-fast: false
       matrix:
         os:
           - ubuntu-latest
-          - macos-latest
-          - windows-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "24"
-
-      - name: Test bundled watcher binary
-        run: npm run test:watcher-binary
-
-  test:
-    if: github.event.pull_request.draft == false
-    timeout-minutes: 60
-    runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
         versions:
           - neovim: "stable"
             vim: "v9.0.0438"
@@ -47,6 +31,17 @@ jobs:
             vim: "nightly"
         node:
           - "24"
+        include:
+          - os: macos-latest
+            versions:
+              vim: "stable"
+              neovim: "stable"
+            node: "24"
+          - os: windows-latest
+            versions:
+              vim: "stable"
+              neovim: "stable"
+            node: "24"
 
     env:
       NODE_ENV: test
@@ -58,7 +53,7 @@ jobs:
           fetch-depth: 2
 
       - name: Resolve vim cache identity
-        if: matrix.versions.vim != 'nightly'
+        if: runner.os == 'Linux' && matrix.versions.vim != 'nightly'
         id: vim-cache-id
         shell: bash
         env:
@@ -68,42 +63,53 @@ jobs:
           echo "key=vim-install-v1-$RUNNER_OS-$RUNNER_ARCH-$ID-$VERSION_ID-$VIM_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Restore vim installation
-        if: matrix.versions.vim != 'nightly'
+        if: runner.os == 'Linux' && matrix.versions.vim != 'nightly'
         id: vim-cache
         uses: actions/cache@v6
         with:
           path: ~/vim-${{ matrix.versions.vim }}
           key: ${{ steps.vim-cache-id.outputs.key }}
 
-      - parallel:
-        - name: Setup Node.js ${{ matrix.node }}
-          uses: actions/setup-node@v6
-          with:
-            node-version: ${{ matrix.node }}
-            cache: "npm"
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: "npm"
 
-        - name: Setup python3
-          uses: actions/setup-python@v6
-          with:
-            python-version: "3.x"
+      - name: Setup python3
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
 
-        - name: Setup vim
-          if: matrix.versions.vim == 'nightly' || steps.vim-cache.outputs.cache-hit != 'true'
-          uses: rhysd/action-setup-vim@v1
-          with:
-            version: ${{ matrix.versions.vim }}
+      - name: Setup vim
+        id: setup-vim
+        if: steps.vim-cache.outputs.cache-hit != 'true'
+        uses: rhysd/action-setup-vim@v1
+        with:
+          version: ${{ matrix.versions.vim }}
 
-        - name: Setup neovim
-          id: nvim
-          uses: rhysd/action-setup-vim@v1
-          with:
-            neovim: true
-            version: ${{ matrix.versions.neovim }}
+      - name: Setup neovim
+        id: nvim
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: ${{ matrix.versions.neovim }}
 
-        - name: Setup rg/ctags
-          run: sudo apt-get install -y ripgrep exuberant-ctags
+      - name: Setup rg/ctags (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y ripgrep exuberant-ctags
 
-      - name: Expose vim
+      - name: Setup rg/ctags (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ripgrep universal-ctags
+
+      - name: Setup rg/ctags (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: choco install ripgrep universal-ctags --yes --no-progress
+
+      - name: Expose cached vim
+        if: steps.vim-cache.outputs.cache-hit == 'true'
         id: vim
         env:
           VIM_VERSION: ${{ matrix.versions.vim }}
@@ -123,17 +129,20 @@ jobs:
           vim --version
           nvim --version
 
+      - name: Test bundled watcher binary
+        run: npm run test:watcher-binary
+
       - name: Run tests
         env:
-          VIM_COMMAND: ${{ steps.vim.outputs.executable }}
+          VIM_COMMAND: ${{ steps.setup-vim.outputs.executable || steps.vim.outputs.executable }}
           NVIM_COMMAND: ${{ steps.nvim.outputs.executable }}
-          COVERAGE_ARGS: ${{ matrix.versions.neovim == 'stable' && '--coverage' || '' }}
+          COVERAGE_ARGS: ${{ runner.os == 'Linux' && matrix.versions.neovim == 'stable' && '--coverage' || '' }}
         run: |
           node --enable-source-maps scripts/test/cli.mjs -j 2 $COVERAGE_ARGS
 
       - name: Codecov
         uses: codecov/codecov-action@v6
-        if: matrix.versions.neovim == 'stable'
+        if: runner.os == 'Linux' && matrix.versions.neovim == 'stable'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
