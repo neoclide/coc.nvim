@@ -135,7 +135,7 @@ FILESYSTEMWATCH 					*coc-config-fileSystemWatch*
 	coc.nvim tries this Watchman executable once before falling back to the
 	bundled native watcher. Otherwise, coc.nvim tries the native watcher first,
 	then looks up Watchman on $PATH if it fails. When neither works, file
-	watching fails silently and writes trace logs to the watchman output channel.
+	watching fails silently and writes error logs to the watchman output channel.
 	
 	Scope: `application`, default: `null`
 
