@@ -44,11 +44,25 @@ export function detectLinuxLibc(report: unknown): 'glibc' | 'musl' {
 }
 
 function linuxLibc(): 'glibc' | 'musl' {
+  let report: unknown
   try {
-    return detectLinuxLibc(process.report?.getReport())
+    report = process.report?.getReport()
   } catch (_e) {
     return 'glibc'
   }
+  if (detectLinuxLibc(report) !== 'glibc') return 'musl'
+  let version = (report as { header?: { glibcVersionRuntime?: unknown } } | undefined)?.header?.glibcVersionRuntime
+  if (typeof version === 'string') {
+    let match = /^(\d+)\.(\d+)/.exec(version)
+    if (match) {
+      let major = Number(match[1])
+      let minor = Number(match[2])
+      if (major < 2 || major === 2 && minor < 28) {
+        throw new Error(`Native watcher requires Linux glibc 2.28 or later (detected ${version})`)
+      }
+    }
+  }
+  return 'glibc'
 }
 
 export function getNativeWatcherTarget(platform = process.platform, arch = process.arch, libc = platform === 'linux' ? linuxLibc() : undefined): NativeWatcherTarget | undefined {

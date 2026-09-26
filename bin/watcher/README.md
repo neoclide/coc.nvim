@@ -2,6 +2,8 @@
 
 These eight `.node` files are prebuilt [`native-watcher`](https://github.com/neoclide/native-watcher)
 addons. coc.nvim loads them directly; `native-watcher` is not an npm dependency.
+On Linux with glibc below 2.28, coc.nvim skips the native watcher and uses the
+existing Watchman fallback when available.
 
 To update them, download or build all CI artifacts in a local native-watcher
 checkout, then run:

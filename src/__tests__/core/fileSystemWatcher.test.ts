@@ -22,6 +22,7 @@ import { URI } from 'vscode-uri'
 import type ConfigurationsType from '../../configuration/index'
 import type WorkspaceFolderControllerType from '../../core/workspaceFolder'
 import { child_process } from '../../util/node'
+import window from '../../window'
 
 
 let server: net.Server
@@ -137,14 +138,31 @@ after(async () => {
 })
 
 describe('watchman', () => {
-  it('uses a supplied socket without changing WATCHMAN_SOCK', async () => {
+  it('uses a supplied socket when WATCHMAN_SOCK is unset', async () => {
     let previous = process.env.WATCHMAN_SOCK
     delete process.env.WATCHMAN_SOCK
+    let client = new Watchman('unused', shared.createNullChannel(), sockPath)
+    try {
+      assert.strictEqual(await client.checkCapability(), true)
+      assert.strictEqual(process.env.WATCHMAN_SOCK, undefined)
+    } finally {
+      client.dispose()
+      if (previous == null) delete process.env.WATCHMAN_SOCK
+      else process.env.WATCHMAN_SOCK = previous
+    }
+  })
+
+  it('uses a supplied socket without changing WATCHMAN_SOCK', async () => {
+    let previous = process.env.WATCHMAN_SOCK
+    let otherSocket = path.join(os.tmpdir(), `watchman-other-${crypto.randomUUID()}`)
+    process.env.WATCHMAN_SOCK = otherSocket
     let channel = shared.createNullChannel()
     let client = new Watchman('unused', channel, sockPath)
     try {
       assert.strictEqual(await client.checkCapability(), true)
-      assert.strictEqual(process.env.WATCHMAN_SOCK, undefined)
+      assert.strictEqual(await client.watchProject(cwd), true)
+      assert.strictEqual(client.root, cwd)
+      assert.strictEqual(process.env.WATCHMAN_SOCK, otherSocket)
     } finally {
       client.dispose()
       if (previous == null) delete process.env.WATCHMAN_SOCK
@@ -732,6 +750,33 @@ describe('NativeWatcher', () => {
 
 describe('fileSystemWatcher', () => {
 
+  it('does not subscribe a RelativePattern outside the client root', () => {
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-pattern-root-'))
+    let outside = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-pattern-outside-'))
+    let subscriptions = 0
+    let client: FileWatcherClient = {
+      root,
+      subscription: 'fake',
+      subscribe: () => {
+        subscriptions++
+        return Disposable.create(() => {})
+      },
+      dispose: () => {}
+    }
+    let watcher = new FileSystemWatcher(new RelativePattern(outside, '**/*.ts'), false, false, false)
+    let listened = 0
+    watcher.onDidListen(() => listened++)
+    try {
+      watcher.listen(root, client)
+      assert.strictEqual(subscriptions, 0)
+      assert.strictEqual(listened, 0)
+    } finally {
+      watcher.dispose()
+      fs.rmSync(root, { recursive: true, force: true })
+      fs.rmSync(outside, { recursive: true, force: true })
+    }
+  })
+
   async function createWatcher(pattern: GlobPattern, ignoreCreateEvents = false, ignoreChangeEvents = false, ignoreDeleteEvents = false): Promise<FileSystemWatcher> {
     let watcher = watcherManager.createFileSystemWatcher(
       pattern,
@@ -940,6 +985,33 @@ describe('create FileSystemWatcherManager', () => {
     }
   }
 
+  it('does not start a backend when disposed, disabled, or root-ignored', async t => {
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-no-start-'))
+    let native = t.mock.method(NativeWatcher, 'createClient', () => Promise.reject(new Error('should not run')))
+    let watchman = t.mock.method(Watchman, 'createClient', () => Promise.reject(new Error('should not run')))
+    let disposed: FileSystemWatcherManager | undefined
+    let disabled: FileSystemWatcherManager | undefined
+    let ignored: FileSystemWatcherManager | undefined
+    try {
+      disposed = new FileSystemWatcherManager(new WorkspaceFolderController(configurations), defaultConfig)
+      disposed.disabled = false
+      disposed.dispose()
+      assert.strictEqual(await disposed.createClient(root, true), false)
+      disabled = new FileSystemWatcherManager(new WorkspaceFolderController(configurations), defaultConfig)
+      assert.strictEqual(await disabled.createClient(root), undefined)
+      ignored = new FileSystemWatcherManager(new WorkspaceFolderController(configurations), { ...defaultConfig, ignoredFolders: [root] })
+      ignored.disabled = false
+      assert.strictEqual(await ignored.createClient(root), undefined)
+      assert.strictEqual(native.mock.callCount(), 0)
+      assert.strictEqual(watchman.mock.callCount(), 0)
+    } finally {
+      disposed?.dispose()
+      disabled?.dispose()
+      ignored?.dispose()
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it('should attach to existing workspace folder', async t => {
     let workspaceFolder = new WorkspaceFolderController(configurations)
     workspaceFolder.addWorkspaceFolder(cwd, false)
@@ -1111,6 +1183,33 @@ describe('create FileSystemWatcherManager', () => {
     }
   })
 
+  it('falls back to native after a Watchman command error', async t => {
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-command-fallback-'))
+    let manager = new FileSystemWatcherManager(new WorkspaceFolderController(configurations), { ...defaultConfig, watchmanPath: 'watchman' })
+    manager.disabled = false
+    let lines: string[] = []
+    manager.attach({ ...shared.createNullChannel(), appendLine: line => lines.push(line) })
+    let nativeClient = createFakeClient(root) as NativeWatcher
+    let native = t.mock.method(NativeWatcher, 'createClient', () => Promise.resolve(nativeClient))
+    let originalSock = process.env.WATCHMAN_SOCK
+    process.env.WATCHMAN_SOCK = sockPath
+    watchResponse = { error: 'watch-project failed' }
+    try {
+      assert.strictEqual(await manager.createClient(root), nativeClient)
+      assert.strictEqual(native.mock.callCount(), 1)
+      assert.ok(lines.some(line => line.includes('Unable to use watchman watcher')))
+      assert.ok(lines.some(line => line.includes('watch-project failed')))
+      assert.ok(lines.some(line => line.includes('Using native watcher')))
+      await shared.waitValue(() => client.destroyed, true)
+    } finally {
+      watchResponse = undefined
+      manager.dispose()
+      if (originalSock == null) delete process.env.WATCHMAN_SOCK
+      else process.env.WATCHMAN_SOCK = originalSock
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it('keeps a failed Watchman executable quiet before native fallback', async t => {
     let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-cli-fallback-'))
     let manager = new FileSystemWatcherManager(new WorkspaceFolderController(configurations), { ...defaultConfig, watchmanPath: process.execPath })
@@ -1163,6 +1262,101 @@ describe('create FileSystemWatcherManager', () => {
     }
   })
 
+  it('quietly falls back after rejecting an old Linux glibc native watcher', async t => {
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-old-glibc-'))
+    let watchman = t.mock.method(Watchman, 'createClient', () => Promise.reject(new Error('watchman failed')))
+    t.mock.property(process, 'platform', 'linux')
+    t.mock.property(process, 'arch', 'x64')
+    t.mock.method(process.report, 'getReport', () => ({ header: { glibcVersionRuntime: '2.27' } }))
+    let output = t.mock.method(console, 'error', () => {})
+    let showError = t.mock.method(window, 'showErrorMessage', () => Promise.resolve(undefined))
+    try {
+      for (let watchmanPath of [null, 'watchman'] as const) {
+        let manager = new FileSystemWatcherManager(new WorkspaceFolderController(configurations), { ...defaultConfig, watchmanPath })
+        let lines: string[] = []
+        manager.disabled = false
+        manager.attach({ ...shared.createNullChannel(), appendLine: line => lines.push(line) })
+        t.mock.method(manager, 'getWatchmanPath', () => Promise.resolve('watchman'))
+        let calls = watchman.mock.callCount()
+        try {
+          assert.strictEqual(await manager.createClient(root), false)
+          assert.strictEqual(watchman.mock.callCount(), calls + 1)
+          assert.ok(lines.some(line => line.includes('detected 2.27')))
+          assert.ok(lines.some(line => line.includes('glibc 2.28 or later')))
+          let attempts = lines.filter(line => line.startsWith('Trying '))
+          let nativeAttempt = `Trying native watcher for ${root}`
+          let watchmanAttempt = `Trying watchman watcher for ${root}`
+          assert.deepStrictEqual(attempts, watchmanPath ? [watchmanAttempt, nativeAttempt] : [nativeAttempt, watchmanAttempt])
+          assert.strictEqual(output.mock.callCount(), 0)
+          assert.strictEqual(showError.mock.callCount(), 0)
+        } finally {
+          manager.dispose()
+        }
+      }
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('uses Watchman once after old glibc rejects the default native backend', async t => {
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-old-glibc-success-'))
+    let fallback = createFakeClient(root)
+    let manager = new FileSystemWatcherManager(new WorkspaceFolderController(configurations), defaultConfig)
+    let lines: string[] = []
+    manager.disabled = false
+    manager.attach({ ...shared.createNullChannel(), appendLine: line => lines.push(line) })
+    t.mock.property(process, 'platform', 'linux')
+    t.mock.property(process, 'arch', 'x64')
+    t.mock.method(process.report, 'getReport', () => ({ header: { glibcVersionRuntime: '2.27' } }))
+    let watchman = t.mock.method(Watchman, 'createClient', () => Promise.resolve(fallback))
+    try {
+      assert.strictEqual(await manager.createClient(root), fallback)
+      assert.strictEqual(watchman.mock.callCount(), 1)
+      assert.deepStrictEqual(lines.filter(line => line.startsWith('Trying ')), [
+        `Trying native watcher for ${root}`,
+        `Trying watchman watcher for ${root}`
+      ])
+    } finally {
+      manager.dispose()
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('quietly falls back when loading a supported glibc native binary fails', async t => {
+    let target = getNativeWatcherTarget('linux', 'x64', 'glibc')
+    assert.ok(target)
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-dlopen-fallback-'))
+    let filepath = path.join(pluginRoot, 'bin', 'watcher', target.filename)
+    let resolved = nodeRequire.resolve(filepath)
+    let cached = nodeRequire.cache[resolved]
+    delete nodeRequire.cache[resolved]
+    let manager = new FileSystemWatcherManager(new WorkspaceFolderController(configurations), defaultConfig)
+    let lines: string[] = []
+    let fallback = createFakeClient(root)
+    manager.disabled = false
+    manager.attach({ ...shared.createNullChannel(), appendLine: line => lines.push(line) })
+    t.mock.property(process, 'platform', 'linux')
+    t.mock.property(process, 'arch', 'x64')
+    t.mock.method(process.report, 'getReport', () => ({ header: { glibcVersionRuntime: '2.28' } }))
+    let dlopen = t.mock.method(process, 'dlopen', () => { throw new Error('GLIBC_2.30 not found') })
+    let watchman = t.mock.method(Watchman, 'createClient', () => Promise.resolve(fallback))
+    let output = t.mock.method(console, 'error', () => {})
+    let showError = t.mock.method(window, 'showErrorMessage', () => Promise.resolve(undefined))
+    try {
+      assert.strictEqual(await manager.createClient(root), fallback)
+      assert.strictEqual(dlopen.mock.callCount(), 1)
+      assert.strictEqual(watchman.mock.callCount(), 1)
+      assert.ok(lines.some(line => line.includes('GLIBC_2.30 not found')))
+      assert.strictEqual(output.mock.callCount(), 0)
+      assert.strictEqual(showError.mock.callCount(), 0)
+    } finally {
+      manager.dispose()
+      if (cached) nodeRequire.cache[resolved] = cached
+      else delete nodeRequire.cache[resolved]
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it('shares a concurrent native creation', async t => {
     let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-shared-native-'))
     let manager = new FileSystemWatcherManager(new WorkspaceFolderController(configurations), defaultConfig)
@@ -1180,6 +1374,70 @@ describe('create FileSystemWatcherManager', () => {
     } finally {
       manager.dispose()
       fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('waitClient shares only the matching root creation', async t => {
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-wait-root-'))
+    let otherRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-wait-other-'))
+    let manager = new FileSystemWatcherManager(new WorkspaceFolderController(configurations), defaultConfig)
+    manager.disabled = false
+    let resolveRoot: (client: FileWatcherClient) => void = () => {}
+    let rootClient = createFakeClient(root)
+    let otherClient = createFakeClient(otherRoot)
+    let native = t.mock.method(NativeWatcher, 'createClient', filepath => {
+      if (filepath === root) return new Promise<FileWatcherClient>(resolve => { resolveRoot = resolve }) as Promise<NativeWatcher>
+      return Promise.resolve(otherClient as NativeWatcher)
+    })
+    try {
+      let waiting = manager.waitClient(root)
+      let settled = false
+      void waiting.then(() => { settled = true })
+      assert.strictEqual(await manager.createClient(otherRoot), otherClient)
+      await new Promise<void>(resolve => setImmediate(resolve))
+      assert.strictEqual(settled, false)
+      let creating = manager.createClient(root)
+      let pendingWait = manager.waitClient(root)
+      await shared.waitValue(() => native.mock.callCount(), 2)
+      resolveRoot(rootClient)
+      assert.strictEqual(await creating, rootClient)
+      assert.strictEqual(await waiting, rootClient)
+      assert.strictEqual(await pendingWait, rootClient)
+    } finally {
+      manager.dispose()
+      fs.rmSync(root, { recursive: true, force: true })
+      fs.rmSync(otherRoot, { recursive: true, force: true })
+    }
+  })
+
+  it('cancels while getWatchmanPath is pending', async t => {
+    for (let removeFolder of [false, true]) {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-path-cancel-'))
+      let folders = new WorkspaceFolderController(configurations)
+      if (removeFolder) folders.addWorkspaceFolder(root, false)
+      let manager = new FileSystemWatcherManager(folders, { ...defaultConfig, watchmanPath: 'watchman' })
+      manager.disabled = false
+      let resolvePath: (value: string) => void = () => {}
+      let lookup = t.mock.method(manager, 'getWatchmanPath', () => new Promise<string>(resolve => { resolvePath = resolve }))
+      let native = t.mock.method(NativeWatcher, 'createClient', () => Promise.reject(new Error('should not run')))
+      let watchman = t.mock.method(Watchman, 'createClient', () => Promise.reject(new Error('should not run')))
+      let created = 0
+      manager.onDidCreateClient(() => created++)
+      try {
+        if (removeFolder) manager.attach(shared.createNullChannel())
+        let creating = manager.createClient(root)
+        await shared.waitValue(() => lookup.mock.callCount(), 1)
+        if (removeFolder) folders.removeWorkspaceFolder(root)
+        else manager.dispose()
+        resolvePath('watchman')
+        assert.strictEqual(await creating, false)
+        assert.strictEqual(native.mock.callCount(), 0)
+        assert.strictEqual(watchman.mock.callCount(), 0)
+        assert.strictEqual(created, 0)
+      } finally {
+        manager.dispose()
+        fs.rmSync(root, { recursive: true, force: true })
+      }
     }
   })
 

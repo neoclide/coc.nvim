@@ -1,4 +1,4 @@
-import NativeWatcher, { getNativeWatcherTarget } from '../../core/nativeWatcher'
+import NativeWatcher, { createNativeOptions, getNativeWatcherTarget, relativeWatcherPath } from '../../core/nativeWatcher'
 import { FileSystemWatcher } from '../../core/fileSystemWatcher'
 import RelativePattern from '../../model/relativePattern'
 import type { OutputChannel } from '../../types'
@@ -45,6 +45,100 @@ async function nextTurn(): Promise<void> {
 }
 
 describe('NativeWatcher unit', () => {
+  it('selects the Linux target from the runtime report', t => {
+    t.mock.method(process.report, 'getReport', () => ({ header: { glibcVersionRuntime: '2.31' } }))
+    assert.deepStrictEqual(getNativeWatcherTarget('linux', 'x64'), { filename: 'linux-x64-glibc.node' })
+  })
+
+  it('selects musl when the Linux runtime report has no glibc version', t => {
+    t.mock.method(process.report, 'getReport', () => ({ header: {} }))
+    assert.deepStrictEqual(getNativeWatcherTarget('linux', 'x64'), { filename: 'linux-x64-musl.node' })
+  })
+
+  it('falls back to glibc when the Linux runtime report fails', t => {
+    t.mock.method(process.report, 'getReport', () => { throw new Error('report unavailable') })
+    assert.deepStrictEqual(getNativeWatcherTarget('linux', 'x64'), { filename: 'linux-x64-glibc.node' })
+  })
+
+  it('rejects Linux glibc versions below 2.28', t => {
+    for (let version of ['2.27', '2.9', '1.99']) {
+      t.mock.method(process.report, 'getReport', () => ({ header: { glibcVersionRuntime: version } }))
+      assert.throws(() => getNativeWatcherTarget('linux', 'x64'), new RegExp(`glibc 2\\.28 or later \\(detected ${version}\\)`))
+      t.mock.restoreAll()
+    }
+  })
+
+  it('accepts supported and future Linux glibc versions', t => {
+    let version = ''
+    t.mock.method(process.report, 'getReport', () => ({ header: { glibcVersionRuntime: version } }))
+    for (version of ['2.28', '2.100', '3.0']) {
+      assert.deepStrictEqual(getNativeWatcherTarget('linux', 'x64'), { filename: 'linux-x64-glibc.node' })
+    }
+  })
+
+  it('keeps attempting glibc when report data has no usable version', t => {
+    t.mock.method(process.report, 'getReport', () => undefined)
+    assert.deepStrictEqual(getNativeWatcherTarget('linux', 'x64'), { filename: 'linux-x64-glibc.node' })
+    t.mock.restoreAll()
+    t.mock.method(process.report, 'getReport', () => ({ header: { glibcVersionRuntime: 'unknown' } }))
+    assert.deepStrictEqual(getNativeWatcherTarget('linux', 'x64'), { filename: 'linux-x64-glibc.node' })
+  })
+
+  it('rejects old glibc before resolving the native watcher root', async t => {
+    let binding = getBinding(t)
+    if (!binding) return
+    let fixture = createRoot()
+    let realpath = t.mock.method(fs.promises, 'realpath', () => Promise.resolve(fixture.root))
+    let subscribe = t.mock.method(binding, 'subscribe', () => Promise.resolve())
+    t.mock.property(process, 'platform', 'linux')
+    t.mock.property(process, 'arch', 'x64')
+    t.mock.method(process.report, 'getReport', () => ({ header: { glibcVersionRuntime: '2.27' } }))
+    try {
+      await assert.rejects(NativeWatcher.createClient(fixture.root), /glibc 2\.28 or later \(detected 2\.27\)/)
+      assert.strictEqual(realpath.mock.callCount(), 0)
+      assert.strictEqual(subscribe.mock.callCount(), 0)
+    } finally {
+      fixture.dispose()
+    }
+  })
+
+  it('rejects unsupported process architectures before resolving the root', async t => {
+    let binding = getBinding(t)
+    if (!binding) return
+    let fixture = createRoot()
+    let realpath = t.mock.method(fs.promises, 'realpath', () => Promise.resolve(fixture.root))
+    let subscribe = t.mock.method(binding, 'subscribe', () => Promise.resolve())
+    t.mock.property(process, 'arch', 'ppc64')
+    try {
+      await assert.rejects(NativeWatcher.createClient(fixture.root), /No native watcher binary for .*ppc64/)
+      assert.strictEqual(realpath.mock.callCount(), 0)
+      assert.strictEqual(subscribe.mock.callCount(), 0)
+    } finally {
+      fixture.dispose()
+    }
+  })
+
+  it('keeps relative watcher paths confined to the root', () => {
+    let root = path.resolve('native-root')
+    let cases: Array<[string, string, NodeJS.Platform | undefined, string | undefined]> = [
+      [root, root, process.platform, undefined],
+      [root, path.dirname(root), process.platform, undefined],
+      [root, path.resolve('native-sibling', 'a.ts'), process.platform, undefined],
+      ['C:\\work', 'D:\\work\\a.ts', 'win32', undefined],
+      [root, path.join(root, 'src', 'a.ts'), process.platform, 'src/a.ts'],
+      [root, path.join(root, '..name', 'a.ts'), process.platform, '..name/a.ts']
+    ]
+    for (let [root, filepath, platform, expected] of cases) {
+      assert.strictEqual(relativeWatcherPath(root, filepath, platform), expected)
+    }
+  })
+
+  it('ignores empty and unrelated paths while retaining valid native exclusions', () => {
+    let root = path.resolve('project')
+    let options = createNativeOptions(root, path.join(root, 'link'), ['', path.resolve('unrelated', 'cache'), 'cache'])
+    assert.deepStrictEqual(options, { ignorePaths: [path.join(root, 'cache')] })
+  })
+
   it('keeps native batches separate, including file and directory replacement', async t => {
     let binding = getBinding(t)
     if (!binding) return

@@ -161,6 +161,9 @@ change detection to extensions and language servers. macOS uses FSEvents,
 Linux uses inotify, and Windows uses ReadDirectoryChangesW. The native watcher
 reports regular files and directories; it skips symlinks and special entries.
 A symlink workspace root is resolved to its real path before subscribing.
+On Linux with glibc below 2.28, coc.nvim skips the native watcher and uses the
+existing Watchman fallback when available. Failures are reported only in the
+watchman output channel.
 
 When |coc-config-fileSystemWatch-watchmanPath| is nonempty, its Watchman
 executable is tried once before the bundled native watcher. Otherwise, the

@@ -11,6 +11,8 @@ Notable changes of coc.nvim:
 - A configured nonempty `fileSystemWatch.watchmanPath` now tries Watchman once
   before the native watcher. Without it, coc.nvim tries the native watcher
   first and looks up Watchman only after native watcher initialization fails.
+- On Linux with glibc below 2.28, skip the native watcher and quietly use the
+  existing Watchman fallback when available.
 
 ## 2026-09-22
 
