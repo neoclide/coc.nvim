@@ -1,5 +1,7 @@
-import { copyFile, readdir, stat } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { copyFile, mkdtemp, readdir, rm, stat } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
@@ -29,27 +31,43 @@ async function check(directory = outputDir) {
   console.log(`Verified ${targets.length} native watcher binaries`)
 }
 
-async function update(sourceDir) {
-  for (const target of targets) {
-    const file = `${target}.node`
-    const source = join(sourceDir, file)
-    const info = await stat(source)
-    if (!info.isFile() || info.size === 0) throw new Error(`Missing or empty source watcher binary: ${source}`)
+async function update() {
+  const repository = 'neoclide/native-watcher'
+  const runs = JSON.parse(execFileSync('gh', [
+    'run', 'list', '--repo', repository, '--workflow', 'test.yml',
+    '--branch', 'main', '--status', 'success', '--limit', '1', '--json', 'databaseId,url'
+  ], { encoding: 'utf8' }))
+  const run = runs[0]
+  if (!run) throw new Error('No successful native-watcher CI run found on main')
+  console.log(`Downloading watcher binaries from ${run.url}`)
+  const sourceDir = await mkdtemp(join(tmpdir(), 'coc-native-watcher-'))
+  try {
+    execFileSync('gh', [
+      'run', 'download', String(run.databaseId), '--repo', repository,
+      '--pattern', 'native-watcher-*', '--dir', sourceDir
+    ], { stdio: 'inherit' })
+    for (const target of targets) {
+      const source = join(sourceDir, `native-watcher-${target}`, 'native_watcher.node')
+      const info = await stat(source)
+      if (!info.isFile() || info.size === 0) throw new Error(`Missing or empty source watcher binary: ${source}`)
+    }
+    for (const target of targets) {
+      const file = `${target}.node`
+      await copyFile(join(sourceDir, `native-watcher-${target}`, 'native_watcher.node'), join(outputDir, file))
+      console.log(`Updated ${file}`)
+    }
+    await check()
+  } finally {
+    await rm(sourceDir, { recursive: true, force: true })
   }
-  for (const target of targets) {
-    const file = `${target}.node`
-    await copyFile(join(sourceDir, file), join(outputDir, file))
-    console.log(`Updated ${file}`)
-  }
-  await check()
 }
 
 if (process.argv[2] === '--check') {
   if (process.argv.length !== 3) throw new Error('Usage: node scripts/update-watcher-binaries.mjs --check')
   await check()
 } else {
-  if (process.argv.length !== 3) {
-    throw new Error('Usage: npm run update:watcher-binaries -- /path/to/native-watcher/build/artifacts')
+  if (process.argv.length !== 2) {
+    throw new Error('Usage: npm run update:watcher-binaries')
   }
-  await update(resolve(process.argv[2]))
+  await update()
 }
