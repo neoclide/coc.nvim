@@ -126,6 +126,7 @@ export default class NativeWatcher implements FileWatcherClient {
   private drainHandle: NodeJS.Immediate | undefined
   private readonly callback: (error: Error | null, events: NativeEvent[]) => void
   public readonly subscription = `native-${crypto.randomUUID()}`
+  public readonly supportsRenameId = true
 
   private constructor(public readonly root: string, private readonly channel?: OutputChannel) {
     this.callback = (error, events) => {

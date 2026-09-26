@@ -28,6 +28,7 @@ export type ChangeCallback = (change: FileChange) => void
 export interface FileWatcherClient extends Disposable {
   readonly root: string
   readonly subscription: string | undefined
+  readonly supportsRenameId: boolean
   subscribe(globPattern: string, callback: ChangeCallback): Disposable
 }
 

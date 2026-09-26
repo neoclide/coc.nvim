@@ -680,6 +680,7 @@ describe('NativeWatcher', () => {
     let client: FileWatcherClient = {
       root,
       subscription: 'fake',
+      supportsRenameId: false,
       subscribe: (_pattern, callback) => {
         listener = callback
         return Disposable.create(() => {})
@@ -714,12 +715,13 @@ describe('NativeWatcher', () => {
     }
   })
 
-  it('uses native rename ids without Watchman metadata', () => {
+  it('uses native rename ids without inferring renames from metadata', () => {
     let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-native-rename-id-'))
     let listener: ((change: FileChange) => void) | undefined
     let client: FileWatcherClient = {
       root,
       subscription: 'fake',
+      supportsRenameId: true,
       subscribe: (_pattern, callback) => {
         listener = callback
         return Disposable.create(() => {})
@@ -740,6 +742,22 @@ describe('NativeWatcher', () => {
         ]
       })
       assert.deepStrictEqual(renames, [`${path.join(root, 'old.txt')}->${path.join(root, 'new.txt')}`])
+      for (let files of [
+        [createFileChange('deleted.txt', false, false, 1), createFileChange('created.txt', true, true, 1)],
+        [
+          { ...createFileChange('deleted.txt', false, false, 1), renameId: 'old' },
+          { ...createFileChange('created.txt', true, true, 1), renameId: 'new' }
+        ],
+        [
+          createFileChange('old-folder/one.txt', false, false, 1),
+          createFileChange('new-folder/one.txt', true, true, 1),
+          createFileChange('old-folder/two.txt', false, false, 2),
+          createFileChange('new-folder/two.txt', true, true, 2)
+        ]
+      ]) {
+        listener!({ root, files })
+        assert.deepStrictEqual(renames, [`${path.join(root, 'old.txt')}->${path.join(root, 'new.txt')}`])
+      }
     } finally {
       watcher.dispose()
       fs.rmSync(root, { recursive: true, force: true })
@@ -757,6 +775,7 @@ describe('fileSystemWatcher', () => {
     let client: FileWatcherClient = {
       root,
       subscription: 'fake',
+      supportsRenameId: false,
       subscribe: () => {
         subscriptions++
         return Disposable.create(() => {})
@@ -980,6 +999,7 @@ describe('create FileSystemWatcherManager', () => {
     return {
       root,
       subscription: 'fake',
+      supportsRenameId: false,
       subscribe: () => Disposable.create(() => {}),
       dispose: () => {}
     }

@@ -27,6 +27,7 @@ export default class Watchman implements FileWatcherClient {
   private _listeners: ((change: FileChange) => void)[] = []
   private _root: string
   public subscription: string | undefined
+  public readonly supportsRenameId = false
 
   constructor(binaryPath: string, private channel?: OutputChannel, socketPath?: string) {
     const watchman = require('fb-watchman')

@@ -258,18 +258,21 @@ export class FileSystemWatcher implements IFileSystemWatcher {
           }
         }
       }
-      let renamePairs = new Map<string, { oldFile?: typeof files[number], newFile?: typeof files[number] }>()
-      for (let file of files) {
-        if (!file.renameId) continue
-        let pair = renamePairs.get(file.renameId) ?? {}
-        if (file.exists) pair.newFile = file
-        else pair.oldFile = file
-        renamePairs.set(file.renameId, pair)
-      }
-      for (let pair of renamePairs.values()) {
-        if (pair.oldFile && pair.newFile) {
-          fireRename(path.join(root, pair.oldFile.name), path.join(root, pair.newFile.name))
+      if (client.supportsRenameId) {
+        let renamePairs = new Map<string, { oldFile?: typeof files[number], newFile?: typeof files[number] }>()
+        for (let file of files) {
+          if (!file.renameId) continue
+          let pair = renamePairs.get(file.renameId) ?? {}
+          if (file.exists) pair.newFile = file
+          else pair.oldFile = file
+          renamePairs.set(file.renameId, pair)
         }
+        for (let pair of renamePairs.values()) {
+          if (pair.oldFile && pair.newFile) {
+            fireRename(path.join(root, pair.oldFile.name), path.join(root, pair.newFile.name))
+          }
+        }
+        return
       }
       // file rename
       if (files.length == 2 && files[0].exists !== files[1].exists) {
