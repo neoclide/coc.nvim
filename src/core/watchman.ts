@@ -2,7 +2,8 @@
 import type { Client } from 'fb-watchman'
 import { createLogger } from '../logger'
 import { OutputChannel } from '../types'
-import { child_process, path, promisify } from '../util/node'
+import { path } from '../util/node'
+import { execWithTimeout } from '../util/processes'
 import { Disposable } from '../util/protocol'
 import { ChangeCallback, createChangeFilter, FileChange, FileChangeItem, FileWatcherClient } from './fileWatcher'
 const logger = createLogger('core-watchman')
@@ -169,8 +170,7 @@ export default class Watchman implements FileWatcherClient {
       let socketPath: string | undefined
       if (!process.env.WATCHMAN_SOCK) {
         try {
-          let execFile = promisify(child_process.execFile)
-          let { stdout, stderr } = await execFile(binaryPath, ['--no-pretty', 'get-sockname'], { windowsHide: true })
+          let { stdout, stderr } = await execWithTimeout(binaryPath, ['--no-pretty', 'get-sockname'], { windowsHide: true })
           if (stderr) channel?.appendLine(`Watchman get-sockname stderr: ${stderr}`)
           let value: unknown = JSON.parse(stdout)
           if (typeof value !== 'object' || value == null || typeof (value as { sockname?: unknown }).sockname !== 'string' || (value as { sockname: string }).sockname.length === 0) {

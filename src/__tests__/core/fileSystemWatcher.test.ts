@@ -281,7 +281,7 @@ describe('Watchman#createClient', () => {
     try {
       let client = await Watchman.createClient('watchman', cwd, channel)
       client.dispose()
-      assert.deepStrictEqual(calls, [{ file: 'watchman', args: ['--no-pretty', 'get-sockname'], options: { windowsHide: true } }])
+      assert.deepStrictEqual(calls, [{ file: 'watchman', args: ['--no-pretty', 'get-sockname'], options: { windowsHide: true, encoding: 'utf8' } }])
       assert.ok(lines.some(line => line.includes('socket discovery warning')))
       assert.ok(lines.some(line => line.includes(sockPath)))
       assert.strictEqual(process.env.WATCHMAN_SOCK, undefined)
