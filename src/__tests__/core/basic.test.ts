@@ -728,7 +728,11 @@ describe('doAutocmd()', () => {
 })
 
 describe('create terminal', () => {
-  afterEach(editorReset)
+  afterEach(async t => {
+    await editorReset(t)
+    // Wiping a terminal buffer can finish before the job's exit callback.
+    await shared.waitFor('coc#terminal#_channel_count', [], 0)
+  })
 
   it('should use cleaned env', async t => {
     let terminal = await terminals.createTerminal(nvim, {
@@ -858,7 +862,7 @@ describe('create terminal', () => {
       shellArgs: ['-c', 'echo done; exit 0']
     })
     await shared.waitFor('bufloaded', [t1.bufnr], 0)
-    assert.strictEqual(await nvim.call('coc#terminal#_channel_count'), base)
+    await shared.waitFor('coc#terminal#_channel_count', [], base)
     // nonzero exit
     let t2 = await terminals.createTerminal(nvim, {
       name: `clean-${crypto.randomUUID()}`,
@@ -866,15 +870,16 @@ describe('create terminal', () => {
       shellArgs: ['-c', 'exit 3']
     })
     await shared.waitFor('bufloaded', [t2.bufnr], 0)
-    assert.strictEqual(await nvim.call('coc#terminal#_channel_count'), base)
+    await shared.waitFor('coc#terminal#_channel_count', [], base)
     // manual dispose
     let t3 = await terminals.createTerminal(nvim, {
       name: `clean-${crypto.randomUUID()}`,
       shellPath: which.sync('bash')
     })
+    let bufnr = t3.bufnr
     t3.dispose()
-    await shared.waitFor('bufloaded', [t3.bufnr], 0)
-    assert.strictEqual(await nvim.call('coc#terminal#_channel_count'), base)
+    await shared.waitFor('bufloaded', [bufnr], 0)
+    await shared.waitFor('coc#terminal#_channel_count', [], base)
   })
 
   it('should not throw when show & hide disposed terminal', async t => {

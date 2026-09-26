@@ -733,15 +733,15 @@ describe('Client integration', () => {
   })
 
   it('should logMessage', async t => {
-    let called = false
+    let output = ''
     let outputChannel = {
       name: 'empty',
       content: '',
-      append: () => {
-        called = true
+      append: (value: string) => {
+        output += value
       },
-      appendLine: () => {
-        called = true
+      appendLine: (value: string) => {
+        output += value + '\n'
       },
       clear: () => {},
       show: () => {},
@@ -754,7 +754,7 @@ describe('Client integration', () => {
       outputChannel,
       initializationOptions: { trace: true }
     })
-    assert.strictEqual(called, true)
+    await shared.waitValue(() => output.includes('verbose info'), true)
     await client.stop()
   })
 

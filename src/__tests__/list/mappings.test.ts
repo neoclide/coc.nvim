@@ -642,8 +642,10 @@ describe('list insert mappings', () => {
   it('should select line by <down> and <up>', async t => {
     await manager.start(['location'])
     await manager.session.ui.ready
-    await nvim.eval('feedkeys("\\<down>", "in")')
-    await nvim.eval('feedkeys("\\<up>", "in")')
+    await shared.listInput('<down>')
+    await shared.waitFor('line', ['.'], 2)
+    await shared.listInput('<up>')
+    await shared.waitFor('line', ['.'], 1)
     assert.strictEqual(manager.isActivated, true)
     let line = await nvim.line
     assert.match(line, new RegExp('foo'))

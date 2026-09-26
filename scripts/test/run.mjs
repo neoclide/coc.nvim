@@ -200,6 +200,7 @@ function runEditorProcess(
     child.stderr.on('data', chunk => onOutput?.('stderr', chunk.toString()))
     let result
     let processError
+    let lastTestName
     let settled = false
     let killedByTimeout = false
     const finish = (fn, value) => {
@@ -220,7 +221,8 @@ function runEditorProcess(
           file,
           details: {
             error: {
-              message: `editor worker killed after ${shardTimeoutMs + 10_000}ms`,
+              message: `editor worker killed after ${shardTimeoutMs + 10_000}ms`
+                + (lastTestName ? `; last test started: ${lastTestName}` : ''),
             },
           },
         }],
@@ -243,6 +245,9 @@ function runEditorProcess(
     }
     child.on('message', message => {
       switch (message.type) {
+        case 'test-start':
+          lastTestName = message.name
+          break
         case 'request-compiled':
           try {
             send({

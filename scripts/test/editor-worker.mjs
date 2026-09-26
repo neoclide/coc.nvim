@@ -48,6 +48,9 @@ async function main(options) {
       const data = event.data
       const isLeaf = data.details?.type === 'test'
       switch (event.type) {
+        case 'test:dequeue':
+          process.send?.({type: 'test-start', name: data.name})
+          break
         case 'test:pass':
           if (isLeaf) {
             stats.passed++
