@@ -172,7 +172,9 @@ export default class NativeWatcher implements FileWatcherClient {
     let filterChanges = createChangeFilter(globPattern)
     let listener = (change: FileChange) => {
       let filtered = filterChanges(change)
-      if (filtered) callback(filtered)
+      if (!filtered) return
+      this.appendOutput(`file change of "${globPattern}" detected: ${JSON.stringify(filtered, null, 2)}`)
+      callback(filtered)
     }
     this.listeners.push(listener)
     return Disposable.create(() => {
@@ -213,7 +215,6 @@ export default class NativeWatcher implements FileWatcherClient {
     }
     if (files.length === 0 || this.disposed) return
     let change: FileChange = { root: this.root, subscription: this.subscription, files }
-    this.appendOutput(`file changes detected: ${JSON.stringify(change, null, 2)}`)
     for (let listener of this.listeners) listener(change)
   }
 

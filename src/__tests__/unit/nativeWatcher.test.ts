@@ -182,6 +182,62 @@ describe('NativeWatcher unit', () => {
     }
   })
 
+  it('logs native events only for matching active subscriptions', async t => {
+    let binding = getBinding(t)
+    if (!binding) return
+    let fixture = createRoot()
+    let callback: NativeCallback | undefined
+    let client: NativeWatcher | undefined
+    let lines: string[] = []
+    let channel: OutputChannel = {
+      name: 'native-watcher-test',
+      content: '',
+      append: () => {},
+      appendLine: line => lines.push(line),
+      clear: () => {},
+      show: () => {},
+      hide: () => {},
+      dispose: () => {}
+    }
+    t.mock.method(binding, 'subscribe', (_root, fn) => {
+      callback = fn
+      return Promise.resolve()
+    })
+    t.mock.method(binding, 'unsubscribe', () => Promise.resolve())
+    try {
+      client = await NativeWatcher.createClient(fixture.root, channel)
+      lines.length = 0
+      callback!(null, [{ path: path.join(fixture.root, 'ignored.js'), type: 'create', kind: 'file' }])
+      await nextTurn()
+      assert.deepStrictEqual(lines, [])
+      let changes: string[][] = []
+      let disposable = client.subscribe('**/*.ts', change => changes.push(change.files.map(file => file.name)))
+      callback!(null, [{ path: path.join(fixture.root, 'ignored.js'), type: 'create', kind: 'file' }])
+      await nextTurn()
+      assert.deepStrictEqual(changes, [])
+      assert.deepStrictEqual(lines, [])
+      callback!(null, [
+        { path: path.join(fixture.root, 'matched.ts'), type: 'create', kind: 'file' },
+        { path: path.join(fixture.root, 'ignored.js'), type: 'create', kind: 'file' }
+      ])
+      await nextTurn()
+      assert.deepStrictEqual(changes, [['matched.ts']])
+      assert.strictEqual(lines.length, 1)
+      assert.ok(lines[0].includes('file change of "**/*.ts" detected'))
+      assert.ok(lines[0].includes('matched.ts'))
+      assert.ok(!lines[0].includes('ignored.js'))
+      disposable.dispose()
+      lines.length = 0
+      callback!(null, [{ path: path.join(fixture.root, 'later.ts'), type: 'create', kind: 'file' }])
+      await nextTurn()
+      assert.deepStrictEqual(changes, [['matched.ts']])
+      assert.deepStrictEqual(lines, [])
+    } finally {
+      client?.dispose()
+      fixture.dispose()
+    }
+  })
+
   it('fires rename only when both native sides match glob and relative patterns', async t => {
     let binding = getBinding(t)
     if (!binding) return
