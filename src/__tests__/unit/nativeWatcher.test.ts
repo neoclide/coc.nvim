@@ -1,4 +1,5 @@
-import NativeWatcher, { createNativeOptions, getNativeWatcherTarget, relativeWatcherPath } from '../../core/nativeWatcher'
+import NativeWatcher, { createNativeOptions, getNativeWatcherTarget, nativeIgnoreRegex, relativeWatcherPath } from '../../core/nativeWatcher'
+import { minimatch } from '../../util/node'
 import { FileSystemWatcher } from '../../core/fileSystemWatcher'
 import RelativePattern from '../../model/relativePattern'
 import type { OutputChannel } from '../../types'
@@ -23,6 +24,25 @@ interface NativeBinding {
 }
 
 const nodeRequire = createRequire(import.meta.url)
+
+const ignoreCases: Array<[string, string[], string[]]> = [
+  ['**/node_modules/**', ['node_modules/a', 'src/node_modules/a/b'], ['node_modules-old/a', 'src/a']],
+  ['**/.git', ['.git', 'src/.git'], ['.github', 'src/.git/config']],
+  ['src/**/cache', ['src/cache', 'src/a/b/cache'], ['other/cache', 'src/cache-old']],
+  ['*.log', ['a.log', '.log', '.hidden.log'], ['a/log', 'src/a.log']],
+  ['**/*.{ts,js}', ['index.ts', 'src/index.js'], ['index.json']],
+  ['file{1..12}.ts', ['file1.ts', 'file10.ts', 'file12.ts'], ['file0.ts', 'file13.ts']],
+  ['file{01..05..2}.ts', ['file01.ts', 'file03.ts', 'file05.ts'], ['file1.ts', 'file02.ts']],
+  ['file?.ts', ['file1.ts', 'filea.ts'], ['file.ts', 'file12.ts', 'file/.ts']],
+  ['example.[0-9]', ['example.0', 'example.9'], ['example.a', 'example./']],
+  ['example.[!0-9]', ['example.a', 'example.b'], ['example.0', 'example./']],
+  ['a[!x]b', ['ayb'], ['axb', 'a/b']],
+  ['**/@(src|test)/*.ts', ['src/a.ts', 'lib/test/b.ts'], ['other/a.ts']],
+  ['**/+(a|b).ts', ['a.ts', 'src/abba.ts'], ['src/c.ts']],
+  ['**/!(*.test).ts', ['a.ts', 'src/a.ts'], ['a.test.ts', 'src/a.test.ts']],
+  ['**/*.(copy)+$', ['x.(copy)+$', 'src/x.(copy)+$'], ['x.copy']],
+  ['!**/*.log', ['a.ts', 'src/a.ts'], ['a.log', 'src/a.log']]
+]
 
 function createRoot(): { root: string, dispose: () => void } {
   let parent = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-native-unit-'))
@@ -149,6 +169,41 @@ describe('NativeWatcher unit', () => {
       assert.strictEqual(regex.test('src/index.ts'), false)
     }
     assert.deepStrictEqual(createNativeOptions(root, logicalRoot, [path.resolve('unrelated', '**')]), {})
+  })
+
+  it('preserves minimatch rules in native ignore regexes', () => {
+    for (let platform of ['linux', 'win32'] as const) {
+      for (let [pattern, matches, misses] of ignoreCases) {
+        let regex = new RegExp(nativeIgnoreRegex(pattern, platform)!)
+        for (let [inputs, expected] of [[matches, true], [misses, false]] as const) {
+          for (let input of inputs) {
+            assert.strictEqual(minimatch(input, pattern, { dot: true }), expected, `${pattern} matches ${input}`)
+            let nativePath = platform === 'win32' ? input.replace(/\//g, '\\') : input
+            assert.strictEqual(regex.test(nativePath), expected, `${platform}: ${pattern} matches ${nativePath}`)
+          }
+        }
+      }
+    }
+    assert.ok(new RegExp(nativeIgnoreRegex('src\\**\\*.log', 'win32')!).test('src\\a\\b.log'))
+    assert.ok(new RegExp(nativeIgnoreRegex('**/node_modules/**')!).test('node_modules'))
+    assert.strictEqual(nativeIgnoreRegex('#comment'), undefined)
+    assert.throws(() => nativeIgnoreRegex('**/[[:alpha:]]/**'), /Unicode character classes are not supported/)
+  })
+
+  it('registers generated ignore regexes with the native backend', async t => {
+    let binding = getBinding(t)
+    if (!binding) return
+    let fixture = createRoot()
+    let callback: NativeCallback = () => {}
+    let options = {
+      ignoreGlobs: ignoreCases.flatMap(([pattern]) => ['linux', 'win32'].map(platform => nativeIgnoreRegex(pattern, platform as NodeJS.Platform)!))
+    }
+    try {
+      await binding.subscribe(fixture.root, callback, options)
+      await binding.unsubscribe(fixture.root, callback, options)
+    } finally {
+      fixture.dispose()
+    }
   })
 
   it('keeps native batches separate, including file and directory replacement', async t => {

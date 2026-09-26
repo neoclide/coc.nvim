@@ -3,15 +3,12 @@ import { createLogger } from '../logger'
 import { OutputChannel } from '../types'
 import { pluginRoot } from '../util/constants'
 import { isParentFolder } from '../util/fs'
-import { fs, path } from '../util/node'
+import { fs, minimatch, path } from '../util/node'
 import { Disposable } from '../util/protocol'
 import { ChangeCallback, createChangeFilter, FileChange, FileChangeItem, FileWatcherClient } from './fileWatcher'
 
 const logger = createLogger('core-native-watcher')
 const isGlob = require('is-glob') as (value: string) => boolean
-const picomatch = require('picomatch') as {
-  makeRe(pattern: string, options: { dot: boolean, windows: boolean }): RegExp
-}
 
 type NativeEventType = 'create' | 'update' | 'delete'
 type NativeEntryKind = 'file' | 'directory'
@@ -90,6 +87,17 @@ export function relativeWatcherPath(root: string, filepath: string, platform = p
   return normalizedName.split(pathModule.sep).join('/')
 }
 
+/** Adapt minimatch regexes to the native backend's path separators and regex engine. */
+export function nativeIgnoreRegex(pattern: string, platform = process.platform): string | undefined {
+  let regex = minimatch.makeRe(pattern, { dot: true, platform, windowsPathsNoEscape: platform === 'win32' })
+  if (!regex) return undefined
+  if (regex.flags) throw new Error(`Unicode character classes are not supported in native ignore patterns: ${pattern}`)
+  // Unlike Minimatch.match(), makeRe() does not match each path segment separately.
+  let source = regex.source.replace(/\[\^(?!\/)/g, '[^/')
+  // Native Windows paths use backslashes, including inside character classes.
+  return platform === 'win32' ? source.replace(/\\?\//g, '\\\\') : source
+}
+
 export function createNativeOptions(root: string, logicalRoot: string, ignored: readonly string[]): NativeOptions {
   let options: NativeOptions = {}
   for (let value of ignored) {
@@ -100,8 +108,8 @@ export function createNativeOptions(root: string, logicalRoot: string, ignored: 
         if (!relative) continue
         value = relative
       }
-      let regex = picomatch.makeRe(value, { dot: true, windows: process.platform === 'win32' })
-      ;(options.ignoreGlobs ??= []).push(regex.source)
+      let regex = nativeIgnoreRegex(value)
+      if (regex) (options.ignoreGlobs ??= []).push(regex)
       continue
     }
     let logicalPath = path.resolve(logicalRoot, value)

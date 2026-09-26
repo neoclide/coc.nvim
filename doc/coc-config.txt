@@ -153,6 +153,9 @@ FILESYSTEMWATCH 					*coc-config-fileSystemWatch*
 	The bundled native watcher forwards these entries to its backend, avoiding
 	OS watcher resources for ignored directory trees. Set an empty list to
 	disable the defaults.
+	Native ignore patterns use minimatch syntax, except for Unicode POSIX
+	character classes such as `[[:alpha:]]`, which the native regex engine
+	does not support.
 
 	Scope: `application`, default: `["/private/tmp", "/", "${tmpdir}",
 	"**/.git", "**/.git/**", "**/node_modules", "**/node_modules/**"]`
