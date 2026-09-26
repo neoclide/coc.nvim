@@ -216,7 +216,7 @@ export default class NativeWatcher implements FileWatcherClient {
     }
     if (files.length === 0 || this.disposed) return
     let change: FileChange = { root: this.root, subscription: this.subscription, files }
-    for (let listener of this.listeners) listener(change)
+    for (let listener of this.listeners.slice()) listener(change)
   }
 
   private async unsubscribe(): Promise<void> {

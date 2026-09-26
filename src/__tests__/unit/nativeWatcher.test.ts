@@ -238,6 +238,45 @@ describe('NativeWatcher unit', () => {
     }
   })
 
+  it('delivers native batches to remaining watchers when a watcher disposes itself', async t => {
+    let binding = getBinding(t)
+    if (!binding) return
+    let fixture = createRoot()
+    let callback: NativeCallback | undefined
+    let client: NativeWatcher | undefined
+    let first = new FileSystemWatcher('**/*.ts', false, false, false)
+    let second = new FileSystemWatcher('**/*.ts', false, false, false)
+    t.mock.method(binding, 'subscribe', (_root, fn) => {
+      callback = fn
+      return Promise.resolve()
+    })
+    t.mock.method(binding, 'unsubscribe', () => Promise.resolve())
+    try {
+      client = await NativeWatcher.createClient(fixture.root)
+      let firstEvents: string[] = []
+      let secondEvents: string[] = []
+      first.onDidCreate(uri => {
+        firstEvents.push(uri.fsPath)
+        first.dispose()
+      })
+      second.onDidCreate(uri => secondEvents.push(uri.fsPath))
+      first.listen(fixture.root, client)
+      second.listen(fixture.root, client)
+      let current = path.join(fixture.root, 'current.ts')
+      let later = path.join(fixture.root, 'later.ts')
+      callback!(null, [{ path: current, type: 'create', kind: 'file' }])
+      callback!(null, [{ path: later, type: 'create', kind: 'file' }])
+      await nextTurn()
+      assert.deepStrictEqual(firstEvents, [current])
+      assert.deepStrictEqual(secondEvents, [current, later])
+    } finally {
+      first.dispose()
+      second.dispose()
+      client?.dispose()
+      fixture.dispose()
+    }
+  })
+
   it('fires rename only when both native sides match glob and relative patterns', async t => {
     let binding = getBinding(t)
     if (!binding) return
