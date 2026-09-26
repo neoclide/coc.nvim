@@ -148,17 +148,20 @@ export function score(selector: DocumentSelector | DocumentFilter | string, uri:
     }
     if (pattern) {
       let relativePattern: string
+      let filepath = u.fsPath
       if (RelativePattern.is(pattern)) {
         relativePattern = pattern.pattern
         let baseUri = URI.parse(typeof pattern.baseUri === 'string' ? pattern.baseUri : pattern.baseUri.uri)
         if (u.scheme !== 'file' || !fs.isParentFolder(baseUri.fsPath, u.fsPath, true)) {
           return 0
         }
+        filepath = path.relative(baseUri.fsPath, u.fsPath).split(path.sep).join('/')
+        if (relativePattern.startsWith('/')) filepath = `/${filepath}`
       } else {
         relativePattern = pattern
       }
       let p = caseInsensitive ? relativePattern.toLowerCase() : relativePattern
-      let f = caseInsensitive ? u.fsPath.toLowerCase() : u.fsPath
+      let f = caseInsensitive ? filepath.toLowerCase() : filepath
       if (p === f || minimatch(f, p, { dot: true })) {
         ret = Math.max(ret, 5)
       } else {

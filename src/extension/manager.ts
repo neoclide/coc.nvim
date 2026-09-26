@@ -10,7 +10,7 @@ import { splitArray, toArray } from '../util/array'
 import { configHome, dataHome } from '../util/constants'
 import { onUnexpectedError } from '../util/errors'
 import { extensionContext } from '../util/extensionId'
-import { Extensions as ExtensionsInfo, IExtensionRegistry, IStringDictionary, getProperties } from '../util/extensionRegistry'
+import { Extensions as ExtensionsInfo, IExtensionRegistry, getProperties } from '../util/extensionRegistry'
 import { isDirectory, loadJson, remove, statAsync, watchFile } from '../util/fs'
 import * as Is from '../util/is'
 import type { IJSONSchema } from '../util/jsonSchema'
@@ -23,6 +23,7 @@ import { createTiming } from '../util/timing'
 import window from '../window'
 import workspace from '../workspace'
 import { ExtensionJson, ExtensionStat, getJsFiles, loadExtensionJson, validExtensionFolder } from './stat'
+import { IStringDictionary } from '../types'
 
 interface ExportExtension {
   readonly name: string

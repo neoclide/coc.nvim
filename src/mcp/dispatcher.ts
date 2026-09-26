@@ -11,6 +11,7 @@ import type { McpToolResult } from './tools'
 const logger = createLogger('mcp-dispatcher')
 
 class ToolTimeoutError extends Error {}
+class ToolCancelledError extends Error {}
 
 function logAudit(session: Session, message: string): void {
   if (session.logLevel === 'debug' || session.logLevel === 'info') {
@@ -142,14 +143,23 @@ async function handleToolCall(server: McpServer, session: Session, id: number | 
     } else {
       resultPromise = callPromise
     }
+    let cancelWait: () => void = () => {}
+    resultPromise = Promise.race([
+      resultPromise,
+      new Promise<McpToolResult>((_, reject) => {
+        cancelWait = () => reject(new ToolCancelledError())
+      })
+    ])
     // set pending after the timer so cancelRequest can clear it. Cancellation
     // terminates the protocol-side accounting (inFlight, token, pending) even
-    // when the tool itself ignores the token and never settles; late results
-    // are consumed by finish() without a second response.
+    // when the tool itself ignores the token and never settles, and rejects
+    // the protocol-side wait so a serialized session queue can continue.
+    // Late results are consumed by finish() without a second response.
     session.pending.set(id, {
       cancel: () => {
         cancelled = true
         tokenSource.cancel()
+        cancelWait()
         finish(() => {})
       },
       timer
