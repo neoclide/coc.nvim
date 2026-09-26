@@ -52,9 +52,10 @@ export async function discoverTests(extraFiles = []) {
   const excluded = []
   for (const file of all) {
     const rel = path.relative(projectRoot, file)
+    const posixRel = rel.split(path.sep).join('/')
     if (rel.startsWith(unitPrefix)) {
-      unit.push({file: rel, lane: 'unit', isolated: ISOLATED_UNIT_TESTS.includes(rel), runnable: true})
-    } else if (VIM_TESTS.includes(rel)) {
+      unit.push({file: rel, lane: 'unit', isolated: ISOLATED_UNIT_TESTS.includes(posixRel), runnable: true})
+    } else if (VIM_TESTS.includes(posixRel)) {
       vim.push({file: rel, lane: 'vim', isolated: false, runnable: true})
     } else {
       nvim.push({file: rel, lane: 'nvim', isolated: false, runnable: true})

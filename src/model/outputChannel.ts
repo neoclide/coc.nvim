@@ -92,7 +92,7 @@ export default class BufferChannel implements OutputChannel {
   public hide(): void {
     this.created = false
     let name = escapeQuote(this.bufname)
-    if (this.nvim) this.nvim.command(`exe 'silent! bwipeout! '.fnameescape('${name}')`, true)
+    if (this.nvim) this.nvim.command(`exe 'silent! bwipeout! '.bufnr('${name}')`, true)
   }
 
   private get bufname(): string {

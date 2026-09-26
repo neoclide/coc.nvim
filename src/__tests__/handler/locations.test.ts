@@ -285,7 +285,7 @@ describe('locations', () => {
           cmd: 'silent keepjumps call coc#cursor#move_to(2, 0)',
           filename: 'test://bar'
         },
-        { name: 'foo', cmd: 'silent keepjumps call coc#cursor#move_to(1, 0)', filename: '/foo' }
+        { name: 'foo', cmd: 'silent keepjumps call coc#cursor#move_to(1, 0)', filename: URI.file('/foo').fsPath }
       ])
     })
   })

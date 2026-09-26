@@ -7,7 +7,7 @@ import { createLogger } from '../../logger'
 import Highlighter from '../../model/highlighter'
 import { ansiparse } from '../../util/ansiparse'
 import { Mutex } from '../../util/mutex'
-import { child_process, path, readline } from '../../util/node'
+import { child_process, path, readline, which } from '../../util/node'
 import window from '../../window'
 import RefactorBuffer, { FileItem, FileItemDef } from './buffer'
 const { spawn } = child_process
@@ -20,7 +20,10 @@ const controlCode = '\x1b'
 class Task extends EventEmitter {
   private process: ChildProcess
   public start(cmd: string, args: string[], cwd: string): void {
-    this.process = spawn(cmd, args, { cwd, shell: process.platform === 'win32' })
+    if (process.platform === 'win32') cmd = which.sync(cmd, { nothrow: true }) ?? cmd
+    // Native executables accept an argument array; cmd.exe splits search text
+    // containing spaces. Only Windows batch launchers need the shell.
+    this.process = spawn(cmd, args, { cwd, shell: process.platform === 'win32' && /\.(cmd|bat)$/i.test(cmd) })
     this.process.on('error', e => {
       this.emit('error', e.message)
     })

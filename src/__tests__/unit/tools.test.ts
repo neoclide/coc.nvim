@@ -2,6 +2,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { URI } from 'vscode-uri'
 import { ToolRegistry } from '../../mcp/tools'
 import { createWorkspaceTools } from '../../mcp/tools/workspace'
 import { collectEditUris, errorResult, globVariants, textContent, textResult, toFsPath, toUri } from '../../mcp/tools/util'
@@ -53,7 +54,7 @@ describe('mcp tool utilities', () => {
     const input = path.join(process.cwd(), 'src')
     const uri = toUri(input)
     assert.ok(uri.startsWith('file://'))
-    assert.strictEqual(toFsPath(uri), input)
+    assert.strictEqual(toFsPath(uri), URI.file(input).fsPath)
     assert.strictEqual(toUri('https://example.com/a'), 'https://example.com/a')
   })
 

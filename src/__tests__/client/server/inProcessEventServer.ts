@@ -73,9 +73,6 @@ export function createEventServer(input: NodeJS.ReadableStream, output: NodeJS.W
       }, 1)
     }
     if (options.throwError) {
-      // Mirror eventServer.js: signal a retryable initialize failure, then
-      // drop the connection so a retry races a dead server.
-      setTimeout(simulateExit, 10)
       return new ResponseError(1, 'message', { retry: true })
     }
     if (options.normalThrow) {

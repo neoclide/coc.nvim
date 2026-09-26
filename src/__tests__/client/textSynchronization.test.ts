@@ -99,7 +99,7 @@ describe('TextDocumentSynchronization', () => {
     it('should use languageIdMap for languageId on open', async t => {
       let client = createClient({
         documentSelector: [{ language: 'vim' }],
-        languageIdMap: { 't.vim': 'myvim', [path.join(os.tmpdir(), 'full.vim')]: 'fullvim' }
+        languageIdMap: { 't.vim': 'myvim', [URI.file(path.join(os.tmpdir(), 'full.vim')).fsPath]: 'fullvim' }
       })
       let sent: DidOpenTextDocumentParams | undefined
       let spy = t.mock.method(client, 'sendNotification', (_type, params) => {

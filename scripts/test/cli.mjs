@@ -106,9 +106,10 @@ const testNamePattern = values['test-name-pattern']
 const unitJobs = os.cpus().length
 const editorJobs = Math.max(1, Number(values.jobs) || Math.min(8, os.cpus().length - 1))
 const LANE_TEST_TIMEOUT = {unit: 3000, nvim: 5000, vim: 5000}
-// Editor files normally finish in seconds; 20s bounds a hung file (stuck
-// session start or teardown) instead of holding a pool slot for 15 minutes.
-const LANE_SHARD_TIMEOUT = {unit: 10 * 1000, nvim: 20 * 1000, vim: 20 * 1000}
+// Windows editor/RPC tests take longer (some healthy files exceed 20s).
+// Keep a finite deadline for session startup and teardown on every platform.
+const editorTimeout = process.platform === 'win32' ? 60_000 : 20_000
+const LANE_SHARD_TIMEOUT = {unit: 30 * 1000, nvim: editorTimeout, vim: editorTimeout}
 
 async function loadTimings() {
   try {

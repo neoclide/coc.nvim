@@ -608,16 +608,14 @@ describe('list insert mappings', () => {
     t.mock.method(window, 'showPrompt', () => {
       return Promise.resolve(true)
     })
-    await shared.wait(10)
-    await nvim.input('V')
-    await shared.waitFor('mode', [], /v/i)
-    await nvim.input('2')
-    await shared.wait(30)
-    await nvim.input('j')
-    await shared.wait(30)
+    await manager.normal('ggV2j', true)
+    await shared.waitFor('mode', [], 'V')
+    await shared.waitFor('line', ['.'], 3)
     await manager.doAction('quickfix')
     let buftype = await nvim.eval('&buftype')
     assert.strictEqual(buftype, 'quickfix')
+    let items = await nvim.call('getqflist') as QuickfixItem[]
+    assert.deepStrictEqual(items.map(item => item.lnum), [1, 2, 3])
   })
 
   it('should stop loading by <C-c>', async t => {
@@ -644,8 +642,10 @@ describe('list insert mappings', () => {
   it('should select line by <down> and <up>', async t => {
     await manager.start(['location'])
     await manager.session.ui.ready
-    await nvim.eval('feedkeys("\\<down>", "in")')
-    await nvim.eval('feedkeys("\\<up>", "in")')
+    await shared.listInput('<down>')
+    await shared.waitFor('line', ['.'], 2)
+    await shared.listInput('<up>')
+    await shared.waitFor('line', ['.'], 1)
     assert.strictEqual(manager.isActivated, true)
     let line = await nvim.line
     assert.match(line, new RegExp('foo'))

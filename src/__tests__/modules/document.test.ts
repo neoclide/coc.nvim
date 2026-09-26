@@ -196,10 +196,10 @@ describe('LinesTextDocument', () => {
     res = getUri('foo', 3, 'terminal')
     assert.deepStrictEqual(res, 'terminal:3')
     res = getUri(import.meta.filename, 3, 'terminal')
-    assert.strictEqual(URI.parse(res).fsPath, import.meta.filename)
+    assert.strictEqual(URI.parse(res).fsPath, URI.file(import.meta.filename).fsPath)
   })
 
-  it('should preserve POSIX single-letter-colon path case (#2974)', t => {
+  it('should preserve POSIX single-letter-colon path case (#2974)', { skip: process.platform === 'win32' }, t => {
     let res = getUri('/F:/x', 3, '')
     assert.strictEqual(res, 'file:///F%3A/x')
     assert.strictEqual(URI.parse(res).path, '/F:/x')

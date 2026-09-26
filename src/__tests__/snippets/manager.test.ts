@@ -456,11 +456,11 @@ describe('snippet provider', () => {
     it('should insert ultisnips snippet', async t => {
       assert.notStrictEqual(SnippetManager, undefined)
       await nvim.setLine('foo')
-      let edit = TextEdit.replace(Range.create(0, 0, 0, 3), '${1:`echo "bar"`}')
+      let edit = TextEdit.replace(Range.create(0, 0, 0, 3), '${1:`echo bar`}')
       await commandManager.executeCommand('editor.action.insertSnippet', edit, {})
       let line = await nvim.line
       assert.strictEqual(line, 'bar')
-      edit = TextEdit.replace(Range.create(0, 0, 0, 3), '${1:`echo "foo"`}')
+      edit = TextEdit.replace(Range.create(0, 0, 0, 3), '${1:`echo foo`}')
       await commandManager.executeCommand('editor.action.insertSnippet', edit, { regex: '' })
       line = await nvim.line
       assert.strictEqual(line, 'foo')

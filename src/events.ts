@@ -409,6 +409,7 @@ class Events {
     }
   }
 
+  public on(event: 'BufUnload', handler: (bufnr: number, status?: number | null) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: BufEvents | 'PromptExit', handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: CursorHoldEvents, handler: (bufnr: number, cursor: [number, number], winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: InsertChangeEvents, handler: (bufnr: number, info: InsertChange) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

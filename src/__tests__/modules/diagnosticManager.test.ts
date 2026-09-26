@@ -470,7 +470,9 @@ describe('diagnostic manager', () => {
       await nvim.call('cursor', [1, 1])
       await manager.jumpRelated()
       await shared.waitFor('bufname', ['%'], 'list:///location')
+      await shared.waitPrompt()
       await nvim.input('<esc>')
+      await shared.waitFor('bufnr', ['%'], doc.bufnr)
     })
   })
 

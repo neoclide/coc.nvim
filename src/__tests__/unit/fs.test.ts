@@ -24,7 +24,7 @@ async function waitValue(fn: () => number, value: number): Promise<void> {
 
 describe('fs', () => {
   describe('uriToFsPath()', () => {
-    it('should keep POSIX single-letter-colon paths absolute (#2974)', () => {
+    it('should keep POSIX single-letter-colon paths absolute (#2974)', { skip: process.platform === 'win32' }, () => {
       // vscode-uri treats /F: as a Windows drive and drops the leading slash
       assert.strictEqual(uriToFsPath('file:///F:'), '/F:')
       assert.strictEqual(uriToFsPath('file:///F:/x'), '/F:/x')
@@ -39,9 +39,9 @@ describe('fs', () => {
   describe('normalizeFilePath()', () => {
     it('should fs normalizeFilePath', () => {
       let res = normalizeFilePath('//')
-      assert.strictEqual(res, '/')
+      assert.strictEqual(res, path.parse(process.cwd()).root.toLowerCase())
       res = normalizeFilePath('/a/b/')
-      assert.strictEqual(res, '/a/b')
+      assert.strictEqual(res, path.resolve('/a/b').replace(/^[A-Z]:/, drive => drive.toLowerCase()))
     })
   })
 
@@ -344,6 +344,22 @@ describe('fs', () => {
       if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
     })
 
+    it('should check ignored symlinks by their own name', async () => {
+      let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-git-ignore-'))
+      try {
+        await promisify(execFile)('git', ['init'], { cwd: dir })
+        let target = path.join(dir, 'target.txt')
+        let link = path.join(dir, 'ignored-link')
+        fs.writeFileSync(target, '')
+        fs.symlinkSync(target, link)
+        fs.writeFileSync(path.join(dir, '.gitignore'), 'ignored-link\n')
+        assert.strictEqual(await isGitIgnored(link), true)
+        assert.strictEqual(await isGitIgnored(target), false)
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true })
+      }
+    })
+
     it('should not execute shell commands from file name', async () => {
       let dir = path.join(fs.realpathSync(os.tmpdir()), crypto.randomUUID())
       fs.mkdirSync(dir)
@@ -371,9 +387,10 @@ describe('fs', () => {
 
   describe('parentDirs', () => {
     it('get parentDirs', () => {
-      let dirs = parentDirs('/a/b/c')
-      assert.deepStrictEqual(dirs, ['/', '/a', '/a/b'])
-      assert.deepStrictEqual(parentDirs('/'), ['/'])
+      let root = path.parse(process.cwd()).root
+      let dirs = parentDirs(path.join(root, 'a/b/c'))
+      assert.deepStrictEqual(dirs, [root, path.join(root, 'a'), path.join(root, 'a/b')])
+      assert.deepStrictEqual(parentDirs(root), [root])
     })
   })
 
@@ -431,7 +448,7 @@ describe('fs', () => {
     it('should resolve to root', () => {
       let root = path.join(process.cwd(), 'src/__tests__/extensions/test/')
       let res = resolveRoot(root, ['package.json'], root, false, false)
-      assert.strictEqual(res, process.cwd())
+      assert.strictEqual(res, normalizeFilePath(process.cwd()))
     })
 
     it('should not resolve to home', () => {

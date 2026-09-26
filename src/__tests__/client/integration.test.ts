@@ -622,6 +622,7 @@ describe('Client integration', () => {
     await assert.rejects(async () => {
       let option: lsclient.ServerOptions = {
         command: 'foobar',
+        options: { shell: false },
         transport: lsclient.TransportKind.pipe
       }
       await testLanguageServer(option, {})
@@ -659,6 +660,7 @@ describe('Client integration', () => {
     await assert.rejects(async () => {
       let option: lsclient.ServerOptions = {
         command: 'foobar',
+        options: { shell: false },
         transport: {
           kind: lsclient.TransportKind.socket,
           port: 9998
@@ -716,6 +718,7 @@ describe('Client integration', () => {
     let serverModule = path.join(import.meta.dirname, './server/eventServer.js')
     let serverOptions: lsclient.ServerOptions = {
       command: 'not_exists',
+      options: { shell: false },
       args: [serverModule, '--stdio']
     }
     let clientOptions: lsclient.LanguageClientOptions = {
@@ -730,15 +733,15 @@ describe('Client integration', () => {
   })
 
   it('should logMessage', async t => {
-    let called = false
+    let output = ''
     let outputChannel = {
       name: 'empty',
       content: '',
-      append: () => {
-        called = true
+      append: (value: string) => {
+        output += value
       },
-      appendLine: () => {
-        called = true
+      appendLine: (value: string) => {
+        output += value + '\n'
       },
       clear: () => {},
       show: () => {},
@@ -751,7 +754,7 @@ describe('Client integration', () => {
       outputChannel,
       initializationOptions: { trace: true }
     })
-    assert.strictEqual(called, true)
+    await shared.waitValue(() => output.includes('verbose info'), true)
     await client.stop()
   })
 
@@ -844,13 +847,16 @@ describe('Client integration', () => {
     await assert.rejects(startServer(() => {
       n++
       return n == 1
-    }), Error)
+    }), { code: 1, message: 'message' })
     await shared.waitValue(() => {
       return n
     }, 2)
-    await assert.rejects(startServer(undefined), Error)
+    await shared.waitValue(() => client.state, lsclient.State.Stopped)
+    await assert.rejects(startServer(undefined), { code: 1, message: 'message' })
+    await shared.waitValue(() => client.state, lsclient.State.Stopped)
 
-    await assert.rejects(startServer(undefined, 'normalThrow'), Error)
+    await assert.rejects(startServer(undefined, 'normalThrow'), /normal throw error/)
+    await shared.waitValue(() => client.state, lsclient.State.Stopped)
     progressOnInitialization = true
     await assert.rejects(async () => {
       client = await startServer(undefined, 'utf8')
@@ -954,6 +960,7 @@ describe('Client integration', () => {
     it('should reject start when command is not found', async t => {
       let serverOptions: lsclient.ServerOptions = {
         command: path.join(import.meta.dirname, './server/not-found-command'),
+        options: { shell: false },
         args: ['--stdio'],
         transport: lsclient.TransportKind.stdio
       }

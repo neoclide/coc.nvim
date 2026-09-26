@@ -24,7 +24,7 @@ function collectSrcModules() {
     if (!entry.name.endsWith('.ts') || entry.name.endsWith('.d.ts')) continue
     const rel = path.relative(projectRoot, path.join(entry.parentPath, entry.name))
     if (rel.includes('__tests__')) continue
-    files.push(rel.replace(/\.ts$/, ''))
+    files.push(rel.slice(0, -3).split(path.sep).join('/'))
   }
   return files.sort()
 }
@@ -76,7 +76,7 @@ function generateEntrySource(modules, packages) {
     // The entry is fed to esbuild via stdin with resolveDir = projectRoot,
     // so specs are repo-root relative (with './' so require does not treat
     // them as package specifiers).
-    const relSpec = './' + path.relative(projectRoot, path.join(projectRoot, mod))
+    const relSpec = './' + mod
     lines.push(
       `Object.defineProperty(exports, ${JSON.stringify(mod)}, { enumerable: true, get: () => require(${JSON.stringify(relSpec)}) })`
     )

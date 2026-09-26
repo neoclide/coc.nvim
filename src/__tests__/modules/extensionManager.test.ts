@@ -1101,16 +1101,14 @@ exports.activate = async () => {
   })
 
   describe('watchExtension()', () => {
-    it('should throw when watchman not found', async t => {
+    it('should throw when no file watcher backend is available', async t => {
       tmpfolder = createFolder()
       let extFolder = path.join(tmpfolder, 'node_modules', 'name')
       createExtension(extFolder, { name: 'name', main: 'entry.js', engines: { coc: '>=0.0.1' } })
       let manager = create(tmpfolder)
       let res = await manager.loadExtension(extFolder)
       assert.strictEqual(res, true)
-      t.mock.method(workspace.fileSystemWatchers, 'getWatchmanPath', () => {
-        return Promise.reject(new Error('not found'))
-      })
+      t.mock.method(workspace.fileSystemWatchers, 'createClient', () => Promise.resolve(false))
       let fn = async () => {
         await manager.watchExtension('name')
       }

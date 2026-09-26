@@ -71,8 +71,15 @@ function setupTestEnvironment(editor) {
   // Worker threads share a PID, so threadId keeps their data homes isolated.
   // Unit tests use os.tmpdir()/coc-test for scratch files; runner state stays
   // under the separate coc-test-native base.
-  const dataHome = path.join(os.tmpdir(), 'coc-test-native', editor ?? 'unit', `${process.pid}-${threadId}`)
+  // macOS's per-user temp path leaves too little room for Unix socket names.
+  let tempRoot = process.platform === 'darwin' ? '/tmp' : os.tmpdir()
+  if (process.platform === 'win32') {
+    // Match native realpath and vscode-uri instead of Windows' 8.3 TEMP alias.
+    tempRoot = fs.realpathSync.native(tempRoot).replace(/^[A-Z]:/, drive => drive.toLowerCase())
+  }
+  const dataHome = path.join(tempRoot, 'coc-test-native', editor ?? 'unit', `${process.pid}-${threadId}`)
   const tmpdir = process.env.TMPDIR = path.join(dataHome, 'tmp')
+  process.env.TEMP = process.env.TMP = tmpdir
   const home = process.env.HOME = path.join(dataHome, 'home')
   process.env.USERPROFILE = home
   fs.mkdirSync(tmpdir, {recursive: true})

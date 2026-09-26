@@ -485,17 +485,14 @@ describe('signatureHelp', () => {
       await shared.createDocument()
       await nvim.input('foo(')
       await signature.triggerSignatureHelp()
-      let line = await shared.getCmdline()
-      assert.match(line, /\(a, b\)/)
+      await shared.waitValue(async () => /\(a, b\)/.test(await shared.getCmdline()), true)
       await nvim.input('a,')
       idx = 1
       await signature.triggerSignatureHelp()
-      line = await shared.getCmdline()
-      assert.match(line, /foo\(a, b\)/)
+      await shared.waitValue(async () => /foo\(a, b\)/.test(await shared.getCmdline()), true)
       activeSignature = 1
       await signature.triggerSignatureHelp()
-      line = await shared.getCmdline()
-      assert.match(line, new RegExp('aaaaaa'))
+      await shared.waitValue(async () => (await shared.getCmdline()).includes('aaaaaa'), true)
     })
 
     it('should echo signature without match', async t => {

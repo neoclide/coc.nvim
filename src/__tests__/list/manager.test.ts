@@ -376,43 +376,35 @@ describe('list', () => {
       manager.stop()
       res = await shared.doAction('listLoadItems', '')
       assert.strictEqual(res, undefined)
-      let error = true
-      manager.registerList({
+      let task = Object.assign(new EventEmitter(), {
+        dispose: t.mock.fn(() => { task.removeAllListeners() })
+      })
+      let disposable = manager.registerList({
         name: 'emitter',
         actions: [],
         defaultAction: '',
-        loadItems: () => {
-          let emitter: any = new EventEmitter()
-          let interval
-          let timeout
-          emitter.dispose = () => {
-            emitter.removeAllListeners()
-            clearInterval(interval)
-            clearTimeout(timeout)
-          }
-          if (error) {
-            timeout = setTimeout(() => {
-              emitter.emit('error', new Error('error'))
-              emitter.emit('end')
-            }, 2)
-          } else {
-            timeout = setTimeout(() => {
-              emitter.emit('data', { label: 'foo' })
-              emitter.emit('end')
-            }, 2)
-          }
-          interval = setInterval(() => {
-            emitter.emit('data', { label: 'bar' })
-            emitter.emit('error', new Error('error'))
-          }, 10)
-          return emitter
-        }
+        loadItems: async () => task
       })
-      await assert.rejects(manager.loadItems('emitter'), Error)
-      error = false
-      res = await manager.loadItems('emitter')
-      assert.strictEqual(res.length, 1)
-      await shared.wait(50)
+      t.after(() => {
+        disposable.dispose()
+        task.removeAllListeners()
+      })
+      let rejected = assert.rejects(manager.loadItems('emitter'), { message: 'error' })
+      await shared.waitValue(() => task.listenerCount('error'), 1)
+      task.emit('error', new Error('error'))
+      task.emit('end')
+      await rejected
+      assert.strictEqual(task.dispose.mock.callCount(), 1)
+
+      let loaded = manager.loadItems('emitter')
+      await shared.waitValue(() => task.listenerCount('error'), 1)
+      task.emit('data', { label: 'foo' })
+      task.emit('end')
+      res = await loaded
+      assert.deepStrictEqual(res, [{ label: 'foo' }])
+      task.emit('data', { label: 'bar' })
+      task.emit('error', new Error('error'))
+      assert.strictEqual(task.dispose.mock.callCount(), 2)
     })
   })
 

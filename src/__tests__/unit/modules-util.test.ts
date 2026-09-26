@@ -1430,6 +1430,9 @@ describe('terminate', () => {
   })
 
   it('should terminate on other platform', t => {
+    t.mock.method(cp, 'execFileSync', () => {
+      throw new Error('taskkill failed')
+    })
     let child = spawn('ls', [], { detached: true })
     let res = terminate(child, process.cwd(), platform.Platform.Windows)
     assert.strictEqual(res, false)

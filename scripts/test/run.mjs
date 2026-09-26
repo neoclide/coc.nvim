@@ -1,6 +1,6 @@
 'use strict'
 
-import {fork} from 'node:child_process'
+import {fork, spawnSync} from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -178,19 +178,15 @@ function runEditorProcess(
   {testNamePattern, forceExit, shardTimeoutMs, testTimeout, onProgress, onFailure, onOutput}
 ) {
   return new Promise((resolve, reject) => {
-    // The child's own 20s shard timeout aborts node:test, but a test stuck on
+    // The child's own shard timeout aborts node:test, but a test stuck on
     // an nvim RPC promise can keep the child alive past that; bound the whole
     // file with a parent-side kill so the pool slot is never leaked forever.
     const killTimer = setTimeout(() => {
       if (settled) return
       killedByTimeout = true
-      // detached: true gives the child its own process group, so a negative
-      // pid also terminates the nvim/vim process it spawned.
-      try {
-        process.kill(-child.pid, 'SIGTERM')
-      } catch {
-        child.kill('SIGTERM')
-      }
+      onFailure?.(timeoutFailure().stats.failures[0])
+      onProgress?.(file, {status: 'failed', durationMs: shardTimeoutMs + 10_000})
+      killProcessTree(child)
     }, shardTimeoutMs + 10_000)
     killTimer.unref?.()
     const child = fork(new URL('./editor-worker.mjs', import.meta.url), [], {
@@ -204,6 +200,7 @@ function runEditorProcess(
     child.stderr.on('data', chunk => onOutput?.('stderr', chunk.toString()))
     let result
     let processError
+    let lastTestName
     let settled = false
     let killedByTimeout = false
     const finish = (fn, value) => {
@@ -224,23 +221,18 @@ function runEditorProcess(
           file,
           details: {
             error: {
-              message: `editor worker killed after ${shardTimeoutMs + 10_000}ms`,
+              message: `editor worker killed after ${shardTimeoutMs + 10_000}ms`
+                + (lastTestName ? `; last test started: ${lastTestName}` : ''),
             },
           },
         }],
         diagnostics: [],
       },
       timings: {[file]: 0},
-      leafStats: {[file]: {passed: 0, failed: 0}},
+      leafStats: {[file]: {passed: 0, failed: 1}},
       timedOut: true,
     })
-    const onAbort = () => {
-      try {
-        process.kill(-child.pid, 'SIGTERM')
-      } catch {
-        child.kill('SIGTERM')
-      }
-    }
+    const onAbort = () => killProcessTree(child)
     if (signal.aborted) onAbort()
     else signal.addEventListener('abort', onAbort, {once: true})
     const send = message => {
@@ -248,11 +240,14 @@ function runEditorProcess(
       child.send(message, error => {
         if (!error) return
         processError ??= error
-        child.kill()
+        killProcessTree(child)
       })
     }
     child.on('message', message => {
       switch (message.type) {
+        case 'test-start':
+          lastTestName = message.name
+          break
         case 'request-compiled':
           try {
             send({
@@ -261,7 +256,7 @@ function runEditorProcess(
             })
           } catch (error) {
             processError = error
-            child.kill()
+            killProcessTree(child)
           }
           break
         case 'progress':
@@ -275,11 +270,11 @@ function runEditorProcess(
           break
         case 'result':
           result = message.result
-          if (forceExit) child.kill()
+          if (forceExit) killProcessTree(child)
           break
         case 'error':
           processError = Object.assign(new Error(message.error.message), {stack: message.error.stack})
-          child.kill()
+          killProcessTree(child)
           break
       }
     })
@@ -289,8 +284,8 @@ function runEditorProcess(
     // A pool slot is released only after the child and its stdio streams are
     // fully closed, including error/abort paths.
     child.on('close', code => {
-      if (result) finish(resolve, result)
-      else if (killedByTimeout) finish(resolve, timeoutFailure())
+      if (killedByTimeout) finish(resolve, timeoutFailure())
+      else if (result) finish(resolve, result)
       else finish(reject, processError ?? (signal.aborted && signal.reason instanceof Error
         ? signal.reason
         : new Error(`editor worker ${id} exited with code ${code}`)))
@@ -302,6 +297,27 @@ function runEditorProcess(
       options: {file, editor, testNamePattern, shardTimeoutMs, testTimeout},
     })
   })
+}
+
+function killProcessTree(child) {
+  if (!child.pid) return
+  // Killing only the worker leaves editor descendants holding its pipes open,
+  // so the parent's close handler never runs. Windows has no process groups.
+  if (process.platform === 'win32') {
+    const result = spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+      stdio: 'ignore',
+      windowsHide: true,
+      timeout: 5000,
+    })
+    if (result.error) throw result.error
+    if (result.status !== 0) child.kill('SIGKILL')
+  } else {
+    try {
+      process.kill(-child.pid, 'SIGKILL')
+    } catch (error) {
+      if (error.code !== 'ESRCH') throw error
+    }
+  }
 }
 
 async function runUnitThreads(
@@ -322,7 +338,7 @@ async function runUnitThreads(
     files.length,
     Number.isInteger(concurrency) ? concurrency : os.availableParallelism()
   ))
-  const isolated = new Set(ISOLATED_UNIT_TESTS)
+  const isolated = new Set(ISOLATED_UNIT_TESTS.map(file => path.normalize(file)))
   const isolatedBatches = files.filter(file => isolated.has(file)).map(file => [file])
   const sharedFiles = files.filter(file => !isolated.has(file))
   const reserved = Math.min(isolatedBatches.length, Math.max(0, maxWorkers - 1))
@@ -390,9 +406,18 @@ function runUnitWorker(
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./unit-worker.mjs', import.meta.url), {
       workerData: {files, testNamePattern, shardTimeoutMs, testTimeout},
-      env: {...process.env, NODE_COMPILE_CACHE: compileCacheDir},
+      // Worker environments are case-sensitive, even on Windows where the
+      // parent may expose the search path as Path instead of PATH.
+      env: {...process.env, PATH: process.env.PATH, NODE_COMPILE_CACHE: compileCacheDir},
     })
     let result
+    // Bound each file, refreshing on progress so shared batches can finish.
+    const timeoutMs = shardTimeoutMs + 10_000
+    let killTimer = setTimeout(() => {
+      reject(new Error(`unit worker ${id} timed out after ${timeoutMs}ms: ${files.join(', ')}`))
+      void worker.terminate()
+    }, timeoutMs)
+    killTimer.unref()
     worker.on('message', message => {
       switch (message.type) {
         case 'request-compiled':
@@ -401,6 +426,7 @@ function runUnitWorker(
           worker.postMessage({type: 'compiled', records: testCompiler.recordsFor(message.files)})
           break
         case 'progress':
+          killTimer.refresh()
           onProgress?.(message.file, message.state)
           break
         case 'failure':
@@ -411,15 +437,29 @@ function runUnitWorker(
           break
         case 'result':
           result = message.result
-          if (forceExit) void worker.terminate()
+          clearTimeout(killTimer)
+          if (forceExit) {
+            void worker.terminate()
+          } else {
+            // A failed assertion can bypass cleanup and leave servers running.
+            // Allow normal teardown and coverage flushing, then report the leak.
+            killTimer = setTimeout(() => {
+              reject(new Error(`unit worker ${id} did not exit after reporting results: ${files.join(', ')}`))
+              void worker.terminate()
+            }, 10_000)
+            killTimer.unref()
+          }
           break
         case 'error':
+          clearTimeout(killTimer)
           reject(Object.assign(new Error(message.error.message), {stack: message.error.stack}))
+          void worker.terminate()
           break
       }
     })
     worker.on('error', reject)
     worker.on('exit', code => {
+      clearTimeout(killTimer)
       if (result) resolve(result)
       else reject(new Error(`unit worker ${id} exited with code ${code}`))
     })

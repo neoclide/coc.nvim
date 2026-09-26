@@ -2,6 +2,24 @@
 
 Notable changes of coc.nvim:
 
+## 2026-09-27
+
+- Use minimatch for native watcher ignore patterns and remove picomatch.
+  Unicode POSIX character classes are not supported by the native backend.
+
+## 2026-09-26
+
+- Use bundled native-watcher binaries on macOS, Linux, and Windows. Native
+  watcher events exclude symlinks and special entries. A symlink workspace root
+  is resolved to its real path before subscribing.
+- A configured nonempty `fileSystemWatch.watchmanPath` now tries Watchman once
+  before the native watcher. Without it, coc.nvim tries the native watcher
+  first and looks up Watchman only after native watcher initialization fails.
+- On Linux with glibc below 2.28, skip the native watcher and quietly use the
+  existing Watchman fallback when available.
+- Forward `fileSystemWatch.ignoredFolders` to the bundled native watcher and
+  ignore `.git` and `node_modules` directory trees by default.
+
 ## 2026-09-11
 
 - Include `[extension: <id>]` in uncaught exception and unhandled rejection

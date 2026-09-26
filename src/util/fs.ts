@@ -13,7 +13,6 @@ import { toObject } from './object'
 import * as platform from './platform'
 import { smartcaseIndex } from './string'
 const logger = createLogger('util-fs')
-const exec = child_process.exec
 const execFile = child_process.execFile
 
 export enum FileType {
@@ -165,19 +164,18 @@ export async function getFileType(filepath: string): Promise<FileType | undefine
 
 export async function isGitIgnored(fullpath: string | undefined): Promise<boolean> {
   if (!fullpath) return false
-  let stat = await statAsync(fullpath)
-  if (!stat || !stat.isFile()) return false
-  let root = null
   try {
-    let { stdout } = await promisify(exec)('git rev-parse --show-toplevel', { cwd: path.dirname(fullpath) })
-    root = stdout.trim()
-  } catch (e) {}
-  if (!root) return false
-  let file = path.relative(root, fullpath)
-  try {
+    fullpath = path.join(await fs.promises.realpath(path.dirname(fullpath)), path.basename(fullpath))
+    let stat = await statAsync(fullpath)
+    if (!stat || !stat.isFile()) return false
+    // Git holds its working directory open on Windows. Start at the worktree
+    // root so background checks cannot block deleting or renaming subfolders.
+    let root = parentDirs(fullpath).reverse().find(dir => fs.existsSync(path.join(dir, '.git')))
+    if (!root) return false
+    let file = path.relative(root, fullpath)
     // Use execFile so file names are never interpolated into a shell command.
-    let { stdout } = await promisify(execFile)('git', ['check-ignore', '--', file], { cwd: root })
-    return stdout.trim() == file
+    await promisify(execFile)('git', ['check-ignore', '--quiet', '--', file], { cwd: root })
+    return true
   } catch (e) {}
   return false
 }

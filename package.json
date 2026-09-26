@@ -11,14 +11,17 @@
   },
   "type": "commonjs",
   "scripts": {
-    "lint": "oxlint . && nvim --headless -u NONE -c 'helptags doc' -c 'q'",
+    "lint": "npm run check:watcher-binaries && oxlint . && nvim --headless -u NONE -c 'helptags doc' -c 'q'",
     "lint:typecheck": "tsc -p tsconfig.json",
     "build": "node esbuild.js",
     "watch": "node esbuild.js --watch",
     "test": "node scripts/test/cli.mjs",
     "test:unit": "node scripts/test/cli.mjs --unit",
     "test:coverage": "node --enable-source-maps scripts/test/cli.mjs -j 4 --coverage",
-    "prepare": "node esbuild.js"
+    "test:watcher-binary": "node scripts/test-watcher-binary.mjs",
+    "prepare": "node esbuild.js",
+    "check:watcher-binaries": "node scripts/update-watcher-binaries.mjs --check",
+    "update:watcher-binaries": "node scripts/update-watcher-binaries.mjs"
   },
   "repository": {
     "type": "git",
@@ -64,6 +67,7 @@
     "http-proxy-agent": "^9.1.0",
     "https-proxy-agent": "^9.1.0",
     "iconv-lite": "^0.7.3",
+    "is-glob": "^4.0.3",
     "jsonc-parser": "^3.3.1",
     "marked": "^10.0.0",
     "minimatch": "^10.2.6",

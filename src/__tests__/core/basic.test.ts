@@ -728,7 +728,11 @@ describe('doAutocmd()', () => {
 })
 
 describe('create terminal', () => {
-  afterEach(editorReset)
+  afterEach(async t => {
+    await editorReset(t)
+    // Wiping a terminal buffer can finish before the job's exit callback.
+    await shared.waitFor('coc#terminal#_channel_count', [], 0)
+  })
 
   it('should use cleaned env', async t => {
     let terminal = await terminals.createTerminal(nvim, {
@@ -801,10 +805,15 @@ describe('create terminal', () => {
   })
 
   it('should have exit code', async t => {
+    // Neovim's default TermClose handler removes a successful default-shell
+    // terminal before the job's on_exit callback runs.
+    let shell = await nvim.getOption('shell') as string
+    t.after(async () => { await nvim.setOption('shell', shell) })
+    await nvim.setOption('shell', which.sync('bash'))
     let exitStatus
     terminals.onDidCloseTerminal(terminal => {
       exitStatus = terminal.exitStatus
-    })
+    }, null, disposables)
     let terminal = await terminals.createTerminal(nvim, {
       name: `test-${crypto.randomUUID()}`,
       shellPath: which.sync('bash'),
@@ -815,7 +824,24 @@ describe('create terminal', () => {
     await shared.waitValue(() => {
       return exitStatus != null
     }, true)
-    assert.notStrictEqual(exitStatus.code, undefined)
+    assert.strictEqual(exitStatus.code, 0)
+  })
+
+  it('tracks exit status for each terminal independently', async () => {
+    let first = await terminals.createTerminal(nvim, { shellPath: which.sync('bash') })
+    let second = await terminals.createTerminal(nvim, { shellPath: which.sync('bash') })
+    let firstBufnr = first.bufnr
+    let closed: TerminalModel[] = []
+    terminals.onDidCloseTerminal(terminal => closed.push(terminal), null, disposables)
+    first.sendText('exit 7', true)
+    await shared.waitValue(() => first.exitStatus?.code, 7)
+    await shared.waitFor('bufloaded', [firstBufnr], 0)
+    assert.strictEqual(await nvim.call('bufloaded', [second.bufnr]), 1)
+    assert.strictEqual(second.exitStatus, undefined)
+    assert.deepStrictEqual(closed, [first])
+    second.sendText('exit 0', true)
+    await shared.waitValue(() => closed.length, 2)
+    assert.strictEqual(second.exitStatus.code, 0)
   })
 
   it('should return false on show when buffer unloaded', async t => {
@@ -836,7 +862,7 @@ describe('create terminal', () => {
       shellArgs: ['-c', 'echo done; exit 0']
     })
     await shared.waitFor('bufloaded', [t1.bufnr], 0)
-    assert.strictEqual(await nvim.call('coc#terminal#_channel_count'), base)
+    await shared.waitFor('coc#terminal#_channel_count', [], base)
     // nonzero exit
     let t2 = await terminals.createTerminal(nvim, {
       name: `clean-${crypto.randomUUID()}`,
@@ -844,15 +870,16 @@ describe('create terminal', () => {
       shellArgs: ['-c', 'exit 3']
     })
     await shared.waitFor('bufloaded', [t2.bufnr], 0)
-    assert.strictEqual(await nvim.call('coc#terminal#_channel_count'), base)
+    await shared.waitFor('coc#terminal#_channel_count', [], base)
     // manual dispose
     let t3 = await terminals.createTerminal(nvim, {
       name: `clean-${crypto.randomUUID()}`,
       shellPath: which.sync('bash')
     })
+    let bufnr = t3.bufnr
     t3.dispose()
-    await shared.waitFor('bufloaded', [t3.bufnr], 0)
-    assert.strictEqual(await nvim.call('coc#terminal#_channel_count'), base)
+    await shared.waitFor('bufloaded', [bufnr], 0)
+    await shared.waitFor('coc#terminal#_channel_count', [], base)
   })
 
   it('should not throw when show & hide disposed terminal', async t => {

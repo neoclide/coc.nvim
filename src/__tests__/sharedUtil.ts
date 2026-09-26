@@ -189,13 +189,8 @@ export async function listInput(input: string): Promise<void> {
 
 export async function getCmdline(lnum?: number): Promise<string> {
   const { nvim } = workspace
-  let str = ''
-  let n = await nvim.eval('&lines') as number
-  for (let i = 1, l = 70; i < l; i++) {
-    let ch = await nvim.call('screenchar', [lnum ?? n - 1, i]) as number
-    if (ch == -1) break
-    str += String.fromCharCode(ch)
-  }
+  // Read one screen snapshot instead of mixing frames across dozens of RPCs.
+  let str = await nvim.eval(`join(map(range(1, min([69, &columns])), {_, col -> nr2char(screenchar(${lnum ?? '&lines - 1'}, col))}), '')`) as string
   return str.trim()
 }
 

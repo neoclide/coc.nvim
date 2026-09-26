@@ -407,31 +407,36 @@ describe('coc-mcp stdio bridge', () => {
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
-  it('connects to the first available instance with --match-first', async () => {
+  it('connects to the first available instance with --match-first', async t => {
     let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-mcp-multi-'))
     let workA = path.join(dir, 'proj-a')
     let workB = path.join(dir, 'proj-b')
     fs.mkdirSync(workA, { recursive: true })
     fs.mkdirSync(workB, { recursive: true })
     let { serverA, serverB } = await twoInstances(dir, workA, workB)
+    t.after(() => {
+      serverA.dispose()
+      serverB.dispose()
+      fs.rmSync(dir, { recursive: true, force: true })
+    })
     let proc = spawn(process.execPath, [bridgePath, '--match-first'], {
       cwd: '/',
       env: { ...process.env, COC_MCP_DIR: path.join(dir, 'mcp') },
       stdio: ['pipe', 'pipe', 'pipe']
     })
+    t.after(() => proc.kill())
     let { client, request } = attachClient(proc)
     await request(1, 'initialize', {
       protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'codex-test', version: '1' }
     })
     let list = await requestTools(client, request, 2)
     let names = list.tools.map((t: any) => t.name)
-    assert.ok(names.includes('instance_a_tool'))
-    assert.ok(!names.includes('instance_b_tool'))
+    // PID 1 is a live instance on Unix, but not on Windows.
+    let expected = process.platform === 'win32' ? 'instance_b_tool' : 'instance_a_tool'
+    assert.ok(names.includes(expected))
+    assert.strictEqual(names.filter(name => name.startsWith('instance_')).length, 1)
     proc.stdin.end()
     await new Promise<void>(resolve => proc.on('exit', () => resolve()))
-    serverA.dispose()
-    serverB.dispose()
-    fs.rmSync(dir, { recursive: true, force: true })
   })
 
   it('connects to the first cwd-matching instance with --match-cwd', async () => {
