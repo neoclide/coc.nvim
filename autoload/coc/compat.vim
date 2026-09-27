@@ -93,7 +93,7 @@ function! coc#compat#buf_execute(bufnr, cmds, ...) abort
   endif
 endfunction
 
-function coc#compat#execute(command, ...) abort
+function! coc#compat#execute(command, ...) abort
   return execute(a:command, get(a:, 1, 'silent'))
 endfunction
 
@@ -101,7 +101,7 @@ function! coc#compat#eval(expr) abort
   return eval(a:expr)
 endfunction
 
-function coc#compat#win_execute(id, command, ...) abort
+function! coc#compat#win_execute(id, command, ...) abort
   return win_execute(a:id, a:command, get(a:, 1, 'silent'))
 endfunction
 

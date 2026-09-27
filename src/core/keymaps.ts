@@ -181,7 +181,7 @@ export default class Keymaps {
     }
     return Disposable.create(() => {
       this.keymaps.delete(id)
-      buffer.deleteKeymap(mode, lhs)
+      nvim.call('coc#compat#buf_del_keymap', [bufnr, mode, lhs], true)
     })
   }
 }

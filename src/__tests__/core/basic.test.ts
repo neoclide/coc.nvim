@@ -296,6 +296,24 @@ describe('registerExprKeymap()', () => {
 describe('registerLocalKeymap', () => {
   afterEach(editorReset)
 
+  it('disposes a local keymap after its buffer has been wiped without RPC errors', async () => {
+    await nvim.command('enew')
+    let bufnr = await nvim.call('bufnr', ['%']) as number
+    let errors: string[] = []
+    let onError = (message: string) => errors.push(message)
+    nvim.on('vim_error', onError)
+    let disposable = keymaps.registerLocalKeymap(bufnr, 'n', '<F12>', () => {}, false)
+    try {
+      await nvim.command(`bwipeout! ${bufnr}`)
+      disposable.dispose()
+      await nvim.eval('1')
+      assert.deepStrictEqual(errors, [])
+    } finally {
+      nvim.removeListener('vim_error', onError)
+      disposable.dispose()
+    }
+  })
+
   it('should register local keymap by notification', async t => {
     let bufnr = await nvim.call('bufnr', ['%']) as number
     let called = false
