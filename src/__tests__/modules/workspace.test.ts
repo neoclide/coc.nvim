@@ -179,6 +179,35 @@ describe('workspace methods', () => {
     assert.notStrictEqual(watcher, undefined)
   })
 
+  it('should apply watcher options to native directory events', () => {
+    let watcher = workspace.createFileSystemWatcher('**/*', {
+      includeDirectories: true,
+      ignoreCreateEvents: true,
+      ignoreDeleteEvents: true
+    })
+    disposables.push(watcher)
+    let seen: string[] = []
+    watcher.onDidCreate(() => seen.push('create'))
+    watcher.onDidDelete(() => seen.push('delete'))
+    watcher.onDidChange(uri => seen.push(uri.fsPath))
+    watcher.listen(tmpFolder, {
+      root: tmpFolder,
+      subscription: 'native-options',
+      supportsRenameId: true,
+      subscribe: (_pattern, callback, includeDirectories) => {
+        assert.strictEqual(includeDirectories, true)
+        callback({ root: tmpFolder, files: [
+          { name: 'created', type: 'd', exists: true, new: true },
+          { name: 'changed', type: 'd', exists: true, new: false },
+          { name: 'deleted', type: 'd', exists: false, new: false }
+        ] })
+        return Disposable.create(() => {})
+      },
+      dispose: () => {}
+    })
+    assert.deepStrictEqual(seen, [path.join(tmpFolder, 'changed')])
+  })
+
   it('should get quickfix item from Location', async t => {
     let filepath = await shared.createTmpFile('quickfix')
     let uri = URI.file(filepath).toString()

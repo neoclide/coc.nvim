@@ -32,7 +32,7 @@ import TabsModel from './model/tabs'
 import Task from './model/task'
 import { LinesTextDocument } from './model/textdocument'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, DidChangeTextDocumentParams, Env, FileWatchConfig, GlobPattern, IConfigurationChangeEvent, KeymapOption, LocationWithTarget, QuickfixItem, TextDocumentMatch } from './types'
+import { Autocmd, DidChangeTextDocumentParams, Env, FileSystemWatcherOptions, FileWatchConfig, GlobPattern, IConfigurationChangeEvent, KeymapOption, LocationWithTarget, QuickfixItem, TextDocumentMatch } from './types'
 import { defaultValue, getConditionValue } from './util'
 import { APIVERSION, VERSION, dataHome, pluginRoot, userConfigFile } from './util/constants'
 import { onUnexpectedError } from './util/errors'
@@ -460,9 +460,10 @@ export class Workspace {
   /**
    * Create a FileSystemWatcher instance. The returned watcher remains valid
    * when no native or Watchman backend is available, but emits no events.
+   * Set includeDirectories in the options form to receive native directory events.
    */
-  public createFileSystemWatcher(globPattern: GlobPattern, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
-    return this.fileSystemWatchers.createFileSystemWatcher(globPattern, ignoreCreate, ignoreChange, ignoreDelete)
+  public createFileSystemWatcher(globPattern: GlobPattern, options?: FileSystemWatcherOptions | boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
+    return this.fileSystemWatchers.createFileSystemWatcher(globPattern, options, ignoreChange, ignoreDelete)
   }
 
   public createFuzzyMatch(): FuzzyMatch {

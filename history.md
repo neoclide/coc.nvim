@@ -10,6 +10,10 @@ Notable changes of coc.nvim:
   TreeView cursor and disposal events in the public API.
 - Release all TreeView local mappings and safely dispose mappings after their
   buffers have been wiped.
+- Add an options overload for `workspace.createFileSystemWatcher()`. Set
+  `includeDirectories: true` to receive directory events from the native watcher
+  through the existing event handlers. Existing calls and Watchman remain
+  file-only.
 - Use minimatch for native watcher ignore patterns and remove picomatch.
   Unicode POSIX character classes are not supported by the native backend.
 

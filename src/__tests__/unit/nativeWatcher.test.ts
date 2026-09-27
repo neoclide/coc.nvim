@@ -221,7 +221,9 @@ describe('NativeWatcher unit', () => {
     try {
       client = await NativeWatcher.createClient(fixture.root)
       let changes: string[][] = []
+      let entryChanges: string[][] = []
       let disposable = client.subscribe('**/*', change => changes.push(change.files.map(file => `${file.name}:${file.exists}:${file.new}`)))
+      let entries = client.subscribe('**/*', change => entryChanges.push(change.files.map(file => `${file.name}:${file.type}:${file.exists}:${file.new}`)), true)
       callback!(null, [{ path: path.join(fixture.root, 'replace.ts'), type: 'create', kind: 'file' }])
       callback!(null, [{ path: path.join(fixture.root, 'replace.ts'), type: 'update', kind: 'file' }])
       await nextTurn()
@@ -243,8 +245,74 @@ describe('NativeWatcher unit', () => {
       callback!(null, [{ path: path.join(fixture.root, 'empty'), type: 'create', kind: 'directory' }])
       await nextTurn()
       assert.strictEqual(changes.length, 4)
+      assert.deepStrictEqual(entryChanges, [
+        ['replace.ts:f:true:true'],
+        ['replace.ts:f:true:false'],
+        ['replace.ts:f:false:false', 'replace.ts:d:true:true'],
+        ['replace.ts:d:false:false', 'replace.ts:f:true:true'],
+        ['empty:d:true:true']
+      ])
       disposable.dispose()
+      entries.dispose()
     } finally {
+      client?.dispose()
+      fixture.dispose()
+    }
+  })
+
+  it('matches native directory events and renames against a relative pattern', async t => {
+    let binding = getBinding(t)
+    if (!binding) return
+    let fixture = createRoot()
+    let callback: NativeCallback | undefined
+    let client: NativeWatcher | undefined
+    let base = path.join(fixture.root, 'nested')
+    let watcher = new FileSystemWatcher(new RelativePattern(base, '*.entry'), false, true, false, true)
+    let created: string[] = []
+    let changed: string[] = []
+    let deleted: string[] = []
+    let renamed: string[][] = []
+    watcher.onDidCreate(uri => created.push(uri.fsPath))
+    watcher.onDidChange(uri => changed.push(uri.fsPath))
+    watcher.onDidDelete(uri => deleted.push(uri.fsPath))
+    watcher.onDidRename(event => renamed.push([event.oldUri.fsPath, event.newUri.fsPath]))
+    t.mock.method(binding, 'subscribe', (_root, fn) => {
+      callback = fn
+      return Promise.resolve()
+    })
+    t.mock.method(binding, 'unsubscribe', () => Promise.resolve())
+    try {
+      client = await NativeWatcher.createClient(fixture.root)
+      watcher.listen(fixture.root, client)
+      let oldPath = path.join(base, 'old.entry')
+      let newPath = path.join(base, 'new.entry')
+      let filePath = path.join(base, 'file.entry')
+      callback!(null, [
+        { path: oldPath, type: 'create', kind: 'directory' },
+        { path: path.join(base, 'ignored'), type: 'create', kind: 'directory' },
+        { path: path.join(fixture.root, 'outside.entry'), type: 'create', kind: 'directory' },
+        { path: filePath, type: 'create', kind: 'file' }
+      ])
+      callback!(null, [{ path: oldPath, type: 'update', kind: 'directory' }])
+      callback!(null, [
+        { path: oldPath, type: 'delete', kind: 'directory', renameId: 'directory-rename' },
+        { path: newPath, type: 'create', kind: 'directory', renameId: 'directory-rename' }
+      ])
+      callback!(null, [
+        { path: newPath, type: 'delete', kind: 'directory', renameId: 'leaving' },
+        { path: path.join(fixture.root, 'outside.entry'), type: 'create', kind: 'directory', renameId: 'leaving' }
+      ])
+      await nextTurn()
+      assert.deepStrictEqual(created, [oldPath, filePath, newPath])
+      assert.deepStrictEqual(changed, [])
+      assert.deepStrictEqual(deleted, [oldPath, newPath])
+      assert.deepStrictEqual(renamed, [[oldPath, newPath]])
+      watcher.dispose()
+      callback!(null, [{ path: oldPath, type: 'create', kind: 'directory' }])
+      await nextTurn()
+      assert.deepStrictEqual(created, [oldPath, filePath, newPath])
+    } finally {
+      watcher.dispose()
       client?.dispose()
       fixture.dispose()
     }

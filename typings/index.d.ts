@@ -10072,6 +10072,28 @@ declare module 'coc.nvim' {
     newUri: Uri
   }
 
+  export interface FileSystemWatcherOptions {
+    /**
+     * Ignore create events. Defaults to false.
+     */
+    ignoreCreateEvents?: boolean
+    /**
+     * Ignore change events. Defaults to false.
+     */
+    ignoreChangeEvents?: boolean
+    /**
+     * Ignore delete events. Defaults to false.
+     */
+    ignoreDeleteEvents?: boolean
+    /**
+     * Include directory events from the native watcher. Defaults to false.
+     * Directories use the same glob matching and event handlers as files.
+     * Watchman continues to report files only. This does not change backend
+     * selection or the configured ignored folders.
+     */
+    includeDirectories?: boolean
+  }
+
   export interface FileSystemWatcher {
     /**
      * Ignore create events when true.
@@ -10086,19 +10108,19 @@ declare module 'coc.nvim' {
      */
     readonly ignoreDeleteEvents: boolean
     /**
-     * Fired when a file is created.
+     * Fired when a file or an included directory is created.
      */
     readonly onDidCreate: Event<Uri>
     /**
-     * Fired when a file is changed.
+     * Fired when a file or an included directory is changed.
      */
     readonly onDidChange: Event<Uri>
     /**
-     * Fired when a file is deleted.
+     * Fired when a file or an included directory is deleted.
      */
     readonly onDidDelete: Event<Uri>
     /**
-     * Fired when a file is renamed.
+     * Fired when a file or an included directory is renamed.
      */
     readonly onDidRename: Event<RenameEvent>
     /**
@@ -10837,6 +10859,13 @@ declare module 'coc.nvim' {
      * backend exists, the returned watcher can still be used but emits no events.
      */
     export function createFileSystemWatcher(globPattern: GlobPattern, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
+    /**
+     * Create a watcher with explicit options. With includeDirectories enabled,
+     * native directory events are delivered through onDidCreate, onDidChange,
+     * onDidDelete and, when both paths match and a rename ID is available,
+     * onDidRename. File events are still included.
+     */
+    export function createFileSystemWatcher(globPattern: GlobPattern, options: FileSystemWatcherOptions): FileSystemWatcher
     /**
      * Find files across all {@link workspace.workspaceFolders workspace folders} in the workspace.
      *

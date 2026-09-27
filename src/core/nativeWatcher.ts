@@ -182,8 +182,8 @@ export default class NativeWatcher implements FileWatcherClient {
     }
   }
 
-  public subscribe(globPattern: string, callback: ChangeCallback): Disposable {
-    let filterChanges = createChangeFilter(globPattern)
+  public subscribe(globPattern: string, callback: ChangeCallback, includeDirectories = false): Disposable {
+    let filterChanges = createChangeFilter(globPattern, includeDirectories)
     let listener = (change: FileChange) => {
       let filtered = filterChanges(change)
       if (!filtered) return
@@ -222,10 +222,9 @@ export default class NativeWatcher implements FileWatcherClient {
   private emit(events: NativeEvent[]): void {
     let files: FileChangeItem[] = []
     for (let event of events) {
-      if (event.kind !== 'file') continue
       let name = relativeWatcherPath(this.watchRoot!, event.path)
       if (!name) continue
-      files.push({ name, exists: event.type !== 'delete', new: event.type === 'create', type: 'f', renameId: event.renameId })
+      files.push({ name, exists: event.type !== 'delete', new: event.type === 'create', type: event.kind === 'directory' ? 'd' : 'f', renameId: event.renameId })
     }
     if (files.length === 0 || this.disposed) return
     let change: FileChange = { root: this.root, subscription: this.subscription, files }

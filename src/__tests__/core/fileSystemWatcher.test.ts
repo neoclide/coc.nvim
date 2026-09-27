@@ -513,6 +513,44 @@ describe('NativeWatcher', () => {
     }
   })
 
+  it('should opt into empty directory events without changing file-only watchers', async t => {
+    if (!getNativeWatcherTarget()) return t.skip('unsupported platform')
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-native-directories-'))
+    let manager = new FileSystemWatcherManager(workspaceFolder, defaultConfig)
+    let pattern = new RelativePattern(root, '**/*')
+    let watcher = manager.createFileSystemWatcher(pattern, { includeDirectories: true })
+    let legacy = manager.createFileSystemWatcher(pattern, false, false, false)
+    let creates: string[] = []
+    let deletes: string[] = []
+    let legacyEvents: string[] = []
+    watcher.onDidCreate(uri => creates.push(uri.fsPath))
+    watcher.onDidDelete(uri => deletes.push(uri.fsPath))
+    legacy.onDidCreate(uri => legacyEvents.push(uri.fsPath))
+    legacy.onDidChange(uri => legacyEvents.push(uri.fsPath))
+    legacy.onDidDelete(uri => legacyEvents.push(uri.fsPath))
+    try {
+      let client = await manager.createClient(root, true)
+      assert.ok(client instanceof NativeWatcher)
+      let oldPath = path.join(root, 'empty')
+      let newPath = path.join(root, 'renamed')
+      fs.mkdirSync(oldPath)
+      await shared.waitValue(() => creates.includes(oldPath), true)
+      fs.renameSync(oldPath, newPath)
+      await shared.waitValue(() => deletes.includes(oldPath) && creates.includes(newPath), true)
+      fs.rmdirSync(newPath)
+      await shared.waitValue(() => deletes.includes(newPath), true)
+      let barrier = path.join(root, 'barrier.txt')
+      fs.writeFileSync(barrier, 'ready')
+      await shared.waitValue(() => legacyEvents.includes(barrier), true)
+      assert.deepStrictEqual(legacyEvents, [barrier])
+    } finally {
+      watcher.dispose()
+      legacy.dispose()
+      manager.dispose()
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it('should treat atomic replacement of an indexed file as an update', async t => {
     if (!getNativeWatcherTarget()) return t.skip('unsupported platform')
     let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-native-replace-'))
@@ -829,6 +867,19 @@ describe('fileSystemWatcher', () => {
   before(async () => {
     workspaceFolder.addWorkspaceFolder(cwd, true)
     await watcherManager.waitClient(cwd)
+  })
+
+  it('should keep Watchman file-only when directory events are requested', async () => {
+    let watcher = watcherManager.createFileSystemWatcher('**/*', { includeDirectories: true })
+    disposables.push(watcher)
+    let created: string[] = []
+    watcher.onDidCreate(uri => created.push(uri.fsPath))
+    sendSubscription(watcher.subscribe, cwd, [
+      { ...createFileChange('empty'), type: 'd' },
+      createFileChange('file.txt')
+    ])
+    await shared.waitValue(() => created.length, 1)
+    assert.deepStrictEqual(created, [path.join(cwd, 'file.txt')])
   })
 
   it('should use relative pattern #1', async t => {

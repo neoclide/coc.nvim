@@ -29,14 +29,14 @@ export interface FileWatcherClient extends Disposable {
   readonly root: string
   readonly subscription: string | undefined
   readonly supportsRenameId: boolean
-  subscribe(globPattern: string, callback: ChangeCallback): Disposable
+  subscribe(globPattern: string, callback: ChangeCallback, includeDirectories?: boolean): Disposable
 }
 
-/** Compile a backend-root glob once and apply it to normalized file events. */
-export function createChangeFilter(globPattern: string): (change: FileChange) => FileChange | undefined {
+/** Compile a backend-root glob once and apply it to normalized entry events. */
+export function createChangeFilter(globPattern: string, includeDirectories = false): (change: FileChange) => FileChange | undefined {
   let matcher = new Minimatch(globPattern, { dot: true })
   return change => {
-    let files = change.files.filter(file => file.type === 'f' && matcher.match(file.name))
+    let files = change.files.filter(file => (file.type === 'f' || includeDirectories && file.type === 'd') && matcher.match(file.name))
     return files.length === 0 ? undefined : { ...change, files }
   }
 }

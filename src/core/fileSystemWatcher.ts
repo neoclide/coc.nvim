@@ -2,7 +2,7 @@
 import { WorkspaceFolder } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
 import { createLogger } from '../logger'
-import { FileWatchConfig, GlobPattern, IFileSystemWatcher, OutputChannel } from '../types'
+import { FileSystemWatcherOptions, FileWatchConfig, GlobPattern, IFileSystemWatcher, OutputChannel } from '../types'
 import { disposeAll, isTester } from '../util'
 import { splitArray } from '../util/array'
 import { isFolderIgnored, isParentFolder, normalizeFilePath, sameFile } from '../util/fs'
@@ -161,8 +161,9 @@ export class FileSystemWatcherManager {
     return curr.some(r => sameFile(r, root))
   }
 
-  public createFileSystemWatcher(globPattern: GlobPattern, ignoreCreateEvents: boolean, ignoreChangeEvents: boolean, ignoreDeleteEvents: boolean): FileSystemWatcher {
-    let fileWatcher = new FileSystemWatcher(globPattern, ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents)
+  public createFileSystemWatcher(globPattern: GlobPattern, options: FileSystemWatcherOptions | boolean = false, ignoreChangeEvents = false, ignoreDeleteEvents = false): FileSystemWatcher {
+    let opts: FileSystemWatcherOptions = typeof options === 'boolean' ? { ignoreCreateEvents: options, ignoreChangeEvents, ignoreDeleteEvents } : options
+    let fileWatcher = new FileSystemWatcher(globPattern, opts.ignoreCreateEvents ?? false, opts.ignoreChangeEvents ?? false, opts.ignoreDeleteEvents ?? false, opts.includeDirectories ?? false)
     let base = typeof globPattern === 'string' ? undefined : globPattern.baseUri.fsPath
     for (let [root, client] of this.clientsMap.entries()) {
       if (base && isParentFolder(root, base, true)) {
@@ -209,6 +210,7 @@ export class FileSystemWatcher implements IFileSystemWatcher {
     public ignoreCreateEvents: boolean,
     public ignoreChangeEvents: boolean,
     public ignoreDeleteEvents: boolean,
+    private includeDirectories = false
   ) {
   }
 
@@ -247,7 +249,7 @@ export class FileSystemWatcher implements IFileSystemWatcher {
         }
         return minimatch(name, pattern, { dot: true })
       }
-      let files = change.files.filter(file => file.type === 'f' && matches(file.name))
+      let files = change.files.filter(file => (file.type === 'f' || this.includeDirectories && file.type === 'd') && matches(file.name))
       for (let file of files) {
         let uri = URI.file(path.join(root, file.name))
         if (!file.exists) {
@@ -315,7 +317,7 @@ export class FileSystemWatcher implements IFileSystemWatcher {
     // Relative patterns are matched against basePath in onChange. The client
     // filters names relative to its own root, so the bare pattern would drop
     // changes below a nested base before onChange receives them.
-    let disposable = client.subscribe(basePath ? '**/*' : pattern, onChange)
+    let disposable = client.subscribe(basePath ? '**/*' : pattern, onChange, this.includeDirectories)
     this._onDidListen.fire()
     this.disposables.push(disposable)
   }

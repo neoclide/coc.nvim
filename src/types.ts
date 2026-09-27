@@ -49,6 +49,13 @@ export interface FileWatchConfig {
   readonly ignoredFolders: string[]
 }
 
+export interface FileSystemWatcherOptions {
+  ignoreCreateEvents?: boolean
+  ignoreChangeEvents?: boolean
+  ignoreDeleteEvents?: boolean
+  includeDirectories?: boolean
+}
+
 /**
  * @internal
  */
