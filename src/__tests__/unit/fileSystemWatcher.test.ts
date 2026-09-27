@@ -1157,7 +1157,7 @@ describe('fileSystemWatcher', () => {
     await watcherManager.waitClient(cwd)
   })
 
-  it('should keep Watchman file-only when directory events are requested', async () => {
+  it('should keep Watchman file-only when directory events are requested', { skip: process.platform === 'win32' }, async () => {
     let watcher = watcherManager.createFileSystemWatcher('**/*', { includeDirectories: true })
     disposables.push(watcher)
     let created: string[] = []

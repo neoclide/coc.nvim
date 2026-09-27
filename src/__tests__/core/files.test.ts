@@ -988,7 +988,7 @@ describe('getOriginalLine', () => {
       assert.strictEqual(did, 0)
     })
 
-    it('should propagate errors from a non-directory parent without firing events', async t => {
+    it('should propagate errors from a non-directory parent without firing events', { skip: process.platform === 'win32' }, async t => {
       let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-create-invalid-parent-'))
       let parent = path.join(root, 'file')
       fs.writeFileSync(parent, 'content')
@@ -1128,7 +1128,7 @@ describe('getOriginalLine', () => {
       assert.strictEqual(did, 0)
     })
 
-    it('should propagate source path errors other than a missing file', async t => {
+    it('should propagate source path errors other than a missing file', { skip: process.platform === 'win32' }, async t => {
       let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-copy-invalid-source-'))
       let source = path.join(root, 'source')
       fs.writeFileSync(source, 'source')

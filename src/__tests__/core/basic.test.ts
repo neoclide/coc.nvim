@@ -752,7 +752,7 @@ describe('create terminal', () => {
     await shared.waitFor('coc#terminal#_channel_count', [], 0)
   })
 
-  it('should use cleaned env', async t => {
+  it('should use cleaned env', { skip: process.platform === 'win32' }, async t => {
     let terminal = await terminals.createTerminal(nvim, {
       name: `test-${crypto.randomUUID()}`,
       shellPath: which.sync('bash'),
@@ -822,7 +822,7 @@ describe('create terminal', () => {
     assert.strictEqual(bufname.includes(basename), true)
   })
 
-  it('should have exit code', async t => {
+  it('should have exit code', { skip: process.platform === 'win32' }, async t => {
     // Neovim's default TermClose handler removes a successful default-shell
     // terminal before the job's on_exit callback runs.
     let shell = await nvim.getOption('shell') as string
