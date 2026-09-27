@@ -2,6 +2,38 @@
 
 Notable changes of coc.nvim:
 
+## 2026-09-27
+
+- Add `workspace.createDirectory()` and `workspace.copyFile()` with create-file
+  participation and completion events, rejecting existing targets.
+- Add restricted native Git metadata subscriptions with
+  `workspace.createGitFileSystemWatcher()` without changing ignored folders.
+- Add opt-in `TreeViewOptions.preserveSelection` and declare the existing
+  TreeView cursor and disposal events in the public API.
+- Release all TreeView local mappings and safely dispose mappings after their
+  buffers have been wiped.
+- Declare the existing FileSystemWatcher.onDidListen event for subscription
+  readiness on newly watched roots.
+- Add an options overload for `workspace.createFileSystemWatcher()`. Set
+  `includeDirectories: true` to receive directory events from the native watcher
+  through the existing event handlers. Existing calls and Watchman remain
+  file-only.
+- Use minimatch for native watcher ignore patterns and remove picomatch.
+  Unicode POSIX character classes are not supported by the native backend.
+
+## 2026-09-26
+
+- Use bundled native-watcher binaries on macOS, Linux, and Windows. Native
+  watcher events exclude symlinks and special entries. A symlink workspace root
+  is resolved to its real path before subscribing.
+- A configured nonempty `fileSystemWatch.watchmanPath` now tries Watchman once
+  before the native watcher. Without it, coc.nvim tries the native watcher
+  first and looks up Watchman only after native watcher initialization fails.
+- On Linux with glibc below 2.28, skip the native watcher and quietly use the
+  existing Watchman fallback when available.
+- Forward `fileSystemWatch.ignoredFolders` to the bundled native watcher and
+  ignore `.git` and `node_modules` directory trees by default.
+
 ## 2026-09-11
 
 - Include `[extension: <id>]` in uncaught exception and unhandled rejection

@@ -18,6 +18,16 @@ This guide explains how to extend coc.nvim by creating Vim completion
 sources and coc.nvim extensions.
 
 ------------------------------------------------------------------------------
+FILE SYSTEM WATCHERS                              *coc-api-file-system-watcher*
+
+`workspace.createFileSystemWatcher(globPattern, options)` accepts a
+`FileSystemWatcherOptions` object. Set `includeDirectories: true` to receive
+native directory events through the same handlers and glob matching as files.
+Watchman remains file-only. The options `ignoreCreateEvents`,
+`ignoreChangeEvents` and `ignoreDeleteEvents` default to false, as does
+`includeDirectories`. The existing boolean arguments remain supported.
+
+------------------------------------------------------------------------------
 VIM SOURCES 					*coc-api-vim-source*
 
 During initialization, coc.nvim searches Vim's |runtimepath| for files
