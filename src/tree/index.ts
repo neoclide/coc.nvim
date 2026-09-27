@@ -76,6 +76,10 @@ export interface TreeViewOptions<T> {
    */
   canSelectMany?: boolean
   /**
+   * Select an item before invoking its command or actions. Defaults to true.
+   */
+  selectOnInvoke?: boolean
+  /**
    * Preserve selections that still have the same element or TreeItem id after
    * data changes. Defaults to false.
    */

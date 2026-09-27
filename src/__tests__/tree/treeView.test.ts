@@ -98,6 +98,124 @@ describe('TreeView', () => {
     })
   })
 
+  describe('mouse routing', () => {
+    let mouseOptions: [string, string, number, number]
+    beforeEach(async () => {
+      mouseOptions = await nvim.eval('[&mouse, &mousemodel, &mousemoveevent, &mousetime]') as typeof mouseOptions
+      await nvim.setOption('mousetime', 0)
+    })
+    afterEach(async () => {
+      let [mouse, mousemodel, mousemoveevent, mousetime] = mouseOptions
+      await nvim.setOption('mouse', mouse)
+      await nvim.setOption('mousemodel', mousemodel)
+      await nvim.setOption('mousemoveevent', !!mousemoveevent)
+      await nvim.setOption('mousetime', mousetime)
+    })
+
+    it('does not overwrite a global RightMouse mapping', async () => {
+      await nvim.command('nnoremap <RightMouse> <Cmd>let g:tree_right_mouse = 1<CR>')
+      try {
+        createTreeView(defaultDef)
+        await treeView.show()
+        await nvim.call('win_gotoid', [treeView.targetWinId])
+        let rhs = await nvim.call('maparg', ['<RightMouse>', 'n']) as string
+        assert.strictEqual(rhs, '<Cmd>let g:tree_right_mouse = 1<CR>')
+      } finally {
+        await nvim.command('silent! nunmap <RightMouse>')
+      }
+    })
+
+    it('registers RightMouse only in the tree buffer', async () => {
+      createTreeView(defaultDef)
+      await treeView.show()
+      await nvim.call('win_gotoid', [treeView.targetWinId])
+      let rhs = await nvim.call('maparg', ['<RightMouse>', 'n']) as string
+      assert.strictEqual(rhs, '')
+      await nvim.call('win_gotoid', [treeView.windowId])
+      let local = await nvim.call('maparg', ['<RightMouse>', 'n', 0, 1]) as { buffer: number, expr: number }
+      assert.strictEqual(local.buffer, 1)
+      assert.strictEqual(local.expr, 1)
+      await nvim.call('win_gotoid', [treeView.targetWinId])
+      assert.strictEqual(await nvim.eval('coc#ui#tree_right_mouse() ==# "\\<RightMouse>"'), 1)
+    })
+
+    for (let mousemodel of ['extend', 'popup_setpos']) {
+      it(`opens actions on the clicked item with ${mousemodel}`, async t => {
+        let actionNode: TreeNode | undefined
+        createTreeView(defaultDef, { selectOnInvoke: false }, {
+          resolveActions: () => [{ title: 'action', handler: node => { actionNode = node } }]
+        })
+        await treeView.show()
+        await nvim.command(`set mouse=a mousemodel=${mousemodel}`)
+        t.mock.method(window, 'showMenuPicker', async () => 0)
+        let [row, col] = await nvim.call('win_screenpos', [treeView.windowId]) as [number, number]
+        await nvim.command('redraw')
+        await nvim.request('nvim_input_mouse', ['right', 'press', '', 0, row + 1, col + 2])
+        await shared.waitValue(() => actionNode, nodes[1])
+        await nvim.request('nvim_input_mouse', ['right', 'release', '', 0, row + 1, col + 2])
+        assert.strictEqual(await nvim.call('win_getid'), treeView.windowId)
+        assert.deepStrictEqual(treeView.selection, [])
+      })
+    }
+
+    it('ignores right-clicks below the tree but accepts wrapped text', async t => {
+      let actionNode: TreeNode | undefined
+      // With the indent, the label fills exactly two 30-column screen rows.
+      createTreeView([['a'.repeat(58)]], {}, {
+        resolveActions: () => [{ title: 'action', handler: node => { actionNode = node } }]
+      })
+      await treeView.show()
+      await nvim.command('set mouse=a mousemodel=extend')
+      let menu = t.mock.method(window, 'showMenuPicker', async () => 0)
+      let [row, col] = await nvim.call('win_screenpos', [treeView.windowId]) as [number, number]
+      await nvim.command('redraw')
+      await nvim.request('nvim_input_mouse', ['right', 'press', '', 0, row + 2, col + 2])
+      await shared.waitValue(async () => (await nvim.call('getmousepos') as { screenrow: number }).screenrow, row + 3)
+      await nvim.request('nvim_input_mouse', ['right', 'release', '', 0, row + 2, col + 2])
+      assert.strictEqual(await nvim.call('coc#ui#tree_right_mouse'), '')
+      assert.strictEqual(menu.mock.callCount(), 0)
+      assert.deepStrictEqual(treeView.selection, [])
+      let position = await nvim.call('screenpos', [treeView.windowId, 2, 40]) as { row: number, col: number }
+      await nvim.request('nvim_input_mouse', ['right', 'press', '', 0, position.row - 1, position.col - 1])
+      await shared.waitValue(() => actionNode, nodes[0])
+      await nvim.request('nvim_input_mouse', ['right', 'release', '', 0, position.row - 1, position.col - 1])
+    })
+
+    it('keeps the clicked item when the mouse moves before the event is handled', async t => {
+      let actionNode: TreeNode | undefined
+      createTreeView(defaultDef, { selectOnInvoke: false }, {
+        resolveActions: () => [{ title: 'action', handler: node => { actionNode = node } }]
+      })
+      await treeView.show()
+      await nvim.command('set mouse=a mousemodel=extend mousemoveevent')
+      t.mock.method(window, 'showMenuPicker', async () => 0)
+      let [row, col] = await nvim.call('win_screenpos', [treeView.windowId]) as [number, number]
+      let eventReceived: () => void
+      let resume: () => void
+      let received = new Promise<void>(resolve => { eventReceived = resolve })
+      let resumed = new Promise<void>(resolve => { resume = resolve })
+      let fire = events.fire.bind(events)
+      t.mock.method(events, 'fire', async (name, args) => {
+        if (name === 'TreeRightClick') {
+          eventReceived()
+          await resumed
+        }
+        await fire(name, args)
+      })
+      await nvim.command('redraw')
+      try {
+        await nvim.request('nvim_input_mouse', ['right', 'press', '', 0, row, col + 2])
+        await received
+        await nvim.request('nvim_input_mouse', ['right', 'release', '', 0, row, col + 2])
+        await nvim.request('nvim_input_mouse', ['move', '', '', 0, row + 1, col + 2])
+        await shared.waitValue(async () => (await nvim.call('getmousepos') as { line: number }).line, 3)
+      } finally {
+        resume()
+      }
+      await shared.waitValue(() => actionNode, nodes[0])
+    })
+  })
+
   describe('show()', () => {
     it('should show with title', async t => {
       createTreeView(defaultDef)
@@ -402,6 +520,32 @@ describe('TreeView', () => {
         assert.strictEqual(treeView.selection[0], current)
       })
     }
+
+    it('keeps expanded sibling subtrees on a targeted refresh', async () => {
+      createTreeView([
+        ['a', [['a1', [['a1a']]], ['a2']]],
+        ['b', [['b1', [['b1a']]], ['b2']]],
+        ['c']
+      ])
+      await treeView.show()
+      await treeView['toggleExpand'](nodes[0])
+      await treeView['toggleExpand'](nodes[0].children![0])
+      await treeView['toggleExpand'](nodes[1])
+      await treeView['toggleExpand'](nodes[1].children![0])
+      await treeView['onDataChange'](nodes[0])
+      await checkLines([
+        'test',
+        '- a',
+        '  - a1',
+        '      a1a',
+        '    a2',
+        '- b',
+        '  - b1',
+        '      b1a',
+        '    b2',
+        '  c'
+      ])
+    })
   })
 
   describe('key-mappings', () => {
@@ -499,6 +643,45 @@ describe('TreeView', () => {
       await nvim.command('exe 2')
       await nvim.input('<cr>')
       await shared.waitValue(() => node && node.label, 'a')
+    })
+
+    it('selects invoked commands by default', async () => {
+      let invoked: TreeNode | undefined
+      createTreeView(defaultDef, { canSelectMany: true }, {
+        handleClick: node => {
+          invoked = node
+        }
+      })
+      await treeView.show()
+      treeView.selectItem(nodes[1])
+      await treeView.invokeCommand(nodes[0])
+      assert.strictEqual(invoked, nodes[0])
+      assert.deepStrictEqual(treeView.selection, [nodes[1], nodes[0]])
+    })
+
+    it('toggles a command-less directory without selecting it', async () => {
+      createTreeView(defaultDef, { canSelectMany: true })
+      provider.resolveTreeItem = async item => item
+      await treeView.show()
+      treeView.selectItem(nodes[2])
+      await treeView.invokeCommand(nodes[0])
+      await checkLines(['test', '- a', '    c', '    d', '+ b', '  g'])
+      assert.deepStrictEqual(treeView.selection, [nodes[2]])
+      await assert.rejects(treeView.invokeCommand(nodes[2]), /Failed to resolve command/)
+    })
+
+    it('does not toggle a directory when command resolution is cancelled', async () => {
+      createTreeView(defaultDef)
+      provider.resolveTreeItem = (item, _node, token) => {
+        return new Promise(resolve => {
+          token.onCancellationRequested(() => resolve(item))
+        })
+      }
+      await treeView.show()
+      let promise = treeView.invokeCommand(nodes[0])
+      treeView['cancelResolve']()
+      await assert.rejects(promise, /Failed to resolve command/)
+      await checkLines(['test', '+ a', '+ b', '  g'])
     })
 
     it('should not throw when resolve command cancelled', async t => {
@@ -721,6 +904,56 @@ describe('TreeView', () => {
       assert.strictEqual(called, true)
       assert.strictEqual(args[0].label, 'a')
       assert.strictEqual(args[1].label, 'a')
+    })
+
+    it('does not select commands or actions when selectOnInvoke is false', async t => {
+      let commandNode: TreeNode | undefined
+      let actionNode: TreeNode | undefined
+      createTreeView(defaultDef, { canSelectMany: true, selectOnInvoke: false }, {
+        handleClick: node => {
+          commandNode = node
+        },
+        resolveActions: () => [{
+          title: 'action',
+          handler: node => {
+            actionNode = node
+          }
+        }]
+      })
+      await treeView.show()
+      treeView.selectItem(nodes[1])
+      await treeView.invokeCommand(nodes[0])
+      assert.strictEqual(commandNode, nodes[0])
+      assert.deepStrictEqual(treeView.selection, [nodes[1]])
+      t.mock.method(window, 'showMenuPicker', async () => 0)
+      await treeView.invokeActions(nodes[0])
+      assert.strictEqual(actionNode, nodes[0])
+      assert.deepStrictEqual(treeView.selection, [nodes[1]])
+      await treeView.reveal(nodes[0], { select: true })
+      assert.deepStrictEqual(treeView.selection, [nodes[1], nodes[0]])
+    })
+
+    it('uses the mouse item for right-click actions', async t => {
+      let actionNode: TreeNode | undefined
+      createTreeView(defaultDef, { canSelectMany: true, selectOnInvoke: false }, {
+        resolveActions: () => [{
+          title: 'action',
+          handler: node => {
+            actionNode = node
+          }
+        }]
+      })
+      await treeView.show()
+      treeView.selectItem(nodes[0])
+      t.mock.method(window, 'showMenuPicker', async () => 0)
+      await events.fire('TreeRightClick', [treeView.windowId, 3])
+      assert.strictEqual(actionNode, nodes[1])
+      assert.deepStrictEqual(treeView.selection, [nodes[0]])
+      assert.strictEqual(await nvim.call('getline', ['.']), '+ b')
+      await events.fire('TreeRightClick', [treeView.windowId, 1])
+      await events.fire('TreeRightClick', [treeView.windowId, 100])
+      await events.fire('TreeRightClick', [treeView.windowId + 1, 2])
+      assert.strictEqual(actionNode, nodes[1])
     })
   })
 
@@ -1073,6 +1306,27 @@ describe('TreeView', () => {
         let c = await nvim.eval('b:changedtick') as number
         return c - tick > 1
       }, true)
+    }
+
+    for (let getParent of [true, false]) {
+      it(`expands a command-less directory after filtering with getParent: ${getParent}`, async () => {
+        createTreeView([['a', [['branch', [['leaf']]]]], ['other', [['child']]]], { enableFilter: true })
+        provider.resolveTreeItem = async item => item
+        if (!getParent) provider.getParent = undefined
+        let expanded: TreeNode[] = []
+        treeView.onDidExpandElement(e => expanded.push(e.element), null, disposables)
+        await treeView.show()
+        let tick = await nvim.eval('b:changedtick') as number
+        await nvim.input('f')
+        await shared.waitValue(async () => (await nvim.eval('b:changedtick') as number) - tick > 1, true)
+        await checkLines(['test', ' ', '  a', '  branch', '  leaf', '  other', '  child'])
+        await nvim.input('branch')
+        await checkLines(['test', 'branch ', '  branch'])
+        await nvim.input('<cr>')
+        await shared.waitValue(() => treeView.filtering, false)
+        await checkLines(['test', '- a', '  - branch', '      leaf', '+ other'])
+        assert.deepStrictEqual(expanded, [nodes[0].children[0]])
+      })
     }
 
     it('should start filter by input', async t => {

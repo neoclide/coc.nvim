@@ -96,7 +96,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
   private lineState: LineState = { titleCount: 0, messageCount: 0 }
   private filter: Filter<T> | undefined
   private filterText: string | undefined
-  private itemsToFilter: T[] | undefined
+  private itemsToFilter: Map<T, T | undefined> | undefined
   private readonly leafIndent: boolean
   private readonly winfixwidth: boolean
   private readonly autoWidth: boolean
@@ -201,6 +201,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       if (bufnr != this.bufnr) return
       await this.onHover(cursor[0])
     }, null, this.disposables)
+    events.on('TreeRightClick', this.onRightClick, this, this.disposables)
     events.on(['CursorMoved', 'BufEnter'], () => {
       this.cancelResolve()
     }, null, this.disposables)
@@ -232,18 +233,33 @@ export default class BasicTreeView<T> implements TreeView<T> {
     }, null, this.disposables)
     this.disposables.push(this._onDidChangeVisibility, this._onDidCursorMoved, this._onDidChangeSelection, this._onDidCollapseElement, this._onDidExpandElement)
     if (this.filter) {
-      this.filter.onDidExit(node => {
-        this.nodesMap.clear()
+      this.filter.onDidExit(async node => {
+        let obj = node && this.nodesMap.get(node)
+        let cached = this.nodesMap
+        this.nodesMap = new Map()
+        let didExpand = false
+        // Keep the invoked directory and its ancestors expanded after filtering.
+        if (obj && !obj.item.command) {
+          didExpand = obj.item.collapsibleState === TreeItemCollapsibleState.Collapsed
+          for (let curr = node; curr; curr = this.itemsToFilter?.get(curr)) {
+            let data = cached.get(curr)
+            data.item.collapsibleState = TreeItemCollapsibleState.Expanded
+            this.nodesMap.set(curr, data)
+          }
+        }
         this.filterText = undefined
         this.itemsToFilter = undefined
+        let render: Promise<void>
         if (node && typeof this.provider.getParent === 'function') {
           this.renderedItems = []
-          void this.reveal(node, { focus: true })
+          render = this.reveal(node, { focus: true })
         } else {
           this.clearSelection()
-          void this.render()
+          render = this.render()
         }
         this._onDidFilterStateChange.fire(false)
+        await render
+        if (didExpand) this._onDidExpandElement.fire({ element: node })
       })
       this.filter.onDidUpdate(text => {
         this.filterText = text
@@ -331,12 +347,12 @@ export default class BasicTreeView<T> implements TreeView<T> {
     let release = await this.mutex.acquire()
     try {
       if (!this.itemsToFilter) {
-        let itemsToFilter: T[] = []
-        const addNodes = async (nodes: ReadonlyArray<T>): Promise<void> => {
+        let itemsToFilter = new Map<T, T | undefined>()
+        const addNodes = async (nodes: ReadonlyArray<T>, parent?: T): Promise<void> => {
           for (let n of nodes) {
-            itemsToFilter.push(n)
+            itemsToFilter.set(n, parent)
             let arr = await Promise.resolve(this.provider.getChildren(n))
-            if (!isFalsyOrEmpty(arr)) await addNodes(arr)
+            if (!isFalsyOrEmpty(arr)) await addNodes(arr, n)
           }
         }
         let nodes = await Promise.resolve(this.provider.getChildren())
@@ -345,8 +361,9 @@ export default class BasicTreeView<T> implements TreeView<T> {
       }
       let lowInput = text.toLowerCase()
       let emptyInput = text.length === 0
-      for (let n of this.itemsToFilter) {
+      for (let n of this.itemsToFilter.keys()) {
         let item = await this.getTreeItem(n)
+        item = { ...item }
         let label = getItemLabel(item)
         let score = 0
         if (!emptyInput) {
@@ -427,19 +444,33 @@ export default class BasicTreeView<T> implements TreeView<T> {
     }
   }
 
+  private async onRightClick(winid: number, lnum: number): Promise<void> {
+    if (winid !== this.winid || lnum === 0) return
+    let element = this.getElementByLnum(lnum - 1)
+    if (!element) return
+    this.focusItem(element)
+    await this.invokeActions(element)
+  }
+
   public async invokeCommand(element: T): Promise<void> {
     let obj = this.nodesMap.get(element)
     if (!obj) return
-    this.selectItem(element)
     let item = obj.item
     if (!item.command) item = await this.resolveItem(element, item)
-    if (!item || !item.command) throw new Error(`Failed to resolve command from TreeItem.`)
+    if (!item || !item.command) {
+      if (item && (item.collapsibleState == TreeItemCollapsibleState.Collapsed || item.collapsibleState == TreeItemCollapsibleState.Expanded)) {
+        if (!this.filtering) await this.toggleExpand(element)
+        return
+      }
+      throw new Error(`Failed to resolve command from TreeItem.`)
+    }
+    if (this.opts.selectOnInvoke !== false) this.selectItem(element)
     await commandManager.execute(item.command)
   }
 
   public async invokeActions(element: T | undefined): Promise<void> {
     if (!element) return
-    this.selectItem(element)
+    if (this.opts.selectOnInvoke !== false) this.selectItem(element)
     if (typeof this.provider.resolveActions !== 'function') {
       await window.showWarningMessage('No actions')
       return
@@ -478,9 +509,8 @@ export default class BasicTreeView<T> implements TreeView<T> {
         let removeCount = 0
         for (let i = idx; i < items.length; i++) {
           let o = items[i]
-          if (i == idx || o && o.level > level) {
-            removeCount += 1
-          }
+          if (i !== idx && o.level <= level) break
+          removeCount += 1
         }
         let appendItems: RenderedItem<T>[] = []
         let highlights: HighlightItem[] = []
@@ -1050,7 +1080,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     this.bufnr = undefined
     this.filter?.dispose()
     this._selection = []
-    this.itemsToFilter = []
+    this.itemsToFilter = new Map()
     this.tooltipFactory.dispose()
     this.renderedItems = []
     this.nodesMap.clear()

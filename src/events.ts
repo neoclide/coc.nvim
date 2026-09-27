@@ -99,7 +99,7 @@ export type AllEvents = BufEvents | EmptyEvents | CursorEvents | TaskEvents | Wi
   | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'TermExit' | 'WinScrolled' | 'CompleteStart'
   | 'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar' | 'PlaceholderJump' | 'InputListSelect'
   | 'WinLeave' | 'MenuInput' | 'PromptInsert' | 'PromptExit' | 'FloatBtnClick' | 'InsertSnippet' | 'TextInsert' | 'PromptKeyPress' | 'WindowVisible'
-  | 'Message'
+  | 'Message' | 'TreeRightClick'
 
 export type CursorEvents = CursorHoldEvents | CursorMoveEvents
 export type CursorHoldEvents = 'CursorHold' | 'CursorHoldI'
@@ -421,6 +421,7 @@ class Events {
   public on(event: 'TabNew', handler: (tabid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TextInsert', handler: (bufnr: number, info: InsertChange, character: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FloatBtnClick', handler: (bufnr: number, index: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'TreeRightClick', handler: (winid: number, lnum: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'PromptKeyPress', handler: (bufnr: number, key: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufWritePre', handler: (bufnr: number, bufname: string, changedtick: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'TextChanged' | 'BufWritePost', handler: (bufnr: number, changedtick: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

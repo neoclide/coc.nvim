@@ -9470,6 +9470,10 @@ declare module 'coc.nvim' {
      */
     canSelectMany?: boolean
     /**
+     * Select an item before invoking its command or actions. Defaults to true.
+     */
+    selectOnInvoke?: boolean
+    /**
      * Preserve selected items with stable IDs when tree data changes. Items that
      * no longer exist in the refreshed tree are removed from the selection.
      * Defaults to false.

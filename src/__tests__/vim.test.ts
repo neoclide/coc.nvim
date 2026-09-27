@@ -20,6 +20,44 @@ import type { SnippetEdit } from '../snippets/session'
 import { sameFile } from '../util/fs'
 import workspace from '../workspace'
 import window from '../window'
+import { TreeItem } from '../tree/TreeItem'
+
+describe('tree mouse routing', () => {
+  afterEach(editorReset)
+
+  it('opens tree actions with the buffer-local right-click mapping', async t => {
+    let actionNode: string | undefined
+    let view = window.createTreeView('mouse', {
+      selectOnInvoke: false,
+      treeDataProvider: {
+        getChildren: () => ['a', 'b'],
+        getTreeItem: node => new TreeItem(node),
+        resolveActions: () => [{ title: 'action', handler: node => { actionNode = node } }]
+      }
+    })
+    disposables.push(view)
+    let [mouse, mousemodel, mousetime] = await nvim.eval('[&mouse, &mousemodel, &mousetime]') as [string, string, number]
+    t.after(async () => {
+      await nvim.setOption('mouse', mouse)
+      await nvim.setOption('mousemodel', mousemodel)
+      await nvim.setOption('mousetime', mousetime)
+    })
+    await view.show()
+    await nvim.command('set mouse=a mousemodel=extend mousetime=0')
+    let menu = t.mock.method(window, 'showMenuPicker', async () => 0)
+    let [row, col] = await nvim.call('win_screenpos', [view.windowId]) as [number, number]
+    await nvim.command('redraw')
+    await nvim.command(`call test_setmouse(${row + 8}, ${col + 2})`)
+    await nvim.command('call feedkeys("\\<RightMouse>\\<RightRelease>", "xt")')
+    assert.strictEqual(await nvim.call('coc#ui#tree_right_mouse'), '')
+    assert.strictEqual(menu.mock.callCount(), 0)
+    await nvim.command(`call test_setmouse(${row + 2}, ${col + 2})`)
+    await nvim.command('call feedkeys("\\<RightMouse>", "xt")')
+    await shared.waitValue(() => actionNode, 'b')
+    await nvim.input('<RightRelease>')
+    assert.deepStrictEqual(view.selection, [])
+  })
+})
 
 describe('cursors case conversion (#5755)', () => {
   afterEach(editorReset)

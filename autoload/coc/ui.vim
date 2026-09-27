@@ -486,6 +486,19 @@ function! coc#ui#get_mouse() abort
   return [v:mouse_winid,v:mouse_lnum,v:mouse_col]
 endfunction
 
+function! coc#ui#tree_right_mouse() abort
+  let position = getmousepos()
+  let winid = position.winid
+  let winnr = win_id2win(winid)
+  if winnr == 0 || getwinvar(winnr, '&filetype') !=# 'coctree' || empty(getwinvar(winnr, 'cocViewId', ''))
+    return "\<RightMouse>"
+  endif
+  if position.line == 0 || screenpos(winid, position.line, position.column).row != position.screenrow
+    return ''
+  endif
+  return "\<Cmd>call win_gotoid(".winid.") | call coc#rpc#notify('CocAutocmd', ['TreeRightClick', ".winid.", ".position.line."])\<CR>"
+endfunction
+
 " viewId - identifier of tree view
 " bufnr - bufnr tree view
 " winid - winid of tree view
@@ -536,6 +549,7 @@ function! s:get_tree_winid(opts) abort
 endfunction
 
 function! s:set_tree_defaults(opts) abort
+  nnoremap <silent><buffer><expr> <RightMouse> coc#ui#tree_right_mouse()
   let bufhidden = get(a:opts, 'bufhidden', 'wipe')
   let signcolumn = get(a:opts, 'canSelectMany', v:false) ? 'yes' : 'no'
   let winfixwidth = get(a:opts, 'winfixwidth', v:false) ? ' winfixwidth' : ''

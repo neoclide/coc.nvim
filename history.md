@@ -10,6 +10,9 @@ Notable changes of coc.nvim:
   `workspace.createGitFileSystemWatcher()` without changing ignored folders.
 - Add opt-in `TreeViewOptions.preserveSelection` and declare the existing
   TreeView cursor and disposal events in the public API.
+- Keep expanded sibling branches when refreshing a TreeView subtree.
+- Add `TreeViewOptions.selectOnInvoke`, command-less directory expansion, and
+  right-click actions for TreeView items.
 - Release all TreeView local mappings and safely dispose mappings after their
   buffers have been wiped.
 - Declare the existing FileSystemWatcher.onDidListen event for subscription
