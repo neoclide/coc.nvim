@@ -5,11 +5,12 @@ import { createLogger } from '../logger'
 import { FileSystemWatcherOptions, FileWatchConfig, GlobPattern, IFileSystemWatcher, OutputChannel } from '../types'
 import { disposeAll, isTester } from '../util'
 import { splitArray } from '../util/array'
+import { isCancellationError } from '../util/errors'
 import { isFolderIgnored, isParentFolder, normalizeFilePath, sameFile } from '../util/fs'
 import { minimatch, path, which } from '../util/node'
-import { Disposable, Emitter, Event } from '../util/protocol'
+import { CancellationToken, CancellationTokenSource, Disposable, Emitter, Event } from '../util/protocol'
 import { FileChange, FileWatcherClient } from './fileWatcher'
-import NativeWatcher from './nativeWatcher'
+import NativeWatcher, { createGitNativeOptions } from './nativeWatcher'
 import Watchman from './watchman'
 import type WorkspaceFolderControl from './workspaceFolder'
 const logger = createLogger('fileSystemWatcher')
@@ -20,12 +21,20 @@ export interface RenameEvent {
   newUri: URI
 }
 
+interface GitWatcherClient {
+  client?: NativeWatcher
+  creating?: Promise<void>
+  watchers: Set<FileSystemWatcher>
+  token: CancellationToken
+}
+
 export class FileSystemWatcherManager {
   private clientsMap: Map<string, FileWatcherClient> = new Map()
   private disposables: Disposable[] = []
   private channel: OutputChannel | undefined
   private creating: Map<string, Promise<FileWatcherClient | false | undefined>> = new Map()
-  private generations = new Map<string, number>()
+  private tokenSourcesMap: Map<string, CancellationTokenSource> = new Map()
+  private gitClients = new Map<string, GitWatcherClient>()
   private disposed = false
   public static watchers: Set<FileSystemWatcher> = new Set()
   private readonly _onDidCreateClient = new Emitter<string>()
@@ -55,7 +64,8 @@ export class FileSystemWatcherManager {
         let root = normalizeFilePath(URI.parse(folder.uri).fsPath)
         // Invalidate any in-flight creation for this root so its client is
         // disposed before it can be published or subscribed.
-        this.invalidate(root)
+        let tokenSource = this.tokenSourcesMap.get(root)
+        if (tokenSource) tokenSource.cancel()
         let client = this.clientsMap.get(root)
         if (client) {
           this.clientsMap.delete(root)
@@ -87,36 +97,30 @@ export class FileSystemWatcherManager {
     if (this.has(root)) return this.waitClient(root)
     let pending = this.creating.get(root)
     if (pending) return pending
-    let generation = this.generationOf(root)
-    let p = this.createClientInner(root, generation)
+    let p = this.createClientInner(root)
     this.creating.set(root, p)
     return p.finally(() => {
       this.creating.delete(root)
     })
   }
 
-  private generationOf(root: string): number {
-    return this.generations.get(root) ?? 0
-  }
-
-  private invalidate(root: string): void {
-    this.generations.set(root, this.generationOf(root) + 1)
-  }
-
-  private async createClientInner(root: string, generation: number): Promise<FileWatcherClient | false | undefined> {
+  private async createClientInner(root: string): Promise<FileWatcherClient | false | undefined> {
     try {
       let client: FileWatcherClient | undefined
       let backends = this.config.watchmanPath ? ['watchman', 'native'] : ['native', 'watchman']
+      let tokenSource = new CancellationTokenSource()
+      let token = tokenSource.token
+      this.tokenSourcesMap.set(root, tokenSource)
       for (let backend of backends) {
-        if (this.disposed || generation !== this.generationOf(root)) return false
+        if (token.isCancellationRequested) return false
         try {
           this.channel?.appendLine(`Trying ${backend} watcher for ${root}`)
           if (backend === 'native') {
-            client = await NativeWatcher.createClient(root, this.channel, () => this.disposed || generation !== this.generationOf(root), this.config.ignoredFolders)
+            client = await NativeWatcher.createClient(root, this.channel, token, this.config.ignoredFolders)
           } else {
             let watchmanPath = await this.getWatchmanPath()
             this.channel?.appendLine(`Watchman executable: ${watchmanPath}`)
-            if (this.disposed || generation !== this.generationOf(root)) return false
+            if (token.isCancellationRequested) return false
             client = await Watchman.createClient(watchmanPath, root, this.channel)
           }
           this.channel?.appendLine(`Using ${backend} watcher for ${root}`)
@@ -125,14 +129,14 @@ export class FileSystemWatcherManager {
           this.channel?.appendLine(`Unable to use ${backend} watcher for ${root}: ${error}`)
         }
       }
-      if (!client) {
-        this.channel?.appendLine(`No file watcher backend available for ${root}`)
-        return false
-      }
       // The folder was removed or the manager disposed while the client was
       // being created: the client must be closed, never published.
-      if (this.disposed || generation !== this.generationOf(root)) {
-        client.dispose()
+      if (token.isCancellationRequested) {
+        client?.dispose()
+        return false
+      }
+      if (!client) {
+        this.channel?.appendLine(`No file watcher backend available for ${root}`)
         return false
       }
       this.clientsMap.set(root, client)
@@ -176,13 +180,70 @@ export class FileSystemWatcherManager {
     return fileWatcher
   }
 
+  /** Share a restricted native watcher for an absolute Git metadata directory. */
+  public createGitFileSystemWatcher(gitDir: string): FileSystemWatcher {
+    if (!path.isAbsolute(gitDir)) throw new Error(`Git metadata directory must be absolute: ${gitDir}`)
+    let root = normalizeFilePath(path.resolve(gitDir))
+    let watcher = new FileSystemWatcher('**/*', false, false, false, false)
+    if (this.disposed || this.disabled) return watcher
+    let gitClient = this.gitClients.get(root)
+    watcher.onDidDispose(() => {
+      let watchers = this.gitClients.get(root)?.watchers
+      if (watchers) watchers.delete(watcher)
+    })
+    if (!gitClient) {
+      let tokenSource = new CancellationTokenSource()
+      let token = tokenSource.token
+      gitClient = { watchers: new Set([watcher]), token }
+      this.gitClients.set(root, gitClient)
+      this.tokenSourcesMap.set('git:' + root, tokenSource)
+      let creating = NativeWatcher.createClient(root, this.channel, token, [], createGitNativeOptions())
+        .then(client => {
+          if (token.isCancellationRequested) {
+            client.dispose()
+            return
+          }
+          gitClient.client = client
+          for (let item of gitClient.watchers) {
+            item.listen(root, client)
+          }
+        })
+        .catch(error => {
+          this.gitClients.delete(root)
+          this.tokenSourcesMap.delete('git:' + root)
+          tokenSource.dispose()
+          if (!isCancellationError(error)) {
+            this.channel?.appendLine(`Unable to use native Git metadata watcher for ${root}: ${error}`)
+          }
+        })
+        .finally(() => {
+          gitClient.creating = undefined
+        })
+      gitClient.creating = creating
+    } else {
+      gitClient.watchers.add(watcher)
+      if (gitClient.client) {
+        watcher.listen(root, gitClient.client)
+      }
+    }
+    return watcher
+  }
+
   public dispose(): void {
     this.disposed = true
     this._onDidCreateClient.dispose()
+    for (let tokenSource of this.tokenSourcesMap.values()) {
+      tokenSource.cancel()
+    }
+    this.tokenSourcesMap.clear()
     for (let client of this.clientsMap.values()) {
       if (client) client.dispose()
     }
     this.clientsMap.clear()
+    for (let entry of this.gitClients.values()) {
+      entry.client?.dispose()
+    }
+    this.gitClients.clear()
     FileSystemWatcherManager.watchers.clear()
     disposeAll(this.disposables)
   }
@@ -204,6 +265,9 @@ export class FileSystemWatcher implements IFileSystemWatcher {
   public readonly onDidRename: Event<RenameEvent> = this._onDidRename.event
   private readonly _onDidListen = new Emitter<void>()
   public readonly onDidListen: Event<void> = this._onDidListen.event
+  private readonly _onDidDispose = new Emitter<void>()
+  public readonly onDidDispose: Event<void> = this._onDidDispose.event
+  private disposed = false
 
   constructor(
     private globPattern: GlobPattern,
@@ -215,6 +279,7 @@ export class FileSystemWatcher implements IFileSystemWatcher {
   }
 
   public listen(root: string, client: FileWatcherClient): void {
+    if (this.disposed) return
     let { globPattern,
       ignoreCreateEvents,
       ignoreChangeEvents,
@@ -318,11 +383,14 @@ export class FileSystemWatcher implements IFileSystemWatcher {
     // filters names relative to its own root, so the bare pattern would drop
     // changes below a nested base before onChange receives them.
     let disposable = client.subscribe(basePath ? '**/*' : pattern, onChange, this.includeDirectories)
-    this._onDidListen.fire()
     this.disposables.push(disposable)
+    this._onDidListen.fire()
   }
 
   public dispose(): void {
+    if (this.disposed) return
+    this.disposed = true
+    this._onDidDispose.fire()
     FileSystemWatcherManager.watchers.delete(this)
     this._onDidRename.dispose()
     this._onDidCreate.dispose()

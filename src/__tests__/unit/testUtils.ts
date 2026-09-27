@@ -1,6 +1,20 @@
 import { equals } from '../../util/object'
 import type { ProviderResult } from '../../provider'
 import type { TreeNode } from '../../tree/BasicDataProvider'
+import type { OutputChannel } from '../../types'
+
+export function createNullChannel(): OutputChannel {
+  return {
+    content: '',
+    show: () => {},
+    dispose: () => {},
+    name: 'null',
+    append: () => {},
+    appendLine: () => {},
+    clear: () => {},
+    hide: () => {}
+  }
+}
 
 export type NodeDef = [string, NodeDef[]?]
 

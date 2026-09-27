@@ -10096,6 +10096,11 @@ declare module 'coc.nvim' {
 
   export interface FileSystemWatcher {
     /**
+     * Fired when a backend subscription starts listening. This is not replayed
+     * when the watcher was immediately attached to an existing shared client.
+     */
+    readonly onDidListen: Event<void>
+    /**
      * Ignore create events when true.
      */
     readonly ignoreCreateEvents: boolean
@@ -10866,6 +10871,16 @@ declare module 'coc.nvim' {
      * onDidRename. File events are still included.
      */
     export function createFileSystemWatcher(globPattern: GlobPattern, options: FileSystemWatcherOptions): FileSystemWatcher
+
+    /**
+     * Watch an explicit absolute Git metadata directory (git-dir or common-dir).
+     * Only HEAD, index, packed-refs, config, shallow and refs/** are observed;
+     * objects and other metadata subtrees are excluded from traversal. Uses
+     * Coc's native watcher, independently of ignoredFolders, and respects
+     * fileSystemWatch.enable. Dispose the returned watcher when no longer used.
+     * No Watchman fallback is used for this restricted subscription.
+     */
+    export function createGitFileSystemWatcher(gitDir: string): FileSystemWatcher
     /**
      * Find files across all {@link workspace.workspaceFolders workspace folders} in the workspace.
      *

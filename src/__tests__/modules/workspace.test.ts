@@ -8,6 +8,7 @@ import { Location, Position, Range, TextEdit } from 'vscode-languageserver-types
 import { URI } from 'vscode-uri'
 import { userSettingsSchemaId } from '../../configuration'
 import events from '../../events'
+import NativeWatcher from '../../core/nativeWatcher'
 import { disposeAll } from '../../util'
 import workspace, { Workspace } from '../../workspace'
 import * as shared from '../sharedUtil'
@@ -177,6 +178,17 @@ describe('workspace methods', () => {
   it('should create file watcher', async t => {
     let watcher = workspace.createFileSystemWatcher('**/*.ts')
     assert.notStrictEqual(watcher, undefined)
+  })
+
+  it('should create Git metadata watcher', t => {
+    let root = path.join(tmpFolder, '.git')
+    let create = t.mock.method(workspace['fileSystemWatchers'], 'createGitFileSystemWatcher')
+    let watcher = workspace.createGitFileSystemWatcher(root)
+    disposables.push(watcher)
+    assert.strictEqual(create.mock.callCount(), 1)
+    assert.deepStrictEqual(create.mock.calls[0].arguments, [root])
+    assert.strictEqual(watcher, create.mock.calls[0].result)
+    assert.strictEqual(typeof watcher.onDidListen, 'function')
   })
 
   it('should apply watcher options to native directory events', () => {
@@ -792,4 +804,37 @@ describe('workspace registerBufferSync', () => {
     await doc.synchronize()
     assert.strictEqual(called, 1)
   })
+})
+
+after(async () => {
+  const manager = workspace['fileSystemWatchers']
+  const gitDir = path.join(tmpFolder, 'dispose.git')
+  const createClient = NativeWatcher.createClient
+  let created = 0
+  let disposed = 0
+  NativeWatcher.createClient = async () => {
+    created++
+    return {
+      root: gitDir,
+      subscription: 'dispose-test',
+      supportsRenameId: true,
+      subscribe: () => Disposable.create(() => {}),
+      dispose: () => {
+        disposed++
+      }
+    } as unknown as NativeWatcher
+  }
+  try {
+    manager.disabled = false
+    const watcher = workspace.createGitFileSystemWatcher(gitDir)
+    await new Promise<void>(resolve => watcher.onDidListen(resolve))
+    assert.strictEqual(created, 1)
+    workspace.dispose()
+    assert.strictEqual(disposed, 1)
+    watcher.dispose()
+    workspace.createGitFileSystemWatcher(gitDir).dispose()
+    assert.strictEqual(created, 1)
+  } finally {
+    NativeWatcher.createClient = createClient
+  }
 })

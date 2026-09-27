@@ -2,9 +2,10 @@
 import { createLogger } from '../logger'
 import { OutputChannel } from '../types'
 import { pluginRoot } from '../util/constants'
+import { CancellationError } from '../util/errors'
 import { isParentFolder } from '../util/fs'
 import { fs, minimatch, path } from '../util/node'
-import { Disposable } from '../util/protocol'
+import { CancellationToken, Disposable } from '../util/protocol'
 import { ChangeCallback, createChangeFilter, FileChange, FileChangeItem, FileWatcherClient } from './fileWatcher'
 
 const logger = createLogger('core-native-watcher')
@@ -23,6 +24,17 @@ interface NativeEvent {
 interface NativeOptions {
   ignorePaths?: string[]
   ignoreGlobs?: string[]
+}
+
+/**
+ * Keep a Git metadata watcher from traversing repositories' object stores and
+ * every metadata entry other than the files that can change `git status`.
+ */
+export function createGitNativeOptions(platform = process.platform): NativeOptions {
+  let separator = platform === 'win32' ? '\\\\' : '/'
+  return {
+    ignoreGlobs: [`^(?!(?:HEAD|index|packed-refs|config|shallow)$)(?!(?:refs(?:${separator}|$))).*$`]
+  }
 }
 
 interface NativeBinding {
@@ -155,7 +167,7 @@ export default class NativeWatcher implements FileWatcherClient {
     }
   }
 
-  public static async createClient(root: string, channel?: OutputChannel, isCancelled: () => boolean = () => false, ignored: readonly string[] = []): Promise<NativeWatcher> {
+  public static async createClient(root: string, channel?: OutputChannel, token = CancellationToken.None, ignored: readonly string[] = [], options?: NativeOptions): Promise<NativeWatcher> {
     let target = getNativeWatcherTarget()
     if (!target) throw new Error(`No native watcher binary for ${process.platform}-${process.arch}`)
     let watcher = new NativeWatcher(path.resolve(root), channel)
@@ -163,14 +175,14 @@ export default class NativeWatcher implements FileWatcherClient {
     let subscribed = false
     watcher.appendOutput(`Native watcher binary: ${filepath}`)
     try {
-      if (isCancelled()) throw new Error('Native watcher creation cancelled')
+      if (token.isCancellationRequested) throw new CancellationError()
       watcher.watchRoot = await fs.promises.realpath(watcher.root)
-      if (isCancelled()) throw new Error('Native watcher creation cancelled')
-      watcher.options = createNativeOptions(watcher.watchRoot, watcher.root, ignored)
+      if (token.isCancellationRequested) throw new CancellationError()
+      watcher.options = options ?? createNativeOptions(watcher.watchRoot, watcher.root, ignored)
       watcher.binding = require(filepath) as NativeBinding
       await watcher.binding.subscribe(watcher.watchRoot, watcher.callback, watcher.options)
       subscribed = true
-      if (isCancelled()) throw new Error('Native watcher creation cancelled')
+      if (token.isCancellationRequested) throw new CancellationError()
       watcher.ready = true
       watcher.scheduleDrain()
       watcher.appendOutput(`Native watcher using ${filepath} for ${watcher.root}`)

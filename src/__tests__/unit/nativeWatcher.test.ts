@@ -1,4 +1,4 @@
-import NativeWatcher, { createNativeOptions, getNativeWatcherTarget, nativeIgnoreRegex, relativeWatcherPath } from '../../core/nativeWatcher'
+import NativeWatcher, { createGitNativeOptions, createNativeOptions, getNativeWatcherTarget, nativeIgnoreRegex, relativeWatcherPath } from '../../core/nativeWatcher'
 import { minimatch } from '../../util/node'
 import { FileSystemWatcher } from '../../core/fileSystemWatcher'
 import RelativePattern from '../../model/relativePattern'
@@ -8,6 +8,8 @@ import os from 'os'
 import path from 'path'
 import { createRequire } from 'module'
 import { pluginRoot } from '../../util/constants'
+import { CancellationError } from '../../util/errors'
+import { CancellationToken, CancellationTokenSource } from '../../util/protocol'
 import { URI } from 'vscode-uri'
 
 interface NativeEvent {
@@ -66,6 +68,19 @@ async function nextTurn(): Promise<void> {
 }
 
 describe('NativeWatcher unit', () => {
+  it('limits Git metadata traversal on POSIX and Windows', () => {
+    for (let platform of ['linux', 'darwin', 'win32'] as const) {
+      let regex = new RegExp(createGitNativeOptions(platform).ignoreGlobs![0])
+      let separator = platform === 'win32' ? '\\' : '/'
+      for (let value of ['HEAD', 'index', 'packed-refs', 'config', 'shallow', 'refs', 'refs/heads', 'refs/heads/main']) {
+        assert.strictEqual(regex.test(value.replaceAll('/', separator)), false, `${platform}: ${value}`)
+      }
+      for (let value of ['objects', 'objects/pack', 'logs', 'logs/HEAD', 'hooks', 'worktrees', 'index.lock', 'HEAD.lock', 'refs-old']) {
+        assert.strictEqual(regex.test(value.replaceAll('/', separator)), true, `${platform}: ${value}`)
+      }
+    }
+  })
+
   it('selects the Linux target from the runtime report', t => {
     t.mock.method(process.report, 'getReport', () => ({ header: { glibcVersionRuntime: '2.31' } }))
     assert.deepStrictEqual(getNativeWatcherTarget('linux', 'x64'), { filename: 'linux-x64-glibc.node' })
@@ -152,6 +167,7 @@ describe('NativeWatcher unit', () => {
     for (let [root, filepath, platform, expected] of cases) {
       assert.strictEqual(relativeWatcherPath(root, filepath, platform), expected)
     }
+    assert.strictEqual(relativeWatcherPath(root, path.join(root, 'src', 'a.ts')), 'src/a.ts')
   })
 
   it('ignores empty and unrelated paths while retaining valid native exclusions', () => {
@@ -343,6 +359,9 @@ describe('NativeWatcher unit', () => {
     try {
       client = await NativeWatcher.createClient(fixture.root, channel)
       lines.length = 0
+      callback!(null, [])
+      callback!(null, undefined as unknown as NativeEvent[])
+      callback!(null, [{ path: path.join(fixture.root, '..', 'outside.ts'), type: 'create', kind: 'file' }])
       callback!(null, [{ path: path.join(fixture.root, 'ignored.js'), type: 'create', kind: 'file' }])
       await nextTurn()
       assert.deepStrictEqual(lines, [])
@@ -586,7 +605,7 @@ describe('NativeWatcher unit', () => {
     let realpath = t.mock.method(fs.promises, 'realpath', () => Promise.resolve(fixture.root))
     let subscribe = t.mock.method(binding, 'subscribe', () => Promise.resolve())
     try {
-      await assert.rejects(NativeWatcher.createClient(fixture.root, undefined, () => true), /cancelled/)
+      await assert.rejects(NativeWatcher.createClient(fixture.root, undefined, CancellationToken.Cancelled), CancellationError)
       assert.strictEqual(realpath.mock.callCount(), 0)
       assert.strictEqual(subscribe.mock.callCount(), 0)
     } finally {
@@ -600,7 +619,7 @@ describe('NativeWatcher unit', () => {
     let fixture = createRoot()
     let resolveRealpath: (value: string) => void = () => {}
     let realpathStarted: () => void = () => {}
-    let cancelled = false
+    let tokenSource = new CancellationTokenSource()
     let subscribe = t.mock.method(binding, 'subscribe', () => Promise.resolve())
     let unsubscribe = t.mock.method(binding, 'unsubscribe', () => Promise.resolve())
     t.mock.method(fs.promises, 'realpath', () => {
@@ -609,14 +628,15 @@ describe('NativeWatcher unit', () => {
     })
     try {
       let started = new Promise<void>(resolve => { realpathStarted = resolve })
-      let creating = NativeWatcher.createClient(fixture.root, undefined, () => cancelled)
+      let creating = NativeWatcher.createClient(fixture.root, undefined, tokenSource.token)
       await started
-      cancelled = true
+      tokenSource.cancel()
       resolveRealpath(fixture.root)
-      await assert.rejects(creating, /cancelled/)
+      await assert.rejects(creating, CancellationError)
       assert.strictEqual(subscribe.mock.callCount(), 0)
       assert.strictEqual(unsubscribe.mock.callCount(), 0)
     } finally {
+      tokenSource.dispose()
       fixture.dispose()
     }
   })

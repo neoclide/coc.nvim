@@ -6,10 +6,14 @@ Notable changes of coc.nvim:
 
 - Add `workspace.createDirectory()` and `workspace.copyFile()` with create-file
   participation and completion events, rejecting existing targets.
+- Add restricted native Git metadata subscriptions with
+  `workspace.createGitFileSystemWatcher()` without changing ignored folders.
 - Add opt-in `TreeViewOptions.preserveSelection` and declare the existing
   TreeView cursor and disposal events in the public API.
 - Release all TreeView local mappings and safely dispose mappings after their
   buffers have been wiped.
+- Declare the existing FileSystemWatcher.onDidListen event for subscription
+  readiness on newly watched roots.
 - Add an options overload for `workspace.createFileSystemWatcher()`. Set
   `includeDirectories: true` to receive directory events from the native watcher
   through the existing event handlers. Existing calls and Watchman remain

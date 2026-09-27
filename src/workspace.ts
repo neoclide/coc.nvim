@@ -466,6 +466,11 @@ export class Workspace {
     return this.fileSystemWatchers.createFileSystemWatcher(globPattern, options, ignoreChange, ignoreDelete)
   }
 
+  /** Watch an absolute Git metadata directory with the native watcher. */
+  public createGitFileSystemWatcher(gitDir: string): FileSystemWatcher {
+    return this.fileSystemWatchers.createGitFileSystemWatcher(gitDir)
+  }
+
   public createFuzzyMatch(): FuzzyMatch {
     return new FuzzyMatch(this.fuzzyExports)
   }
@@ -785,6 +790,7 @@ export class Workspace {
 
   public dispose(): void {
     channels.dispose()
+    this.fileSystemWatchers.dispose()
     this.files.dispose()
     this.autocmds.dispose()
     this.statusLine.dispose()
