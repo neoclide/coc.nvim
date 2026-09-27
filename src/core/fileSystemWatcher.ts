@@ -184,7 +184,7 @@ export class FileSystemWatcherManager {
   public createGitFileSystemWatcher(gitDir: string): FileSystemWatcher {
     if (!path.isAbsolute(gitDir)) throw new Error(`Git metadata directory must be absolute: ${gitDir}`)
     let root = normalizeFilePath(path.resolve(gitDir))
-    let watcher = new FileSystemWatcher('**/*', false, false, false, false)
+    let watcher = new FileSystemWatcher('{HEAD,index,packed-refs,config,shallow,refs/**}', false, false, false, false)
     if (this.disposed || this.disabled) return watcher
     let gitClient = this.gitClients.get(root)
     watcher.onDidDispose(() => {

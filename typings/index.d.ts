@@ -10891,8 +10891,9 @@ declare module 'coc.nvim' {
 
     /**
      * Watch an explicit absolute Git metadata directory (git-dir or common-dir).
-     * Only HEAD, index, packed-refs, config, shallow and refs/** are observed;
-     * objects and other metadata subtrees are excluded from traversal. Uses
+     * Only HEAD, index, packed-refs, config, shallow and refs/** are emitted.
+     * Known Git storage subtrees are excluded from traversal; unknown metadata
+     * directories can be traversed but their events are filtered. Uses
      * Coc's native watcher, independently of ignoredFolders, and respects
      * fileSystemWatch.enable. Dispose the returned watcher when no longer used.
      * No Watchman fallback is used for this restricted subscription.

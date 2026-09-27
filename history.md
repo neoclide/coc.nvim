@@ -2,6 +2,15 @@
 
 Notable changes of coc.nvim:
 
+## 2026-09-28
+
+- Replace earlier minimatch native ignores with raw restricted glob strings for
+  bundled native watcher subtree excludes:
+  `*` stays within a component and `**` matches components; other glob
+  punctuation is literal. Regular watcher event patterns retain minimatch.
+- Exclude fixed Git storage directories from native traversal and filter emitted
+  events to Git status files and refs.
+
 ## 2026-09-27
 
 - Add `workspace.createDirectory()` and `workspace.copyFile()` with create-file

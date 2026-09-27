@@ -1491,7 +1491,7 @@
         "**/node_modules/**"
       ],
       "scope": "application",
-      "description": "List of folders that should not be watched for file changes; environment variables and minimatch patterns can be used.",
+      "description": "List of folders that should not be watched for file changes. Root selection keeps its existing environment-variable and minimatch behavior. The bundled native watcher uses restricted forwarded subtree ignores: * matches within one component, ** matches complete components, and other glob punctuation is literal.",
       "items": {
         "type": "string"
       }

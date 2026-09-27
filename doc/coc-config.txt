@@ -147,15 +147,15 @@ FILESYSTEMWATCH 					*coc-config-fileSystemWatch*
 
 "fileSystemWatch.ignoredFolders" 			*coc-config-fileSystemWatch-ignoredFolders*
 
-	List of folders that should not be watched for file changes;
-	environment variables and minimatch patterns can be used.
+	List of folders that should not be watched for file changes. Root selection
+	keeps its existing environment-variable and minimatch behavior.
 
 	The bundled native watcher forwards these entries to its backend, avoiding
 	OS watcher resources for ignored directory trees. Set an empty list to
 	disable the defaults.
-	Native ignore patterns use minimatch syntax, except for Unicode POSIX
-	character classes such as `[[:alpha:]]`, which the native regex engine
-	does not support.
+	For the bundled native watcher, forwarded subtree exclusions support `*`
+	within one path component and `**` as a complete component. Other glob
+	punctuation is literal. Watchman and event patterns keep minimatch behavior.
 
 	Scope: `application`, default: `["/private/tmp", "/", "${tmpdir}",
 	"**/.git", "**/.git/**", "**/node_modules", "**/node_modules/**"]`

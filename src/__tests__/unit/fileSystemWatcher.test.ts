@@ -560,6 +560,9 @@ describe('NativeWatcher', () => {
       await ready
       let index = path.join(root, 'index')
       let ignored = path.join(objects, 'ignored')
+      let ignoredLog = path.join(root, 'logs', 'HEAD')
+      let ignoredHook = path.join(root, 'hooks', 'post-commit')
+      let custom = path.join(root, 'custom-metadata', 'HEAD')
       let head = path.join(root, 'HEAD')
       let ref = path.join(root, 'refs', 'heads', 'main')
       fs.writeFileSync(index, 'index')
@@ -568,6 +571,12 @@ describe('NativeWatcher', () => {
       fs.writeFileSync(ref, 'ref')
       await shared.waitValue(() => changes.includes(ref), true)
       fs.writeFileSync(ignored, 'object')
+      fs.mkdirSync(path.dirname(ignoredLog), { recursive: true })
+      fs.writeFileSync(ignoredLog, 'log')
+      fs.mkdirSync(path.dirname(ignoredHook), { recursive: true })
+      fs.writeFileSync(ignoredHook, 'hook')
+      fs.mkdirSync(path.dirname(custom), { recursive: true })
+      fs.writeFileSync(custom, 'metadata')
       fs.writeFileSync(head, 'ref: refs/heads/main\\n')
       await shared.waitValue(() => changes.includes(head), true)
       assert.deepStrictEqual(changes, [index, ref, head])
@@ -588,9 +597,7 @@ describe('NativeWatcher', () => {
   it('should normalize native ignore options', () => {
     let root = path.resolve('/workspace')
     let options = createNativeOptions(root, root, ['/', root, 'node_modules', '**/.git/**'])
-    assert.deepStrictEqual(options.ignorePaths, [path.resolve('/workspace/node_modules')])
-    assert.strictEqual(options.ignoreGlobs?.length, 1)
-    assert.strictEqual(new RegExp(options.ignoreGlobs[0]).test(path.join('.git', 'config')), true)
+    assert.deepStrictEqual(options, { ignoreGlobs: ['node_modules', '**/.git/**'] })
   })
 
   it('maps logical and canonical ignored paths to the native root', () => {
@@ -600,12 +607,9 @@ describe('NativeWatcher', () => {
       path.join(logicalRoot, 'logical-ignore'),
       path.join(canonicalRoot, 'canonical-ignore')
     ])
-    assert.deepStrictEqual(options.ignorePaths, [
-      path.join(canonicalRoot, 'logical-ignore'),
-      path.join(canonicalRoot, 'canonical-ignore')
-    ])
+    assert.deepStrictEqual(options, { ignoreGlobs: ['logical-ignore', 'canonical-ignore'] })
     options = createNativeOptions('/project', '/project/link', ['/project/link/cache'])
-    assert.deepStrictEqual(options.ignorePaths, [path.resolve('/project/cache')])
+    assert.deepStrictEqual(options, { ignoreGlobs: ['cache'] })
   })
 
   it('delivers callbacks received before subscribe resolves', async t => {
