@@ -10661,6 +10661,21 @@ declare module 'coc.nvim' {
     export function createFile(filepath: string, opts?: CreateFileOptions): Promise<void>
 
     /**
+     * Create a directory and missing parent directories. An existing target,
+     * including a symbolic link, is an error. Fires will-create for the target
+     * before writing and did-create after completion.
+     */
+    export function createDirectory(filepath: string): Promise<void>
+
+    /**
+     * Copy a file, symbolic link, or directory tree without overwriting an
+     * existing target. Fires will-create for the target before copying and one
+     * did-create after the complete copy. A failed copy can leave partial data;
+     * no did-create is emitted on failure.
+     */
+    export function copyFile(source: string, target: string): Promise<void>
+
+    /**
      * Load uri as document, buffer would be invisible if not loaded.
      *
      * @param uri Uri of the document.

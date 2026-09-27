@@ -407,6 +407,59 @@ export default class Files {
   }
 
   /**
+   * Create a directory and missing parent directories.
+   */
+  public async createDirectory(filepath: string): Promise<void> {
+    if (this.pathExists(filepath)) throw errors.fileExists(filepath)
+    let tokenSource = new CancellationTokenSource()
+    try {
+      await this.fireWaitUntilEvent(this._onWillCreateFiles, {
+        files: [URI.file(filepath)],
+        token: tokenSource.token
+      })
+    } finally {
+      tokenSource.cancel()
+      tokenSource.dispose()
+    }
+    if (this.pathExists(filepath)) throw errors.fileExists(filepath)
+    await fs.promises.mkdir(filepath, { recursive: true })
+    this._onDidCreateFiles.fire({ files: [URI.file(filepath)] })
+  }
+
+  /**
+   * Copy a file, symbolic link, or directory without replacing the target.
+   */
+  public async copyFile(source: string, target: string): Promise<void> {
+    let recursive: boolean
+    try {
+      recursive = fs.lstatSync(source).isDirectory()
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === 'ENOENT') throw errors.fileNotExists(source)
+      throw e
+    }
+    if (this.pathExists(target)) throw errors.fileExists(target)
+    let tokenSource = new CancellationTokenSource()
+    try {
+      await this.fireWaitUntilEvent(this._onWillCreateFiles, {
+        files: [URI.file(target)],
+        token: tokenSource.token
+      })
+    } finally {
+      tokenSource.cancel()
+      tokenSource.dispose()
+    }
+    if (this.pathExists(target)) throw errors.fileExists(target)
+    await fs.promises.cp(source, target, {
+      recursive,
+      force: false,
+      errorOnExist: true,
+      mode: fs.constants.COPYFILE_EXCL,
+      verbatimSymlinks: true
+    })
+    this._onDidCreateFiles.fire({ files: [URI.file(target)] })
+  }
+
+  /**
    * Delete a file or folder from vim and disk.
    */
   public async deleteFile(filepath: string, opts: DeleteFileOptions = {}, recovers?: RecoverFunc[]): Promise<void> {
@@ -618,6 +671,17 @@ export default class Files {
     while (recovers.length > 0) {
       let fn = recovers.pop()
       await Promise.resolve(fn())
+    }
+  }
+
+  /** Check whether a path exists, including a symbolic link with no target. */
+  private pathExists(filepath: string): boolean {
+    try {
+      fs.lstatSync(filepath)
+      return true
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === 'ENOENT') return false
+      throw e
     }
   }
 

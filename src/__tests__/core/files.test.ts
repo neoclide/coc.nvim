@@ -929,6 +929,230 @@ describe('getOriginalLine', () => {
     })
   })
 
+  describe('createDirectory()', () => {
+    it('should create parent directories after will edits and fire did after creation', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-create-directory-'))
+      let directory = path.join(root, 'a/b')
+      let edited = path.join(root, 'edited')
+      fs.writeFileSync(edited, 'content')
+      await shared.createDocument(edited)
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let events: string[] = []
+      disposables.push(workspace.files.onWillCreateFiles(e => {
+        assert.deepStrictEqual(e.files.map(uri => uri.fsPath), [directory])
+        events.push('will')
+        e.waitUntil(Promise.resolve({
+          changes: { [URI.file(edited).toString()]: [TextEdit.insert(Position.create(0, 0), 'edited-')] }
+        }))
+      }))
+      disposables.push(workspace.files.onDidCreateFiles(e => {
+        assert.deepStrictEqual(e.files.map(uri => uri.fsPath), [directory])
+        assert.strictEqual(fs.statSync(directory).isDirectory(), true)
+        events.push('did')
+      }))
+      await workspace.createDirectory(directory)
+      await nvim.command('wa')
+      assert.strictEqual(fs.readFileSync(edited, 'utf8'), 'edited-content\n')
+      assert.deepStrictEqual(events, ['will', 'did'])
+    })
+
+    it('should reject existing directories and dangling symbolic links before firing events', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-create-existing-'))
+      let dangling = path.join(root, 'dangling')
+      fs.symlinkSync(path.join(root, 'missing'), dangling)
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let will = 0
+      let did = 0
+      disposables.push(workspace.files.onWillCreateFiles(() => will++))
+      disposables.push(workspace.files.onDidCreateFiles(() => did++))
+      await assert.rejects(workspace.createDirectory(root), /already exists/)
+      await assert.rejects(workspace.createDirectory(dangling), /already exists/)
+      assert.strictEqual(will, 0)
+      assert.strictEqual(did, 0)
+    })
+
+    it('should preserve a directory created while waiting for will-create edits', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-create-race-'))
+      let directory = path.join(root, 'target')
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let did = 0
+      disposables.push(workspace.files.onWillCreateFiles(e => {
+        e.waitUntil(Promise.resolve().then(() => {
+          fs.mkdirSync(directory)
+          fs.writeFileSync(path.join(directory, 'existing'), 'content')
+        }))
+      }))
+      disposables.push(workspace.files.onDidCreateFiles(() => did++))
+      await assert.rejects(workspace.createDirectory(directory), /already exists/)
+      assert.strictEqual(fs.readFileSync(path.join(directory, 'existing'), 'utf8'), 'content')
+      assert.strictEqual(did, 0)
+    })
+
+    it('should propagate errors from a non-directory parent without firing events', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-create-invalid-parent-'))
+      let parent = path.join(root, 'file')
+      fs.writeFileSync(parent, 'content')
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let will = 0
+      disposables.push(workspace.files.onWillCreateFiles(() => will++))
+      await assert.rejects(workspace.createDirectory(path.join(parent, 'child')), { code: 'ENOTDIR' })
+      assert.strictEqual(will, 0)
+    })
+  })
+
+  describe('copyFile()', () => {
+    it('should recursively copy binary files and fire did after the target tree exists', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-copy-file-'))
+      let source = path.join(root, 'source')
+      let target = path.join(root, 'target')
+      let binary = new Uint8Array([0, 255, 1, 128])
+      fs.mkdirSync(path.join(source, 'nested'), { recursive: true })
+      fs.writeFileSync(path.join(source, 'nested', 'binary'), binary)
+      fs.symlinkSync(path.join('nested', 'binary'), path.join(source, 'link'))
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let events: string[] = []
+      disposables.push(workspace.files.onWillCreateFiles(e => {
+        assert.deepStrictEqual(e.files.map(uri => uri.fsPath), [target])
+        events.push('will')
+      }))
+      disposables.push(workspace.files.onDidCreateFiles(e => {
+        assert.deepStrictEqual(e.files.map(uri => uri.fsPath), [target])
+        assert.deepStrictEqual(Array.from(fs.readFileSync(path.join(target, 'nested', 'binary'))), Array.from(binary))
+        assert.strictEqual(fs.lstatSync(path.join(target, 'link')).isSymbolicLink(), true)
+        events.push('did')
+      }))
+      await workspace.copyFile(source, target)
+      assert.deepStrictEqual(events, ['will', 'did'])
+      assert.strictEqual(fs.readlinkSync(path.join(target, 'link')), path.join('nested', 'binary'))
+      fs.rmSync(source, { recursive: true, force: true })
+      assert.deepStrictEqual(Array.from(fs.readFileSync(path.join(target, 'link'))), Array.from(binary))
+    })
+
+    it('should copy file bytes without loading the target buffer', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-copy-bytes-'))
+      let source = path.join(root, 'source')
+      let target = path.join(root, 'nested', 'target')
+      let binary = new Uint8Array([0, 255, 1, 128])
+      fs.writeFileSync(source, binary)
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      await workspace.copyFile(source, target)
+      assert.deepStrictEqual(Array.from(fs.readFileSync(target)), Array.from(binary))
+      assert.strictEqual(await nvim.call('bufnr', [target]), -1)
+    })
+
+    it('should copy a symbolic link without copying its target', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-copy-link-'))
+      let source = path.join(root, 'source')
+      let target = path.join(root, 'target')
+      let linked = path.join(root, 'linked')
+      fs.writeFileSync(linked, 'content')
+      fs.symlinkSync(linked, source)
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      await workspace.copyFile(source, target)
+      assert.strictEqual(fs.lstatSync(target).isSymbolicLink(), true)
+      assert.strictEqual(fs.readlinkSync(target), linked)
+    })
+
+    it('should reject one of two concurrent copies to the same target', async () => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-copy-concurrent-'))
+      let sources = [path.join(root, 'first'), path.join(root, 'second')]
+      let target = path.join(root, 'target')
+      for (let source of sources) fs.writeFileSync(source, path.basename(source))
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let did = 0
+      disposables.push(workspace.files.onDidCreateFiles(() => did++))
+      let results = await Promise.allSettled(sources.map(source => workspace.copyFile(source, target)))
+      assert.deepStrictEqual(results.map(result => result.status).sort(), ['fulfilled', 'rejected'])
+      let winner = results.findIndex(result => result.status === 'fulfilled')
+      assert.strictEqual(fs.readFileSync(target, 'utf8'), path.basename(sources[winner]))
+      assert.strictEqual(did, 1)
+    })
+
+    it('should reject existing targets including dangling symbolic links without events', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-copy-conflict-'))
+      let source = path.join(root, 'source')
+      fs.writeFileSync(source, 'source')
+      let existing = path.join(root, 'existing')
+      let dangling = path.join(root, 'dangling')
+      fs.writeFileSync(existing, 'existing')
+      fs.symlinkSync(path.join(root, 'missing'), dangling)
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let will = 0
+      let did = 0
+      disposables.push(workspace.files.onWillCreateFiles(() => will++))
+      disposables.push(workspace.files.onDidCreateFiles(() => did++))
+      await assert.rejects(workspace.copyFile(source, existing), /already exists/)
+      await assert.rejects(workspace.copyFile(source, dangling), /already exists/)
+      assert.strictEqual(will, 0)
+      assert.strictEqual(did, 0)
+    })
+
+    it('should reject a missing source before firing events', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-copy-missing-'))
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let will = 0
+      disposables.push(workspace.files.onWillCreateFiles(() => will++))
+      await assert.rejects(workspace.copyFile(path.join(root, 'missing'), path.join(root, 'target')), /not exists/)
+      assert.strictEqual(will, 0)
+    })
+
+    it('should preserve a target created while waiting for will-create edits', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-copy-race-'))
+      let source = path.join(root, 'source')
+      let target = path.join(root, 'target')
+      fs.writeFileSync(source, 'source')
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let did = 0
+      disposables.push(workspace.files.onWillCreateFiles(e => {
+        e.waitUntil(Promise.resolve().then(() => fs.writeFileSync(target, 'existing')))
+      }))
+      disposables.push(workspace.files.onDidCreateFiles(() => did++))
+      await assert.rejects(workspace.copyFile(source, target), /already exists/)
+      assert.strictEqual(fs.readFileSync(target, 'utf8'), 'existing')
+      assert.strictEqual(did, 0)
+    })
+
+    it('should not fire did when the source disappears before the copy', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-copy-removed-source-'))
+      let source = path.join(root, 'source')
+      let target = path.join(root, 'target')
+      fs.writeFileSync(source, 'source')
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let did = 0
+      disposables.push(workspace.files.onWillCreateFiles(e => {
+        e.waitUntil(Promise.resolve().then(() => fs.unlinkSync(source)))
+      }))
+      disposables.push(workspace.files.onDidCreateFiles(() => did++))
+      await assert.rejects(workspace.copyFile(source, target), { code: 'ENOENT' })
+      assert.strictEqual(fs.existsSync(target), false)
+      assert.strictEqual(did, 0)
+    })
+
+    it('should propagate source path errors other than a missing file', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-copy-invalid-source-'))
+      let source = path.join(root, 'source')
+      fs.writeFileSync(source, 'source')
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      await assert.rejects(workspace.copyFile(path.join(source, 'child'), path.join(root, 'target')), { code: 'ENOTDIR' })
+    })
+
+    it('should not fire did when copying a directory into its descendant fails', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-copy-self-'))
+      let source = path.join(root, 'source')
+      let target = path.join(source, 'target')
+      fs.mkdirSync(source)
+      fs.writeFileSync(path.join(source, 'file'), 'content')
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let will = 0
+      let did = 0
+      disposables.push(workspace.files.onWillCreateFiles(() => will++))
+      disposables.push(workspace.files.onDidCreateFiles(() => did++))
+      await assert.rejects(workspace.copyFile(source, target), /subdirectory of self/)
+      assert.strictEqual(will, 1)
+      assert.strictEqual(did, 0)
+    })
+  })
+
   describe('renameFile', () => {
     it('should throw when oldPath not exists', async t => {
       await workspace.renameFile('/foo', '/foo')

@@ -4,6 +4,8 @@ Notable changes of coc.nvim:
 
 ## 2026-09-27
 
+- Add `workspace.createDirectory()` and `workspace.copyFile()` with create-file
+  participation and completion events, rejecting existing targets.
 - Use minimatch for native watcher ignore patterns and remove picomatch.
   Unicode POSIX character classes are not supported by the native backend.
 

@@ -692,6 +692,16 @@ export class Workspace {
     return this.files.createFile(filepath, opts)
   }
 
+  /** Create a directory and its missing parent directories. */
+  public createDirectory(filepath: string): Promise<void> {
+    return this.files.createDirectory(filepath)
+  }
+
+  /** Copy a file, symbolic link, or directory without overwriting the target. */
+  public copyFile(source: string, target: string): Promise<void> {
+    return this.files.copyFile(source, target)
+  }
+
   /**
    * Load uri as document.
    */
