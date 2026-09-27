@@ -75,6 +75,11 @@ export interface TreeViewOptions<T> {
    * array containing all selected tree items.
    */
   canSelectMany?: boolean
+  /**
+   * Preserve selections that still have the same element or TreeItem id after
+   * data changes. Defaults to false.
+   */
+  preserveSelection?: boolean
 }
 
 /**
@@ -107,6 +112,11 @@ export interface TreeViewVisibilityChangeEvent {
 export interface TreeView<T> extends Disposable {
 
   /**
+   * Fired when the tree view is disposed.
+   */
+  readonly onDispose: Event<void>
+
+  /**
    * Event that is fired when an element is expanded
    */
   readonly onDidExpandElement: Event<TreeViewExpansionEvent<T>>
@@ -125,6 +135,11 @@ export interface TreeView<T> extends Disposable {
    * Event that is fired when the {@link TreeView.selection selection} has changed
    */
   readonly onDidChangeSelection: Event<TreeViewSelectionChangeEvent<T>>
+
+  /**
+   * Fired when the cursor moves to an element in the tree view.
+   */
+  readonly onDidCursorMoved: Event<T | undefined>
 
   /**
    * `true` if the {@link TreeView tree view} is visible otherwise `false`.

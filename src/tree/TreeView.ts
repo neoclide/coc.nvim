@@ -462,13 +462,14 @@ export default class BasicTreeView<T> implements TreeView<T> {
       await this.doFilter(toText(this.filterText))
       return
     }
-    this.clearSelection()
+    if (!this.opts.preserveSelection) this.clearSelection()
     if (!node) {
       await this.render()
       return
     }
     let release = await this.mutex.acquire()
     try {
+      let selectionIds = this.getSelectionIds()
       let items = this.renderedItems
       let idx = items.findIndex(o => o.node === node)
       if (idx != -1 && this.bufnr) {
@@ -487,6 +488,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
         await this.appendTreeNode(node, level, start, appendItems, highlights)
         items.splice(idx, removeCount, ...appendItems)
         this.updateUI(appendItems.map(o => o.line), highlights, start, start + removeCount)
+        this.restoreSelection(selectionIds)
       }
       release()
     } catch (e) {
@@ -595,6 +597,37 @@ export default class BasicTreeView<T> implements TreeView<T> {
     let buf = this.nvim.createBuffer(this.bufnr)
     buf.unplaceSign({ group: 'CocTree' })
     this._onDidChangeSelection.fire({ selection: [] })
+  }
+
+  /** Capture selected item IDs before a data refresh replaces their nodes. */
+  private getSelectionIds(): Map<T, string> {
+    let ids = new Map<T, string>()
+    for (let item of this._selection) {
+      let id = this.nodesMap.get(item)?.item.id
+      if (id) ids.set(item, id)
+    }
+    return ids
+  }
+
+  /** Keep rendered selections by node identity or stable TreeItem ID. */
+  private restoreSelection(selectionIds = this.getSelectionIds()): void {
+    if (!this.opts.preserveSelection || !this.bufnr) return
+    let byId = new Map<string, T>()
+    for (let rendered of this.renderedItems) {
+      let id = this.nodesMap.get(rendered.node)?.item.id
+      if (id) byId.set(id, rendered.node)
+    }
+    let selection: T[] = []
+    for (let item of this._selection) {
+      let rendered = this.renderedItems.find(o => o.node === item)?.node
+      let id = selectionIds.get(item)
+      let next = rendered ?? (id ? byId.get(id) : undefined)
+      if (next && !selection.includes(next)) selection.push(next)
+    }
+    let changed = selection.length !== this._selection.length || selection.some((item, index) => item !== this._selection[index])
+    this._selection = selection
+    this.refreshSigns()
+    if (changed) this._onDidChangeSelection.fire({ selection: this._selection })
   }
 
   public selectItem(item: T, forceSingle?: boolean, noRedraw?: boolean): void {
@@ -842,7 +875,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
    */
   private refreshSigns(): void {
     let { selection, nvim, bufnr } = this
-    if (!selection.length || !bufnr) return
+    if (!bufnr) return
     let buf = nvim.createBuffer(bufnr)
     nvim.pauseNotification()
     buf.unplaceSign({ group: 'CocTree' })
@@ -859,6 +892,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     if (!this.bufnr) return
     let release = await this.mutex.acquire()
     try {
+      let selectionIds = this.getSelectionIds()
       let lines: string[] = []
       let highlights: HighlightItem[] = []
       let { startLnum } = this
@@ -880,6 +914,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
       let delta = this.startLnum - startLnum
       highlights.forEach(o => o.lnum = o.lnum + delta)
       this.updateUI(lines, highlights, this.startLnum, -1)
+      this.restoreSelection(selectionIds)
       this._onDidRefrash.fire()
       this.retryTimers = 0
       release()
@@ -937,11 +972,11 @@ export default class BasicTreeView<T> implements TreeView<T> {
 
   private addLocalKeymap(mode: LocalMode, key: string | undefined, fn: (element: T | undefined) => Promise<void> | void, notify = true): void {
     if (!key) return
-    workspace.registerLocalKeymap(this.bufnr, mode, key, async () => {
+    this.disposables.push(workspace.registerLocalKeymap(this.bufnr, mode, key, async () => {
       let lnum = await this.nvim.call('line', ['.']) as number
       let element = this.getElementByLnum(lnum - 1)
       await Promise.resolve(fn(element))
-    }, notify)
+    }, notify))
   }
 
   private registerKeymaps(): void {

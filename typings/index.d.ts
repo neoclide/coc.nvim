@@ -9469,6 +9469,12 @@ declare module 'coc.nvim' {
      * array containing all selected tree items.
      */
     canSelectMany?: boolean
+    /**
+     * Preserve selected items with stable IDs when tree data changes. Items that
+     * no longer exist in the refreshed tree are removed from the selection.
+     * Defaults to false.
+     */
+    preserveSelection?: boolean
   }
 
   /**
@@ -9511,6 +9517,12 @@ declare module 'coc.nvim' {
    * Represents a Tree view
    */
   export interface TreeView<T> extends Disposable {
+
+    /** Fired when the view is disposed, including when its buffer or tab closes. */
+    readonly onDispose: Event<void>
+
+    /** Fired when the cursor moves to an element, or outside the tree's items. */
+    readonly onDidCursorMoved: Event<T | undefined>
 
     /**
      * Event that is fired when an element is expanded

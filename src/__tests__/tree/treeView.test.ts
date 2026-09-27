@@ -9,6 +9,7 @@ import BasicDataProvider, { ProviderOptions, TreeNode } from '../../tree/BasicDa
 import { getItemLabel, TreeItem, TreeItemCollapsibleState } from '../../tree/TreeItem'
 import TreeView from '../../tree/TreeView'
 import { disposeAll } from '../../util'
+import { Emitter } from '../../util/protocol'
 import workspace from '../../workspace'
 import window from '../../window'
 import { createNodes } from '../unit/testUtils'
@@ -324,6 +325,83 @@ describe('TreeView', () => {
         group: 'CocTree'
       })
     })
+
+    it('preserves surviving selections and removes deleted selections after data refresh', async () => {
+      type SelectionNode = TreeNode & { id: string }
+      let data: SelectionNode[] = [{ label: 'a', id: 'a' }, { label: 'b', id: 'b' }]
+      let changes = new Emitter<void>()
+      let selectionProvider: TreeDataProvider<TreeNode> = {
+        onDidChangeTreeData: changes.event,
+        getTreeItem(node: SelectionNode): TreeItem {
+          let item = new TreeItem(node.label)
+          item.id = node.id
+          return item
+        },
+        getChildren: () => data
+      }
+      treeView = new TreeView('test', { bufhidden: 'hide', canSelectMany: true, preserveSelection: true, treeDataProvider: selectionProvider })
+      await treeView.show()
+      treeView.selectItem(data[0])
+      treeView.selectItem(data[1])
+      let selections: TreeNode[][] = []
+      treeView.onDidChangeSelection(e => selections.push(e.selection))
+      let previous = data[0]
+      data = [{ label: 'a', id: 'a' }, { label: 'c', id: 'c' }]
+      changes.fire()
+      await shared.waitValue(() => treeView.selection.length, 1)
+      assert.strictEqual((treeView.selection[0] as SelectionNode).id, 'a')
+      assert.notStrictEqual(treeView.selection[0], previous)
+      assert.deepStrictEqual(selections.map(items => items.map(item => (item as SelectionNode).id)), [['a']])
+      let buf = await nvim.buffer
+      let placed = await nvim.call('sign_getplaced', [buf.id, { group: 'CocTree' }]) as any[]
+      assert.strictEqual(placed[0].signs.length, 1)
+      data = []
+      changes.fire()
+      await shared.waitValue(() => treeView.selection.length, 0)
+      assert.deepStrictEqual(selections.map(items => items.map(item => (item as SelectionNode).id)), [['a'], []])
+      placed = await nvim.call('sign_getplaced', [buf.id, { group: 'CocTree' }]) as any[]
+      assert.strictEqual(placed[0].signs.length, 0)
+    })
+
+    for (let partial of [false, true]) {
+      it(`preserves selection across queued ${partial ? 'subtree' : 'full'} refreshes`, async () => {
+        let root = createNode('root')
+        let current: TreeNode
+        let calls = 0
+        let signalStarted: () => void
+        let resumeChildren: (nodes: TreeNode[]) => void
+        let started = new Promise<void>(resolve => { signalStarted = resolve })
+        let children = new Promise<TreeNode[]>(resolve => { resumeChildren = resolve })
+        let selectionProvider: TreeDataProvider<TreeNode> = {
+          getTreeItem(node): TreeItem {
+            let item = new TreeItem(node.label, node === root ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.None)
+            item.id = node.label
+            return item
+          },
+          getChildren(node) {
+            if (!node) return [root]
+            current = createNode('a')
+            if (++calls === 2) {
+              signalStarted()
+              return children
+            }
+            return [current]
+          }
+        }
+        treeView = new TreeView('test', { preserveSelection: true, treeDataProvider: selectionProvider })
+        await treeView.show()
+        treeView.selectItem(current)
+        let node = partial ? root : undefined
+        let first = treeView['onDataChange'](node)
+        await started
+        let second = treeView['onDataChange'](node)
+        resumeChildren([current])
+        await Promise.all([first, second])
+        assert.strictEqual(calls, 3)
+        assert.strictEqual(treeView.selection.length, 1)
+        assert.strictEqual(treeView.selection[0], current)
+      })
+    }
   })
 
   describe('key-mappings', () => {
