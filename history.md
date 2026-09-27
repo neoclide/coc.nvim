@@ -13,6 +13,8 @@ Notable changes of coc.nvim:
 - Keep expanded sibling branches when refreshing a TreeView subtree.
 - Add `TreeViewOptions.selectOnInvoke`, command-less directory expansion, and
   right-click actions for TreeView items.
+- Declare the existing `TreeView.registerLocalKeymap()` API for view-owned
+  local keymaps.
 - Release all TreeView local mappings and safely dispose mappings after their
   buffers have been wiped.
 - Declare the existing FileSystemWatcher.onDidListen event for subscription
