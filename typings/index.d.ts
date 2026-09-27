@@ -9588,11 +9588,13 @@ declare module 'coc.nvim' {
      *
      * The callback receives the element at the current line, or `undefined`
      * for a title or blank line. Calls made before {@link TreeView.show show}
-     * are queued until the view is shown. The keymap is disposed with the view.
+     * are queued until the view is shown. Disposing the returned value cancels
+     * a queued keymap or unregisters an active keymap. Keymaps are also disposed
+     * with the view.
      *
      * @param notify Use notification instead of request. Defaults to false.
      */
-    registerLocalKeymap(mode: 'n' | 'i' | 'v' | 's' | 'x', key: string, fn: (element: T | undefined) => Promise<void> | void, notify?: boolean): void
+    registerLocalKeymap(mode: 'n' | 'i' | 'v' | 's' | 'x', key: string, fn: (element: T | undefined) => Promise<void> | void, notify?: boolean): Disposable
 
     /**
      * Reveals the given element in the tree view.

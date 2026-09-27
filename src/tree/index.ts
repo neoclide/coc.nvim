@@ -181,6 +181,19 @@ export interface TreeView<T> extends Disposable {
   description?: string
 
   /**
+   * Register a local keymap owned by this tree view.
+   *
+   * The callback receives the element at the current line, or `undefined`
+   * for a title or blank line. Calls made before {@link TreeView.show show}
+   * are queued until the view is shown. Disposing the returned value cancels
+   * a queued keymap or unregisters an active keymap. Keymaps are also disposed
+   * with the view.
+   *
+   * @param notify Use notification instead of request. Defaults to false.
+   */
+  registerLocalKeymap(mode: 'n' | 'i' | 'v' | 's' | 'x', key: string, fn: (element: T | undefined) => Promise<void> | void, notify?: boolean): Disposable
+
+  /**
    * Reveals the given element in the tree view.
    * If the tree view is not visible then the tree view is shown and element is revealed.
    *

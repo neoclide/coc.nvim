@@ -340,6 +340,69 @@ describe('TreeView', () => {
     })
   })
 
+  describe('local keymaps', () => {
+    it('can cancel a local keymap before show', async () => {
+      createTreeView(defaultDef)
+      let pending = treeView.registerLocalKeymap('n', '<F3>', () => {})
+      let active = treeView.registerLocalKeymap('n', '<F4>', () => {})
+      pending.dispose()
+      await treeView.show()
+      assert.strictEqual(await nvim.call('maparg', ['<F3>', 'n']), '')
+      await shared.waitValue(async () => (await nvim.call('maparg', ['<F4>', 'n'])) != '', true)
+      active.dispose()
+      await shared.waitValue(async () => await nvim.call('maparg', ['<F4>', 'n']), '')
+    })
+
+    it('can cancel and rebind an active local keymap', async () => {
+      createTreeView(defaultDef)
+      await treeView.show()
+      let first = 0
+      let oldDisposable = treeView.registerLocalKeymap('n', 'p', () => {
+        first = first + 1
+      })
+      await shared.waitValue(async () => (await nvim.call('maparg', ['p', 'n'])) != '', true)
+      await nvim.input('p')
+      await shared.waitValue(() => first, 1)
+      oldDisposable.dispose()
+      await shared.waitValue(async () => await nvim.call('maparg', ['p', 'n']), '')
+
+      let second = 0
+      let newDisposable = treeView.registerLocalKeymap('n', 'p', () => {
+        second = second + 1
+      })
+      oldDisposable.dispose()
+      await shared.waitValue(async () => (await nvim.call('maparg', ['p', 'n'])) != '', true)
+      await nvim.input('p')
+      await shared.waitValue(() => second, 1)
+      assert.strictEqual(first, 1)
+      newDisposable.dispose()
+      await shared.waitValue(async () => await nvim.call('maparg', ['p', 'n']), '')
+    })
+
+    it('releases active local keymaps when the tree buffer is wiped', async t => {
+      createTreeView(defaultDef)
+      await treeView.show()
+      let registerLocalKeymap = workspace.registerLocalKeymap.bind(workspace)
+      let disposeCount = 0
+      t.mock.method(workspace, 'registerLocalKeymap', (...args: Parameters<typeof workspace.registerLocalKeymap>) => {
+        let keymap = registerLocalKeymap(...args)
+        return Disposable.create(() => {
+          disposeCount = disposeCount + 1
+          keymap.dispose()
+        })
+      })
+      let disposable = treeView.registerLocalKeymap('n', '<F4>', () => {})
+      await nvim.command('bwipeout!')
+      await shared.waitValue(() => treeView.valid, false)
+      assert.strictEqual(disposeCount, 1)
+      assert.doesNotThrow(() => {
+        disposable.dispose()
+        disposable.dispose()
+      })
+      assert.strictEqual(disposeCount, 1)
+    })
+  })
+
   describe('public properties', () => {
     it('should change title', async t => {
       createTreeView(defaultDef)

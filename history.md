@@ -15,6 +15,8 @@ Notable changes of coc.nvim:
   right-click actions for TreeView items.
 - Declare the existing `TreeView.registerLocalKeymap()` API for view-owned
   local keymaps.
+- Make `TreeView.registerLocalKeymap()` return a Disposable for cancelling
+  pending or active view-owned local keymaps.
 - Release all TreeView local mappings and safely dispose mappings after their
   buffers have been wiped.
 - Declare the existing FileSystemWatcher.onDidListen event for subscription

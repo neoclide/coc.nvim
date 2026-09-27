@@ -49,6 +49,7 @@ interface LocalKeymapDef<T> {
   key: string
   notify: boolean
   fn: (element: T | undefined) => Promise<void> | void
+  disposable?: Disposable
 }
 
 /**
@@ -992,21 +993,34 @@ export default class BasicTreeView<T> implements TreeView<T> {
     return true
   }
 
-  public registerLocalKeymap(mode: LocalMode, key: string, fn: (element: T | undefined) => Promise<void> | void, notify = false): void {
-    if (!this.bufnr) {
-      this._keymapDefs.push({ mode, key, fn, notify })
-    } else {
-      this.addLocalKeymap(mode, key, fn, notify)
-    }
+  public registerLocalKeymap(mode: LocalMode, key: string, fn: (element: T | undefined) => Promise<void> | void, notify = false): Disposable {
+    if (this.bufnr) return this.addLocalKeymap(mode, key, fn, notify)
+    let def: LocalKeymapDef<T> = { mode, key, fn, notify }
+    this._keymapDefs.push(def)
+    return Disposable.create(() => {
+      let index = this._keymapDefs.indexOf(def)
+      if (index !== -1) this._keymapDefs.splice(index, 1)
+      def.disposable?.dispose()
+    })
   }
 
-  private addLocalKeymap(mode: LocalMode, key: string | undefined, fn: (element: T | undefined) => Promise<void> | void, notify = true): void {
-    if (!key) return
-    this.disposables.push(workspace.registerLocalKeymap(this.bufnr, mode, key, async () => {
+  private addLocalKeymap(mode: LocalMode, key: string | undefined, fn: (element: T | undefined) => Promise<void> | void, notify = true): Disposable {
+    if (!key) return Disposable.create(() => {})
+    let keymap = workspace.registerLocalKeymap(this.bufnr, mode, key, async () => {
       let lnum = await this.nvim.call('line', ['.']) as number
       let element = this.getElementByLnum(lnum - 1)
       await Promise.resolve(fn(element))
-    }, notify))
+    }, notify)
+    let disposed = false
+    let disposable = Disposable.create(() => {
+      if (disposed) return
+      disposed = true
+      keymap.dispose()
+      let index = this.disposables.indexOf(disposable)
+      if (index !== -1) this.disposables.splice(index, 1)
+    })
+    this.disposables.push(disposable)
+    return disposable
   }
 
   private registerKeymaps(): void {
@@ -1034,7 +1048,7 @@ export default class BasicTreeView<T> implements TreeView<T> {
     this.addLocalKeymap('n', close, () => this.hide())
     while (_keymapDefs.length) {
       const def = _keymapDefs.pop()
-      this.addLocalKeymap(def.mode, def.key, def.fn, def.notify)
+      def.disposable = this.addLocalKeymap(def.mode, def.key, def.fn, def.notify)
     }
   }
 
