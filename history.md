@@ -4,6 +4,8 @@ Notable changes of coc.nvim:
 
 ## 2026-09-28
 
+- Make non-overwrite `workspace.createFile()` exclusive after will-create
+  handlers, and delete symbolic links themselves, including dangling links.
 - Replace earlier minimatch native ignores with raw restricted glob strings for
   bundled native watcher subtree excludes:
   `*` stays within a component and `**` matches components; other glob

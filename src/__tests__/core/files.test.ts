@@ -927,6 +927,48 @@ describe('getOriginalLine', () => {
       let loaded = await nvim.call('bufloaded', [filepath])
       assert.strictEqual(loaded, 0)
     })
+
+    it('should preserve a file created while waiting for will-create edits', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-create-race-'))
+      let filepath = path.join(root, 'target')
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let did = 0
+      disposables.push(workspace.files.onWillCreateFiles(e => {
+        e.waitUntil(Promise.resolve().then(() => fs.writeFileSync(filepath, 'existing')))
+      }))
+      disposables.push(workspace.files.onDidCreateFiles(() => did++))
+      await assert.rejects(workspace.createFile(filepath), /already exists/)
+      assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'existing')
+      assert.strictEqual(did, 0)
+    })
+
+    it('should ignore a file created while waiting when ignoreIfExists is set', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-create-race-ignore-'))
+      let filepath = path.join(root, 'target')
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let did = 0
+      disposables.push(workspace.files.onWillCreateFiles(e => {
+        e.waitUntil(Promise.resolve().then(() => fs.writeFileSync(filepath, 'existing')))
+      }))
+      disposables.push(workspace.files.onDidCreateFiles(() => did++))
+      await workspace.createFile(filepath, { ignoreIfExists: true })
+      assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'existing')
+      assert.strictEqual(did, 0)
+    })
+
+    it('should restore a file created while waiting when overwrite is set', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-create-race-overwrite-'))
+      let filepath = path.join(root, 'target')
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let recovers: RecoverFunc[] = []
+      disposables.push(workspace.files.onWillCreateFiles(e => {
+        e.waitUntil(Promise.resolve().then(() => fs.writeFileSync(filepath, 'existing')))
+      }))
+      await workspace.files.createFile(filepath, { overwrite: true }, recovers)
+      assert.strictEqual(fs.readFileSync(filepath, 'utf8'), '')
+      for (let i = recovers.length - 1; i >= 0; i--) await recovers[i]()
+      assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'existing')
+    })
   })
 
   describe('createDirectory()', () => {
@@ -1356,6 +1398,35 @@ describe('getOriginalLine', () => {
       assert.strictEqual(fs.existsSync(filepath), true)
       await workspace.deleteFile(filepath)
       assert.strictEqual(fs.existsSync(filepath), false)
+    })
+
+    it('should delete symbolic links without deleting their targets', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-delete-link-'))
+      let file = path.join(root, 'file')
+      let folder = path.join(root, 'folder')
+      let links = [path.join(root, 'file-link'), path.join(root, 'folder-link'), path.join(root, 'dangling-link')]
+      fs.writeFileSync(file, 'content')
+      fs.mkdirSync(folder)
+      fs.writeFileSync(path.join(folder, 'child'), 'content')
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      try {
+        fs.symlinkSync(file, links[0], process.platform === 'win32' ? 'file' : undefined)
+        fs.symlinkSync(folder, links[1], process.platform === 'win32' ? 'junction' : undefined)
+        fs.symlinkSync(path.join(root, 'missing'), links[2], process.platform === 'win32' ? 'file' : undefined)
+      } catch (_e) {
+        return t.skip('symbolic links unavailable')
+      }
+      let events: string[] = []
+      disposables.push(workspace.files.onWillDeleteFiles(e => events.push(`will:${e.files[0].fsPath}`)))
+      disposables.push(workspace.files.onDidDeleteFiles(e => events.push(`did:${e.files[0].fsPath}`)))
+      let recovers: RecoverFunc[] = []
+      for (let link of links) await workspace.files.deleteFile(link, {}, recovers)
+      for (let link of links) assert.throws(() => fs.lstatSync(link), { code: 'ENOENT' })
+      assert.strictEqual(fs.readFileSync(file, 'utf8'), 'content')
+      assert.strictEqual(fs.readFileSync(path.join(folder, 'child'), 'utf8'), 'content')
+      assert.deepStrictEqual(events, links.flatMap(link => [`will:${link}`, `did:${link}`]))
+      for (let i = recovers.length - 1; i >= 0; i--) await recovers[i]()
+      for (let link of links) assert.strictEqual(fs.lstatSync(link).isSymbolicLink(), true)
     })
   })
 

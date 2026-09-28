@@ -23,6 +23,7 @@ import type { Window } from '../window'
 import Documents from './documents'
 import type Keymaps from './keymaps'
 import WorkspaceFolderController from './workspaceFolder'
+import type { Stats } from 'fs'
 const logger = createLogger('core-files')
 
 export interface LinesChange {
@@ -352,17 +353,21 @@ export default class Files {
    */
   public async createFile(filepath: string, opts: CreateFileOptions = {}, recovers?: RecoverFunc[]): Promise<void> {
     let { nvim } = this
-    let exists = fs.existsSync(filepath)
+    let exists = this.pathExists(filepath)
     if (exists && !opts.overwrite && !opts.ignoreIfExists) {
       throw errors.fileExists(filepath)
     }
     if (!exists || opts.overwrite) {
       let tokenSource = new CancellationTokenSource()
-      await this.fireWaitUntilEvent(this._onWillCreateFiles, {
-        files: [URI.file(filepath)],
-        token: tokenSource.token
-      }, recovers)
-      tokenSource.cancel()
+      try {
+        await this.fireWaitUntilEvent(this._onWillCreateFiles, {
+          files: [URI.file(filepath)],
+          token: tokenSource.token
+        }, recovers)
+      } finally {
+        tokenSource.cancel()
+        tokenSource.dispose()
+      }
       let dir = path.dirname(filepath)
       if (!fs.existsSync(dir)) {
         let folder: string
@@ -381,22 +386,29 @@ export default class Files {
           })
         }
       }
-      if (exists && Array.isArray(recovers)) {
+      let targetExists = this.pathExists(filepath)
+      if (targetExists && opts.overwrite && Array.isArray(recovers)) {
         let backup = path.join(this.getRecoveryFolder(recovers), crypto.randomUUID())
         fs.copyFileSync(filepath, backup)
         recovers.push(() => {
           fs.copyFileSync(backup, filepath)
         })
       }
-      fs.writeFileSync(filepath, '', 'utf8')
-      if (!exists && Array.isArray(recovers)) {
+      try {
+        fs.writeFileSync(filepath, '', { encoding: 'utf8', flag: opts.overwrite ? 'w' : 'wx' })
+      } catch (e) {
+        if ((e as NodeJS.ErrnoException).code === 'EEXIST' && opts.ignoreIfExists) return
+        if ((e as NodeJS.ErrnoException).code === 'EEXIST') throw errors.fileExists(filepath)
+        throw e
+      }
+      if (!targetExists && Array.isArray(recovers)) {
         recovers.push(() => {
           fs.rmSync(filepath, { force: true, recursive: true })
         })
       }
       let doc = await this.loadResource(filepath)
       let bufnr = doc.bufnr
-      if (!exists && Array.isArray(recovers)) {
+      if (!targetExists && Array.isArray(recovers)) {
         recovers.push(() => {
           void events.fire('BufUnload', [bufnr])
           return nvim.command(`silent! bd! ${bufnr}`)
@@ -464,12 +476,15 @@ export default class Files {
    */
   public async deleteFile(filepath: string, opts: DeleteFileOptions = {}, recovers?: RecoverFunc[]): Promise<void> {
     let { ignoreIfNotExists, recursive } = opts
-    let stat = await statAsync(filepath)
-    let isDir = stat && stat.isDirectory()
-    if (!stat && !ignoreIfNotExists) {
-      throw errors.fileNotExists(filepath)
+    let stat: Stats
+    try {
+      stat = await fs.promises.lstat(filepath)
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e
+      if (!ignoreIfNotExists) throw errors.fileNotExists(filepath)
+      return
     }
-    if (stat == null) return
+    let isDir = stat.isDirectory()
     let uri = URI.file(filepath)
     await this.fireWaitUntilEvent(this._onWillDeleteFiles, { files: [uri] }, recovers)
     if (!isDir) {
