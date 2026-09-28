@@ -2,6 +2,17 @@
 
 Notable changes of coc.nvim:
 
+## 2026-09-28
+
+- Make non-overwrite `workspace.createFile()` exclusive after will-create
+  handlers, and delete symbolic links themselves, including dangling links.
+- Replace earlier minimatch native ignores with raw restricted glob strings for
+  bundled native watcher subtree excludes:
+  `*` stays within a component and `**` matches components; other glob
+  punctuation is literal. Regular watcher event patterns retain minimatch.
+- Exclude fixed Git storage directories from native traversal and filter emitted
+  events to Git status files and refs.
+
 ## 2026-09-27
 
 - Add `workspace.createDirectory()` and `workspace.copyFile()` with create-file
@@ -10,6 +21,13 @@ Notable changes of coc.nvim:
   `workspace.createGitFileSystemWatcher()` without changing ignored folders.
 - Add opt-in `TreeViewOptions.preserveSelection` and declare the existing
   TreeView cursor and disposal events in the public API.
+- Keep expanded sibling branches when refreshing a TreeView subtree.
+- Add `TreeViewOptions.selectOnInvoke`, command-less directory expansion, and
+  right-click actions for TreeView items.
+- Declare the existing `TreeView.registerLocalKeymap()` API for view-owned
+  local keymaps.
+- Make `TreeView.registerLocalKeymap()` return a Disposable for cancelling
+  pending or active view-owned local keymaps.
 - Release all TreeView local mappings and safely dispose mappings after their
   buffers have been wiped.
 - Declare the existing FileSystemWatcher.onDidListen event for subscription

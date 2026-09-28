@@ -85445,7 +85445,7 @@ var init_schema = __esm({
             "**/node_modules/**"
           ],
           scope: "application",
-          description: "List of folders that should not be watched for file changes; environment variables and minimatch patterns can be used.",
+          description: "List of folders that should not be watched for file changes. Root selection keeps its existing environment-variable and minimatch behavior. The bundled native watcher uses restricted forwarded subtree ignores: * matches within one component, ** matches complete components, and other glob punctuation is literal.",
           items: {
             type: "string"
           }
@@ -97696,159 +97696,10 @@ var init_fileWatcher = __esm({
   }
 });
 
-// node_modules/is-extglob/index.js
-var require_is_extglob = __commonJS({
-  "node_modules/is-extglob/index.js"(exports2, module2) {
-    module2.exports = function isExtglob(str) {
-      if (typeof str !== "string" || str === "") {
-        return false;
-      }
-      var match2;
-      while (match2 = /(\\).|([@?!+*]\(.*\))/g.exec(str)) {
-        if (match2[2]) return true;
-        str = str.slice(match2.index + match2[0].length);
-      }
-      return false;
-    };
-  }
-});
-
-// node_modules/is-glob/index.js
-var require_is_glob = __commonJS({
-  "node_modules/is-glob/index.js"(exports2, module2) {
-    var isExtglob = require_is_extglob();
-    var chars = { "{": "}", "(": ")", "[": "]" };
-    var strictCheck = function(str) {
-      if (str[0] === "!") {
-        return true;
-      }
-      var index = 0;
-      var pipeIndex = -2;
-      var closeSquareIndex = -2;
-      var closeCurlyIndex = -2;
-      var closeParenIndex = -2;
-      var backSlashIndex = -2;
-      while (index < str.length) {
-        if (str[index] === "*") {
-          return true;
-        }
-        if (str[index + 1] === "?" && /[\].+)]/.test(str[index])) {
-          return true;
-        }
-        if (closeSquareIndex !== -1 && str[index] === "[" && str[index + 1] !== "]") {
-          if (closeSquareIndex < index) {
-            closeSquareIndex = str.indexOf("]", index);
-          }
-          if (closeSquareIndex > index) {
-            if (backSlashIndex === -1 || backSlashIndex > closeSquareIndex) {
-              return true;
-            }
-            backSlashIndex = str.indexOf("\\", index);
-            if (backSlashIndex === -1 || backSlashIndex > closeSquareIndex) {
-              return true;
-            }
-          }
-        }
-        if (closeCurlyIndex !== -1 && str[index] === "{" && str[index + 1] !== "}") {
-          closeCurlyIndex = str.indexOf("}", index);
-          if (closeCurlyIndex > index) {
-            backSlashIndex = str.indexOf("\\", index);
-            if (backSlashIndex === -1 || backSlashIndex > closeCurlyIndex) {
-              return true;
-            }
-          }
-        }
-        if (closeParenIndex !== -1 && str[index] === "(" && str[index + 1] === "?" && /[:!=]/.test(str[index + 2]) && str[index + 3] !== ")") {
-          closeParenIndex = str.indexOf(")", index);
-          if (closeParenIndex > index) {
-            backSlashIndex = str.indexOf("\\", index);
-            if (backSlashIndex === -1 || backSlashIndex > closeParenIndex) {
-              return true;
-            }
-          }
-        }
-        if (pipeIndex !== -1 && str[index] === "(" && str[index + 1] !== "|") {
-          if (pipeIndex < index) {
-            pipeIndex = str.indexOf("|", index);
-          }
-          if (pipeIndex !== -1 && str[pipeIndex + 1] !== ")") {
-            closeParenIndex = str.indexOf(")", pipeIndex);
-            if (closeParenIndex > pipeIndex) {
-              backSlashIndex = str.indexOf("\\", pipeIndex);
-              if (backSlashIndex === -1 || backSlashIndex > closeParenIndex) {
-                return true;
-              }
-            }
-          }
-        }
-        if (str[index] === "\\") {
-          var open2 = str[index + 1];
-          index += 2;
-          var close = chars[open2];
-          if (close) {
-            var n2 = str.indexOf(close, index);
-            if (n2 !== -1) {
-              index = n2 + 1;
-            }
-          }
-          if (str[index] === "!") {
-            return true;
-          }
-        } else {
-          index++;
-        }
-      }
-      return false;
-    };
-    var relaxedCheck = function(str) {
-      if (str[0] === "!") {
-        return true;
-      }
-      var index = 0;
-      while (index < str.length) {
-        if (/[*?{}()[\]]/.test(str[index])) {
-          return true;
-        }
-        if (str[index] === "\\") {
-          var open2 = str[index + 1];
-          index += 2;
-          var close = chars[open2];
-          if (close) {
-            var n2 = str.indexOf(close, index);
-            if (n2 !== -1) {
-              index = n2 + 1;
-            }
-          }
-          if (str[index] === "!") {
-            return true;
-          }
-        } else {
-          index++;
-        }
-      }
-      return false;
-    };
-    module2.exports = function isGlob2(str, options3) {
-      if (typeof str !== "string" || str === "") {
-        return false;
-      }
-      if (isExtglob(str)) {
-        return true;
-      }
-      var check = strictCheck;
-      if (options3 && options3.strict === false) {
-        check = relaxedCheck;
-      }
-      return check(str);
-    };
-  }
-});
-
 // src/core/nativeWatcher.ts
-function createGitNativeOptions(platform2 = process.platform) {
-  let separator = platform2 === "win32" ? "\\\\" : "/";
+function createGitNativeOptions() {
   return {
-    ignoreGlobs: [`^(?!(?:HEAD|index|packed-refs|config|shallow)$)(?!(?:refs(?:${separator}|$))).*$`]
+    ignoreGlobs: ["objects", "logs", "hooks", "info", "worktrees", "modules", "rr-cache", "rebase-apply", "rebase-merge", "sequencer", "lost-found", "branches"]
   };
 }
 function detectLinuxLibc(report) {
@@ -97899,25 +97750,18 @@ function relativeWatcherPath(root, filepath, platform2 = process.platform) {
   if (!normalizedName || normalizedName === ".." || normalizedName.startsWith(`..${pathModule.sep}`) || pathModule.isAbsolute(normalizedName)) return void 0;
   return normalizedName.split(pathModule.sep).join("/");
 }
-function nativeIgnoreRegex(pattern, platform2 = process.platform) {
-  let regex2 = minimatch.makeRe(pattern, { dot: true, platform: platform2, windowsPathsNoEscape: platform2 === "win32" });
-  if (!regex2) return void 0;
-  if (regex2.flags) throw new Error(`Unicode character classes are not supported in native ignore patterns: ${pattern}`);
-  let source = regex2.source.replace(/\[\^(?!\/)/g, "[^/");
-  return platform2 === "win32" ? source.replace(/\\?\//g, "\\\\") : source;
-}
 function createNativeOptions(root, logicalRoot, ignored) {
   let options3 = {};
   for (let value of ignored) {
     if (!value) continue;
-    if (isGlob(value)) {
+    if (value.includes("*")) {
       if (path.isAbsolute(value)) {
         let relative2 = relativeWatcherPath(logicalRoot, value) ?? relativeWatcherPath(root, value);
         if (!relative2) continue;
         value = relative2;
       }
-      let regex2 = nativeIgnoreRegex(value);
-      if (regex2) (options3.ignoreGlobs ??= []).push(regex2);
+      ;
+      (options3.ignoreGlobs ??= []).push(value);
       continue;
     }
     let logicalPath = path.resolve(logicalRoot, value);
@@ -97930,11 +97774,11 @@ function createNativeOptions(root, logicalRoot, ignored) {
       continue;
     }
     ;
-    (options3.ignorePaths ??= []).push(path.resolve(root, relative));
+    (options3.ignoreGlobs ??= []).push(relative.split(path.sep).join("/"));
   }
   return options3;
 }
-var logger18, isGlob, NativeWatcher;
+var logger18, NativeWatcher;
 var init_nativeWatcher = __esm({
   "src/core/nativeWatcher.ts"() {
     "use strict";
@@ -97946,7 +97790,6 @@ var init_nativeWatcher = __esm({
     init_protocol();
     init_fileWatcher();
     logger18 = createLogger("core-native-watcher");
-    isGlob = require_is_glob();
     NativeWatcher = class _NativeWatcher {
       constructor(root, channel) {
         this.root = root;
@@ -99308,7 +99151,7 @@ var init_fileSystemWatcher = __esm({
       createGitFileSystemWatcher(gitDir) {
         if (!path.isAbsolute(gitDir)) throw new Error(`Git metadata directory must be absolute: ${gitDir}`);
         let root = normalizeFilePath(path.resolve(gitDir));
-        let watcher = new FileSystemWatcher("**/*", false, false, false, false);
+        let watcher = new FileSystemWatcher("{HEAD,index,packed-refs,config,shallow,refs/**}", false, false, false, false);
         if (this.disposed || this.disabled) return watcher;
         let gitClient = this.gitClients.get(root);
         watcher.onDidDispose(() => {
@@ -100081,17 +99924,21 @@ var init_files = __esm({
        */
       async createFile(filepath, opts = {}, recovers) {
         let { nvim } = this;
-        let exists = fs.existsSync(filepath);
+        let exists = this.pathExists(filepath);
         if (exists && !opts.overwrite && !opts.ignoreIfExists) {
           throw fileExists(filepath);
         }
         if (!exists || opts.overwrite) {
           let tokenSource = new import_node4.CancellationTokenSource();
-          await this.fireWaitUntilEvent(this._onWillCreateFiles, {
-            files: [u.file(filepath)],
-            token: tokenSource.token
-          }, recovers);
-          tokenSource.cancel();
+          try {
+            await this.fireWaitUntilEvent(this._onWillCreateFiles, {
+              files: [u.file(filepath)],
+              token: tokenSource.token
+            }, recovers);
+          } finally {
+            tokenSource.cancel();
+            tokenSource.dispose();
+          }
           let dir = path.dirname(filepath);
           if (!fs.existsSync(dir)) {
             let folder;
@@ -100110,22 +99957,29 @@ var init_files = __esm({
               });
             }
           }
-          if (exists && Array.isArray(recovers)) {
+          let targetExists = this.pathExists(filepath);
+          if (targetExists && opts.overwrite && Array.isArray(recovers)) {
             let backup = path.join(this.getRecoveryFolder(recovers), crypto2.randomUUID());
             fs.copyFileSync(filepath, backup);
             recovers.push(() => {
               fs.copyFileSync(backup, filepath);
             });
           }
-          fs.writeFileSync(filepath, "", "utf8");
-          if (!exists && Array.isArray(recovers)) {
+          try {
+            fs.writeFileSync(filepath, "", { encoding: "utf8", flag: opts.overwrite ? "w" : "wx" });
+          } catch (e2) {
+            if (e2.code === "EEXIST" && opts.ignoreIfExists) return;
+            if (e2.code === "EEXIST") throw fileExists(filepath);
+            throw e2;
+          }
+          if (!targetExists && Array.isArray(recovers)) {
             recovers.push(() => {
               fs.rmSync(filepath, { force: true, recursive: true });
             });
           }
           let doc = await this.loadResource(filepath);
           let bufnr = doc.bufnr;
-          if (!exists && Array.isArray(recovers)) {
+          if (!targetExists && Array.isArray(recovers)) {
             recovers.push(() => {
               void events_default.fire("BufUnload", [bufnr]);
               return nvim.command(`silent! bd! ${bufnr}`);
@@ -100190,12 +100044,15 @@ var init_files = __esm({
        */
       async deleteFile(filepath, opts = {}, recovers) {
         let { ignoreIfNotExists, recursive } = opts;
-        let stat = await statAsync(filepath);
-        let isDir = stat && stat.isDirectory();
-        if (!stat && !ignoreIfNotExists) {
-          throw fileNotExists(filepath);
+        let stat;
+        try {
+          stat = await fs.promises.lstat(filepath);
+        } catch (e2) {
+          if (e2.code !== "ENOENT") throw e2;
+          if (!ignoreIfNotExists) throw fileNotExists(filepath);
+          return;
         }
-        if (stat == null) return;
+        let isDir = stat.isDirectory();
         let uri = u.file(filepath);
         await this.fireWaitUntilEvent(this._onWillDeleteFiles, { files: [uri] }, recovers);
         if (!isDir) {
@@ -102559,6 +102416,7 @@ var init_TreeView = __esm({
           if (bufnr != this.bufnr) return;
           await this.onHover(cursor[0]);
         }, null, this.disposables);
+        events_default.on("TreeRightClick", this.onRightClick, this, this.disposables);
         events_default.on(["CursorMoved", "BufEnter"], () => {
           this.cancelResolve();
         }, null, this.disposables);
@@ -102589,18 +102447,32 @@ var init_TreeView = __esm({
         }, null, this.disposables);
         this.disposables.push(this._onDidChangeVisibility, this._onDidCursorMoved, this._onDidChangeSelection, this._onDidCollapseElement, this._onDidExpandElement);
         if (this.filter) {
-          this.filter.onDidExit((node) => {
-            this.nodesMap.clear();
+          this.filter.onDidExit(async (node) => {
+            let obj = node && this.nodesMap.get(node);
+            let cached = this.nodesMap;
+            this.nodesMap = /* @__PURE__ */ new Map();
+            let didExpand = false;
+            if (obj && !obj.item.command) {
+              didExpand = obj.item.collapsibleState === 1 /* Collapsed */;
+              for (let curr = node; curr; curr = this.itemsToFilter?.get(curr)) {
+                let data = cached.get(curr);
+                data.item.collapsibleState = 2 /* Expanded */;
+                this.nodesMap.set(curr, data);
+              }
+            }
             this.filterText = void 0;
             this.itemsToFilter = void 0;
+            let render;
             if (node && typeof this.provider.getParent === "function") {
               this.renderedItems = [];
-              void this.reveal(node, { focus: true });
+              render = this.reveal(node, { focus: true });
             } else {
               this.clearSelection();
-              void this.render();
+              render = this.render();
             }
             this._onDidFilterStateChange.fire(false);
+            await render;
+            if (didExpand) this._onDidExpandElement.fire({ element: node });
           });
           this.filter.onDidUpdate((text) => {
             this.filterText = text;
@@ -102726,12 +102598,12 @@ var init_TreeView = __esm({
         let release = await this.mutex.acquire();
         try {
           if (!this.itemsToFilter) {
-            let itemsToFilter = [];
-            const addNodes = async (nodes2) => {
+            let itemsToFilter = /* @__PURE__ */ new Map();
+            const addNodes = async (nodes2, parent) => {
               for (let n2 of nodes2) {
-                itemsToFilter.push(n2);
+                itemsToFilter.set(n2, parent);
                 let arr = await Promise.resolve(this.provider.getChildren(n2));
-                if (!isFalsyOrEmpty(arr)) await addNodes(arr);
+                if (!isFalsyOrEmpty(arr)) await addNodes(arr, n2);
               }
             };
             let nodes = await Promise.resolve(this.provider.getChildren());
@@ -102740,8 +102612,9 @@ var init_TreeView = __esm({
           }
           let lowInput = text.toLowerCase();
           let emptyInput = text.length === 0;
-          for (let n2 of this.itemsToFilter) {
+          for (let n2 of this.itemsToFilter.keys()) {
             let item = await this.getTreeItem(n2);
+            item = { ...item };
             let label = getItemLabel(item);
             let score3 = 0;
             if (!emptyInput) {
@@ -102819,18 +102692,31 @@ var init_TreeView = __esm({
           await this.invokeCommand(element);
         }
       }
+      async onRightClick(winid, lnum) {
+        if (winid !== this.winid || lnum === 0) return;
+        let element = this.getElementByLnum(lnum - 1);
+        if (!element) return;
+        this.focusItem(element);
+        await this.invokeActions(element);
+      }
       async invokeCommand(element) {
         let obj = this.nodesMap.get(element);
         if (!obj) return;
-        this.selectItem(element);
         let item = obj.item;
         if (!item.command) item = await this.resolveItem(element, item);
-        if (!item || !item.command) throw new Error(`Failed to resolve command from TreeItem.`);
+        if (!item || !item.command) {
+          if (item && (item.collapsibleState == 1 /* Collapsed */ || item.collapsibleState == 2 /* Expanded */)) {
+            if (!this.filtering) await this.toggleExpand(element);
+            return;
+          }
+          throw new Error(`Failed to resolve command from TreeItem.`);
+        }
+        if (this.opts.selectOnInvoke !== false) this.selectItem(element);
         await commands_default.execute(item.command);
       }
       async invokeActions(element) {
         if (!element) return;
-        this.selectItem(element);
+        if (this.opts.selectOnInvoke !== false) this.selectItem(element);
         if (typeof this.provider.resolveActions !== "function") {
           await window_default.showWarningMessage("No actions");
           return;
@@ -102868,9 +102754,8 @@ var init_TreeView = __esm({
             let removeCount = 0;
             for (let i2 = idx; i2 < items.length; i2++) {
               let o2 = items[i2];
-              if (i2 == idx || o2 && o2.level > level2) {
-                removeCount += 1;
-              }
+              if (i2 !== idx && o2.level <= level2) break;
+              removeCount += 1;
             }
             let appendItems = [];
             let highlights = [];
@@ -103323,19 +103208,33 @@ var init_TreeView = __esm({
         return true;
       }
       registerLocalKeymap(mode, key, fn, notify = false) {
-        if (!this.bufnr) {
-          this._keymapDefs.push({ mode, key, fn, notify });
-        } else {
-          this.addLocalKeymap(mode, key, fn, notify);
-        }
+        if (this.bufnr) return this.addLocalKeymap(mode, key, fn, notify);
+        let def = { mode, key, fn, notify };
+        this._keymapDefs.push(def);
+        return import_node4.Disposable.create(() => {
+          let index = this._keymapDefs.indexOf(def);
+          if (index !== -1) this._keymapDefs.splice(index, 1);
+          def.disposable?.dispose();
+        });
       }
       addLocalKeymap(mode, key, fn, notify = true) {
-        if (!key) return;
-        this.disposables.push(workspace_default.registerLocalKeymap(this.bufnr, mode, key, async () => {
+        if (!key) return import_node4.Disposable.create(() => {
+        });
+        let keymap = workspace_default.registerLocalKeymap(this.bufnr, mode, key, async () => {
           let lnum = await this.nvim.call("line", ["."]);
           let element = this.getElementByLnum(lnum - 1);
           await Promise.resolve(fn(element));
-        }, notify));
+        }, notify);
+        let disposed = false;
+        let disposable = import_node4.Disposable.create(() => {
+          if (disposed) return;
+          disposed = true;
+          keymap.dispose();
+          let index = this.disposables.indexOf(disposable);
+          if (index !== -1) this.disposables.splice(index, 1);
+        });
+        this.disposables.push(disposable);
+        return disposable;
       }
       registerKeymaps() {
         let { toggleSelection, actions, close, invoke, toggle, collapseAll, activeFilter } = this.keys;
@@ -103362,7 +103261,7 @@ var init_TreeView = __esm({
         this.addLocalKeymap("n", close, () => this.hide());
         while (_keymapDefs.length) {
           const def = _keymapDefs.pop();
-          this.addLocalKeymap(def.mode, def.key, def.fn, def.notify);
+          def.disposable = this.addLocalKeymap(def.mode, def.key, def.fn, def.notify);
         }
       }
       hide() {
@@ -103403,7 +103302,7 @@ var init_TreeView = __esm({
         this.bufnr = void 0;
         this.filter?.dispose();
         this._selection = [];
-        this.itemsToFilter = [];
+        this.itemsToFilter = /* @__PURE__ */ new Map();
         this.tooltipFactory.dispose();
         this.renderedItems = [];
         this.nodesMap.clear();
@@ -145431,7 +145330,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-490603f 2026-09-27 23:24:02 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-49e3466 2026-09-28 15:22:59 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
@@ -146271,22 +146170,6 @@ bytes/index.js:
    * Copyright(c) 2012-2014 TJ Holowaychuk
    * Copyright(c) 2015 Jed Watson
    * MIT Licensed
-   *)
-
-is-extglob/index.js:
-  (*!
-   * is-extglob <https://github.com/jonschlinkert/is-extglob>
-   *
-   * Copyright (c) 2014-2016, Jon Schlinkert.
-   * Licensed under the MIT License.
-   *)
-
-is-glob/index.js:
-  (*!
-   * is-glob <https://github.com/jonschlinkert/is-glob>
-   *
-   * Copyright (c) 2014-2017, Jon Schlinkert.
-   * Released under the MIT License.
    *)
 
 content-disposition/dist/index.js:

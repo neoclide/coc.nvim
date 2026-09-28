@@ -3900,6 +3900,8 @@ features are supported:
   • Auto refresh on load error.
   • Click the open/close icon to toggle the collapse state.
   • Click a node to invoke the default command.
+    Command-less collapsible nodes toggle their expanded state instead.
+  • Right-click a node to open its actions menu.
   • Show tooltip in float window on |CursorHold| when possible.
   • Key-mappings support |coc-tree-mappings|
   • Optional multiple selection.
@@ -3923,13 +3925,18 @@ by configuration |coc-config-tree|.
 
 <space> - Select/unselect item, configured by `"tree.key.toggleSelection"`.
 <tab> 	- Invoke actions of current item, configured by `"tree.key.actions"`.
+<RightMouse> - Invoke actions of the clicked item.
 <esc>   - Close tree window, configured by `"tree.key.close"`.
-<cr>    - Invoke command of current item,  configured by `"tree.key.invoke"`.
+<cr>    - Invoke the current item's command, or toggle a command-less collapsible
+	item. Configured by `"tree.key.invoke"`.
 <C-o>   - Move cursor to original window.
 f 	- Activate filter, configured by `"tree.key.activeFilter"`.
 t 	- Trigger key to toggle expand state of tree node, configured by
 	`tree.key.toggle`.
 M 	- Collapse all tree node, configured by `"tree.key.collapseAll"`.
+
+The <RightMouse> mapping is local to the tree buffer. Focus the tree window
+before right-clicking an item to open its actions menu.
 
 --------------------------------------------------------------------------------
 
@@ -3953,6 +3960,8 @@ input; the following special keys are supported:
 <up> or `"tree.key.selectPrevious"` 	- Select previous node.
 <down> or `"tree.key.selectNext"` 	- Select next node.
 <cr> or `"tree.key.invoke"` 	- Invoke command of selected node.
+
+Invoking a command-less collapsible node exits filter mode and expands the node.
 
 ==============================================================================
 LIST SUPPORT						*coc-list*
