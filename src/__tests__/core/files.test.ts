@@ -1403,6 +1403,24 @@ describe('getOriginalLine', () => {
       assert.strictEqual(fns.length, 0)
     })
 
+    it('should not ignore lstat errors other than ENOENT', async t => {
+      let filepath = await shared.createTmpFile('source', disposables)
+      let error = Object.assign(new Error('permission denied'), { code: 'EACCES' })
+      let originalLstat = fs.promises.lstat.bind(fs.promises)
+      t.mock.method(fs.promises, 'lstat', async (target, options) => {
+        if (target === filepath) throw error
+        return await originalLstat(target, options)
+      })
+      let will = 0
+      let did = 0
+      disposables.push(workspace.files.onWillDeleteFiles(() => will++))
+      disposables.push(workspace.files.onDidDeleteFiles(() => did++))
+      await assert.rejects(workspace.deleteFile(filepath, { ignoreIfNotExists: true }), e => e === error)
+      assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'source')
+      assert.strictEqual(will, 0)
+      assert.strictEqual(did, 0)
+    })
+
     it('should unload loaded buffer', async t => {
       for (let hidden of [false, true]) {
         let filepath = await shared.createTmpFile('file to delete')
@@ -1434,52 +1452,66 @@ describe('getOriginalLine', () => {
       }
     })
 
-    it('should preserve current and hidden buffers when backup copy fails', async t => {
+    it('should preserve current and hidden buffers when backup copy or source removal fails', async t => {
       for (let hidden of [false, true]) {
         for (let recovers of [undefined, [] as RecoverFunc[]]) {
-          let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-delete-rename-failure-'))
-          let filepath = path.join(root, 'file')
-          let did = 0
-          let unloaded: number[] = []
-          fs.writeFileSync(filepath, 'source')
-          let doc = await shared.createDocument(filepath)
-          await nvim.setLine('dirty')
-          if (hidden) await nvim.command('enew')
-          let originalRenameSync = fs.renameSync.bind(fs)
-          let originalCopySync = fs.cpSync.bind(fs)
-          let commandSpy = t.mock.method(nvim, 'command')
-          let renameSpy = t.mock.method(fs, 'renameSync', (oldPath, newPath) => {
-            if (oldPath === filepath) throw Object.assign(new Error('cross-device link'), { code: 'EXDEV' })
-            originalRenameSync(oldPath, newPath)
-          })
-          let copySpy = t.mock.method(fs, 'cpSync', (oldPath, newPath, options) => {
-            if (oldPath === filepath) throw Object.assign(new Error('copy failed'), { code: 'EIO' })
-            originalCopySync(oldPath, newPath, options)
-          })
-          disposables.push(workspace.files.onDidDeleteFiles(() => did++))
-          disposables.push(events.on('BufUnload', bufnr => { unloaded.push(bufnr) }))
-          try {
-            await assert.rejects(workspace.files.deleteFile(filepath, {}, recovers), { code: 'EIO' })
-            assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'source')
-            assert.strictEqual(await nvim.call('bufloaded', [filepath]), 1)
-            assert.strictEqual(await nvim.call('bufnr', [filepath]), doc.bufnr)
-            assert.strictEqual((await doc.buffer.lines)[0], 'dirty')
-            assert.strictEqual(unloaded.includes(doc.bufnr), false)
-            assert.strictEqual(commandSpy.mock.calls.some(o => o.arguments[0].includes('bwipeout')), false)
-            assert.strictEqual(did, 0)
-            assert.strictEqual(recovers?.length ?? 0, 0)
-          } finally {
-            copySpy.mock.restore()
-            renameSpy.mock.restore()
-            commandSpy.mock.restore()
-            let bufnr = await nvim.call('bufnr', [filepath]) as number
-            if (bufnr > 0) await nvim.command(`silent! bwipeout! ${bufnr}`)
-            let cleanupRecoveryFolder = Reflect.get(workspace.files, 'cleanupRecoveryFolder') as (recovers: RecoverFunc[]) => void
-            if (recovers) cleanupRecoveryFolder.call(workspace.files, recovers)
-            let deletedFilesFolder = Reflect.get(workspace.files, 'deletedFilesFolder') as string | undefined
-            if (deletedFilesFolder) fs.rmSync(deletedFilesFolder, { recursive: true, force: true })
-            Reflect.set(workspace.files, 'deletedFilesFolder', undefined)
-            fs.rmSync(root, { recursive: true, force: true })
+          for (let phase of ['copy', 'remove'] as const) {
+            let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-delete-rename-failure-'))
+            let filepath = path.join(root, 'file')
+            let backup: string | undefined
+            let did = 0
+            let unloaded: number[] = []
+            fs.writeFileSync(filepath, 'source')
+            let doc = await shared.createDocument(filepath)
+            await nvim.setLine('dirty')
+            if (hidden) await nvim.command('enew')
+            let originalRenameSync = fs.renameSync.bind(fs)
+            let originalCopySync = fs.cpSync.bind(fs)
+            let originalRmSync = fs.rmSync.bind(fs)
+            let commandSpy = t.mock.method(nvim, 'command')
+            let renameSpy = t.mock.method(fs, 'renameSync', (oldPath, newPath) => {
+              if (oldPath === filepath) {
+                backup = newPath
+                throw Object.assign(new Error('cross-device link'), { code: 'EXDEV' })
+              }
+              originalRenameSync(oldPath, newPath)
+            })
+            let copySpy = t.mock.method(fs, 'cpSync', (oldPath, newPath, options) => {
+              if (phase === 'copy' && oldPath === filepath) throw Object.assign(new Error('copy failed'), { code: 'EIO' })
+              originalCopySync(oldPath, newPath, options)
+            })
+            let removeSpy = t.mock.method(fs, 'rmSync', (target, options) => {
+              if (phase === 'remove' && target === filepath) throw Object.assign(new Error('remove failed'), { code: 'EIO' })
+              originalRmSync(target, options)
+            })
+            disposables.push(workspace.files.onDidDeleteFiles(() => did++))
+            disposables.push(events.on('BufUnload', bufnr => { unloaded.push(bufnr) }))
+            try {
+              await assert.rejects(workspace.files.deleteFile(filepath, {}, recovers), { code: 'EIO' })
+              assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'source')
+              assert.strictEqual(await nvim.call('bufloaded', [filepath]), 1)
+              assert.strictEqual(await nvim.call('bufnr', [filepath]), doc.bufnr)
+              assert.strictEqual((await doc.buffer.lines)[0], 'dirty')
+              assert.strictEqual(unloaded.includes(doc.bufnr), false)
+              assert.strictEqual(commandSpy.mock.calls.some(o => o.arguments[0].includes('bwipeout')), false)
+              assert.strictEqual(did, 0)
+              assert.strictEqual(recovers?.length ?? 0, 0)
+              assert.notStrictEqual(backup, undefined)
+              assert.strictEqual(fs.existsSync(backup!), false)
+            } finally {
+              removeSpy.mock.restore()
+              copySpy.mock.restore()
+              renameSpy.mock.restore()
+              commandSpy.mock.restore()
+              let bufnr = await nvim.call('bufnr', [filepath]) as number
+              if (bufnr > 0) await nvim.command(`silent! bwipeout! ${bufnr}`)
+              let cleanupRecoveryFolder = Reflect.get(workspace.files, 'cleanupRecoveryFolder') as (recovers: RecoverFunc[]) => void
+              if (recovers) cleanupRecoveryFolder.call(workspace.files, recovers)
+              let deletedFilesFolder = Reflect.get(workspace.files, 'deletedFilesFolder') as string | undefined
+              if (deletedFilesFolder) fs.rmSync(deletedFilesFolder, { recursive: true, force: true })
+              Reflect.set(workspace.files, 'deletedFilesFolder', undefined)
+              fs.rmSync(root, { recursive: true, force: true })
+            }
           }
         }
       }

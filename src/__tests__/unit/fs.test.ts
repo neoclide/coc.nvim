@@ -1,4 +1,4 @@
-import { findUp, isDirectory, findMatch, watchFile, writeJson, loadJson, normalizeFilePath, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, fileStartsWith, writeFile, remove, renameAsync, renameSync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, lineToLocation, resolveRoot, statAsync, uriToFsPath, FileType } from '../../util/fs'
+import { findUp, isDirectory, findMatch, watchFile, writeJson, loadJson, normalizeFilePath, checkFolder, getFileType, isGitIgnored, readFileLine, readFileLines, fileStartsWith, writeFile, remove, renameSync, isParentFolder, parentDirs, inDirectory, getFileLineCount, sameFile, lineToLocation, resolveRoot, statAsync, uriToFsPath, FileType } from '../../util/fs'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -57,33 +57,20 @@ describe('fs', () => {
       }
     })
 
-    it('should copy files, directories and symbolic links on EXDEV', t => {
+    it('should copy files and directories on EXDEV', t => {
       let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-rename-'))
       let sourceFile = path.join(root, 'source-file')
       let sourceDirectory = path.join(root, 'source-directory')
-      let sourceLink = path.join(root, 'source-link')
-      let sourceRelativeLink = path.join(root, 'source-relative-link')
       let targetFile = path.join(root, 'target-file')
       let targetDirectory = path.join(root, 'target-directory')
-      let targetLink = path.join(root, 'target-link')
-      let targetRelativeLink = path.join(root, 'target-relative-link')
-      let reference = path.join(root, 'reference')
       fs.writeFileSync(sourceFile, 'file', { mode: 0o640 })
       fs.utimesSync(sourceFile, 1700000000, 1700000000)
       let originalStat = fs.statSync(sourceFile)
-      fs.writeFileSync(reference, 'reference')
       fs.mkdirSync(sourceDirectory)
       fs.writeFileSync(path.join(sourceDirectory, 'child'), 'child')
-      try {
-        fs.symlinkSync('missing', sourceLink, process.platform === 'win32' ? 'file' : undefined)
-        fs.symlinkSync('reference', sourceRelativeLink, process.platform === 'win32' ? 'file' : undefined)
-      } catch (_e) {
-        fs.rmSync(root, { force: true, recursive: true })
-        return t.skip('symbolic links unavailable')
-      }
       let originalRenameSync = fs.renameSync.bind(fs)
       let rename = t.mock.method(fs, 'renameSync', (oldPath, newPath) => {
-        if ([sourceFile, sourceDirectory, sourceLink, sourceRelativeLink, targetFile, targetDirectory, targetLink, targetRelativeLink].includes(oldPath)) {
+        if ([sourceFile, sourceDirectory, targetFile, targetDirectory].includes(oldPath)) {
           throw Object.assign(new Error('cross-device link'), { code: 'EXDEV' })
         }
         originalRenameSync(oldPath, newPath)
@@ -91,30 +78,89 @@ describe('fs', () => {
       try {
         renameSync(sourceFile, targetFile)
         renameSync(sourceDirectory, targetDirectory)
-        renameSync(sourceLink, targetLink)
-        renameSync(sourceRelativeLink, targetRelativeLink)
         assert.strictEqual(fs.readFileSync(targetFile, 'utf8'), 'file')
         assert.strictEqual(fs.statSync(targetFile).mtimeMs, originalStat.mtimeMs)
         if (process.platform !== 'win32') assert.strictEqual(fs.statSync(targetFile).mode & 0o777, originalStat.mode & 0o777)
         assert.strictEqual(fs.readFileSync(path.join(targetDirectory, 'child'), 'utf8'), 'child')
-        assert.strictEqual(fs.lstatSync(targetLink).isSymbolicLink(), true)
-        assert.strictEqual(fs.readlinkSync(targetLink), 'missing')
-        assert.strictEqual(fs.readlinkSync(targetRelativeLink), 'reference')
-        assert.strictEqual(fs.readFileSync(reference, 'utf8'), 'reference')
         assert.strictEqual(fs.existsSync(sourceFile), false)
         assert.strictEqual(fs.existsSync(sourceDirectory), false)
-        assert.throws(() => fs.lstatSync(sourceLink), { code: 'ENOENT' })
-        assert.throws(() => fs.lstatSync(sourceRelativeLink), { code: 'ENOENT' })
         renameSync(targetFile, sourceFile)
         renameSync(targetDirectory, sourceDirectory)
-        renameSync(targetLink, sourceLink)
-        renameSync(targetRelativeLink, sourceRelativeLink)
         assert.strictEqual(fs.readFileSync(sourceFile, 'utf8'), 'file')
         assert.strictEqual(fs.readFileSync(path.join(sourceDirectory, 'child'), 'utf8'), 'child')
-        assert.strictEqual(fs.readlinkSync(sourceLink), 'missing')
-        assert.strictEqual(fs.readlinkSync(sourceRelativeLink), 'reference')
-        assert.strictEqual(fs.readFileSync(reference, 'utf8'), 'reference')
         assert.strictEqual(fs.readdirSync(root).some(name => name.startsWith('target-')), false)
+      } finally {
+        rename.mock.restore()
+        fs.rmSync(root, { force: true, recursive: true })
+      }
+    })
+
+    it('should copy top-level and nested symbolic links on EXDEV', t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-rename-'))
+      let source = path.join(root, 'source')
+      let target = path.join(root, 'target')
+      let reference = path.join(root, 'reference')
+      let referenceDirectory = path.join(root, 'reference-directory')
+      let sourceFileLink = path.join(root, 'source-file-link')
+      let targetFileLink = path.join(root, 'target-file-link')
+      let sourceDirectoryLink = path.join(root, 'source-directory-link')
+      let targetDirectoryLink = path.join(root, 'target-directory-link')
+      fs.mkdirSync(source)
+      fs.writeFileSync(reference, 'reference')
+      fs.mkdirSync(referenceDirectory)
+      fs.writeFileSync(path.join(referenceDirectory, 'child'), 'directory content')
+      try {
+        fs.symlinkSync('missing', path.join(source, 'dangling-link'), process.platform === 'win32' ? 'file' : undefined)
+        fs.symlinkSync('../reference', path.join(source, 'relative-link'), process.platform === 'win32' ? 'file' : undefined)
+        fs.symlinkSync('missing', path.join(root, 'source-link'), process.platform === 'win32' ? 'file' : undefined)
+        fs.symlinkSync('reference', sourceFileLink, process.platform === 'win32' ? 'file' : undefined)
+        fs.symlinkSync('reference-directory', sourceDirectoryLink, process.platform === 'win32' ? 'dir' : undefined)
+      } catch (_e) {
+        fs.rmSync(root, { force: true, recursive: true })
+        return t.skip('symbolic links unavailable')
+      }
+      let sourceLink = path.join(root, 'source-link')
+      let targetLink = path.join(root, 'target-link')
+      let originalRenameSync = fs.renameSync.bind(fs)
+      let rename = t.mock.method(fs, 'renameSync', (oldPath, newPath) => {
+        if ([source, target, sourceLink, targetLink, sourceFileLink, targetFileLink, sourceDirectoryLink, targetDirectoryLink].includes(oldPath)) {
+          throw Object.assign(new Error('cross-device link'), { code: 'EXDEV' })
+        }
+        originalRenameSync(oldPath, newPath)
+      })
+      try {
+        renameSync(source, target)
+        renameSync(sourceLink, targetLink)
+        renameSync(sourceFileLink, targetFileLink)
+        renameSync(sourceDirectoryLink, targetDirectoryLink)
+        for (let [filepath, text] of [
+          [path.join(target, 'relative-link'), '../reference'],
+          [path.join(target, 'dangling-link'), 'missing'],
+          [targetLink, 'missing'],
+          [targetFileLink, 'reference'],
+          [targetDirectoryLink, 'reference-directory']
+        ]) {
+          assert.strictEqual(fs.lstatSync(filepath).isSymbolicLink(), true)
+          assert.strictEqual(fs.readlinkSync(filepath), text)
+        }
+        assert.strictEqual(fs.readFileSync(reference, 'utf8'), 'reference')
+        assert.strictEqual(fs.readFileSync(path.join(referenceDirectory, 'child'), 'utf8'), 'directory content')
+        renameSync(target, source)
+        renameSync(targetLink, sourceLink)
+        renameSync(targetFileLink, sourceFileLink)
+        renameSync(targetDirectoryLink, sourceDirectoryLink)
+        for (let [filepath, text] of [
+          [path.join(source, 'relative-link'), '../reference'],
+          [path.join(source, 'dangling-link'), 'missing'],
+          [sourceLink, 'missing'],
+          [sourceFileLink, 'reference'],
+          [sourceDirectoryLink, 'reference-directory']
+        ]) {
+          assert.strictEqual(fs.lstatSync(filepath).isSymbolicLink(), true)
+          assert.strictEqual(fs.readlinkSync(filepath), text)
+        }
+        assert.strictEqual(fs.readFileSync(reference, 'utf8'), 'reference')
+        assert.strictEqual(fs.readFileSync(path.join(referenceDirectory, 'child'), 'utf8'), 'directory content')
       } finally {
         rename.mock.restore()
         fs.rmSync(root, { force: true, recursive: true })
@@ -144,6 +190,35 @@ describe('fs', () => {
       }
     })
 
+    it('should retain a partial target when copy cleanup fails', t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-rename-'))
+      let source = path.join(root, 'source')
+      let target = path.join(root, 'target')
+      fs.writeFileSync(source, 'source')
+      let rename = t.mock.method(fs, 'renameSync', () => {
+        throw Object.assign(new Error('cross-device link'), { code: 'EXDEV' })
+      })
+      let copy = t.mock.method(fs, 'cpSync', (oldPath, newPath) => {
+        fs.writeFileSync(newPath, 'partial')
+        throw Object.assign(new Error('copy failed'), { code: 'EIO' })
+      })
+      let originalRmSync = fs.rmSync.bind(fs)
+      let remove = t.mock.method(fs, 'rmSync', (filepath, options) => {
+        if (filepath === target) throw Object.assign(new Error('cleanup failed'), { code: 'EPERM' })
+        originalRmSync(filepath, options)
+      })
+      try {
+        assert.throws(() => renameSync(source, target), { code: 'EPERM' })
+        assert.strictEqual(fs.readFileSync(source, 'utf8'), 'source')
+        assert.strictEqual(fs.readFileSync(target, 'utf8'), 'partial')
+      } finally {
+        remove.mock.restore()
+        copy.mock.restore()
+        rename.mock.restore()
+        fs.rmSync(root, { force: true, recursive: true })
+      }
+    })
+
     it('should restore the source when deleting it after copy fails', t => {
       let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-rename-'))
       let source = path.join(root, 'source')
@@ -151,6 +226,15 @@ describe('fs', () => {
       fs.mkdirSync(source)
       fs.writeFileSync(path.join(source, 'first'), 'first')
       fs.writeFileSync(path.join(source, 'second'), 'second')
+      fs.writeFileSync(path.join(source, 'readonly'), 'readonly', { mode: 0o400 })
+      let link = path.join(source, 'dangling-link')
+      let hasLink = true
+      try {
+        fs.symlinkSync('missing', link, process.platform === 'win32' ? 'file' : undefined)
+      } catch (_e) {
+        // Keep the directory recovery assertions runnable without symlink support.
+        hasLink = false
+      }
       let originalRenameSync = fs.renameSync.bind(fs)
       let originalRmSync = fs.rmSync.bind(fs)
       let rename = t.mock.method(fs, 'renameSync', (oldPath, newPath) => {
@@ -168,6 +252,12 @@ describe('fs', () => {
         assert.throws(() => renameSync(source, target), { code: 'EIO' })
         assert.strictEqual(fs.readFileSync(path.join(source, 'first'), 'utf8'), 'first')
         assert.strictEqual(fs.readFileSync(path.join(source, 'second'), 'utf8'), 'second')
+        assert.strictEqual(fs.readFileSync(path.join(source, 'readonly'), 'utf8'), 'readonly')
+        if (process.platform !== 'win32') assert.strictEqual(fs.statSync(path.join(source, 'readonly')).mode & 0o777, 0o400)
+        if (hasLink) {
+          assert.strictEqual(fs.lstatSync(link).isSymbolicLink(), true)
+          assert.strictEqual(fs.readlinkSync(link), 'missing')
+        }
         assert.strictEqual(fs.existsSync(target), false)
       } finally {
         remove.mock.restore()
@@ -446,29 +536,6 @@ describe('fs', () => {
       }
       await assert.rejects(fn(), Error)
       assert.strictEqual(res, false)
-    })
-  })
-
-  describe('renameAsync()', () => {
-    it('should rename file', async () => {
-      let id = crypto.randomUUID()
-      let filepath = path.join(os.tmpdir(), id)
-      await writeFile(filepath, id)
-      let dest = path.join(os.tmpdir(), 'bar')
-      await renameAsync(filepath, dest)
-      let exists = fs.existsSync(dest)
-      assert.strictEqual(exists, true)
-      fs.unlinkSync(dest)
-    })
-
-    it('should throw when file does not exist', async () => {
-      let err
-      try {
-        await renameAsync('/foo/bar', '/a')
-      } catch (e) {
-        err = e
-      }
-      assert.notStrictEqual(err, undefined)
     })
   })
 

@@ -126,15 +126,6 @@ export function isDirectory(filepath: string | undefined): boolean {
   return stat.isDirectory()
 }
 
-export function renameAsync(oldPath: string, newPath: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    fs.rename(oldPath, newPath, err => {
-      if (err) return reject(err)
-      resolve()
-    })
-  })
-}
-
 /**
  * Move an entry to a path that does not exist. Falls back to copying only when
  * the source and target are on different filesystems.
@@ -512,7 +503,7 @@ export function normalizeFilePath(filepath: string) {
 export function realFsPath(fsPath: string): string {
   let current = path.resolve(fsPath)
   let suffix: string[] = []
-  for (;;) {
+  for (; ;) {
     try {
       let resolved = fs.realpathSync(current)
       if (suffix.length === 0) return resolved
