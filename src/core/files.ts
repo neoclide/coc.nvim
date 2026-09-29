@@ -214,6 +214,7 @@ export default class Files {
   private window: Window
   private editState: EditState | undefined
   private recoveryFolders = new WeakMap<RecoverFunc[], string>()
+  private deletedFilesFolder: string | undefined
   private _onDidCreateFiles = new Emitter<FileCreateEvent>()
   private _onDidRenameFiles = new Emitter<FileRenameEvent>()
   private _onDidDeleteFiles = new Emitter<FileDeleteEvent>()
@@ -495,18 +496,24 @@ export default class Files {
           fs.mkdirSync(filepath)
         })
       }
-    } else if (Array.isArray(recovers)) {
-      let dest = path.join(this.getRecoveryFolder(recovers), crypto.randomUUID())
+    } else {
+      let folder: string
+      if (Array.isArray(recovers)) {
+        folder = this.getRecoveryFolder(recovers)
+      } else {
+        folder = this.deletedFilesFolder ??= fs.mkdtempSync(path.join(os.tmpdir(), 'coc-delete-'))
+      }
+      let dest = path.join(folder, crypto.randomUUID())
       let dir = path.dirname(filepath)
       fs.renameSync(filepath, dest)
-      recovers.push(async () => {
-        fs.mkdirSync(dir, { recursive: true })
-        fs.rmSync(filepath, { force: true, recursive: true })
-        fs.renameSync(dest, filepath)
-        if (bufnr > 0) await this.loadResource(uri.toString())
-      })
-    } else {
-      fs.rmSync(filepath, { recursive: isDir })
+      if (Array.isArray(recovers)) {
+        recovers.push(async () => {
+          fs.mkdirSync(dir, { recursive: true })
+          fs.rmSync(filepath, { force: true, recursive: true })
+          fs.renameSync(dest, filepath)
+          if (bufnr > 0) await this.loadResource(uri.toString())
+        })
+      }
     }
     if (bufnr > 0) {
       void events.fire('BufUnload', [bufnr])
@@ -739,6 +746,10 @@ export default class Files {
 
   public dispose(): void {
     this.discardEditState()
+    if (this.deletedFilesFolder) {
+      fs.rmSync(this.deletedFilesFolder, { force: true, recursive: true })
+      this.deletedFilesFolder = undefined
+    }
   }
 
   public validateChanges(documentChanges: ReadonlyArray<DocumentChange>): void {
