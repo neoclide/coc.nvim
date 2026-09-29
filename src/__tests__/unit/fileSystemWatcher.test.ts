@@ -1658,6 +1658,7 @@ describe('create FileSystemWatcherManager', () => {
         assert.strictEqual(await manager.createClient(root), false)
         assert.deepStrictEqual(calls, expected)
         assert.ok(lines.some(line => line.includes('No file watcher backend available')))
+        assert.strictEqual(manager['tokenSourcesMap'].has(root), false)
       } finally {
         manager.dispose()
         fs.rmSync(root, { recursive: true, force: true })
@@ -1772,6 +1773,139 @@ describe('create FileSystemWatcherManager', () => {
       assert.strictEqual(await second, client)
     } finally {
       manager.dispose()
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('recreates a workspace client after pending removal', async t => {
+    for (let rejectFirst of [false, true]) {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-recreate-'))
+      let folders = new WorkspaceFolderController(configurations)
+      let manager = new FileSystemWatcherManager(folders, defaultConfig)
+      manager.disabled = false
+      let firstResolve!: (client: NativeWatcher) => void
+      let firstReject!: (error: Error) => void
+      let secondResolve!: (client: NativeWatcher) => void
+      let firstClient = createFakeClient(root)
+      let secondClient = createFakeClient(root)
+      let firstPromise = new Promise<NativeWatcher>((resolve, reject) => {
+        firstResolve = resolve
+        firstReject = reject
+      })
+      let secondPromise = new Promise<NativeWatcher>(resolve => { secondResolve = resolve })
+      let calls = 0
+      let native = t.mock.method(NativeWatcher, 'createClient', () => {
+        if (calls++ === 0) {
+          return firstPromise
+        }
+        return secondPromise
+      })
+      let firstDispose = t.mock.method(firstClient, 'dispose')
+      let secondSubscribe = t.mock.method(secondClient, 'subscribe')
+      let watcher = manager.createFileSystemWatcher('**/*')
+      let created: string[] = []
+      manager.onDidCreateClient(root => created.push(root))
+      let firstCreation: Promise<FileWatcherClient | false | undefined> | undefined
+      let secondCreation: Promise<FileWatcherClient | false | undefined> | undefined
+      try {
+        manager.attach(shared.createNullChannel())
+        folders.addWorkspaceFolder(root, true)
+        assert.strictEqual(calls, 1)
+        firstCreation = manager['creating'].get(root)
+        assert.notStrictEqual(firstCreation, undefined)
+        let firstSource = manager['tokenSourcesMap'].get(root)
+        assert.notStrictEqual(firstSource, undefined)
+        folders.removeWorkspaceFolder(root)
+        assert.strictEqual(manager['creating'].has(root), false)
+        assert.strictEqual(manager['tokenSourcesMap'].has(root), false)
+        assert.strictEqual(firstSource.token.isCancellationRequested, true)
+        folders.addWorkspaceFolder(root, true)
+        assert.strictEqual(calls, 2)
+        secondCreation = manager['creating'].get(root)
+        let secondSource = manager['tokenSourcesMap'].get(root)
+        assert.notStrictEqual(secondCreation, undefined)
+        assert.notStrictEqual(secondSource, undefined)
+        if (rejectFirst) firstReject(new Error('first creation failed'))
+        else firstResolve(firstClient as NativeWatcher)
+        assert.strictEqual(await firstCreation, false)
+        assert.strictEqual(manager['creating'].get(root), secondCreation)
+        assert.strictEqual(manager['tokenSourcesMap'].get(root), secondSource)
+        secondResolve(secondClient as NativeWatcher)
+        assert.strictEqual(await secondCreation, secondClient)
+        assert.strictEqual(manager['clientsMap'].get(root), secondClient)
+        assert.strictEqual(firstDispose.mock.callCount(), rejectFirst ? 0 : 1)
+        assert.strictEqual(secondSubscribe.mock.callCount(), 1)
+        assert.deepStrictEqual(created, [root])
+        assert.strictEqual(manager['creating'].has(root), false)
+        assert.strictEqual(manager['tokenSourcesMap'].has(root), false)
+      } finally {
+        manager.dispose()
+        firstResolve(firstClient as NativeWatcher)
+        secondResolve(secondClient as NativeWatcher)
+        if (firstCreation) await firstCreation
+        if (secondCreation) await secondCreation
+        native.mock.restore()
+        watcher.dispose()
+        fs.rmSync(root, { recursive: true, force: true })
+      }
+    }
+  })
+
+  it('does not publish a second client removed while pending', async t => {
+    let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-watch-remove-second-'))
+    let folders = new WorkspaceFolderController(configurations)
+    let manager = new FileSystemWatcherManager(folders, defaultConfig)
+    manager.disabled = false
+    let firstReject!: (error: Error) => void
+    let firstResolve!: (client: NativeWatcher) => void
+    let secondResolve!: (client: NativeWatcher) => void
+    let firstPromise = new Promise<NativeWatcher>((resolve, reject) => {
+      firstResolve = resolve
+      firstReject = reject
+    })
+    let secondPromise = new Promise<NativeWatcher>(resolve => { secondResolve = resolve })
+    let firstClient = createFakeClient(root)
+    let secondClient = createFakeClient(root)
+    let calls = 0
+    let native = t.mock.method(NativeWatcher, 'createClient', () => {
+      if (calls++ === 0) {
+        return firstPromise
+      }
+      return secondPromise
+    })
+    let secondDispose = t.mock.method(secondClient, 'dispose')
+    let created: string[] = []
+    manager.onDidCreateClient(root => created.push(root))
+    let firstCreation: Promise<FileWatcherClient | false | undefined> | undefined
+    let secondCreation: Promise<FileWatcherClient | false | undefined> | undefined
+    try {
+      manager.attach(shared.createNullChannel())
+      folders.addWorkspaceFolder(root, true)
+      assert.strictEqual(calls, 1)
+      firstCreation = manager['creating'].get(root)
+      folders.removeWorkspaceFolder(root)
+      folders.addWorkspaceFolder(root, true)
+      secondCreation = manager['creating'].get(root)
+      assert.strictEqual(calls, 2)
+      firstReject(new Error('first creation failed'))
+      assert.strictEqual(await firstCreation, false)
+      assert.strictEqual(manager['creating'].get(root), secondCreation)
+      folders.removeWorkspaceFolder(root)
+      assert.strictEqual(manager['creating'].has(root), false)
+      assert.strictEqual(manager['tokenSourcesMap'].has(root), false)
+      secondResolve(secondClient as NativeWatcher)
+      assert.strictEqual(await secondCreation, false)
+      assert.strictEqual(secondDispose.mock.callCount(), 1)
+      assert.strictEqual(manager['clientsMap'].has(root), false)
+      assert.deepStrictEqual(created, [])
+    } finally {
+      manager.dispose()
+      firstResolve(firstClient as NativeWatcher)
+      secondResolve(secondClient as NativeWatcher)
+      if (firstCreation) await firstCreation
+      if (secondCreation) await secondCreation
+      native.mock.restore()
+      firstClient.dispose()
       fs.rmSync(root, { recursive: true, force: true })
     }
   })

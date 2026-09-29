@@ -64,8 +64,13 @@ export class FileSystemWatcherManager {
         let root = normalizeFilePath(URI.parse(folder.uri).fsPath)
         // Invalidate any in-flight creation for this root so its client is
         // disposed before it can be published or subscribed.
+        this.creating.delete(root)
         let tokenSource = this.tokenSourcesMap.get(root)
-        if (tokenSource) tokenSource.cancel()
+        if (tokenSource) {
+          this.tokenSourcesMap.delete(root)
+          tokenSource.cancel()
+          tokenSource.dispose()
+        }
         let client = this.clientsMap.get(root)
         if (client) {
           this.clientsMap.delete(root)
@@ -100,17 +105,17 @@ export class FileSystemWatcherManager {
     let p = this.createClientInner(root)
     this.creating.set(root, p)
     return p.finally(() => {
-      this.creating.delete(root)
+      if (this.creating.get(root) === p) this.creating.delete(root)
     })
   }
 
   private async createClientInner(root: string): Promise<FileWatcherClient | false | undefined> {
+    let tokenSource = new CancellationTokenSource()
+    let token = tokenSource.token
+    this.tokenSourcesMap.set(root, tokenSource)
     try {
       let client: FileWatcherClient | undefined
       let backends = this.config.watchmanPath ? ['watchman', 'native'] : ['native', 'watchman']
-      let tokenSource = new CancellationTokenSource()
-      let token = tokenSource.token
-      this.tokenSourcesMap.set(root, tokenSource)
       for (let backend of backends) {
         if (token.isCancellationRequested) return false
         try {
@@ -148,6 +153,9 @@ export class FileSystemWatcherManager {
     } catch (e) {
       if (this.channel) this.channel.appendLine(`Error on create file watcher client: ${e}`)
       return false
+    } finally {
+      if (this.tokenSourcesMap.get(root) === tokenSource) this.tokenSourcesMap.delete(root)
+      tokenSource.dispose()
     }
   }
 
@@ -234,6 +242,7 @@ export class FileSystemWatcherManager {
     this._onDidCreateClient.dispose()
     for (let tokenSource of this.tokenSourcesMap.values()) {
       tokenSource.cancel()
+      tokenSource.dispose()
     }
     this.tokenSourcesMap.clear()
     for (let client of this.clientsMap.values()) {
