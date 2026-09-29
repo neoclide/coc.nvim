@@ -39,6 +39,7 @@ import { DocumentSymbolFeature, DocumentSymbolMiddleware } from './documentSymbo
 import { ExecuteCommandFeature, ExecuteCommandMiddleware } from './executeCommand'
 import { Connection, DynamicFeature, ensure, FeatureClient, LSPCancellationError, RegistrationData, StaticFeature, TextDocumentProviderFeature, TextDocumentSendFeature } from './features'
 import { DidCreateFilesFeature, DidDeleteFilesFeature, DidRenameFilesFeature, FileOperationsMiddleware, WillCreateFilesFeature, WillDeleteFilesFeature, WillRenameFilesFeature } from './fileOperations'
+import { FileRenameFeature } from './fileRename'
 import { DidChangeWatchedFileSignature, FileSystemWatcherFeature } from './fileSystemWatcher'
 import { FoldingRangeFeature, FoldingRangeProviderMiddleware, FoldingRangeProviderShape } from './foldingRange'
 import { $FormattingOptions, DocumentFormattingFeature, DocumentOnTypeFormattingFeature, DocumentRangeFormattingFeature, FormattingMiddleware } from './formatting'
@@ -1730,6 +1731,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
     this.registerFeature(new LinkedEditingFeature(this), 'linkedEditing')
     this.registerFeature(new DidCreateFilesFeature(this), 'fileEvents')
     this.registerFeature(new DidRenameFilesFeature(this), 'fileEvents')
+    this.registerFeature(new FileRenameFeature(this), 'fileEvents')
     this.registerFeature(new DidDeleteFilesFeature(this), 'fileEvents')
     this.registerFeature(new WillCreateFilesFeature(this), 'fileEvents')
     this.registerFeature(new WillRenameFilesFeature(this), 'fileEvents')
