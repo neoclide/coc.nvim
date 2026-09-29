@@ -488,11 +488,11 @@ export class Converter {
   }
 
   private convertLspCompleteItem(item: CompletionItem): DurationCompleteItem {
-    const { option, inputStart } = this
+    const { option } = this
     const label = item.label.trim()
     const itemDefaults = toObject(option.itemDefaults) as ItemDefaults
     const word = getWord(item, itemDefaults)
-    const range = getReplaceRange(item, itemDefaults?.editRange, inputStart, this.option.insertMode) ?? option.range
+    const range = getReplaceRange(item, itemDefaults?.editRange, this.character, this.option.insertMode) ?? option.range
     const character = range.start.character
     const data = toObject(item.data)
     const filterText = item.filterText ?? item.label

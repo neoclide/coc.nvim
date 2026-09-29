@@ -864,6 +864,33 @@ describe('language source', () => {
       await shared.waitFor('getline', ['.'], 'foo')
     })
 
+    for (let resolve of [false, true]) {
+      it(`should preserve keyword prefix of suffix edits with resolve ${resolve}`, async t => {
+        await nvim.command("edit suffix.sh | let b:coc_additional_keywords=['-']")
+        await workspace.document
+        let provider: CompletionItemProvider = {
+          provideCompletionItems: async (_, position): Promise<CompletionItem[]> => [{
+            label: '--help',
+            textEdit: TextEdit.replace(Range.create(position.line, position.character, position.line, position.character), '-help')
+          }],
+          resolveCompletionItem: resolve ? item => item : undefined
+        }
+        disposables.push(languages.registerCompletionItemProvider('suffix', 'S', null, provider))
+        let done = t.mock.method(sources.getSource('suffix'), 'onCompleteDone')
+        await nvim.setLine('sed -')
+        await nvim.input('A')
+        await nvim.call('coc#start', { source: 'suffix' })
+        await shared.waitPopup()
+        assert.strictEqual(completion.activeItems[0].character, 5)
+        await nvim.call('coc#pum#select', [0, 1, 0])
+        await shared.waitFor('getline', ['.'], 'sed --help')
+        await shared.confirmCompletion(0)
+        await shared.waitValue(() => done.mock.calls.length, 1)
+        await done.mock.calls[0].result
+        await shared.waitFor('getline', ['.'], 'sed --help')
+      })
+    }
+
     it('should provide word when textEdit after startcol', { timeout: 10000 }, async t => {
       // some LS would send textEdit after first character,
       // need fix the word from newText

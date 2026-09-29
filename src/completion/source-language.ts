@@ -103,8 +103,7 @@ export default class LanguageSource implements ISource<CompletionItem> {
             this.resolving.delete(item)
           } else {
             if (resolved.textEdit) {
-              let character = characterIndex(opt.line, opt.col)
-              resolved.textEdit = fixTextEdit(character, resolved.textEdit)
+              resolved.textEdit = fixTextEdit(opt.position.character, resolved.textEdit)
             }
             // addDocumentation(item, completeItem, opt.filetype)
             Object.assign(item, resolved)
