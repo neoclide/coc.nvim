@@ -1400,21 +1400,108 @@ describe('getOriginalLine', () => {
     })
 
     it('should unload loaded buffer', async t => {
-      let filepath = await shared.createTmpFile('file to delete')
-      disposables.push(Disposable.create(() => {
-        if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
-      }))
-      await workspace.files.loadResource(URI.file(filepath).toString())
-      let fns: RecoverFunc[] = []
-      await workspace.files.deleteFile(filepath, {}, fns)
-      let loaded = await nvim.call('bufloaded', [filepath])
-      assert.strictEqual(loaded, 0)
-      for (let i = fns.length - 1; i >= 0; i--) {
-        await fns[i]()
+      for (let hidden of [false, true]) {
+        let filepath = await shared.createTmpFile('file to delete')
+        let doc = await shared.createDocument(filepath)
+        if (hidden) await nvim.command('enew')
+        let fns: RecoverFunc[] = []
+        let loadResource = workspace.files.loadResource.bind(workspace.files)
+        let loading = t.mock.method(workspace.files, 'loadResource', async uri => {
+          assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'file to delete')
+          return await loadResource(uri)
+        })
+        try {
+          await workspace.files.deleteFile(filepath, {}, fns)
+          let loaded = await nvim.call('bufloaded', [filepath])
+          assert.strictEqual(loaded, 0)
+          for (let i = fns.length - 1; i >= 0; i--) await fns[i]()
+          assert.strictEqual(loading.mock.calls.length, 1)
+          assert.strictEqual(fs.existsSync(filepath), true)
+          loaded = await nvim.call('bufloaded', [filepath])
+          assert.strictEqual(loaded, 1)
+        } finally {
+          loading.mock.restore()
+          let bufnr = await nvim.call('bufnr', [filepath]) as number
+          if (bufnr > 0) await nvim.command(`silent! bwipeout! ${bufnr}`)
+          let cleanupRecoveryFolder = Reflect.get(workspace.files, 'cleanupRecoveryFolder') as (recovers: RecoverFunc[]) => void
+          cleanupRecoveryFolder.call(workspace.files, fns)
+          fs.rmSync(filepath, { force: true })
+        }
       }
-      assert.strictEqual(fs.existsSync(filepath), true)
-      loaded = await nvim.call('bufloaded', [filepath])
-      assert.strictEqual(loaded, 1)
+    })
+
+    it('should preserve current and hidden buffers when recovery rename fails', async t => {
+      for (let hidden of [false, true]) {
+        let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-delete-rename-failure-'))
+        let filepath = path.join(root, 'file')
+        let recovers: RecoverFunc[] = []
+        let did = 0
+        let unloaded: number[] = []
+        fs.writeFileSync(filepath, 'source')
+        let doc = await shared.createDocument(filepath)
+        await nvim.setLine('dirty')
+        if (hidden) await nvim.command('enew')
+        let originalRenameSync = fs.renameSync.bind(fs)
+        let commandSpy = t.mock.method(nvim, 'command')
+        let renameSpy = t.mock.method(fs, 'renameSync', (oldPath, newPath) => {
+          if (oldPath === filepath) throw Object.assign(new Error('cross-device link'), { code: 'EXDEV' })
+          originalRenameSync(oldPath, newPath)
+        })
+        disposables.push(workspace.files.onDidDeleteFiles(() => did++))
+        disposables.push(events.on('BufUnload', bufnr => { unloaded.push(bufnr) }))
+        try {
+          await assert.rejects(workspace.files.deleteFile(filepath, {}, recovers), { code: 'EXDEV' })
+          assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'source')
+          assert.strictEqual(await nvim.call('bufloaded', [filepath]), 1)
+          assert.strictEqual(await nvim.call('bufnr', [filepath]), doc.bufnr)
+          assert.strictEqual((await doc.buffer.lines)[0], 'dirty')
+          assert.strictEqual(unloaded.includes(doc.bufnr), false)
+          assert.strictEqual(commandSpy.mock.calls.some(o => o.arguments[0].includes('bwipeout')), false)
+          assert.strictEqual(did, 0)
+          assert.strictEqual(recovers.length, 0)
+        } finally {
+          renameSpy.mock.restore()
+          commandSpy.mock.restore()
+          let bufnr = await nvim.call('bufnr', [filepath]) as number
+          if (bufnr > 0) await nvim.command(`silent! bwipeout! ${bufnr}`)
+          let cleanupRecoveryFolder = Reflect.get(workspace.files, 'cleanupRecoveryFolder') as (recovers: RecoverFunc[]) => void
+          cleanupRecoveryFolder.call(workspace.files, recovers)
+          fs.rmSync(root, { recursive: true, force: true })
+        }
+      }
+    })
+
+    it('should preserve a loaded buffer when direct removal fails', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-delete-rm-failure-'))
+      let filepath = path.join(root, 'file')
+      let did = 0
+      let unloaded: number[] = []
+      fs.writeFileSync(filepath, 'source')
+      let doc = await shared.createDocument(filepath)
+      await nvim.setLine('dirty')
+      let originalRmSync = fs.rmSync.bind(fs)
+      let commandSpy = t.mock.method(nvim, 'command')
+      let rmSpy = t.mock.method(fs, 'rmSync', (path, options) => {
+        if (path === filepath) throw Object.assign(new Error('permission denied'), { code: 'EACCES' })
+        originalRmSync(path, options)
+      })
+      disposables.push(workspace.files.onDidDeleteFiles(() => did++))
+      disposables.push(events.on('BufUnload', bufnr => { unloaded.push(bufnr) }))
+      try {
+        await assert.rejects(workspace.files.deleteFile(filepath), { code: 'EACCES' })
+        assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'source')
+        assert.strictEqual(await nvim.call('bufloaded', [filepath]), 1)
+        assert.strictEqual((await doc.buffer.lines)[0], 'dirty')
+        assert.strictEqual(unloaded.includes(doc.bufnr), false)
+        assert.strictEqual(commandSpy.mock.calls.some(o => o.arguments[0].includes('bwipeout')), false)
+        assert.strictEqual(did, 0)
+      } finally {
+        rmSpy.mock.restore()
+        commandSpy.mock.restore()
+        let bufnr = await nvim.call('bufnr', [filepath]) as number
+        if (bufnr > 0) await nvim.command(`silent! bwipeout! ${bufnr}`)
+        originalRmSync(root, { recursive: true, force: true })
+      }
     })
 
     it('should delete and recover folder', async t => {
@@ -1459,8 +1546,12 @@ describe('getOriginalLine', () => {
       let recovers: RecoverFunc[] = []
       disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
       let originalRenameSync = fs.renameSync.bind(fs)
+      let loadResource = workspace.files.loadResource.bind(workspace.files)
       let renameSpy = t.mock.method(fs, 'renameSync', (oldPath, newPath) => {
         originalRenameSync(oldPath, newPath)
+      })
+      let loadSpy = t.mock.method(workspace.files, 'loadResource', async uri => {
+        return await loadResource(uri)
       })
       try {
         fs.writeFileSync(filepath, 'first')
@@ -1479,6 +1570,7 @@ describe('getOriginalLine', () => {
         assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'second')
         for (let i = firstRecoveryCount - 1; i >= 0; i--) await recovers[i]()
         assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'first')
+        assert.strictEqual(loadSpy.mock.calls.length, 0)
       } finally {
         let bufnr = await nvim.call('bufnr', [filepath]) as number
         if (bufnr > 0) await nvim.command(`silent! bwipeout ${bufnr}`)

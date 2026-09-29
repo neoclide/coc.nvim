@@ -487,18 +487,7 @@ export default class Files {
     let isDir = stat.isDirectory()
     let uri = URI.file(filepath)
     await this.fireWaitUntilEvent(this._onWillDeleteFiles, { files: [uri] }, recovers)
-    if (!isDir) {
-      let bufnr = await this.nvim.call('bufnr', [filepath])
-      if (bufnr) {
-        void events.fire('BufUnload', [bufnr])
-        await this.nvim.command(`silent! bwipeout ${bufnr}`)
-        if (Array.isArray(recovers)) {
-          recovers.push(() => {
-            return this.loadResource(uri.toString())
-          })
-        }
-      }
-    }
+    let bufnr = isDir ? 0 : await this.nvim.call('bufnr', [filepath]) as number
     if (isDir && !recursive) {
       fs.rmdirSync(filepath)
       if (Array.isArray(recovers)) {
@@ -510,13 +499,18 @@ export default class Files {
       let dest = path.join(this.getRecoveryFolder(recovers), crypto.randomUUID())
       let dir = path.dirname(filepath)
       fs.renameSync(filepath, dest)
-      recovers.push(() => {
+      recovers.push(async () => {
         fs.mkdirSync(dir, { recursive: true })
         fs.rmSync(filepath, { force: true, recursive: true })
         fs.renameSync(dest, filepath)
+        if (bufnr > 0) await this.loadResource(uri.toString())
       })
     } else {
       fs.rmSync(filepath, { recursive: isDir })
+    }
+    if (bufnr > 0) {
+      void events.fire('BufUnload', [bufnr])
+      await this.nvim.command(`silent! bwipeout ${bufnr}`)
     }
     this._onDidDeleteFiles.fire({ files: [uri] })
   }
