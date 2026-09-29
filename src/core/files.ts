@@ -540,7 +540,7 @@ export default class Files {
     let { nvim } = this
     let { overwrite, ignoreIfExists } = opts
     if (newPath === oldPath) return
-    let exists = fs.existsSync(newPath)
+    let exists = this.pathExists(newPath)
     if (exists && ignoreIfExists && !overwrite) return
     if (exists && !overwrite) throw errors.fileExists(newPath)
     let oldStat = await statAsync(oldPath)
@@ -548,6 +548,9 @@ export default class Files {
     if (!loaded && !oldStat) throw errors.fileNotExists(oldPath)
     let file = { newUri: URI.file(newPath), oldUri: URI.file(oldPath) }
     if (!opts.skipEvent) await this.fireWaitUntilEvent(this._onWillRenameFiles, { files: [file] }, recovers)
+    exists = this.pathExists(newPath)
+    if (exists && ignoreIfExists && !overwrite) return
+    if (exists && !overwrite) throw errors.fileExists(newPath)
     if (exists && Array.isArray(recovers)) {
       let backup = path.join(this.getRecoveryFolder(recovers), crypto.randomUUID())
       fs.cpSync(newPath, backup, { recursive: true, preserveTimestamps: true })

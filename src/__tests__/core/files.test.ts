@@ -1196,6 +1196,35 @@ describe('getOriginalLine', () => {
   })
 
   describe('renameFile', () => {
+    async function assertTargetCreatedWhileWaiting(opts: { ignoreIfExists?: boolean }, shouldReject: boolean): Promise<void> {
+      for (let loaded of [false, true]) {
+        let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-rename-race-'))
+        let source = path.join(root, 'source')
+        let target = path.join(root, 'target')
+        fs.writeFileSync(source, 'source')
+        disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+        let doc = loaded ? await shared.createDocument(source) : undefined
+        let did = 0
+        disposables.push(workspace.files.onWillRenameFiles(e => {
+          e.waitUntil(Promise.resolve().then(() => fs.writeFileSync(target, 'existing')))
+        }))
+        disposables.push(workspace.files.onDidRenameFiles(() => did++))
+        let rename = workspace.files.renameFile(source, target, opts)
+        if (shouldReject) {
+          await assert.rejects(rename, /already exists/)
+        } else {
+          await rename
+        }
+        assert.strictEqual(fs.readFileSync(source, 'utf8'), 'source')
+        assert.strictEqual(fs.readFileSync(target, 'utf8'), 'existing')
+        assert.strictEqual(did, 0)
+        if (doc) {
+          assert.strictEqual(await nvim.call('bufname', [doc.bufnr]), source)
+          assert.strictEqual((await doc.buffer.lines)[0], 'source')
+        }
+      }
+    }
+
     it('should throw when oldPath not exists', async t => {
       await workspace.renameFile('/foo', '/foo')
       await workspace.renameFile('/foo', import.meta.filename, { ignoreIfExists: true })
@@ -1209,6 +1238,36 @@ describe('getOriginalLine', () => {
 
     it('should throw when new path exists and not overwrite', async t => {
       await assert.rejects(workspace.renameFile('/foo', import.meta.filename, {}), /exists/)
+    })
+
+    it('should preserve targets created while waiting without overwrite', async t => {
+      await assertTargetCreatedWhileWaiting({}, true)
+    })
+
+    it('should ignore targets created while waiting when ignoreIfExists is set', async t => {
+      await assertTargetCreatedWhileWaiting({ ignoreIfExists: true }, false)
+    })
+
+    it('should restore targets created while waiting when overwrite is set', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-rename-race-overwrite-'))
+      let source = path.join(root, 'source')
+      let target = path.join(root, 'target')
+      let recovers: RecoverFunc[] = []
+      fs.writeFileSync(source, 'source')
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      disposables.push(workspace.files.onWillRenameFiles(e => {
+        e.waitUntil(Promise.resolve().then(() => fs.writeFileSync(target, 'existing')))
+      }))
+      try {
+        await workspace.files.renameFile(source, target, { overwrite: true }, recovers)
+        assert.strictEqual(fs.readFileSync(target, 'utf8'), 'source')
+        for (let i = recovers.length - 1; i >= 0; i--) await recovers[i]()
+        assert.strictEqual(fs.readFileSync(source, 'utf8'), 'source')
+        assert.strictEqual(fs.readFileSync(target, 'utf8'), 'existing')
+      } finally {
+        let cleanupRecoveryFolder = Reflect.get(workspace.files, 'cleanupRecoveryFolder') as (recovers: RecoverFunc[]) => void
+        cleanupRecoveryFolder.call(workspace.files, recovers)
+      }
     })
 
     it('should rename file on disk', async t => {
