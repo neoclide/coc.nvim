@@ -72396,6 +72396,56 @@ function isDirectory(filepath) {
   let stat = fs.statSync(filepath);
   return stat.isDirectory();
 }
+function renameSync(oldPath, newPath) {
+  try {
+    fs.renameSync(oldPath, newPath);
+    return;
+  } catch (e2) {
+    if (e2.code !== "EXDEV") throw e2;
+  }
+  const options3 = {
+    recursive: true,
+    dereference: false,
+    verbatimSymlinks: true,
+    preserveTimestamps: true,
+    force: false,
+    errorOnExist: true
+  };
+  let isSymbolicLink2 = fs.lstatSync(oldPath).isSymbolicLink();
+  try {
+    if (isSymbolicLink2) {
+      let type;
+      if (isWindows) {
+        let stat = fs.statSync(oldPath, { throwIfNoEntry: false });
+        type = stat?.isDirectory() ? "dir" : "file";
+      }
+      fs.symlinkSync(fs.readlinkSync(oldPath), newPath, type);
+    } else {
+      fs.cpSync(oldPath, newPath, options3);
+    }
+  } catch (e2) {
+    fs.rmSync(newPath, { force: true, recursive: true });
+    throw e2;
+  }
+  try {
+    fs.rmSync(oldPath, { recursive: true });
+  } catch (e2) {
+    let error = e2;
+    try {
+      fs.cpSync(newPath, oldPath, {
+        ...options3,
+        filter: (_source, destination) => {
+          let stat = fs.lstatSync(destination, { throwIfNoEntry: false });
+          return !stat || stat.isDirectory();
+        }
+      });
+      fs.rmSync(newPath, { force: true, recursive: true });
+    } catch (recoverError) {
+      error.message += `; could not restore source or clean backup, backup remains at ${newPath}: ${recoverError}`;
+    }
+    throw error;
+  }
+}
 async function remove(filepath) {
   if (!filepath) return;
   try {
@@ -99040,8 +99090,13 @@ var init_fileSystemWatcher = __esm({
           });
           e2.removed.forEach((folder) => {
             let root = normalizeFilePath(u.parse(folder.uri).fsPath);
+            this.creating.delete(root);
             let tokenSource = this.tokenSourcesMap.get(root);
-            if (tokenSource) tokenSource.cancel();
+            if (tokenSource) {
+              this.tokenSourcesMap.delete(root);
+              tokenSource.cancel();
+              tokenSource.dispose();
+            }
             let client = this.clientsMap.get(root);
             if (client) {
               this.clientsMap.delete(root);
@@ -99074,16 +99129,16 @@ var init_fileSystemWatcher = __esm({
         let p2 = this.createClientInner(root);
         this.creating.set(root, p2);
         return p2.finally(() => {
-          this.creating.delete(root);
+          if (this.creating.get(root) === p2) this.creating.delete(root);
         });
       }
       async createClientInner(root) {
+        let tokenSource = new import_node4.CancellationTokenSource();
+        let token = tokenSource.token;
+        this.tokenSourcesMap.set(root, tokenSource);
         try {
           let client;
           let backends = this.config.watchmanPath ? ["watchman", "native"] : ["native", "watchman"];
-          let tokenSource = new import_node4.CancellationTokenSource();
-          let token = tokenSource.token;
-          this.tokenSourcesMap.set(root, tokenSource);
           for (let backend of backends) {
             if (token.isCancellationRequested) return false;
             try {
@@ -99119,6 +99174,9 @@ var init_fileSystemWatcher = __esm({
         } catch (e2) {
           if (this.channel) this.channel.appendLine(`Error on create file watcher client: ${e2}`);
           return false;
+        } finally {
+          if (this.tokenSourcesMap.get(root) === tokenSource) this.tokenSourcesMap.delete(root);
+          tokenSource.dispose();
         }
       }
       async getWatchmanPath() {
@@ -99154,10 +99212,6 @@ var init_fileSystemWatcher = __esm({
         let watcher = new FileSystemWatcher("{HEAD,index,packed-refs,config,shallow,refs/**}", false, false, false, false);
         if (this.disposed || this.disabled) return watcher;
         let gitClient = this.gitClients.get(root);
-        watcher.onDidDispose(() => {
-          let watchers = this.gitClients.get(root)?.watchers;
-          if (watchers) watchers.delete(watcher);
-        });
         if (!gitClient) {
           let tokenSource = new import_node4.CancellationTokenSource();
           let token = tokenSource.token;
@@ -99174,8 +99228,8 @@ var init_fileSystemWatcher = __esm({
               item.listen(root, client);
             }
           }).catch((error) => {
-            this.gitClients.delete(root);
-            this.tokenSourcesMap.delete("git:" + root);
+            if (this.gitClients.get(root) === gitClient) this.gitClients.delete(root);
+            if (this.tokenSourcesMap.get("git:" + root) === tokenSource) this.tokenSourcesMap.delete("git:" + root);
             tokenSource.dispose();
             if (!isCancellationError(error)) {
               this.channel?.appendLine(`Unable to use native Git metadata watcher for ${root}: ${error}`);
@@ -99190,6 +99244,18 @@ var init_fileSystemWatcher = __esm({
             watcher.listen(root, gitClient.client);
           }
         }
+        watcher.onDidDispose(() => {
+          gitClient.watchers.delete(watcher);
+          if (gitClient.watchers.size !== 0 || this.gitClients.get(root) !== gitClient) return;
+          this.gitClients.delete(root);
+          let tokenSource = this.tokenSourcesMap.get("git:" + root);
+          if (tokenSource) {
+            this.tokenSourcesMap.delete("git:" + root);
+            tokenSource.cancel();
+            tokenSource.dispose();
+          }
+          gitClient.client?.dispose();
+        });
         return watcher;
       }
       dispose() {
@@ -99197,6 +99263,7 @@ var init_fileSystemWatcher = __esm({
         this._onDidCreateClient.dispose();
         for (let tokenSource of this.tokenSourcesMap.values()) {
           tokenSource.cancel();
+          tokenSource.dispose();
         }
         this.tokenSourcesMap.clear();
         for (let client of this.clientsMap.values()) {
@@ -99801,6 +99868,7 @@ var init_files = __esm({
       window;
       editState;
       recoveryFolders = /* @__PURE__ */ new WeakMap();
+      deletedFilesFolder;
       _onDidCreateFiles = new import_node4.Emitter();
       _onDidRenameFiles = new import_node4.Emitter();
       _onDidDeleteFiles = new import_node4.Emitter();
@@ -100055,32 +100123,8 @@ var init_files = __esm({
         let isDir = stat.isDirectory();
         let uri = u.file(filepath);
         await this.fireWaitUntilEvent(this._onWillDeleteFiles, { files: [uri] }, recovers);
-        if (!isDir) {
-          let bufnr = await this.nvim.call("bufnr", [filepath]);
-          if (bufnr) {
-            void events_default.fire("BufUnload", [bufnr]);
-            await this.nvim.command(`silent! bwipeout ${bufnr}`);
-            if (Array.isArray(recovers)) {
-              recovers.push(() => {
-                return this.loadResource(uri.toString());
-              });
-            }
-          }
-        }
-        let folder = path.join(os.tmpdir(), "coc-" + process.pid);
-        fs.mkdirSync(folder, { recursive: true });
-        let md5 = crypto2.createHash("md5").update(filepath).digest("hex");
-        if (isDir && recursive) {
-          let dest = path.join(folder, md5);
-          let dir = path.dirname(filepath);
-          fs.renameSync(filepath, dest);
-          if (Array.isArray(recovers)) {
-            recovers.push(async () => {
-              fs.mkdirSync(dir, { recursive: true });
-              fs.renameSync(dest, filepath);
-            });
-          }
-        } else if (isDir) {
+        let bufnr = isDir ? 0 : await this.nvim.call("bufnr", [filepath]);
+        if (isDir && !recursive) {
           fs.rmdirSync(filepath);
           if (Array.isArray(recovers)) {
             recovers.push(() => {
@@ -100088,15 +100132,44 @@ var init_files = __esm({
             });
           }
         } else {
-          let dest = path.join(folder, md5);
-          let dir = path.dirname(filepath);
-          fs.renameSync(filepath, dest);
+          let folder;
           if (Array.isArray(recovers)) {
-            recovers.push(() => {
-              fs.mkdirSync(dir, { recursive: true });
-              fs.renameSync(dest, filepath);
+            folder = this.getRecoveryFolder(recovers);
+          } else {
+            folder = this.deletedFilesFolder ??= fs.mkdtempSync(path.join(os.tmpdir(), "coc-delete-"));
+          }
+          let dest = path.join(folder, crypto2.randomUUID());
+          let dir = path.dirname(filepath);
+          try {
+            renameSync(filepath, dest);
+          } catch (e2) {
+            if (this.pathExists(dest)) {
+              if (Array.isArray(recovers)) this.recoveryFolders.delete(recovers);
+              else this.deletedFilesFolder = void 0;
+              logger21.error(`Backup preserved at ${folder} after deleting ${filepath} failed:`, e2);
+            }
+            throw e2;
+          }
+          if (Array.isArray(recovers)) {
+            recovers.push(async () => {
+              try {
+                fs.mkdirSync(dir, { recursive: true });
+                fs.rmSync(filepath, { force: true, recursive: true });
+                renameSync(dest, filepath);
+              } catch (e2) {
+                if (this.pathExists(dest)) {
+                  this.recoveryFolders.delete(recovers);
+                  logger21.error(`Backup preserved at ${folder} after restoring ${filepath} failed:`, e2);
+                }
+                throw e2;
+              }
+              if (bufnr > 0) await this.loadResource(uri.toString());
             });
           }
+        }
+        if (bufnr > 0) {
+          void events_default.fire("BufUnload", [bufnr]);
+          await this.nvim.command(`silent! bwipeout ${bufnr}`);
         }
         this._onDidDeleteFiles.fire({ files: [uri] });
       }
@@ -100107,7 +100180,7 @@ var init_files = __esm({
         let { nvim } = this;
         let { overwrite, ignoreIfExists } = opts;
         if (newPath === oldPath) return;
-        let exists = fs.existsSync(newPath);
+        let exists = this.pathExists(newPath);
         if (exists && ignoreIfExists && !overwrite) return;
         if (exists && !overwrite) throw fileExists(newPath);
         let oldStat = await statAsync(oldPath);
@@ -100115,6 +100188,9 @@ var init_files = __esm({
         if (!loaded && !oldStat) throw fileNotExists(oldPath);
         let file = { newUri: u.file(newPath), oldUri: u.file(oldPath) };
         if (!opts.skipEvent) await this.fireWaitUntilEvent(this._onWillRenameFiles, { files: [file] }, recovers);
+        exists = this.pathExists(newPath);
+        if (exists && ignoreIfExists && !overwrite) return;
+        if (exists && !overwrite) throw fileExists(newPath);
         if (exists && Array.isArray(recovers)) {
           let backup = path.join(this.getRecoveryFolder(recovers), crypto2.randomUUID());
           fs.cpSync(newPath, backup, { recursive: true, preserveTimestamps: true });
@@ -100307,6 +100383,10 @@ var init_files = __esm({
       }
       dispose() {
         this.discardEditState();
+        if (this.deletedFilesFolder) {
+          fs.rmSync(this.deletedFilesFolder, { force: true, recursive: true });
+          this.deletedFilesFolder = void 0;
+        }
       }
       validateChanges(documentChanges) {
         let { documents } = this;
@@ -135107,6 +135187,7 @@ var init_manager5 = __esm({
         let item = this.extensions.get(id2);
         if (item) {
           await this.deactivate(id2);
+          this.unregistContribution(id2);
           this.extensions.delete(id2);
           this._onDidUnloadExtension.fire(id2);
         }
@@ -135163,14 +135244,14 @@ var init_manager5 = __esm({
             });
           }
           let node = { properties, extensionInfo: { id: id2, displayName: packageJSON.displayName } };
+          let toRemove = [];
+          let idx = this.configurationNodes.findIndex((o2) => o2.extensionInfo.id === id2);
+          if (idx !== -1) {
+            toRemove.push(this.configurationNodes[idx]);
+            this.configurationNodes.splice(idx, 1);
+          }
           this.configurationNodes.push(node);
           if (this.activated) {
-            let toRemove = [];
-            let idx = this.configurationNodes.findIndex((o2) => o2.extensionInfo.id === id2);
-            if (idx !== -1) {
-              toRemove.push(this.configurationNodes[idx]);
-              this.configurationNodes.splice(idx, 1);
-            }
             workspace_default.configurations.updateConfigurations([node], toRemove);
           }
         }
@@ -135348,7 +135429,7 @@ var init_manager5 = __esm({
         if (idx !== -1) {
           let node = this.configurationNodes[idx];
           this.configurationNodes.splice(idx, 1);
-          configurationRegistry2.deregisterConfigurations([node]);
+          if (this.activated) configurationRegistry2.deregisterConfigurations([node]);
         }
       }
       async registerInternalExtension(extension, deactivate) {
@@ -145330,7 +145411,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-49e3466 2026-09-28 15:22:59 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-44c1b77 2026-09-29 22:56:45 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
