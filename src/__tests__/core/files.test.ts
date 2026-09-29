@@ -437,7 +437,7 @@ describe('applyEdits()', () => {
   it('should support changes with edit and rename', async t => {
     let fsPath = await shared.createTmpFile('test')
     let doc = await shared.createDocument(fsPath)
-    let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${crypto.randomUUID()}`)
+    let newFile = path.join(tmpdir, `new-${crypto.randomUUID()}`)
     let newUri = URI.file(newFile).toString()
     let edit: WorkspaceEdit = {
       documentChanges: [
@@ -766,9 +766,9 @@ describe('getOriginalLine', () => {
     it('should render with changes', async t => {
       let fsPath = await shared.createTmpFile('foo\n1\n2\nbar')
       let doc = await shared.createDocument(fsPath)
-      let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${crypto.randomUUID()}`)
+      let newFile = path.join(tmpdir, `new-${crypto.randomUUID()}`)
       let newUri = URI.file(newFile).toString()
-      let createFile = path.join(os.tmpdir(), `coc-${process.pid}/create-${crypto.randomUUID()}`)
+      let createFile = path.join(tmpdir, `create-${crypto.randomUUID()}`)
       let deleteFile = await shared.createTmpFile('delete')
       disposables.push(Disposable.create(() => {
         if (fs.existsSync(newFile)) fs.unlinkSync(newFile)
@@ -1327,7 +1327,7 @@ describe('getOriginalLine', () => {
       let doc = await shared.createDocument(file)
       await nvim.setLine('bar')
       await doc.patchChange()
-      let newFile = path.join(os.tmpdir(), `coc-${process.pid}/new-${crypto.randomUUID()}`)
+      let newFile = path.join(tmpdir, `new-${crypto.randomUUID()}`)
       disposables.push(Disposable.create(() => {
         if (fs.existsSync(newFile)) fs.unlinkSync(newFile)
       }))
@@ -1450,6 +1450,104 @@ describe('getOriginalLine', () => {
       assert.strictEqual(fs.existsSync(folder), true)
       assert.strictEqual(fs.existsSync(path.join(folder, 'new_file')), true)
       await workspace.files.deleteFile(folder, { recursive: true })
+    })
+
+    it('should recover repeated file deletions independently', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-delete-repeat-file-'))
+      let filepath = path.join(root, 'file')
+      let noRecovery = path.join(root, 'no-recovery')
+      let recovers: RecoverFunc[] = []
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      let originalRenameSync = fs.renameSync.bind(fs)
+      let renameSpy = t.mock.method(fs, 'renameSync', (oldPath, newPath) => {
+        originalRenameSync(oldPath, newPath)
+      })
+      try {
+        fs.writeFileSync(filepath, 'first')
+        await workspace.files.deleteFile(filepath, {}, recovers)
+        let firstRecoveryCount = recovers.length
+        fs.writeFileSync(filepath, 'second')
+        await workspace.files.deleteFile(filepath, {}, recovers)
+        fs.writeFileSync(noRecovery, 'discard')
+        await workspace.files.deleteFile(noRecovery)
+        assert.strictEqual(fs.existsSync(noRecovery), false)
+        assert.strictEqual(renameSpy.mock.calls.length, 2)
+        assert.notStrictEqual(renameSpy.mock.calls[0].arguments[1], renameSpy.mock.calls[1].arguments[1])
+        for (let i = recovers.length - 1; i >= firstRecoveryCount; i--) {
+          await recovers[i]()
+        }
+        assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'second')
+        for (let i = firstRecoveryCount - 1; i >= 0; i--) await recovers[i]()
+        assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'first')
+      } finally {
+        let bufnr = await nvim.call('bufnr', [filepath]) as number
+        if (bufnr > 0) await nvim.command(`silent! bwipeout ${bufnr}`)
+        let cleanupRecoveryFolder = Reflect.get(workspace.files, 'cleanupRecoveryFolder') as (recovers: RecoverFunc[]) => void
+        cleanupRecoveryFolder.call(workspace.files, recovers)
+      }
+    })
+
+    it('should recover repeated recursive directory deletions independently', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-delete-repeat-directory-'))
+      let folder = path.join(root, 'folder')
+      let recovers: RecoverFunc[] = []
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      try {
+        fs.mkdirSync(folder)
+        fs.writeFileSync(path.join(folder, 'first'), 'first')
+        await workspace.files.deleteFile(folder, { recursive: true }, recovers)
+        let firstRecoveryCount = recovers.length
+        fs.mkdirSync(folder)
+        fs.writeFileSync(path.join(folder, 'second'), 'second')
+        await workspace.files.deleteFile(folder, { recursive: true }, recovers)
+        for (let i = recovers.length - 1; i >= firstRecoveryCount; i--) await recovers[i]()
+        assert.strictEqual(fs.existsSync(path.join(folder, 'second')), true)
+        assert.strictEqual(fs.existsSync(path.join(folder, 'first')), false)
+        for (let i = firstRecoveryCount - 1; i >= 0; i--) await recovers[i]()
+        assert.strictEqual(fs.existsSync(path.join(folder, 'first')), true)
+        assert.strictEqual(fs.existsSync(path.join(folder, 'second')), false)
+      } finally {
+        let cleanupRecoveryFolder = Reflect.get(workspace.files, 'cleanupRecoveryFolder') as (recovers: RecoverFunc[]) => void
+        cleanupRecoveryFolder.call(workspace.files, recovers)
+      }
+    })
+
+    it('should recover repeated symbolic link deletions independently', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-delete-repeat-link-'))
+      let firstTarget = path.join(root, 'first')
+      let secondTarget = path.join(root, 'second')
+      let link = path.join(root, 'link')
+      let recovers: RecoverFunc[] = []
+      disposables.push(Disposable.create(() => fs.rmSync(root, { recursive: true, force: true })))
+      fs.writeFileSync(firstTarget, 'first')
+      fs.writeFileSync(secondTarget, 'second')
+      try {
+        fs.symlinkSync(firstTarget, link, process.platform === 'win32' ? 'file' : undefined)
+      } catch (_e) {
+        return t.skip('symbolic links unavailable')
+      }
+      try {
+        await workspace.files.deleteFile(link, {}, recovers)
+        let firstRecoveryCount = recovers.length
+        fs.symlinkSync(secondTarget, link, process.platform === 'win32' ? 'file' : undefined)
+        await workspace.files.deleteFile(link, {}, recovers)
+        for (let i = recovers.length - 1; i >= firstRecoveryCount; i--) await recovers[i]()
+        assert.strictEqual(fs.lstatSync(link).isSymbolicLink(), true)
+        assert.strictEqual(fs.readlinkSync(link), secondTarget)
+        for (let i = firstRecoveryCount - 1; i >= 0; i--) await recovers[i]()
+        assert.strictEqual(fs.lstatSync(link).isSymbolicLink(), true)
+        assert.strictEqual(fs.readlinkSync(link), firstTarget)
+        assert.strictEqual(fs.readFileSync(firstTarget, 'utf8'), 'first')
+        assert.strictEqual(fs.readFileSync(secondTarget, 'utf8'), 'second')
+        await workspace.files.deleteFile(link)
+        assert.strictEqual(fs.existsSync(link), false)
+        assert.strictEqual(fs.readFileSync(firstTarget, 'utf8'), 'first')
+      } finally {
+        let bufnr = await nvim.call('bufnr', [link]) as number
+        if (bufnr > 0) await nvim.command(`silent! bwipeout ${bufnr}`)
+        let cleanupRecoveryFolder = Reflect.get(workspace.files, 'cleanupRecoveryFolder') as (recovers: RecoverFunc[]) => void
+        cleanupRecoveryFolder.call(workspace.files, recovers)
+      }
     })
 
     it('should delete file if exists', async t => {

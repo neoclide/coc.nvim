@@ -499,36 +499,24 @@ export default class Files {
         }
       }
     }
-    let folder = path.join(os.tmpdir(), 'coc-' + process.pid)
-    fs.mkdirSync(folder, { recursive: true })
-    let md5 = crypto.createHash('md5').update(filepath).digest('hex')
-    if (isDir && recursive) {
-      let dest = path.join(folder, md5)
-      let dir = path.dirname(filepath)
-      fs.renameSync(filepath, dest)
-      if (Array.isArray(recovers)) {
-        recovers.push(async () => {
-          fs.mkdirSync(dir, { recursive: true })
-          fs.renameSync(dest, filepath)
-        })
-      }
-    } else if (isDir) {
+    if (isDir && !recursive) {
       fs.rmdirSync(filepath)
       if (Array.isArray(recovers)) {
         recovers.push(() => {
           fs.mkdirSync(filepath)
         })
       }
-    } else {
-      let dest = path.join(folder, md5)
+    } else if (Array.isArray(recovers)) {
+      let dest = path.join(this.getRecoveryFolder(recovers), crypto.randomUUID())
       let dir = path.dirname(filepath)
       fs.renameSync(filepath, dest)
-      if (Array.isArray(recovers)) {
-        recovers.push(() => {
-          fs.mkdirSync(dir, { recursive: true })
-          fs.renameSync(dest, filepath)
-        })
-      }
+      recovers.push(() => {
+        fs.mkdirSync(dir, { recursive: true })
+        fs.rmSync(filepath, { force: true, recursive: true })
+        fs.renameSync(dest, filepath)
+      })
+    } else {
+      fs.rmSync(filepath, { recursive: isDir })
     }
     this._onDidDeleteFiles.fire({ files: [uri] })
   }
