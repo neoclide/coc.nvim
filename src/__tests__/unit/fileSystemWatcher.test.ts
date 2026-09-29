@@ -420,6 +420,112 @@ describe('NativeWatcher', () => {
     assert.strictEqual(released.mock.callCount(), 3)
   })
 
+  it('releases an active Git client when its last watcher is disposed', async t => {
+    let root = URI.file(path.join(os.tmpdir(), `coc-git-release-${crypto.randomUUID()}`)).fsPath
+    let manager = new FileSystemWatcherManager(workspaceFolder, defaultConfig)
+    manager.disabled = false
+    let client: FileWatcherClient = {
+      root,
+      subscription: 'git-release',
+      supportsRenameId: false,
+      subscribe: () => Disposable.create(() => {}),
+      dispose: () => {}
+    }
+    let dispose = t.mock.method(client, 'dispose')
+    t.mock.method(NativeWatcher, 'createClient', () => Promise.resolve(client as NativeWatcher))
+    let watcher = manager.createGitFileSystemWatcher(root)
+    let entry = manager['gitClients'].get(root)!
+    let source = manager['tokenSourcesMap'].get('git:' + root)!
+    let sourceDispose = t.mock.method(source, 'dispose')
+    try {
+      await entry.creating
+      watcher.dispose()
+      watcher.dispose()
+      assert.strictEqual(entry.token.isCancellationRequested, true)
+      assert.strictEqual(dispose.mock.callCount(), 1)
+      assert.strictEqual(sourceDispose.mock.callCount(), 1)
+      assert.strictEqual(manager['gitClients'].has(root), false)
+      assert.strictEqual(manager['tokenSourcesMap'].has('git:' + root), false)
+      manager.dispose()
+      assert.strictEqual(dispose.mock.callCount(), 1)
+    } finally {
+      watcher.dispose()
+      manager.dispose()
+    }
+  })
+
+  it('does not let a removed pending Git client disturb its replacement', async t => {
+    for (let rejectFirst of [false, true]) {
+      let root = URI.file(path.join(os.tmpdir(), `coc-git-replace-${crypto.randomUUID()}`)).fsPath
+      let manager = new FileSystemWatcherManager(workspaceFolder, defaultConfig)
+      manager.disabled = false
+      let firstResolve!: (client: NativeWatcher) => void
+      let firstReject!: (error: Error) => void
+      let secondResolve!: (client: NativeWatcher) => void
+      let firstPromise = new Promise<NativeWatcher>((resolve, reject) => {
+        firstResolve = resolve
+        firstReject = reject
+      })
+      let secondPromise = new Promise<NativeWatcher>(resolve => { secondResolve = resolve })
+      let firstClient: FileWatcherClient = {
+        root,
+        subscription: 'git-first',
+        supportsRenameId: false,
+        subscribe: () => Disposable.create(() => {}),
+        dispose: () => {}
+      }
+      let secondClient: FileWatcherClient = {
+        root,
+        subscription: 'git-second',
+        supportsRenameId: false,
+        subscribe: () => Disposable.create(() => {}),
+        dispose: () => {}
+      }
+      let calls = 0
+      let native = t.mock.method(NativeWatcher, 'createClient', () => {
+        return calls++ === 0 ? firstPromise : secondPromise
+      })
+      let firstDispose = t.mock.method(firstClient, 'dispose')
+      let secondListen = t.mock.method(secondClient, 'subscribe')
+      let first = manager.createGitFileSystemWatcher(root)
+      let firstEntry = manager['gitClients'].get(root)!
+      let firstSource = manager['tokenSourcesMap'].get('git:' + root)!
+      let firstCreating = firstEntry.creating!
+      let second: FileSystemWatcher | undefined
+      let secondCreating!: Promise<void>
+      try {
+        first.dispose()
+        assert.strictEqual(firstEntry.token.isCancellationRequested, true)
+        assert.strictEqual(firstSource.token.isCancellationRequested, true)
+        assert.strictEqual(manager['gitClients'].has(root), false)
+        assert.strictEqual(manager['tokenSourcesMap'].has('git:' + root), false)
+        second = manager.createGitFileSystemWatcher(root)
+        let secondEntry = manager['gitClients'].get(root)!
+        let secondSource = manager['tokenSourcesMap'].get('git:' + root)!
+        secondCreating = secondEntry.creating!
+        assert.strictEqual(calls, 2)
+        if (rejectFirst) firstReject(new Error('first creation failed'))
+        else firstResolve(firstClient as NativeWatcher)
+        await firstCreating
+        assert.strictEqual(firstDispose.mock.callCount(), rejectFirst ? 0 : 1)
+        assert.strictEqual(manager['gitClients'].get(root), secondEntry)
+        assert.strictEqual(manager['tokenSourcesMap'].get('git:' + root), secondSource)
+        secondResolve(secondClient as NativeWatcher)
+        await secondCreating
+        assert.strictEqual(secondListen.mock.callCount(), 1)
+        assert.strictEqual(secondEntry.client, secondClient)
+      } finally {
+        manager.dispose()
+        firstResolve(firstClient as NativeWatcher)
+        secondResolve(secondClient as NativeWatcher)
+        await Promise.all([firstCreating, secondCreating])
+        native.mock.restore()
+        first.dispose()
+        second?.dispose()
+      }
+    }
+  })
+
   it('logs Git initialization failures without falling back to Watchman', async t => {
     let root = URI.file(path.join(os.tmpdir(), 'coc-git-failed')).fsPath
     let manager = new FileSystemWatcherManager(new WorkspaceFolderController(configurations), defaultConfig)

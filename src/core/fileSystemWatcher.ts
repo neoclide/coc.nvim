@@ -195,10 +195,6 @@ export class FileSystemWatcherManager {
     let watcher = new FileSystemWatcher('{HEAD,index,packed-refs,config,shallow,refs/**}', false, false, false, false)
     if (this.disposed || this.disabled) return watcher
     let gitClient = this.gitClients.get(root)
-    watcher.onDidDispose(() => {
-      let watchers = this.gitClients.get(root)?.watchers
-      if (watchers) watchers.delete(watcher)
-    })
     if (!gitClient) {
       let tokenSource = new CancellationTokenSource()
       let token = tokenSource.token
@@ -217,8 +213,8 @@ export class FileSystemWatcherManager {
           }
         })
         .catch(error => {
-          this.gitClients.delete(root)
-          this.tokenSourcesMap.delete('git:' + root)
+          if (this.gitClients.get(root) === gitClient) this.gitClients.delete(root)
+          if (this.tokenSourcesMap.get('git:' + root) === tokenSource) this.tokenSourcesMap.delete('git:' + root)
           tokenSource.dispose()
           if (!isCancellationError(error)) {
             this.channel?.appendLine(`Unable to use native Git metadata watcher for ${root}: ${error}`)
@@ -234,6 +230,18 @@ export class FileSystemWatcherManager {
         watcher.listen(root, gitClient.client)
       }
     }
+    watcher.onDidDispose(() => {
+      gitClient.watchers.delete(watcher)
+      if (gitClient.watchers.size !== 0 || this.gitClients.get(root) !== gitClient) return
+      this.gitClients.delete(root)
+      let tokenSource = this.tokenSourcesMap.get('git:' + root)
+      if (tokenSource) {
+        this.tokenSourcesMap.delete('git:' + root)
+        tokenSource.cancel()
+        tokenSource.dispose()
+      }
+      gitClient.client?.dispose()
+    })
     return watcher
   }
 
