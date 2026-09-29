@@ -13,7 +13,7 @@ import type { SnippetEdit } from '../snippets/session'
 import { SnippetString } from '../snippets/string'
 import { DocumentChange, Env, GlobPattern } from '../types'
 import * as errors from '../util/errors'
-import { isFile, isParentFolder, normalizeFilePath, statAsync, uriToFsPath } from '../util/fs'
+import { isFile, isParentFolder, normalizeFilePath, renameSync, statAsync, uriToFsPath } from '../util/fs'
 import { crypto, fs, glob, minimatch, os, path } from '../util/node'
 import { equals } from '../util/object'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
@@ -505,12 +505,29 @@ export default class Files {
       }
       let dest = path.join(folder, crypto.randomUUID())
       let dir = path.dirname(filepath)
-      fs.renameSync(filepath, dest)
+      try {
+        renameSync(filepath, dest)
+      } catch (e) {
+        if (this.pathExists(dest)) {
+          if (Array.isArray(recovers)) this.recoveryFolders.delete(recovers)
+          else this.deletedFilesFolder = undefined
+          logger.error(`Backup preserved at ${folder} after deleting ${filepath} failed:`, e)
+        }
+        throw e
+      }
       if (Array.isArray(recovers)) {
         recovers.push(async () => {
-          fs.mkdirSync(dir, { recursive: true })
-          fs.rmSync(filepath, { force: true, recursive: true })
-          fs.renameSync(dest, filepath)
+          try {
+            fs.mkdirSync(dir, { recursive: true })
+            fs.rmSync(filepath, { force: true, recursive: true })
+            renameSync(dest, filepath)
+          } catch (e) {
+            if (this.pathExists(dest)) {
+              this.recoveryFolders.delete(recovers)
+              logger.error(`Backup preserved at ${folder} after restoring ${filepath} failed:`, e)
+            }
+            throw e
+          }
           if (bufnr > 0) await this.loadResource(uri.toString())
         })
       }

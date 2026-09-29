@@ -1434,7 +1434,7 @@ describe('getOriginalLine', () => {
       }
     })
 
-    it('should preserve current and hidden buffers when backup rename fails', async t => {
+    it('should preserve current and hidden buffers when backup copy fails', async t => {
       for (let hidden of [false, true]) {
         for (let recovers of [undefined, [] as RecoverFunc[]]) {
           let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-delete-rename-failure-'))
@@ -1446,15 +1446,20 @@ describe('getOriginalLine', () => {
           await nvim.setLine('dirty')
           if (hidden) await nvim.command('enew')
           let originalRenameSync = fs.renameSync.bind(fs)
+          let originalCopySync = fs.cpSync.bind(fs)
           let commandSpy = t.mock.method(nvim, 'command')
           let renameSpy = t.mock.method(fs, 'renameSync', (oldPath, newPath) => {
             if (oldPath === filepath) throw Object.assign(new Error('cross-device link'), { code: 'EXDEV' })
             originalRenameSync(oldPath, newPath)
           })
+          let copySpy = t.mock.method(fs, 'cpSync', (oldPath, newPath, options) => {
+            if (oldPath === filepath) throw Object.assign(new Error('copy failed'), { code: 'EIO' })
+            originalCopySync(oldPath, newPath, options)
+          })
           disposables.push(workspace.files.onDidDeleteFiles(() => did++))
           disposables.push(events.on('BufUnload', bufnr => { unloaded.push(bufnr) }))
           try {
-            await assert.rejects(workspace.files.deleteFile(filepath, {}, recovers), { code: 'EXDEV' })
+            await assert.rejects(workspace.files.deleteFile(filepath, {}, recovers), { code: 'EIO' })
             assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'source')
             assert.strictEqual(await nvim.call('bufloaded', [filepath]), 1)
             assert.strictEqual(await nvim.call('bufnr', [filepath]), doc.bufnr)
@@ -1464,6 +1469,7 @@ describe('getOriginalLine', () => {
             assert.strictEqual(did, 0)
             assert.strictEqual(recovers?.length ?? 0, 0)
           } finally {
+            copySpy.mock.restore()
             renameSpy.mock.restore()
             commandSpy.mock.restore()
             let bufnr = await nvim.call('bufnr', [filepath]) as number
@@ -1508,6 +1514,133 @@ describe('getOriginalLine', () => {
         commandSpy.mock.restore()
         let bufnr = await nvim.call('bufnr', [filepath]) as number
         if (bufnr > 0) await nvim.command(`silent! bwipeout! ${bufnr}`)
+        fs.rmSync(root, { recursive: true, force: true })
+      }
+    })
+
+    it('should use the EXDEV fallback for workspace undo and rollback', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-delete-exdev-'))
+      let filepath = path.join(root, 'file')
+      let calls: string[] = []
+      let backup: string | undefined
+      fs.writeFileSync(filepath, 'content')
+      let originalRenameSync = fs.renameSync.bind(fs)
+      let rename = t.mock.method(fs, 'renameSync', (oldPath, newPath) => {
+        if (oldPath === filepath || oldPath === backup) {
+          if (oldPath === filepath) backup = newPath
+          calls.push(oldPath)
+          throw Object.assign(new Error('cross-device link'), { code: 'EXDEV' })
+        }
+        originalRenameSync(oldPath, newPath)
+      })
+      try {
+        for (let laterFailure of [false, true]) {
+          calls.length = 0
+          let documentChanges: (DeleteFile | RenameFile)[] = [DeleteFile.create(URI.file(filepath).toString())]
+          if (laterFailure) {
+            let missing = URI.file(path.join(root, 'missing')).toString()
+            documentChanges.push(RenameFile.create(missing, `${missing}-new`))
+          }
+          assert.strictEqual(await workspace.applyEdit({ documentChanges }), !laterFailure)
+          if (!laterFailure) {
+            assert.strictEqual(fs.existsSync(filepath), false)
+            await workspace.files.undoWorkspaceEdit()
+          }
+          assert.strictEqual(fs.readFileSync(filepath, 'utf8'), 'content')
+          assert.strictEqual(calls.length, 2)
+        }
+      } finally {
+        rename.mock.restore()
+        fs.rmSync(root, { recursive: true, force: true })
+      }
+    })
+
+    it('should preserve a recovery backup after rollback copying fails', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-delete-rollback-'))
+      let filepath = path.join(root, 'file')
+      let backup: string | undefined
+      fs.writeFileSync(filepath, 'content')
+      let files = new Files(workspace.documentsManager, workspace.configurations, workspace.workspaceFolderControl, undefined)
+      files.attach(nvim, undefined, window)
+      let originalRenameSync = fs.renameSync.bind(fs)
+      let originalCopySync = fs.cpSync.bind(fs)
+      let rename = t.mock.method(fs, 'renameSync', (oldPath, newPath) => {
+        if (oldPath === filepath || oldPath === backup) {
+          if (oldPath === filepath) backup = newPath
+          throw Object.assign(new Error('cross-device link'), { code: 'EXDEV' })
+        }
+        originalRenameSync(oldPath, newPath)
+      })
+      let copy = t.mock.method(fs, 'cpSync', (oldPath, newPath, options) => {
+        if (oldPath === backup) throw Object.assign(new Error('rollback copy failed'), { code: 'EIO' })
+        originalCopySync(oldPath, newPath, options)
+      })
+      try {
+        let edit: WorkspaceEdit = { documentChanges: [DeleteFile.create(URI.file(filepath).toString())] }
+        assert.strictEqual(await files.applyEdit(edit), true)
+        await assert.rejects(files.undoWorkspaceEdit(), { code: 'EIO' })
+        files.dispose()
+        assert.notStrictEqual(backup, undefined)
+        assert.strictEqual(fs.readFileSync(backup!, 'utf8'), 'content')
+        assert.strictEqual(fs.existsSync(path.dirname(backup!)), true)
+      } finally {
+        copy.mock.restore()
+        rename.mock.restore()
+        if (backup) fs.rmSync(path.dirname(backup), { recursive: true, force: true })
+        fs.rmSync(root, { recursive: true, force: true })
+      }
+    })
+
+    it('should preserve a backup when source recovery after copy fails', async t => {
+      let root = fs.mkdtempSync(path.join(os.tmpdir(), 'coc-delete-source-recovery-'))
+      let filepath = path.join(root, 'folder')
+      let backup: string | undefined
+      fs.mkdirSync(filepath)
+      fs.writeFileSync(path.join(filepath, 'first'), 'first')
+      fs.writeFileSync(path.join(filepath, 'second'), 'second')
+      let originalRenameSync = fs.renameSync.bind(fs)
+      let originalRmSync = fs.rmSync.bind(fs)
+      let originalCopySync = fs.cpSync.bind(fs)
+      let rename = t.mock.method(fs, 'renameSync', (oldPath, newPath) => {
+        if (oldPath === filepath) {
+          backup = newPath
+          throw Object.assign(new Error('cross-device link'), { code: 'EXDEV' })
+        }
+        originalRenameSync(oldPath, newPath)
+      })
+      let remove = t.mock.method(fs, 'rmSync', (target, options) => {
+        if (target === filepath) {
+          originalRmSync(path.join(filepath, 'first'))
+          throw Object.assign(new Error('remove failed'), { code: 'EIO' })
+        }
+        originalRmSync(target, options)
+      })
+      let copy = t.mock.method(fs, 'cpSync', (oldPath, newPath, options) => {
+        if (oldPath === backup && newPath === filepath) throw Object.assign(new Error('source recovery failed'), { code: 'EIO' })
+        originalCopySync(oldPath, newPath, options)
+      })
+      try {
+        for (let useWorkspaceEdit of [true, false]) {
+          let files = new Files(workspace.documentsManager, workspace.configurations, workspace.workspaceFolderControl, undefined)
+          files.attach(nvim, undefined, window)
+          fs.writeFileSync(path.join(filepath, 'first'), 'first')
+          if (useWorkspaceEdit) {
+            let edit: WorkspaceEdit = { documentChanges: [DeleteFile.create(URI.file(filepath).toString(), { recursive: true })] }
+            assert.strictEqual(await files.applyEdit(edit), false)
+          } else {
+            await assert.rejects(files.deleteFile(filepath, { recursive: true }), { code: 'EIO' })
+          }
+          files.dispose()
+          assert.notStrictEqual(backup, undefined)
+          assert.strictEqual(fs.readFileSync(path.join(backup!, 'first'), 'utf8'), 'first')
+          assert.strictEqual(fs.readFileSync(path.join(backup!, 'second'), 'utf8'), 'second')
+          fs.rmSync(path.dirname(backup!), { recursive: true, force: true })
+        }
+      } finally {
+        copy.mock.restore()
+        remove.mock.restore()
+        rename.mock.restore()
+        if (backup) fs.rmSync(path.dirname(backup), { recursive: true, force: true })
         fs.rmSync(root, { recursive: true, force: true })
       }
     })

@@ -135,6 +135,62 @@ export function renameAsync(oldPath: string, newPath: string): Promise<void> {
   })
 }
 
+/**
+ * Move an entry to a path that does not exist. Falls back to copying only when
+ * the source and target are on different filesystems.
+ */
+export function renameSync(oldPath: string, newPath: string): void {
+  try {
+    fs.renameSync(oldPath, newPath)
+    return
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== 'EXDEV') throw e
+  }
+  const options = {
+    recursive: true,
+    dereference: false,
+    verbatimSymlinks: true,
+    preserveTimestamps: true,
+    force: false,
+    errorOnExist: true
+  }
+  // cpSync throws ENOENT for a top-level dangling symbolic link.
+  let isSymbolicLink = fs.lstatSync(oldPath).isSymbolicLink()
+  try {
+    if (isSymbolicLink) {
+      let type: 'dir' | 'file' | undefined
+      if (platform.isWindows) {
+        let stat = fs.statSync(oldPath, { throwIfNoEntry: false })
+        type = stat?.isDirectory() ? 'dir' : 'file'
+      }
+      fs.symlinkSync(fs.readlinkSync(oldPath), newPath, type)
+    } else {
+      fs.cpSync(oldPath, newPath, options)
+    }
+  } catch (e) {
+    fs.rmSync(newPath, { force: true, recursive: true })
+    throw e
+  }
+  try {
+    fs.rmSync(oldPath, { recursive: true })
+  } catch (e) {
+    let error = e as Error
+    try {
+      fs.cpSync(newPath, oldPath, {
+        ...options,
+        filter: (_source, destination) => {
+          let stat = fs.lstatSync(destination, { throwIfNoEntry: false })
+          return !stat || stat.isDirectory()
+        }
+      })
+      fs.rmSync(newPath, { force: true, recursive: true })
+    } catch (recoverError) {
+      error.message += `; could not restore source or clean backup, backup remains at ${newPath}: ${recoverError}`
+    }
+    throw error
+  }
+}
+
 export async function remove(filepath: string | undefined): Promise<void> {
   if (!filepath) return
   try {
