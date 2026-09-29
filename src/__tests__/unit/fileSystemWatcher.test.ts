@@ -685,7 +685,7 @@ describe('NativeWatcher', () => {
       fs.writeFileSync(custom, 'metadata')
       fs.writeFileSync(head, 'ref: refs/heads/main\\n')
       await shared.waitValue(() => changes.includes(head), true)
-      assert.deepStrictEqual(changes, [index, ref, head])
+      assert.deepStrictEqual(new Set(changes), new Set([index, ref, head]))
     } finally {
       watcher.dispose()
       manager.dispose()

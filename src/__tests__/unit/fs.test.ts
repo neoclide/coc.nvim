@@ -134,7 +134,7 @@ describe('fs', () => {
         renameSync(sourceFileLink, targetFileLink)
         renameSync(sourceDirectoryLink, targetDirectoryLink)
         for (let [filepath, text] of [
-          [path.join(target, 'relative-link'), '../reference'],
+          [path.join(target, 'relative-link'), path.join('..', 'reference')],
           [path.join(target, 'dangling-link'), 'missing'],
           [targetLink, 'missing'],
           [targetFileLink, 'reference'],
@@ -150,7 +150,7 @@ describe('fs', () => {
         renameSync(targetFileLink, sourceFileLink)
         renameSync(targetDirectoryLink, sourceDirectoryLink)
         for (let [filepath, text] of [
-          [path.join(source, 'relative-link'), '../reference'],
+          [path.join(source, 'relative-link'), path.join('..', 'reference')],
           [path.join(source, 'dangling-link'), 'missing'],
           [sourceLink, 'missing'],
           [sourceFileLink, 'reference'],
