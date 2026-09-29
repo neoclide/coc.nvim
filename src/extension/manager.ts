@@ -339,6 +339,7 @@ export class ExtensionManager {
     let item = this.extensions.get(id)
     if (item) {
       await this.deactivate(id)
+      this.unregistContribution(id)
       this.extensions.delete(id)
       this._onDidUnloadExtension.fire(id)
     }
@@ -399,14 +400,14 @@ export class ExtensionManager {
         })
       }
       let node: IConfigurationNode = { properties, extensionInfo: { id, displayName: packageJSON.displayName } }
+      let toRemove: IConfigurationNode[] = []
+      let idx = this.configurationNodes.findIndex(o => o.extensionInfo!.id === id)
+      if (idx !== -1) {
+        toRemove.push(this.configurationNodes[idx])
+        this.configurationNodes.splice(idx, 1)
+      }
       this.configurationNodes.push(node)
       if (this.activated) {
-        let toRemove = []
-        let idx = this.configurationNodes.findIndex(o => o.extensionInfo!.id === id)
-        if (idx !== -1) {
-          toRemove.push(this.configurationNodes[idx])
-          this.configurationNodes.splice(idx, 1)
-        }
         workspace.configurations.updateConfigurations([node], toRemove)
       }
     }
@@ -592,7 +593,7 @@ export class ExtensionManager {
     if (idx !== -1) {
       let node = this.configurationNodes[idx]
       this.configurationNodes.splice(idx, 1)
-      configurationRegistry.deregisterConfigurations([node])
+      if (this.activated) configurationRegistry.deregisterConfigurations([node])
     }
   }
 

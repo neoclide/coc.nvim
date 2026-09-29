@@ -8,6 +8,7 @@ import events from '../../events'
 import { logger } from '../../logger/index'
 import { API, checkCommand, checkFileSystem, checkLanguageId, Extension, ExtensionManager, ExtensionType, getActivationEvents, getEvents, getOnCommandList, toWorkspaceContainsPatterns } from '../../extension/manager'
 import { ExtensionJson, ExtensionStat } from '../../extension/stat'
+import { allSettings, Extensions, IConfigurationNode, IConfigurationRegistry } from '../../configuration/registry'
 import { Neovim } from '@chemzqm/neovim'
 import { disposeAll } from '../../util'
 import { Extensions as ExtensionsInfo, getExtensionDefinitions, IExtensionRegistry } from '../../util/extensionRegistry'
@@ -1189,6 +1190,129 @@ exports.activate = async () => {
   })
 
   describe('registContribution', () => {
+    it('should retain and remove dynamic configuration contributions', async t => {
+      for (let release of ['toggle', 'unload'] as const) {
+        let folder = createFolder()
+        tmpfolder = folder
+        let id = `configuration-${crypto.randomUUID()}`
+        let key = `${id}.enabled`
+        let extFolder = path.join(folder, id)
+        let packageJSON: ExtensionJson = {
+          name: id,
+          engines: { coc: '>=0.0.1' },
+          contributes: { configuration: { properties: { [key]: { type: 'boolean', default: false } } } }
+        }
+        createExtension(extFolder, packageJSON, 'exports.activate = () => ({})')
+        let manager = create(folder)
+        let configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
+        let removedBeforeUnloadEvent = false
+        manager.onDidUnloadExtension(() => {
+          removedBeforeUnloadEvent = configurationRegistry.getConfigurationProperties()[key] === undefined && allSettings.properties[key] === undefined
+        })
+        try {
+          await manager.activateExtensions()
+          await manager.loadExtension(extFolder, true)
+          assert.strictEqual(manager.configurationNodes.filter(node => node.extensionInfo?.id === id).length, 1)
+          assert.notStrictEqual(configurationRegistry.getConfigurationProperties()[key], undefined)
+          assert.notStrictEqual(allSettings.properties[key], undefined)
+          if (release === 'toggle') await manager.toggleExtension(id)
+          else await manager.unloadExtension(id)
+          assert.strictEqual(removedBeforeUnloadEvent, true)
+          assert.strictEqual(manager.configurationNodes.some(node => node.extensionInfo?.id === id), false)
+          assert.strictEqual(configurationRegistry.getConfigurationProperties()[key], undefined)
+          assert.strictEqual(allSettings.properties[key], undefined)
+        } finally {
+          await manager.unloadExtension(id)
+          manager.unregistContribution(id)
+          fs.rmSync(folder, { force: true, recursive: true })
+        }
+      }
+    })
+
+    it('should not deregister an unregistered startup contribution', async t => {
+      tmpfolder = createFolder()
+      let id = `configuration-${crypto.randomUUID()}`
+      let key = `${id}.enabled`
+      let extFolder = path.join(tmpfolder, id)
+      let baseline: IConfigurationNode = { properties: { [key]: { type: 'boolean', default: true } } }
+      let packageJSON: ExtensionJson = {
+        name: id,
+        engines: { coc: '>=0.0.1' },
+        contributes: { configuration: { properties: { [key]: { type: 'boolean', default: false } } } }
+      }
+      createExtension(extFolder, packageJSON, 'exports.activate = () => ({})')
+      let manager = create(tmpfolder)
+      let configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
+      configurationRegistry.registerConfigurations([baseline])
+      try {
+        await manager.loadExtension(extFolder, true)
+        await manager.unloadExtension(id)
+        assert.strictEqual(manager.configurationNodes.some(node => node.extensionInfo?.id === id), false)
+        assert.strictEqual(configurationRegistry.getConfigurationProperties()[key], baseline.properties[key])
+        assert.strictEqual(allSettings.properties[key], baseline.properties[key])
+      } finally {
+        await manager.unloadExtension(id)
+        manager.unregistContribution(id)
+        configurationRegistry.deregisterConfigurations([baseline])
+      }
+    })
+
+    it('should replace configuration contributions on reload', async t => {
+      tmpfolder = createFolder()
+      let id = `configuration-${crypto.randomUUID()}`
+      let oldKey = `${id}.old`
+      let newKey = `${id}.new`
+      let extFolder = path.join(tmpfolder, id)
+      let packageJSON: ExtensionJson = {
+        name: id,
+        engines: { coc: '>=0.0.1' },
+        contributes: { configuration: { properties: { [oldKey]: { type: 'boolean', default: false } } } }
+      }
+      createExtension(extFolder, packageJSON, 'exports.activate = () => ({})')
+      let manager = create(tmpfolder)
+      let configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
+      try {
+        await manager.activateExtensions()
+        await manager.loadExtension(extFolder, true)
+        packageJSON.contributes = { configuration: { properties: { [newKey]: { type: 'boolean', default: false } } } }
+        fs.writeFileSync(path.join(extFolder, 'package.json'), JSON.stringify(packageJSON), 'utf8')
+        await manager.reloadExtension(id)
+        assert.strictEqual(manager.configurationNodes.filter(node => node.extensionInfo?.id === id).length, 1)
+        assert.strictEqual(configurationRegistry.getConfigurationProperties()[oldKey], undefined)
+        assert.strictEqual(allSettings.properties[oldKey], undefined)
+        assert.notStrictEqual(configurationRegistry.getConfigurationProperties()[newKey], undefined)
+        assert.notStrictEqual(allSettings.properties[newKey], undefined)
+      } finally {
+        await manager.unloadExtension(id)
+        manager.unregistContribution(id)
+      }
+    })
+
+    it('should retain only the latest configuration before activation', async t => {
+      tmpfolder = createFolder()
+      let id = `configuration-${crypto.randomUUID()}`
+      let oldKey = `${id}.old`
+      let newKey = `${id}.new`
+      let manager = create(tmpfolder)
+      let configurationRegistry = Registry.as<IConfigurationRegistry>(Extensions.Configuration)
+      let noPlugins = process.env.COC_NO_PLUGINS
+      try {
+        delete process.env.COC_NO_PLUGINS
+        manager.registContribution(id, { contributes: { configuration: { properties: { [oldKey]: { type: 'boolean', default: false } } } } }, tmpfolder)
+        manager.registContribution(id, { contributes: { configuration: { properties: { [newKey]: { type: 'boolean', default: false } } } } }, tmpfolder)
+        assert.strictEqual(manager.configurationNodes.filter(node => node.extensionInfo?.id === id).length, 1)
+        await manager.activateExtensions()
+        assert.strictEqual(configurationRegistry.getConfigurationProperties()[oldKey], undefined)
+        assert.strictEqual(allSettings.properties[oldKey], undefined)
+        assert.notStrictEqual(configurationRegistry.getConfigurationProperties()[newKey], undefined)
+        assert.notStrictEqual(allSettings.properties[newKey], undefined)
+      } finally {
+        manager.unregistContribution(id)
+        if (noPlugins == null) delete process.env.COC_NO_PLUGINS
+        else process.env.COC_NO_PLUGINS = noPlugins
+      }
+    })
+
     it('should register definitions', async t => {
       let json = `{
 "configuration": {
