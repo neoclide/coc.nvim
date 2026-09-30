@@ -107926,11 +107926,11 @@ var init_util5 = __esm({
         };
       }
       convertLspCompleteItem(item) {
-        const { option, inputStart } = this;
+        const { option } = this;
         const label = item.label.trim();
         const itemDefaults = toObject(option.itemDefaults);
         const word = getWord(item, itemDefaults);
-        const range2 = getReplaceRange(item, itemDefaults?.editRange, inputStart, this.option.insertMode) ?? option.range;
+        const range2 = getReplaceRange(item, itemDefaults?.editRange, this.character, this.option.insertMode) ?? option.range;
         const character = range2.start.character;
         const data = toObject(item.data);
         const filterText = item.filterText ?? item.label;
@@ -108126,8 +108126,7 @@ var init_source_language = __esm({
                 this.resolving.delete(item);
               } else {
                 if (resolved.textEdit) {
-                  let character = characterIndex(opt.line, opt.col);
-                  resolved.textEdit = fixTextEdit(character, resolved.textEdit);
+                  resolved.textEdit = fixTextEdit(opt.position.character, resolved.textEdit);
                 }
                 Object.assign(item, resolved);
               }
@@ -123336,6 +123335,106 @@ var init_fileOperations = __esm({
   }
 });
 
+// src/language-client/fileRename.ts
+var FileRenameFeature;
+var init_fileRename = __esm({
+  "src/language-client/fileRename.ts"() {
+    "use strict";
+    init_util();
+    init_fs();
+    init_node();
+    init_protocol();
+    init_workspace();
+    FileRenameFeature = class {
+      constructor(_client) {
+        this._client = _client;
+      }
+      _client;
+      method = import_node4.DidRenameFilesNotification.method;
+      _disposables = [];
+      _lastRename;
+      _filters = [];
+      fillClientCapabilities(_capabilities) {
+      }
+      initialize(capabilities) {
+        const options3 = capabilities.workspace?.fileOperations?.didRename;
+        if (!options3?.filters.length) return;
+        try {
+          this._filters = options3.filters.map((filter3) => {
+            const matcher = new minimatch.Minimatch(filter3.pattern.glob, {
+              dot: true,
+              nocase: filter3.pattern.options?.ignoreCase === true
+            });
+            if (!matcher.makeRe()) throw new Error(`Invalid pattern ${filter3.pattern.glob}!`);
+            return { scheme: filter3.scheme, matcher, kind: filter3.pattern.matches };
+          });
+        } catch (error) {
+          this._client.warn(`Ignoring invalid glob pattern for external rename notifications: ${error}`);
+          return;
+        }
+        const watcher = workspace_default.createFileSystemWatcher("**/*", {
+          ignoreCreateEvents: true,
+          ignoreChangeEvents: true,
+          ignoreDeleteEvents: true,
+          includeDirectories: true
+        });
+        this._disposables.push(watcher);
+        workspace_default.onWillRenameFiles((event) => {
+          this._lastRename = event.files[0];
+        }, null, this._disposables);
+        watcher.onDidRename((file) => {
+          const lastRename = this._lastRename;
+          if (lastRename?.oldUri.toString() === file.oldUri.toString() && lastRename.newUri.toString() === file.newUri.toString()) {
+            this._lastRename = void 0;
+            return;
+          }
+          void this.send(file).catch((error) => {
+            this._client.error(`Sending notification ${this.method} failed`, error);
+          });
+        }, null, this._disposables);
+      }
+      async send(file) {
+        const filters = this._filters;
+        const path4 = file.oldUri.fsPath.replace(/\\/g, "/");
+        let matches = false;
+        for (const filter3 of filters) {
+          if (filter3.scheme !== void 0 && filter3.scheme !== file.oldUri.scheme) continue;
+          const pathMatches = filter3.matcher.match(path4);
+          if (!pathMatches && !(filter3.kind === "folder" && filter3.matcher.match(`${path4}/`))) continue;
+          if (filter3.kind === void 0) {
+            matches = true;
+            break;
+          }
+          const type = await getFileType(file.newUri.fsPath);
+          if (type === void 0 && pathMatches) {
+            this._client.error(`Failed to determine file type for ${file.newUri.toString()}.`);
+            matches = true;
+          } else {
+            matches = filter3.kind === "file" && type === 1 /* File */ || filter3.kind === "folder" && type === 2 /* Directory */;
+          }
+          if (matches) break;
+        }
+        if (!matches || this._filters !== filters) return;
+        const event = { files: [file] };
+        const next = (event2) => {
+          if (this._filters !== filters) return Promise.resolve();
+          return this._client.sendNotification(
+            import_node4.DidRenameFilesNotification.type,
+            this._client.code2ProtocolConverter.asDidRenameFilesParams(event2)
+          );
+        };
+        const middleware = this._client.middleware.workspace?.didRenameFiles;
+        await (middleware ? middleware(event, next) : next(event));
+      }
+      dispose() {
+        disposeAll(this._disposables);
+        this._lastRename = void 0;
+        this._filters = [];
+      }
+    };
+  }
+});
+
 // src/model/relativePattern.ts
 var RelativePattern2;
 var init_relativePattern = __esm({
@@ -125239,13 +125338,13 @@ function getTracePrefix(data) {
 function getParameterStructures(kind) {
   switch (kind) {
     case "auto":
-      return import_node55.ParameterStructures.auto;
+      return import_node56.ParameterStructures.auto;
     case "byPosition":
-      return import_node55.ParameterStructures.byPosition;
+      return import_node56.ParameterStructures.byPosition;
     case "byName":
-      return import_node55.ParameterStructures.byName;
+      return import_node56.ParameterStructures.byName;
     default:
-      return import_node55.ParameterStructures.auto;
+      return import_node56.ParameterStructures.auto;
   }
 }
 function fixRequestType(type, params) {
@@ -125253,30 +125352,30 @@ function fixRequestType(type, params) {
   let n2 = typeof type.numberOfParams === "number" ? type.numberOfParams : params.length;
   switch (n2) {
     case 0:
-      return new import_node55.RequestType0(type.method);
+      return new import_node56.RequestType0(type.method);
     case 1:
       if (type["parameterStructures"] != null) {
-        return new import_node55.RequestType1(type.method, getParameterStructures(type["parameterStructures"].toString()));
+        return new import_node56.RequestType1(type.method, getParameterStructures(type["parameterStructures"].toString()));
       }
-      return new import_node55.RequestType1(type.method);
+      return new import_node56.RequestType1(type.method);
     case 2:
-      return new import_node55.RequestType2(type.method);
+      return new import_node56.RequestType2(type.method);
     case 3:
-      return new import_node55.RequestType3(type.method);
+      return new import_node56.RequestType3(type.method);
     case 4:
-      return new import_node55.RequestType4(type.method);
+      return new import_node56.RequestType4(type.method);
     case 5:
-      return new import_node55.RequestType5(type.method);
+      return new import_node56.RequestType5(type.method);
     case 6:
-      return new import_node55.RequestType6(type.method);
+      return new import_node56.RequestType6(type.method);
     case 7:
-      return new import_node55.RequestType7(type.method);
+      return new import_node56.RequestType7(type.method);
     case 8:
-      return new import_node55.RequestType8(type.method);
+      return new import_node56.RequestType8(type.method);
     case 9:
-      return new import_node55.RequestType9(type.method);
+      return new import_node56.RequestType9(type.method);
     default:
-      return new import_node55.RequestType(type.method);
+      return new import_node56.RequestType(type.method);
   }
 }
 function fixNotificationType(type, params) {
@@ -125284,30 +125383,30 @@ function fixNotificationType(type, params) {
   let n2 = typeof type.numberOfParams === "number" ? type.numberOfParams : params.length;
   switch (n2) {
     case 0:
-      return new import_node55.NotificationType0(type.method);
+      return new import_node56.NotificationType0(type.method);
     case 1:
       if (type["parameterStructures"] != null) {
-        return new import_node55.NotificationType1(type.method, getParameterStructures(type["parameterStructures"].toString()));
+        return new import_node56.NotificationType1(type.method, getParameterStructures(type["parameterStructures"].toString()));
       }
-      return new import_node55.NotificationType1(type.method);
+      return new import_node56.NotificationType1(type.method);
     case 2:
-      return new import_node55.NotificationType2(type.method);
+      return new import_node56.NotificationType2(type.method);
     case 3:
-      return new import_node55.NotificationType3(type.method);
+      return new import_node56.NotificationType3(type.method);
     case 4:
-      return new import_node55.NotificationType4(type.method);
+      return new import_node56.NotificationType4(type.method);
     case 5:
-      return new import_node55.NotificationType5(type.method);
+      return new import_node56.NotificationType5(type.method);
     case 6:
-      return new import_node55.NotificationType6(type.method);
+      return new import_node56.NotificationType6(type.method);
     case 7:
-      return new import_node55.NotificationType7(type.method);
+      return new import_node56.NotificationType7(type.method);
     case 8:
-      return new import_node55.NotificationType8(type.method);
+      return new import_node56.NotificationType8(type.method);
     case 9:
-      return new import_node55.NotificationType9(type.method);
+      return new import_node56.NotificationType9(type.method);
     default:
-      return new import_node55.NotificationType(type.method);
+      return new import_node56.NotificationType(type.method);
   }
 }
 function data2String(data, color = false) {
@@ -125340,8 +125439,8 @@ function createClientPipeTransport(pipeName, encoding2 = "utf-8") {
     const server = net.createServer((socket) => {
       server.close();
       connectResolve([
-        new import_node55.SocketMessageReader(socket, encoding2),
-        new import_node55.SocketMessageWriter(socket, encoding2)
+        new import_node56.SocketMessageReader(socket, encoding2),
+        new import_node56.SocketMessageWriter(socket, encoding2)
       ]);
     });
     server.on("error", reject);
@@ -125372,8 +125471,8 @@ function createClientSocketTransport(port, encoding2 = "utf-8") {
     const server = net.createServer((socket) => {
       server.close();
       connectResolve([
-        new import_node55.SocketMessageReader(socket, encoding2),
-        new import_node55.SocketMessageWriter(socket, encoding2)
+        new import_node56.SocketMessageReader(socket, encoding2),
+        new import_node56.SocketMessageWriter(socket, encoding2)
       ]);
     });
     server.on("error", reject);
@@ -125391,21 +125490,21 @@ function createClientSocketTransport(port, encoding2 = "utf-8") {
     });
   });
 }
-var import_node55, requestTypes, notificationTypes;
+var import_node56, requestTypes, notificationTypes;
 var init_utils = __esm({
   "src/language-client/utils/index.ts"() {
     "use strict";
-    import_node55 = __toESM(require_main2());
+    import_node56 = __toESM(require_main2());
     init_is();
     init_node();
     init_protocol();
     requestTypes = [
-      import_node55.RequestType,
-      import_node55.RequestType0
+      import_node56.RequestType,
+      import_node56.RequestType0
     ];
     notificationTypes = [
-      import_node55.NotificationType,
-      import_node55.NotificationType0
+      import_node56.NotificationType,
+      import_node56.NotificationType0
     ];
   }
 });
@@ -126076,6 +126175,7 @@ var init_client = __esm({
     init_executeCommand();
     init_features();
     init_fileOperations();
+    init_fileRename();
     init_fileSystemWatcher2();
     init_foldingRange();
     init_formatting2();
@@ -127301,6 +127401,7 @@ ${error.message}`;
         this.registerFeature(new LinkedEditingFeature(this), "linkedEditing");
         this.registerFeature(new DidCreateFilesFeature(this), "fileEvents");
         this.registerFeature(new DidRenameFilesFeature(this), "fileEvents");
+        this.registerFeature(new FileRenameFeature(this), "fileEvents");
         this.registerFeature(new DidDeleteFilesFeature(this), "fileEvents");
         this.registerFeature(new WillCreateFilesFeature(this), "fileEvents");
         this.registerFeature(new WillRenameFilesFeature(this), "fileEvents");
@@ -145411,7 +145512,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-44c1b77 2026-09-29 22:56:45 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-45a6f07 2026-09-30 05:11:27 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

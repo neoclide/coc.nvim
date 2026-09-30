@@ -2,6 +2,11 @@
 
 Notable changes of coc.nvim:
 
+## 2026-09-30
+
+- Notify language servers that support `workspace/didRenameFiles` of external
+  renames detected by file system watchers.
+
 ## 2026-09-28
 
 - Make non-overwrite `workspace.createFile()` exclusive after will-create
