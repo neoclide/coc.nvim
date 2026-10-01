@@ -38,6 +38,7 @@ import { APIVERSION, VERSION, dataHome, pluginRoot, userConfigFile } from './uti
 import { onUnexpectedError } from './util/errors'
 import { FileType, getFileType } from './util/fs'
 import { IJSONSchema } from './util/jsonSchema'
+import { Mutex } from './util/mutex'
 import { path } from './util/node'
 import { toObject } from './util/object'
 import { runCommand } from './util/processes'
@@ -122,6 +123,7 @@ export class Workspace {
    * @internal
    */
   public statusLine = new StatusLine()
+  private fileOperationMutex = new Mutex()
   private _onDidRuntimePathChange = new Emitter<string[]>()
   public readonly onDidRuntimePathChange: Event<string[]> = this._onDidRuntimePathChange.event
 
@@ -688,24 +690,24 @@ export class Workspace {
    */
   public applyEdit(edit: WorkspaceEdit, metadata?: WorkspaceEditMetadata): Promise<boolean> {
     // TODO: metadata not used yet
-    return this.files.applyEdit(edit)
+    return this.fileOperationMutex.use(() => this.files.applyEdit(edit))
   }
 
   /**
    * Create a file in vim and disk
    */
   public createFile(filepath: string, opts: CreateFileOptions = {}): Promise<void> {
-    return this.files.createFile(filepath, opts)
+    return this.fileOperationMutex.use(() => this.files.createFile(filepath, opts))
   }
 
   /** Create a directory and its missing parent directories. */
   public createDirectory(filepath: string): Promise<void> {
-    return this.files.createDirectory(filepath)
+    return this.fileOperationMutex.use(() => this.files.createDirectory(filepath))
   }
 
   /** Copy a file, symbolic link, or directory without overwriting the target. */
   public copyFile(source: string, target: string): Promise<void> {
-    return this.files.copyFile(source, target)
+    return this.fileOperationMutex.use(() => this.files.copyFile(source, target))
   }
 
   /**
@@ -726,14 +728,14 @@ export class Workspace {
    * Rename file in vim and disk
    */
   public async renameFile(oldPath: string, newPath: string, opts: RenameFileOptions = {}): Promise<void> {
-    await this.files.renameFile(oldPath, newPath, opts)
+    await this.fileOperationMutex.use(() => this.files.renameFile(oldPath, newPath, opts))
   }
 
   /**
    * Delete file from vim and disk.
    */
   public async deleteFile(filepath: string, opts: DeleteFileOptions = {}): Promise<void> {
-    await this.files.deleteFile(filepath, opts)
+    await this.fileOperationMutex.use(() => this.files.deleteFile(filepath, opts))
   }
 
   /**

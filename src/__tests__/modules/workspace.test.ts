@@ -91,6 +91,95 @@ describe('workspace properties', () => {
 })
 
 describe('workspace methods', () => {
+  it('should apply workspace edits sequentially', async t => {
+    let first = {}
+    let second = {}
+    let start: () => void
+    let release: (value: boolean) => void
+    let started = new Promise<void>(resolve => { start = resolve })
+    let finish = new Promise<boolean>(resolve => { release = resolve })
+    let apply = t.mock.method(workspace.files, 'applyEdit', async edit => {
+      if (edit === first) {
+        start()
+        return finish
+      }
+      return true
+    })
+    let pending = workspace.applyEdit(first)
+    let queued = workspace.applyEdit(second)
+    try {
+      await started
+      await new Promise<void>(resolve => setImmediate(resolve))
+      assert.strictEqual(apply.mock.callCount(), 1)
+    } finally {
+      release(false)
+      await Promise.all([pending, queued])
+    }
+    assert.strictEqual(await pending, false)
+    assert.strictEqual(await queued, true)
+    assert.strictEqual(apply.mock.calls[1].arguments[0], second)
+  })
+
+  it('should release the workspace edit lock after failure', async t => {
+    let first = {}
+    let error = new Error('Edit failed')
+    t.mock.method(workspace.files, 'applyEdit', async edit => {
+      if (edit === first) throw error
+      return true
+    })
+    let pending = workspace.applyEdit(first)
+    let queued = workspace.applyEdit({})
+    await assert.rejects(pending, error)
+    assert.strictEqual(await queued, true)
+  })
+
+  it('should serialize file operations and workspace edits together', async t => {
+    let methods = ['createFile', 'createDirectory', 'copyFile', 'renameFile', 'deleteFile', 'applyEdit'] as const
+    let calls: string[] = []
+    let releases: (() => void)[] = []
+    let starts: Promise<void>[] = []
+    for (let method of methods) {
+      let start: () => void
+      starts.push(new Promise<void>(resolve => { start = resolve }))
+      let finish = new Promise<void>(resolve => { releases.push(resolve) })
+      t.mock.method(workspace.files, method, async () => {
+        calls.push(method)
+        start()
+        await finish
+        return method === 'applyEdit' ? true : undefined
+      })
+    }
+    let pending = Promise.all([
+      workspace.createFile('file'),
+      workspace.createDirectory('directory'),
+      workspace.copyFile('file', 'copy'),
+      workspace.renameFile('copy', 'renamed'),
+      workspace.deleteFile('renamed'),
+      workspace.applyEdit({})
+    ])
+    try {
+      for (let i = 0; i < methods.length; i++) {
+        await starts[i]
+        await new Promise<void>(resolve => setImmediate(resolve))
+        assert.deepStrictEqual(calls, methods.slice(0, i + 1))
+        releases[i]()
+      }
+    } finally {
+      for (let release of releases) release()
+      await pending
+    }
+  })
+
+  it('should continue with workspace edits after a file operation fails', async t => {
+    let error = new Error('Create failed')
+    t.mock.method(workspace.files, 'createFile', async () => { throw error })
+    t.mock.method(workspace.files, 'applyEdit', async () => true)
+    let pending = workspace.createFile('file')
+    let queued = workspace.applyEdit({})
+    await assert.rejects(pending, error)
+    assert.strictEqual(await queued, true)
+  })
+
   it('should call vim method', async t => {
     let res = await workspace.callAsync('bufnr', ['%'])
     assert.strictEqual(typeof res, 'number')
