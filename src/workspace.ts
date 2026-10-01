@@ -684,13 +684,18 @@ export class Workspace {
   /**
    * Apply WorkspaceEdit.
    *
+   * Local will-file handlers can await this through waitUntil. Their edits
+   * share the enclosing operation's recovery and are rejected after the handler
+   * finishes or times out. An edit already running is allowed to finish.
+   *
    * @param edit Workspace edit.
    * @param metadata Edit metadata, not used yet.
    * @returns True when the edit is applied.
    */
   public applyEdit(edit: WorkspaceEdit, metadata?: WorkspaceEditMetadata): Promise<boolean> {
     // TODO: metadata not used yet
-    return this.fileOperationMutex.use(() => this.files.applyEdit(edit))
+    const apply = () => this.fileOperationMutex.use(() => this.files.applyEdit(edit))
+    return this.files.applyParticipantEdit(edit, apply) ?? apply()
   }
 
   /**

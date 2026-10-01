@@ -1,5 +1,6 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
+import { AsyncLocalStorage } from 'async_hooks'
 import type { TextDocument } from 'vscode-languageserver-textdocument'
 import { ChangeAnnotation, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, Position, RenameFile, RenameFileOptions, SnippetTextEdit, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
@@ -15,6 +16,7 @@ import { DocumentChange, Env, GlobPattern } from '../types'
 import * as errors from '../util/errors'
 import { isFile, isParentFolder, normalizeFilePath, renameSync, statAsync, uriToFsPath } from '../util/fs'
 import { crypto, fs, glob, minimatch, os, path } from '../util/node'
+import { Mutex } from '../util/mutex'
 import { equals } from '../util/object'
 import { CancellationToken, CancellationTokenSource, Emitter, Event, TextDocumentSaveReason } from '../util/protocol'
 import { byteIndex } from '../util/string'
@@ -208,7 +210,22 @@ interface WaitUntilEvent {
   waitUntil(thenable: Thenable<WorkspaceEdit | any>): void
 }
 
+interface FileOperationEvent {
+  recovers?: RecoverFunc[]
+  mutex: Mutex
+  participants: FileOperationParticipant[]
+}
+
+interface FileOperationParticipant {
+  operation: FileOperationEvent
+  active: boolean
+  enrolled: boolean
+  waits: number
+}
+
 export default class Files {
+  private participantContext = new AsyncLocalStorage<FileOperationParticipant>()
+  private fileOperationEvents = new WeakMap<object, FileOperationEvent>()
   private nvim: Neovim
   private env: Env
   private window: Window
@@ -225,15 +242,56 @@ export default class Files {
   public readonly onDidCreateFiles: Event<FileCreateEvent> = this._onDidCreateFiles.event
   public readonly onDidRenameFiles: Event<FileRenameEvent> = this._onDidRenameFiles.event
   public readonly onDidDeleteFiles: Event<FileDeleteEvent> = this._onDidDeleteFiles.event
-  public readonly onWillCreateFiles: Event<FileWillCreateEvent> = this._onWillCreateFiles.event
-  public readonly onWillRenameFiles: Event<FileWillRenameEvent> = this._onWillRenameFiles.event
-  public readonly onWillDeleteFiles: Event<FileWillDeleteEvent> = this._onWillDeleteFiles.event
+  public readonly onWillCreateFiles: Event<FileWillCreateEvent> = this.willFileEvent(this._onWillCreateFiles)
+  public readonly onWillRenameFiles: Event<FileWillRenameEvent> = this.willFileEvent(this._onWillRenameFiles)
+  public readonly onWillDeleteFiles: Event<FileWillDeleteEvent> = this.willFileEvent(this._onWillDeleteFiles)
   constructor(
     private documents: Documents,
     private configurations: Configurations,
     private workspaceFolderControl: WorkspaceFolderController,
     private keymaps: Keymaps
   ) {
+  }
+
+  private willFileEvent<T extends WaitUntilEvent>(emitter: Emitter<T>): Event<T> {
+    return (listener, thisArgs, disposables) => emitter.event(event => {
+      const operation = this.fileOperationEvents.get(event)
+      if (!operation) return listener.call(thisArgs, event)
+      const participant: FileOperationParticipant = {
+        operation,
+        active: true,
+        enrolled: false,
+        waits: 0
+      }
+      participant.operation.participants.push(participant)
+      try {
+        this.participantContext.run(participant, () => listener.call(thisArgs, event))
+      } finally {
+        if (participant.waits === 0) participant.active = false
+      }
+    }, undefined, disposables)
+  }
+
+  /**
+   * Apply edits owned by a local will-file participant without reacquiring the
+   * workspace lock. Unrelated callers have no participant context.
+   */
+  public applyParticipantEdit(edit: WorkspaceEdit, fallback: () => Promise<boolean>): Promise<boolean> | undefined {
+    const participant = this.participantContext.getStore()
+    if (!participant) return undefined
+    // waitUntil may be called with this promise later in the same dispatch.
+    return Promise.resolve().then(() => participant.enrolled
+      ? this.applyEventEdit(edit, participant)
+      : this.participantContext.exit(fallback))
+  }
+
+  private applyEventEdit(edit: WorkspaceEdit, participant: FileOperationParticipant): Promise<boolean> {
+    return participant.operation.mutex.use(() => {
+      if (!participant.active) return Promise.resolve(false)
+      // Mutation callbacks must not inherit the participant's admission scope.
+      // Nested will-file events establish their own scope and recovery array.
+      return this.participantContext.exit(() => this.applyEdit(edit, participant.operation.recovers))
+    })
   }
 
   public attach(nvim: Neovim, env: Env, window: Window): void {
@@ -842,34 +900,53 @@ export default class Files {
   private async fireWaitUntilEvent<T extends WaitUntilEvent>(emitter: Emitter<T>, properties: Omit<T, 'waitUntil'>, recovers?: RecoverFunc[]): Promise<void> {
     let firing = true
     let promises: Promise<any>[] = []
+    const operation: FileOperationEvent = { recovers, mutex: new Mutex(), participants: [] }
     let operationTimeout = this.configurations.initialConfiguration.get<number>('editor.fileOperationTimeout', 500)
-    emitter.fire({
+    const event = {
       ...properties,
       waitUntil: thenable => {
         if (!firing) throw errors.shouldNotAsync('waitUntil')
+        const participant = this.participantContext.getStore()
+        participant.enrolled = true
+        participant.waits++
         let timedOut = false
         let timer: NodeJS.Timeout | undefined
         let tp = new Promise(resolve => {
           timer = setTimeout(() => {
             timedOut = true
+            participant.active = false
             resolve(undefined)
           }, operationTimeout)
         })
         let promise = Promise.race([thenable, tp]).then(edit => {
           clearTimeout(timer)
           if (timedOut) {
-            logger.warn(`File operation waitUntil timed out after ${operationTimeout}ms, WorkspaceEdit from handler ignored`)
+            logger.warn(`File operation waitUntil timed out after ${operationTimeout}ms, further participant edits ignored`)
             return
           }
           if (edit && WorkspaceEdit.is(edit)) {
-            return this.applyEdit(edit, recovers)
+            return this.applyEventEdit(edit, participant)
           }
+        }).finally(() => {
+          clearTimeout(timer)
+          if (--participant.waits === 0) participant.active = false
         })
         promises.push(promise)
       }
-    } as any)
-    firing = false
-    await Promise.all(promises)
+    } as T
+    this.fileOperationEvents.set(event, operation)
+    try {
+      emitter.fire(event)
+      firing = false
+      await Promise.all(promises)
+    } finally {
+      firing = false
+      this.fileOperationEvents.delete(event)
+      for (const participant of operation.participants) participant.active = false
+      // A timeout/rejected handler cannot cancel a mutation already underway.
+      // Finish it under the outer lock before the file operation or rollback.
+      await operation.mutex.use(() => Promise.resolve())
+    }
   }
 }
 
