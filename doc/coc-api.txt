@@ -28,6 +28,24 @@ Watchman remains file-only. The options `ignoreCreateEvents`,
 `includeDirectories`. The existing boolean arguments remain supported.
 
 ------------------------------------------------------------------------------
+FILE OPERATION PARTICIPANTS                      *coc-api-file-operation*
+
+Use `waitUntil(promise)` in `workspace.onWillCreateFiles`,
+`workspace.onWillRenameFiles` or `workspace.onWillDeleteFiles` to return a
+WorkspaceEdit before the file operation proceeds.
+
+A local extension handler may also await `workspace.applyEdit()` inside that
+promise. These edits run sequentially and share the enclosing workspace edit's
+undo and rollback. Calls made after the handler finishes or exceeds
+`editor.fileOperationTimeout` return false. Edits already running are allowed to
+finish before the file operation or rollback continues.
+
+Calls without `waitUntil` remain separate, queued workspace edits. Other public
+file operations do not support this reentry. Language servers should return
+edits from their will-file request; a separate server-to-client
+`workspace/applyEdit` request has no participant identity and remains queued.
+
+------------------------------------------------------------------------------
 VIM SOURCES 					*coc-api-vim-source*
 
 During initialization, coc.nvim searches Vim's |runtimepath| for files

@@ -99833,10 +99833,11 @@ function fileMatch(root, relpath, pattern) {
 function fsPath(uri) {
   return uriToFsPath(uri);
 }
-var logger21, Files;
+var import_async_hooks, logger21, Files;
 var init_files = __esm({
   "src/core/files.ts"() {
     "use strict";
+    import_async_hooks = require("async_hooks");
     init_main();
     init_esm();
     init_commands();
@@ -99847,6 +99848,7 @@ var init_files = __esm({
     init_errors();
     init_fs();
     init_node();
+    init_mutex();
     init_object();
     init_protocol();
     init_string();
@@ -99863,6 +99865,8 @@ var init_files = __esm({
       configurations;
       workspaceFolderControl;
       keymaps;
+      participantContext = new import_async_hooks.AsyncLocalStorage();
+      fileOperationEvents = /* @__PURE__ */ new WeakMap();
       nvim;
       env;
       window;
@@ -99878,9 +99882,42 @@ var init_files = __esm({
       onDidCreateFiles = this._onDidCreateFiles.event;
       onDidRenameFiles = this._onDidRenameFiles.event;
       onDidDeleteFiles = this._onDidDeleteFiles.event;
-      onWillCreateFiles = this._onWillCreateFiles.event;
-      onWillRenameFiles = this._onWillRenameFiles.event;
-      onWillDeleteFiles = this._onWillDeleteFiles.event;
+      onWillCreateFiles = this.willFileEvent(this._onWillCreateFiles);
+      onWillRenameFiles = this.willFileEvent(this._onWillRenameFiles);
+      onWillDeleteFiles = this.willFileEvent(this._onWillDeleteFiles);
+      willFileEvent(emitter) {
+        return (listener, thisArgs, disposables) => emitter.event((event) => {
+          const operation = this.fileOperationEvents.get(event);
+          if (!operation) return listener.call(thisArgs, event);
+          const participant = {
+            operation,
+            active: true,
+            enrolled: false,
+            waits: 0
+          };
+          participant.operation.participants.push(participant);
+          try {
+            this.participantContext.run(participant, () => listener.call(thisArgs, event));
+          } finally {
+            if (participant.waits === 0) participant.active = false;
+          }
+        }, void 0, disposables);
+      }
+      /**
+       * Apply edits owned by a local will-file participant without reacquiring the
+       * workspace lock. Unrelated callers have no participant context.
+       */
+      applyParticipantEdit(edit2, fallback) {
+        const participant = this.participantContext.getStore();
+        if (!participant) return void 0;
+        return Promise.resolve().then(() => participant.enrolled ? this.applyEventEdit(edit2, participant) : this.participantContext.exit(fallback));
+      }
+      applyEventEdit(edit2, participant) {
+        return participant.operation.mutex.use(() => {
+          if (!participant.active) return Promise.resolve(false);
+          return this.participantContext.exit(() => this.applyEdit(edit2, participant.operation.recovers));
+        });
+      }
       attach(nvim, env, window2) {
         this.nvim = nvim;
         this.env = env;
@@ -100459,34 +100496,51 @@ var init_files = __esm({
       async fireWaitUntilEvent(emitter, properties, recovers) {
         let firing = true;
         let promises = [];
+        const operation = { recovers, mutex: new Mutex(), participants: [] };
         let operationTimeout = this.configurations.initialConfiguration.get("editor.fileOperationTimeout", 500);
-        emitter.fire({
+        const event = {
           ...properties,
           waitUntil: (thenable) => {
             if (!firing) throw shouldNotAsync("waitUntil");
+            const participant = this.participantContext.getStore();
+            participant.enrolled = true;
+            participant.waits++;
             let timedOut = false;
             let timer;
             let tp = new Promise((resolve) => {
               timer = setTimeout(() => {
                 timedOut = true;
+                participant.active = false;
                 resolve(void 0);
               }, operationTimeout);
             });
             let promise = Promise.race([thenable, tp]).then((edit2) => {
               clearTimeout(timer);
               if (timedOut) {
-                logger21.warn(`File operation waitUntil timed out after ${operationTimeout}ms, WorkspaceEdit from handler ignored`);
+                logger21.warn(`File operation waitUntil timed out after ${operationTimeout}ms, further participant edits ignored`);
                 return;
               }
               if (edit2 && WorkspaceEdit.is(edit2)) {
-                return this.applyEdit(edit2, recovers);
+                return this.applyEventEdit(edit2, participant);
               }
+            }).finally(() => {
+              clearTimeout(timer);
+              if (--participant.waits === 0) participant.active = false;
             });
             promises.push(promise);
           }
-        });
-        firing = false;
-        await Promise.all(promises);
+        };
+        this.fileOperationEvents.set(event, operation);
+        try {
+          emitter.fire(event);
+          firing = false;
+          await Promise.all(promises);
+        } finally {
+          firing = false;
+          this.fileOperationEvents.delete(event);
+          for (const participant of operation.participants) participant.active = false;
+          await operation.mutex.use(() => Promise.resolve());
+        }
       }
     };
   }
@@ -101525,6 +101579,7 @@ var init_workspace = __esm({
     init_constants();
     init_errors();
     init_fs();
+    init_mutex();
     init_node();
     init_object();
     init_processes();
@@ -101614,6 +101669,7 @@ var init_workspace = __esm({
        * @internal
        */
       statusLine = new StatusLine();
+      fileOperationMutex = new Mutex();
       _onDidRuntimePathChange = new import_node4.Emitter();
       onDidRuntimePathChange = this._onDidRuntimePathChange.event;
       fuzzyExports;
@@ -102100,26 +102156,31 @@ var init_workspace = __esm({
       /**
        * Apply WorkspaceEdit.
        *
+       * Local will-file handlers can await this through waitUntil. Their edits
+       * share the enclosing operation's recovery and are rejected after the handler
+       * finishes or times out. An edit already running is allowed to finish.
+       *
        * @param edit Workspace edit.
        * @param metadata Edit metadata, not used yet.
        * @returns True when the edit is applied.
        */
       applyEdit(edit2, metadata) {
-        return this.files.applyEdit(edit2);
+        const apply = () => this.fileOperationMutex.use(() => this.files.applyEdit(edit2));
+        return this.files.applyParticipantEdit(edit2, apply) ?? apply();
       }
       /**
        * Create a file in vim and disk
        */
       createFile(filepath, opts = {}) {
-        return this.files.createFile(filepath, opts);
+        return this.fileOperationMutex.use(() => this.files.createFile(filepath, opts));
       }
       /** Create a directory and its missing parent directories. */
       createDirectory(filepath) {
-        return this.files.createDirectory(filepath);
+        return this.fileOperationMutex.use(() => this.files.createDirectory(filepath));
       }
       /** Copy a file, symbolic link, or directory without overwriting the target. */
       copyFile(source, target) {
-        return this.files.copyFile(source, target);
+        return this.fileOperationMutex.use(() => this.files.copyFile(source, target));
       }
       /**
        * Load uri as document.
@@ -102137,13 +102198,13 @@ var init_workspace = __esm({
        * Rename file in vim and disk
        */
       async renameFile(oldPath, newPath, opts = {}) {
-        await this.files.renameFile(oldPath, newPath, opts);
+        await this.fileOperationMutex.use(() => this.files.renameFile(oldPath, newPath, opts));
       }
       /**
        * Delete file from vim and disk.
        */
       async deleteFile(filepath, opts = {}) {
-        await this.files.deleteFile(filepath, opts);
+        await this.fileOperationMutex.use(() => this.files.deleteFile(filepath, opts));
       }
       /**
        * Open resource by uri
@@ -145512,7 +145573,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-45a6f07 2026-09-30 05:11:27 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-d84dbf5 2026-10-01 07:30:56 -0700" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
