@@ -2,6 +2,12 @@
 
 Notable changes of coc.nvim:
 
+## 2026-10-01
+
+- Allow local will-file handlers to await `workspace.applyEdit()` through
+  `waitUntil` without reacquiring the file-operation lock. Reject expired
+  participant edits while completing edits already in progress.
+
 ## 2026-09-30
 
 - Notify language servers that support `workspace/didRenameFiles` of external

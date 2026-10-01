@@ -325,6 +325,274 @@ describe('applyEdits()', () => {
     fs.rmSync(newFile, { force: true })
   })
 
+  it('should apply an awaited public edit before completing the file operation', async () => {
+    shared.updateConfiguration('editor.fileOperationTimeout', 2000, disposables)
+    let doc = await shared.createDocument()
+    let newFile = path.join(tmpdir, crypto.randomUUID())
+    let order: string[] = []
+    let nested: Promise<boolean>
+    workspace.onWillCreateFiles(e => {
+      nested = Promise.resolve().then(async () => {
+        let applied = await workspace.applyEdit({
+          changes: { [doc.uri]: [TextEdit.insert(Position.create(0, 0), 'nested')] }
+        })
+        order.push('edit')
+        return applied
+      })
+      e.waitUntil(nested)
+    }, null, disposables)
+    workspace.onDidCreateFiles(() => { order.push('create') }, null, disposables)
+    await workspace.createFile(newFile)
+    assert.strictEqual(await nested, true)
+    assert.deepStrictEqual(order, ['edit', 'create'])
+  })
+
+  for (const kind of ['rename', 'delete']) {
+    it(`should await a public edit before ${kind}`, async () => {
+      shared.updateConfiguration('editor.fileOperationTimeout', 2000, disposables)
+      let source = await shared.createTmpFile('source')
+      let target = path.join(tmpdir, crypto.randomUUID())
+      let doc = await shared.createDocument()
+      let completed = false
+      const onWill = kind === 'rename' ? workspace.onWillRenameFiles : workspace.onWillDeleteFiles
+      onWill(e => {
+        e.waitUntil(workspace.applyEdit({
+          changes: { [doc.uri]: [TextEdit.insert(Position.create(0, 0), kind)] }
+        }).then(applied => {
+          assert.strictEqual(applied, true)
+          assert.strictEqual(fs.existsSync(source), true)
+          completed = true
+        }))
+      }, null, disposables)
+      if (kind === 'rename') await workspace.renameFile(source, target)
+      else await workspace.deleteFile(source)
+      assert.strictEqual(completed, true)
+      assert.strictEqual(doc.getline(0), kind)
+      assert.strictEqual(fs.existsSync(source), false)
+    })
+  }
+
+  it('should keep public edits without waitUntil on the ordinary queue', async () => {
+    let doc = await shared.createDocument()
+    let file = path.join(tmpdir, crypto.randomUUID())
+    let edit: Promise<boolean>
+    let order: string[] = []
+    workspace.onWillCreateFiles(() => {
+      edit = workspace.applyEdit({
+        changes: { [doc.uri]: [TextEdit.insert(Position.create(0, 0), 'later')] }
+      }).then(applied => {
+        order.push('edit')
+        return applied
+      })
+    }, null, disposables)
+    workspace.onDidCreateFiles(() => { order.push('create') }, null, disposables)
+    await workspace.createFile(file)
+    assert.strictEqual(await edit, true)
+    assert.deepStrictEqual(order, ['create', 'edit'])
+    assert.strictEqual(doc.getline(0), 'later')
+  })
+
+  it('should not apply a public edit from a timed out file operation handler', async () => {
+    shared.updateConfiguration('editor.fileOperationTimeout', 50, disposables)
+    let doc = await shared.createDocument()
+    let newFile = path.join(tmpdir, crypto.randomUUID())
+    let release: () => void
+    let gate = new Promise<void>(resolve => { release = resolve })
+    let nested: Promise<boolean>
+    workspace.onWillCreateFiles(e => {
+      nested = gate.then(() => workspace.applyEdit({
+        changes: { [doc.uri]: [TextEdit.insert(Position.create(0, 0), 'late')] }
+      }))
+      e.waitUntil(nested)
+    }, null, disposables)
+    await workspace.createFile(newFile)
+    release()
+    assert.strictEqual(await nested, false)
+    assert.strictEqual(doc.getline(0), '')
+  })
+
+  it('should serialize sibling and returned edits from different file operation participants', async t => {
+    shared.updateConfiguration('editor.fileOperationTimeout', 2000, disposables)
+    let doc = await shared.createDocument()
+    let newFile = path.join(tmpdir, crypto.randomUUID())
+    let active = 0
+    let maxActive = 0
+    let seen: string[] = []
+    const applyEdits = doc.applyEdits.bind(doc)
+    t.mock.method(doc, 'applyEdits', async (edits: TextEdit[], joinUndo?: boolean, move?: boolean | Position) => {
+      active++
+      maxActive = Math.max(maxActive, active)
+      seen.push(edits[0].newText)
+      await new Promise(resolve => setImmediate(resolve))
+      try {
+        return await applyEdits(edits, joinUndo, move)
+      } finally {
+        active--
+      }
+    })
+    const edit = (text: string): WorkspaceEdit => ({
+      changes: { [doc.uri]: [TextEdit.insert(Position.create(0, 0), text)] }
+    })
+    workspace.onWillCreateFiles(e => {
+      e.waitUntil(Promise.all([workspace.applyEdit(edit('a')), workspace.applyEdit(edit('b'))]))
+    }, null, disposables)
+    workspace.onWillCreateFiles(e => {
+      e.waitUntil(Promise.resolve(edit('c')))
+    }, null, disposables)
+
+    await workspace.createFile(newFile)
+
+    assert.strictEqual(maxActive, 1)
+    assert.deepStrictEqual(seen, ['a', 'b', 'c'])
+    assert.strictEqual(doc.getline(0), 'cba')
+  })
+
+  for (const failure of [false, true]) {
+    it(`should include nested public participant edits in ${failure ? 'rollback' : 'undo'}`, async () => {
+      shared.updateConfiguration('editor.fileOperationTimeout', 2000, disposables)
+      let doc = await shared.createDocument()
+      let outer = path.join(tmpdir, crypto.randomUUID())
+      let inner = path.join(tmpdir, crypto.randomUUID())
+      let changes = [CreateFile.create(URI.file(outer).toString())]
+      let results: boolean[] = []
+      workspace.onWillCreateFiles(e => {
+        if (e.files[0].fsPath === outer) {
+          e.waitUntil(workspace.applyEdit({
+            documentChanges: [
+              CreateFile.create(URI.file(inner).toString()),
+              TextDocumentEdit.create({ uri: doc.uri, version: null }, [
+                TextEdit.insert(Position.create(0, 0), 'outer')
+              ])
+            ]
+          }).then(applied => { results.push(applied) }))
+        } else if (e.files[0].fsPath === inner) {
+          e.waitUntil(workspace.applyEdit({
+            changes: { [doc.uri]: [TextEdit.insert(Position.create(0, 0), 'inner')] }
+          }).then(applied => { results.push(applied) }))
+        }
+      }, null, disposables)
+      let documentChanges = failure
+        ? [...changes, DeleteFile.create(URI.file(path.join(tmpdir, crypto.randomUUID())).toString())]
+        : changes
+
+      assert.strictEqual(await workspace.applyEdit({ documentChanges }), !failure)
+      assert.deepStrictEqual(results, [true, true])
+      if (!failure) {
+        assert.strictEqual(doc.getline(0), 'outerinner')
+        assert.strictEqual(fs.existsSync(outer), true)
+        assert.strictEqual(fs.existsSync(inner), true)
+        await workspace.files.undoWorkspaceEdit()
+      }
+      assert.strictEqual(doc.getline(0), '')
+      assert.strictEqual(fs.existsSync(outer), false)
+      assert.strictEqual(fs.existsSync(inner), false)
+    })
+  }
+
+  it('should keep unrelated public operations outside the participant queue', async () => {
+    shared.updateConfiguration('editor.fileOperationTimeout', 2000, disposables)
+    let doc = await shared.createDocument()
+    let outer = path.join(tmpdir, crypto.randomUUID())
+    let unrelated = path.join(tmpdir, crypto.randomUUID())
+    let entered: () => void
+    let started = new Promise<void>(resolve => { entered = resolve })
+    let release: () => void
+    let gate = new Promise<void>(resolve => { release = resolve })
+    let order: string[] = []
+    workspace.onWillCreateFiles(e => {
+      if (e.files[0].fsPath !== outer) return
+      entered()
+      e.waitUntil(gate.then(async () => {
+        assert.strictEqual(await workspace.applyEdit({
+          changes: { [doc.uri]: [TextEdit.insert(Position.create(0, 0), 'nested')] }
+        }), true)
+        order.push('edit')
+      }))
+    }, null, disposables)
+    workspace.onDidCreateFiles(e => { order.push(e.files[0].fsPath) }, null, disposables)
+    let first = workspace.createFile(outer)
+    await started
+    let second = workspace.createFile(unrelated)
+    try {
+      await new Promise(resolve => setImmediate(resolve))
+      assert.deepStrictEqual(order, [])
+      assert.strictEqual(fs.existsSync(unrelated), false)
+    } finally {
+      release()
+    }
+    await Promise.all([first, second])
+    assert.deepStrictEqual(order, ['edit', outer, unrelated])
+  })
+
+  it('should drain a started participant edit and drop queued edits on timeout', async t => {
+    shared.updateConfiguration('editor.fileOperationTimeout', 30, disposables)
+    let doc = await shared.createDocument()
+    let file = path.join(tmpdir, crypto.randomUUID())
+    let entered: () => void
+    let started = new Promise<void>(resolve => { entered = resolve })
+    let release: () => void
+    let gate = new Promise<void>(resolve => { release = resolve })
+    let finished = false
+    let edits: Promise<boolean>[]
+    const applyEdits = doc.applyEdits.bind(doc)
+    t.mock.method(doc, 'applyEdits', async (edits: TextEdit[], joinUndo?: boolean, move?: boolean | Position) => {
+      entered()
+      await gate
+      return await applyEdits(edits, joinUndo, move)
+    })
+    workspace.onWillCreateFiles(e => {
+      edits = ['first', 'queued'].map(text => workspace.applyEdit({
+        changes: { [doc.uri]: [TextEdit.insert(Position.create(0, 0), text)] }
+      }))
+      e.waitUntil(Promise.all(edits))
+    }, null, disposables)
+    let operation = workspace.createFile(file).then(() => { finished = true })
+    await started
+    try {
+      await shared.wait(60)
+      assert.strictEqual(finished, false)
+      assert.strictEqual(fs.existsSync(file), false)
+    } finally {
+      release()
+    }
+    await operation
+    assert.deepStrictEqual(await Promise.all(edits), [true, false])
+    assert.strictEqual(doc.getline(0), 'first')
+  })
+
+  it('should finish an active participant edit before rolling back a rejected handler', async t => {
+    shared.updateConfiguration('editor.fileOperationTimeout', 2000, disposables)
+    let doc = await shared.createDocument()
+    let file = path.join(tmpdir, crypto.randomUUID())
+    let entered: () => void
+    let started = new Promise<void>(resolve => { entered = resolve })
+    let release: () => void
+    let gate = new Promise<void>(resolve => { release = resolve })
+    const applyEdits = doc.applyEdits.bind(doc)
+    t.mock.method(doc, 'applyEdits', async (edits: TextEdit[], joinUndo?: boolean, move?: boolean | Position) => {
+      entered()
+      await gate
+      return await applyEdits(edits, joinUndo, move)
+    })
+    workspace.onWillCreateFiles(e => {
+      e.waitUntil(workspace.applyEdit({
+        changes: { [doc.uri]: [TextEdit.insert(Position.create(0, 0), 'nested')] }
+      }))
+    }, null, disposables)
+    workspace.onWillCreateFiles(e => {
+      e.waitUntil(started.then(() => { throw new Error('participant failed') }))
+    }, null, disposables)
+    let operation = workspace.applyEdit({
+      documentChanges: [CreateFile.create(URI.file(file).toString())]
+    })
+    await started
+    await new Promise(resolve => setImmediate(resolve))
+    release()
+    assert.strictEqual(await operation, false)
+    assert.strictEqual(doc.getline(0), '')
+    assert.strictEqual(fs.existsSync(file), false)
+  })
+
   it('should drop waitUntil edit after default timeout', async t => {
     shared.updateConfiguration('editor.fileOperationTimeout', 50, disposables)
     let file = await shared.createTmpFile('content')

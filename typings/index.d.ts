@@ -10663,6 +10663,12 @@ declare module 'coc.nvim' {
 
     /**
      * Apply WorkspaceEdit.
+     *
+     * Local onWillCreateFiles, onWillRenameFiles and onWillDeleteFiles handlers
+     * can await this through waitUntil. Edits share the enclosing operation's
+     * recovery. Calls after the handler finishes or times out return false;
+     * edits already running finish before the file operation continues.
+     * Returning a WorkspaceEdit from waitUntil is still preferred.
      */
     export function applyEdit(edit: WorkspaceEdit, metadata?: WorkspaceEditMetadata): Promise<boolean>
 
