@@ -1903,7 +1903,7 @@ export abstract class BaseLanguageClient implements FeatureClient<Middleware, La
   }
 
   private doHandleApplyWorkspaceEdit(params: ApplyWorkspaceEditParams): Promise<ApplyWorkspaceEditResult> {
-    return workspace.applyEdit(params.edit).then(applied => {
+    return workspace.files.applyEdit(params.edit).then(applied => {
       return { applied }
     })
   }
