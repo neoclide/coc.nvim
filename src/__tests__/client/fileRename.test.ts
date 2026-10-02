@@ -225,18 +225,26 @@ describe('FileRenameFeature', () => {
   it('should notify the server of real external file and directory renames', async t => {
     const file = rename()
     const folder = rename('old-folder', 'new-folder')
-    fs.writeFileSync(file.oldUri.fsPath, 'text')
-    fs.mkdirSync(folder.oldUri.fsPath)
     await startClient(t, [{ pattern: { glob: '**/*' } }])
     const native = await NativeWatcher.createClient(dir, shared.createNullChannel())
+    const created = new Set<string>()
+    const subscription = native.subscribe('**/*', change => {
+      for (const file of change.files) {
+        if (file.exists && file.new) created.add(file.name)
+      }
+    }, true)
     try {
       watchers[0].listen(dir, native)
+      fs.writeFileSync(file.oldUri.fsPath, 'text')
+      fs.mkdirSync(folder.oldUri.fsPath)
+      await shared.waitValue(() => created.has('old.ts') && created.has('old-folder'), true)
       fs.renameSync(file.oldUri.fsPath, file.newUri.fsPath)
       await shared.waitValue(async () => (await received()).length, 1)
       fs.renameSync(folder.oldUri.fsPath, folder.newUri.fsPath)
       await shared.waitValue(async () => (await received()).length, 2)
       assert.deepStrictEqual(await received(), [params(file), params(folder)])
     } finally {
+      subscription.dispose()
       native.dispose()
     }
   })

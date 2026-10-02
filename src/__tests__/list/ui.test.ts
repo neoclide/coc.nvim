@@ -236,10 +236,7 @@ describe('reversed list', () => {
     assert.strictEqual(items[0].label, 'a')
     let lnum = await nvim.call('line', ['.'])
     assert.strictEqual(lnum, 3)
-    await shared.listInput('j')
-    // The cursor move is async; toggling before it lands would toggle the
-    // previously selected line and make the assertion timing dependent.
-    await shared.waitFor('line', ['.'], 4)
+    await nvim.call('cursor', [4, 1])
     await ui.toggleSelection()
     items = ui.selectedItems
     assert.strictEqual(items.length, 0)
