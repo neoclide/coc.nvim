@@ -127613,7 +127613,7 @@ ${error.message}`;
         if (collection) collection.set(uri, diagnostics);
       }
       doHandleApplyWorkspaceEdit(params) {
-        return workspace_default.applyEdit(params.edit).then((applied) => {
+        return workspace_default.files.applyEdit(params.edit).then((applied) => {
           return { applied };
         });
       }
@@ -132886,6 +132886,8 @@ function createEditorTools() {
       handler: async (_args, context) => {
         let editor = window_default.activeTextEditor;
         if (!editor) return errorResult("No active editor");
+        let denied = checkPath(editor.document.uri);
+        if (denied) return errorResult(denied);
         let doc = editor.document;
         let nvim = workspace_default.nvim;
         let cursor = await window_default.getCursorPosition();
@@ -145573,7 +145575,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-d84dbf5 2026-10-01 07:30:56 -0700" : "");
+        let version2 = workspace_default.version + (true ? "-66ccb72 2026-10-03 10:48:47 -0300" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
