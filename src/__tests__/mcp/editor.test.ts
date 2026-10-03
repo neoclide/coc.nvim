@@ -163,6 +163,17 @@ describe('mcp editor tools', () => {
     }
   })
 
+  it('editor/state refuses an active document under mcp.deniedPaths', async t => {
+    workspace.configurations.updateMemoryConfig({ 'mcp.deniedPaths': [path.join(tmpdir, '**')] })
+    try {
+      let result = await tool().handler({}, { token })
+      assert.strictEqual(result.isError, true)
+      assert.ok(result.content[0].text.includes('mcp.deniedPaths'))
+    } finally {
+      workspace.configurations.updateMemoryConfig({ 'mcp.deniedPaths': [] })
+    }
+  })
+
   it('editor/state returns null selection outside visual mode', async t => {
     await workspace.nvim.input('v<esc>')
     let result = await tool().handler({}, { token })
