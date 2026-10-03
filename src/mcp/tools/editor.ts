@@ -6,7 +6,7 @@ import type Document from '../../model/document'
 import window from '../../window'
 import workspace from '../../workspace'
 import type { McpTool, ToolContext } from './index'
-import { errorResult, textResult } from './util'
+import { checkPath, errorResult, textResult } from './util'
 import { configuredServiceId, getDocumentSymbolResult, symbolKindName } from './lsp'
 import { positionInRange } from '../../util/position'
 
@@ -150,6 +150,11 @@ export function createEditorTools(): McpTool[] {
       handler: async (_args: any, context: ToolContext) => {
         let editor = window.activeTextEditor
         if (!editor) return errorResult('No active editor')
+        // The active document is subject to the same path policy as any
+        // explicit uri: a denied file that happens to have focus must not
+        // leak its lines, selection and symbols through this snapshot.
+        let denied = checkPath(editor.document.uri)
+        if (denied) return errorResult(denied)
         let doc = editor.document
         let nvim = workspace.nvim
         let cursor = await window.getCursorPosition()
