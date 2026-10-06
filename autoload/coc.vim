@@ -7,7 +7,6 @@ let s:is_vim = !has('nvim')
 let s:utf = has('nvim') || &encoding =~# '^utf'
 let s:error_sign = get(g:, 'coc_status_error_sign', has('mac') && s:utf ? "\u274c " : 'E ')
 let s:warning_sign = get(g:, 'coc_status_warning_sign', has('mac') && s:utf ? "\u26a0\ufe0f " : 'W ')
-let s:select_api = exists('*nvim_select_popupmenu_item')
 let s:callbacks = {}
 let s:fns = ['init', 'complete', 'should_complete', 'refresh', 'get_startcol', 'on_complete', 'on_enter']
 let s:all_fns = s:fns + map(copy(s:fns), 'toupper(strpart(v:val, 0, 1)) . strpart(v:val, 1)')
