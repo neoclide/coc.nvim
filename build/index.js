@@ -3457,7 +3457,7 @@ var require_commonjs2 = __commonJS({
   "node_modules/brace-expansion/dist/commonjs/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.EXPANSION_MAX_LENGTH = exports2.EXPANSION_MAX = void 0;
+    exports2.EXPANSION_MAX_REWRITES = exports2.EXPANSION_MAX_DEPTH = exports2.EXPANSION_MAX_LENGTH = exports2.EXPANSION_MAX = void 0;
     exports2.expand = expand3;
     var balanced_match_1 = require_commonjs();
     var escSlash2 = "\0SLASH" + Math.random() + "\0";
@@ -3477,6 +3477,8 @@ var require_commonjs2 = __commonJS({
     var periodPattern2 = /\\\./g;
     exports2.EXPANSION_MAX = 1e5;
     exports2.EXPANSION_MAX_LENGTH = 4e6;
+    exports2.EXPANSION_MAX_DEPTH = 1e3;
+    exports2.EXPANSION_MAX_REWRITES = 1e3;
     function numeric2(str) {
       return !isNaN(str) ? parseInt(str, 10) : str.charCodeAt(0);
     }
@@ -3486,36 +3488,44 @@ var require_commonjs2 = __commonJS({
     function unescapeBraces2(str) {
       return str.replace(escSlashPattern2, "\\").replace(escOpenPattern2, "{").replace(escClosePattern2, "}").replace(escCommaPattern2, ",").replace(escPeriodPattern2, ".");
     }
+    function pushAll2(target, items) {
+      for (let i2 = 0; i2 < items.length; i2++) {
+        target.push(items[i2]);
+      }
+    }
     function parseCommaParts2(str) {
-      if (!str) {
-        return [""];
-      }
       const parts = [];
-      const m2 = (0, balanced_match_1.balanced)("{", "}", str);
-      if (!m2) {
-        return str.split(",");
+      let carry = "";
+      for (; ; ) {
+        const m2 = (0, balanced_match_1.balanced)("{", "}", str);
+        if (!m2) {
+          const tail = str.split(",");
+          tail[0] = carry + tail[0];
+          pushAll2(parts, tail);
+          return parts;
+        }
+        const { pre, body, post } = m2;
+        const p2 = pre.split(",");
+        p2[0] = carry + p2[0];
+        p2[p2.length - 1] += "{" + body + "}";
+        if (!post.length) {
+          pushAll2(parts, p2);
+          return parts;
+        }
+        carry = p2.pop();
+        pushAll2(parts, p2);
+        str = post;
       }
-      const { pre, body, post } = m2;
-      const p2 = pre.split(",");
-      p2[p2.length - 1] += "{" + body + "}";
-      const postParts = parseCommaParts2(post);
-      if (post.length) {
-        ;
-        p2[p2.length - 1] += postParts.shift();
-        p2.push.apply(p2, postParts);
-      }
-      parts.push.apply(parts, p2);
-      return parts;
     }
     function expand3(str, options3 = {}) {
       if (!str) {
         return [];
       }
-      const { max = exports2.EXPANSION_MAX, maxLength = exports2.EXPANSION_MAX_LENGTH } = options3;
+      const { max = exports2.EXPANSION_MAX, maxLength = exports2.EXPANSION_MAX_LENGTH, maxDepth = exports2.EXPANSION_MAX_DEPTH, maxRewrites = exports2.EXPANSION_MAX_REWRITES } = options3;
       if (str.slice(0, 2) === "{}") {
         str = "\\{\\}" + str.slice(2);
       }
-      return expand_2(escapeBraces2(str), max, maxLength, true).map(unescapeBraces2);
+      return expand_2(escapeBraces2(str), max, maxLength, maxDepth, 0, maxRewrites, true).map(unescapeBraces2);
     }
     function embrace2(str) {
       return "{" + str + "}";
@@ -3593,8 +3603,12 @@ var require_commonjs2 = __commonJS({
       }
       return N;
     }
-    function expand_2(str, max, maxLength, isTop) {
+    function expand_2(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
+      if (depth > maxDepth) {
+        return [str];
+      }
       let acc = [""];
+      let rewrites = 0;
       let dropEmpties = false;
       let firstGroup = true;
       for (; ; ) {
@@ -3616,7 +3630,8 @@ var require_commonjs2 = __commonJS({
         const isSequence = isNumericSequence || isAlphaSequence;
         const isOptions = m2.body.indexOf(",") >= 0;
         if (!isSequence && !isOptions) {
-          if (m2.post.match(/,(?!,).*\}/)) {
+          if (rewrites < maxRewrites && m2.post.match(/,(?!,).*\}/)) {
+            rewrites++;
             str = m2.pre + "{" + m2.body + escClose2 + m2.post;
             isTop = true;
             continue;
@@ -3633,7 +3648,7 @@ var require_commonjs2 = __commonJS({
         } else {
           let n2 = parseCommaParts2(m2.body);
           if (n2.length === 1 && n2[0] !== void 0) {
-            n2 = expand_2(n2[0], max, maxLength, false).map(embrace2);
+            n2 = expand_2(n2[0], max, maxLength, maxDepth, depth + 1, maxRewrites, false).map(embrace2);
             if (n2.length === 1) {
               acc = combine2(acc, pre + n2[0], [""], max, maxLength, dropEmpties && !m2.post.length);
               if (!m2.post.length)
@@ -3651,7 +3666,7 @@ var require_commonjs2 = __commonJS({
           values = [];
           let valuesLength = 0;
           outer: for (let j = 0; j < n2.length; j++) {
-            const expanded = expand_2(n2[j], max, maxLength, false);
+            const expanded = expand_2(n2[j], max, maxLength, maxDepth, depth + 1, maxRewrites, false);
             for (let k = 0; k < expanded.length; k++) {
               const v2 = expanded[k];
               if (dropsEmpties && !v2)
@@ -95894,36 +95909,44 @@ function escapeBraces(str) {
 function unescapeBraces(str) {
   return str.replace(escSlashPattern, "\\").replace(escOpenPattern, "{").replace(escClosePattern, "}").replace(escCommaPattern, ",").replace(escPeriodPattern, ".");
 }
+function pushAll(target, items) {
+  for (let i2 = 0; i2 < items.length; i2++) {
+    target.push(items[i2]);
+  }
+}
 function parseCommaParts(str) {
-  if (!str) {
-    return [""];
-  }
   const parts = [];
-  const m2 = balanced("{", "}", str);
-  if (!m2) {
-    return str.split(",");
+  let carry = "";
+  for (; ; ) {
+    const m2 = balanced("{", "}", str);
+    if (!m2) {
+      const tail = str.split(",");
+      tail[0] = carry + tail[0];
+      pushAll(parts, tail);
+      return parts;
+    }
+    const { pre, body, post } = m2;
+    const p2 = pre.split(",");
+    p2[0] = carry + p2[0];
+    p2[p2.length - 1] += "{" + body + "}";
+    if (!post.length) {
+      pushAll(parts, p2);
+      return parts;
+    }
+    carry = p2.pop();
+    pushAll(parts, p2);
+    str = post;
   }
-  const { pre, body, post } = m2;
-  const p2 = pre.split(",");
-  p2[p2.length - 1] += "{" + body + "}";
-  const postParts = parseCommaParts(post);
-  if (post.length) {
-    ;
-    p2[p2.length - 1] += postParts.shift();
-    p2.push.apply(p2, postParts);
-  }
-  parts.push.apply(parts, p2);
-  return parts;
 }
 function expand2(str, options3 = {}) {
   if (!str) {
     return [];
   }
-  const { max = EXPANSION_MAX, maxLength = EXPANSION_MAX_LENGTH } = options3;
+  const { max = EXPANSION_MAX, maxLength = EXPANSION_MAX_LENGTH, maxDepth = EXPANSION_MAX_DEPTH, maxRewrites = EXPANSION_MAX_REWRITES } = options3;
   if (str.slice(0, 2) === "{}") {
     str = "\\{\\}" + str.slice(2);
   }
-  return expand_(escapeBraces(str), max, maxLength, true).map(unescapeBraces);
+  return expand_(escapeBraces(str), max, maxLength, maxDepth, 0, maxRewrites, true).map(unescapeBraces);
 }
 function embrace(str) {
   return "{" + str + "}";
@@ -96001,8 +96024,12 @@ function expandSequence(body, isAlphaSequence, max, maxLength) {
   }
   return N;
 }
-function expand_(str, max, maxLength, isTop) {
+function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
+  if (depth > maxDepth) {
+    return [str];
+  }
   let acc = [""];
+  let rewrites = 0;
   let dropEmpties = false;
   let firstGroup = true;
   for (; ; ) {
@@ -96024,7 +96051,8 @@ function expand_(str, max, maxLength, isTop) {
     const isSequence = isNumericSequence || isAlphaSequence;
     const isOptions = m2.body.indexOf(",") >= 0;
     if (!isSequence && !isOptions) {
-      if (m2.post.match(/,(?!,).*\}/)) {
+      if (rewrites < maxRewrites && m2.post.match(/,(?!,).*\}/)) {
+        rewrites++;
         str = m2.pre + "{" + m2.body + escClose + m2.post;
         isTop = true;
         continue;
@@ -96041,7 +96069,7 @@ function expand_(str, max, maxLength, isTop) {
     } else {
       let n2 = parseCommaParts(m2.body);
       if (n2.length === 1 && n2[0] !== void 0) {
-        n2 = expand_(n2[0], max, maxLength, false).map(embrace);
+        n2 = expand_(n2[0], max, maxLength, maxDepth, depth + 1, maxRewrites, false).map(embrace);
         if (n2.length === 1) {
           acc = combine(acc, pre + n2[0], [""], max, maxLength, dropEmpties && !m2.post.length);
           if (!m2.post.length)
@@ -96059,7 +96087,7 @@ function expand_(str, max, maxLength, isTop) {
       values = [];
       let valuesLength = 0;
       outer: for (let j = 0; j < n2.length; j++) {
-        const expanded = expand_(n2[j], max, maxLength, false);
+        const expanded = expand_(n2[j], max, maxLength, maxDepth, depth + 1, maxRewrites, false);
         for (let k = 0; k < expanded.length; k++) {
           const v2 = expanded[k];
           if (dropsEmpties && !v2)
@@ -96079,7 +96107,7 @@ function expand_(str, max, maxLength, isTop) {
   }
   return acc;
 }
-var escSlash, escOpen, escClose, escComma, escPeriod, escSlashPattern, escOpenPattern, escClosePattern, escCommaPattern, escPeriodPattern, slashPattern, openPattern, closePattern, commaPattern, periodPattern, EXPANSION_MAX, EXPANSION_MAX_LENGTH;
+var escSlash, escOpen, escClose, escComma, escPeriod, escSlashPattern, escOpenPattern, escClosePattern, escCommaPattern, escPeriodPattern, slashPattern, openPattern, closePattern, commaPattern, periodPattern, EXPANSION_MAX, EXPANSION_MAX_LENGTH, EXPANSION_MAX_DEPTH, EXPANSION_MAX_REWRITES;
 var init_esm3 = __esm({
   "node_modules/brace-expansion/dist/esm/index.js"() {
     init_esm2();
@@ -96100,6 +96128,8 @@ var init_esm3 = __esm({
     periodPattern = /\\\./g;
     EXPANSION_MAX = 1e5;
     EXPANSION_MAX_LENGTH = 4e6;
+    EXPANSION_MAX_DEPTH = 1e3;
+    EXPANSION_MAX_REWRITES = 1e3;
   }
 });
 
@@ -145575,7 +145605,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-66ccb72 2026-10-03 10:48:47 -0300" : "");
+        let version2 = workspace_default.version + (true ? "-44e2547 2026-10-07 19:19:52 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
