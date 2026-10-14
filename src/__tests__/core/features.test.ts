@@ -593,7 +593,7 @@ describe('WorkspaceFolderController', () => {
     }
 
     it('should resolve to cwd for file in cwd', async t => {
-      updateConfiguration('workspace.rootPatterns', [], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.rootPatterns', [], ['.vim/coc-settings.json', '.git', '.hg', '.projections.json'])
       let file = path.join(os.tmpdir(), 'foo')
       let doc = await shared.createDocument(file)
       let res = workspaceFolder.resolveRoot(doc, os.tmpdir(), false, expand)
@@ -601,7 +601,7 @@ describe('WorkspaceFolderController', () => {
     })
 
     it('should ignore cwd by ignore pattern', async t => {
-      updateConfiguration('workspace.rootPatterns', [], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.rootPatterns', [], ['.vim/coc-settings.json', '.git', '.hg', '.projections.json'])
       updateConfiguration('workspace.ignoredFolders', ['**/*'], ['$HOME'])
       let file = path.join(os.tmpdir(), 'foo')
       let doc = await shared.createDocument(file)
@@ -610,7 +610,7 @@ describe('WorkspaceFolderController', () => {
     })
 
     it('should not fallback to cwd as workspace folder', async t => {
-      updateConfiguration('workspace.rootPatterns', [], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.rootPatterns', [], ['.vim/coc-settings.json', '.git', '.hg', '.projections.json'])
       updateConfiguration('workspace.workspaceFolderFallbackCwd', false, true)
       let file = path.join(os.tmpdir(), 'foo')
       await nvim.command(`edit ${file}`)
@@ -667,7 +667,7 @@ describe('WorkspaceFolderController', () => {
     })
 
     it('should respect specific filetype for bottomUpFileTypes', async t => {
-      updateConfiguration('workspace.rootPatterns', ['.vim'], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.rootPatterns', ['.vim'], ['.vim/coc-settings.json', '.git', '.hg', '.projections.json'])
       updateConfiguration('workspace.bottomUpFiletypes', ['vim'], [])
       let root = path.join(os.tmpdir(), 'a')
       let dir = path.join(root, '.vim')
@@ -681,7 +681,7 @@ describe('WorkspaceFolderController', () => {
     })
 
     it('should respect wildcard', async t => {
-      updateConfiguration('workspace.rootPatterns', ['.vim'], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.rootPatterns', ['.vim'], ['.vim/coc-settings.json', '.git', '.hg', '.projections.json'])
       updateConfiguration('workspace.bottomUpFiletypes', ['*'], [])
       let root = path.join(os.tmpdir(), 'a')
       let dir = path.join(root, '.vim')

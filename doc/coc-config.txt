@@ -61,7 +61,7 @@ WORKSPACE
 	Root patterns used to resolve the workspaceFolder from the parent
 	folders of opened files, resolved from the top down.
 
-	Scope: `application`, default: `[".git",".hg",".projections.json"]`
+	Scope: `application`, default: `[".vim/coc-settings.json",".git",".hg",".projections.json"]`
 
 "workspace.bottomUpFiletypes"				*coc-config-workspace-bottomUpFiletypes*
 
