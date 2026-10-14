@@ -2,6 +2,12 @@
 
 Notable changes of coc.nvim:
 
+## 2026-10-14
+
+- Add persistent input history to input dialogs: `<up>`/`<down>` recall
+  previously accepted inputs, persisted as the `input_history` file under the
+  coc data home.
+
 ## 2026-10-01
 
 - Allow local will-file handlers to await `workspace.applyEdit()` through
