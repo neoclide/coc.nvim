@@ -1248,6 +1248,10 @@ A snippet session is deactivated under the following conditions:
   • Autocmd |InsertEnter| triggered outside snippet.
   • Jump to the final placeholder.
 
+When the final tabstop ($0) occurs more than once, snippet mode ends and
+|coc-cursors| keeps those locations synchronized, matching VS Code. Use the
+cursors cancel key in Normal mode (default <esc>) to stop synchronized editing.
+
 Use |:CocOpenLog| to check out the cancel reason.
 Use |CocAction('snippetCancel')| to cancel a snippet session manually.
 

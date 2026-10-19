@@ -2,6 +2,11 @@
 
 Notable changes of coc.nvim:
 
+## 2026-10-19
+
+- Keep repeated `$0` snippet tabstops synchronized using multiple cursors after
+  exiting snippet mode, matching VS Code (#5774).
+
 ## 2026-10-01
 
 - Allow local will-file handlers to await `workspace.applyEdit()` through

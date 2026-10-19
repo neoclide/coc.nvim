@@ -106715,8 +106715,10 @@ var init_session = __esm({
         if (current && current.index === 0) {
           const { snippet } = current;
           if (snippet === this.snippet.tmSnippet) {
+            const ranges = snippet.placeholders.filter((p2) => p2.index === 0 && !p2.transform).map((p2) => this.snippet.getPlaceholderByMarker(p2).range);
             logger28.info("Jump to final placeholder, cancelling snippet session");
             this.deactivate();
+            if (ranges.length > 1) window_default.cursors.createSession(this.document).addRanges(ranges);
           } else {
             let marker = snippet.parent;
             this.snippet.deactivateSnippet(snippet);
@@ -145605,7 +145607,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-44e2547 2026-10-07 19:19:52 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-e9fe066 2026-10-19 20:15:34 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
