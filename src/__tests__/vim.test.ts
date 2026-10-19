@@ -1565,6 +1565,23 @@ describe('document', () => {
     })
   }
 
+  it('should mirror final tabstops after exiting snippet mode in Vim (#5774)', async () => {
+    try {
+      const doc = await shared.createDocument()
+      await snippetManager.insertSnippet('printf("$0 = %s", $0);')
+      assert.strictEqual(snippetManager.isActivated(doc.bufnr), false)
+      await shared.waitFor('mode', [], 'i')
+      await nvim.input('test')
+      await shared.waitFor('getline', ['.'], 'printf("test = %s", test);')
+      window.cursors.cancel(doc.bufnr)
+      await nvim.input('x')
+      await shared.waitFor('getline', ['.'], 'printf("testx = %s", test);')
+    } finally {
+      window.cursors.reset()
+      await editorReset()
+    }
+  })
+
   it('should still expand and navigate snippets in Vim (#5750)', async () => {
     try {
       await shared.createDocument()
