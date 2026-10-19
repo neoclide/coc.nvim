@@ -661,6 +661,17 @@ describe('fs', () => {
       let res = inDirectory(import.meta.dirname, ['**/file_not_exist.json'])
       assert.strictEqual(res, false)
     })
+
+    it('should support relative path pattern', async () => {
+      let root = path.join(os.tmpdir(), `inDirectory-${process.pid}`)
+      fs.rmSync(root, { recursive: true, force: true })
+      fs.mkdirSync(path.join(root, '.vim'), { recursive: true })
+      assert.strictEqual(inDirectory(root, ['.vim/coc-settings.json']), false, 'empty .vim folder should not match')
+      fs.writeFileSync(path.join(root, '.vim', 'coc-settings.json'), '{}')
+      assert.strictEqual(inDirectory(root, ['.vim/coc-settings.json']), true)
+      assert.strictEqual(inDirectory(root, ['.vim']), true)
+      fs.rmSync(root, { recursive: true, force: true })
+    })
   })
 
   describe('parentDirs', () => {
