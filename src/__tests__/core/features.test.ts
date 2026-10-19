@@ -692,6 +692,51 @@ describe('WorkspaceFolderController', () => {
       let res = workspaceFolder.resolveRoot(doc, file, true, expand)
       assert.strictEqual(res, root)
     })
+
+    it('should resolve standalone project by default .vim/coc-settings.json pattern', async t => {
+      updateConfiguration('workspace.bottomUpFiletypes', [], [])
+      updateConfiguration('workspace.ignoredFolders', ['$HOME', os.tmpdir()], [])
+      updateConfiguration('workspace.workspaceFolderFallbackCwd', false, true)
+      let root = path.join(os.tmpdir(), `vim-default-${process.pid}`)
+      fs.rmSync(root, { recursive: true, force: true })
+      try {
+        // an empty .vim folder (no coc-settings.json) is not a root marker
+        let empty = path.join(root, 'empty')
+        fs.mkdirSync(path.join(empty, '.vim'), { recursive: true })
+        let doc = await shared.createDocument(path.join(empty, 't.vim'))
+        let res = workspaceFolder.resolveRoot(doc, empty, false, expand)
+        assert.strictEqual(res, null)
+        // .vim/coc-settings.json marks the project as workspace root
+        let proj = path.join(root, 'proj')
+        fs.mkdirSync(path.join(proj, '.vim'), { recursive: true })
+        fs.writeFileSync(path.join(proj, '.vim', 'coc-settings.json'), '{}')
+        doc = await shared.createDocument(path.join(proj, 't.vim'))
+        res = workspaceFolder.resolveRoot(doc, proj, false, expand)
+        assert.strictEqual(res, proj)
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true })
+      }
+    })
+
+    it('should resolve git project to ancestor .vim/coc-settings.json by default patterns', async t => {
+      updateConfiguration('workspace.bottomUpFiletypes', [], [])
+      updateConfiguration('workspace.ignoredFolders', ['$HOME', os.tmpdir()], [])
+      updateConfiguration('workspace.workspaceFolderFallbackCwd', false, true)
+      let root = path.join(os.tmpdir(), `vim-ancestor-default-${process.pid}`)
+      fs.rmSync(root, { recursive: true, force: true })
+      try {
+        fs.mkdirSync(path.join(root, 'proj', '.git'), { recursive: true })
+        fs.mkdirSync(path.join(root, '.vim'), { recursive: true })
+        fs.writeFileSync(path.join(root, '.vim', 'coc-settings.json'), '{}')
+        let file = path.join(root, 'proj', 'main.rb')
+        let doc = await shared.createDocument(file)
+        // anchor cwd at root so the top-down scan terminates there
+        let res = workspaceFolder.resolveRoot(doc, root, false, expand)
+        assert.strictEqual(res, root)
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true })
+      }
+    })
   })
 
   describe('renameWorkspaceFolder()', () => {
