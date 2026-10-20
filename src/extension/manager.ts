@@ -482,15 +482,20 @@ export class ExtensionManager {
     let ext: ExtensionExport
     let subscriptions: Disposable[] = []
     const timing = createTiming(`activate ${id}`, 5000)
-    const cleanupAbandonedActivation = async (): Promise<void> => {
+    const cleanupAbandonedActivation = (): void => {
       activationAbandoned = false
       try {
         let items = Array.from(new Set(subscriptions))
         subscriptions.length = 0
         disposeAll(items)
         if (ext && typeof ext.deactivate === 'function') {
-          await Promise.resolve(extensionContext.run(id, () => ext.deactivate()))
+          // Unloading already returned; a pending hook must not retain the activation result.
+          void Promise.resolve(extensionContext.run(id, () => ext.deactivate())).catch(cleanupError => {
+            logger.error(`Error on ${id} abandoned activation cleanup: `, cleanupError)
+          })
         }
+      } catch (cleanupError) {
+        logger.error(`Error on ${id} abandoned activation cleanup: `, cleanupError)
       } finally {
         ext = undefined
         result = undefined
@@ -519,7 +524,7 @@ export class ExtensionManager {
             let res = await extensionContext.run(id, () => ext.activate(context))
             isActivating = false
             if (activationAbandoned) {
-              await cleanupAbandonedActivation()
+              cleanupAbandonedActivation()
               resolve(res)
               return
             }
@@ -531,11 +536,7 @@ export class ExtensionManager {
           } catch (e) {
             isActivating = false
             if (activationAbandoned) {
-              try {
-                await cleanupAbandonedActivation()
-              } catch (cleanupError) {
-                logger.error(`Error on ${id} abandoned activation cleanup: `, cleanupError)
-              }
+              cleanupAbandonedActivation()
             }
             logger.error(`Error on active extension ${id}:`, e)
             reject(e as Error)
