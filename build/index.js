@@ -111625,6 +111625,12 @@ var require_follow_redirects = __commonJS({
     RedirectableRequest.prototype._sanitizeOptions = function(options3) {
       if (!options3.headers) {
         options3.headers = {};
+      } else if (Array.isArray(options3.headers)) {
+        var headerList = options3.headers;
+        options3.headers = {};
+        for (var i2 = 0; i2 < headerList.length; i2 += 2) {
+          options3.headers[headerList[i2]] = headerList[i2 + 1];
+        }
       }
       if (!isArray(options3.sensitiveHeaders)) {
         options3.sensitiveHeaders = [];
@@ -111899,7 +111905,7 @@ var require_follow_redirects = __commonJS({
       return URL4 && value instanceof URL4;
     }
     function escapeRegex(regex2) {
-      return regex2.replace(/[\]\\/()*+?.$]/g, "\\$&");
+      return regex2.replace(/[[\]\\/()*+?.^$|]/g, "\\$&");
     }
     module2.exports = wrap({ http: http3, https: https2 });
     module2.exports.wrap = wrap;
@@ -145607,7 +145613,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-e9fe066 2026-10-19 20:15:34 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-f39f711 2026-10-21 07:01:53 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
