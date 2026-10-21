@@ -661,6 +661,17 @@ describe('fs', () => {
       let res = inDirectory(import.meta.dirname, ['**/file_not_exist.json'])
       assert.strictEqual(res, false)
     })
+
+    it('should support relative path pattern', async () => {
+      let root = path.join(os.tmpdir(), `inDirectory-${process.pid}`)
+      fs.rmSync(root, { recursive: true, force: true })
+      fs.mkdirSync(path.join(root, '.vim'), { recursive: true })
+      assert.strictEqual(inDirectory(root, ['.vim/coc-settings.json']), false, 'empty .vim folder should not match')
+      fs.writeFileSync(path.join(root, '.vim', 'coc-settings.json'), '{}')
+      assert.strictEqual(inDirectory(root, ['.vim/coc-settings.json']), true)
+      assert.strictEqual(inDirectory(root, ['.vim']), true)
+      fs.rmSync(root, { recursive: true, force: true })
+    })
   })
 
   describe('parentDirs', () => {
@@ -732,6 +743,46 @@ describe('fs', () => {
     it('should not resolve to home', () => {
       let res = resolveRoot(import.meta.dirname, ['.config'], undefined, false, false, [os.homedir()])
       assert.ok(res != os.homedir())
+    })
+
+    it('should resolve standalone project by .vim/coc-settings.json marker', () => {
+      let root = path.join(os.tmpdir(), `vim-marker-${process.pid}`)
+      fs.rmSync(root, { recursive: true, force: true })
+      try {
+        let proj = path.join(root, 'proj')
+        fs.mkdirSync(path.join(proj, '.vim'), { recursive: true })
+        let file = path.join(proj, 't.vim')
+        // empty .vim folder is not a root marker
+        assert.strictEqual(resolveRoot(file, ['.vim/coc-settings.json'], proj, false, true), null)
+        fs.writeFileSync(path.join(proj, '.vim', 'coc-settings.json'), '{}')
+        assert.strictEqual(resolveRoot(file, ['.vim/coc-settings.json'], proj, false, true), normalizeFilePath(proj))
+        // bottom-up resolves the project itself, not an annotated ancestor
+        fs.mkdirSync(path.join(root, '.vim'), { recursive: true })
+        fs.writeFileSync(path.join(root, '.vim', 'coc-settings.json'), '{}')
+        fs.mkdirSync(path.join(proj, '.git'))
+        assert.strictEqual(resolveRoot(file, ['.vim/coc-settings.json', '.git'], proj, true, false), normalizeFilePath(proj))
+        // without a .git marker the top-down scan prefers the ancestor marker
+        fs.rmSync(path.join(proj, '.git'), { recursive: true })
+        assert.strictEqual(resolveRoot(file, ['.vim/coc-settings.json', '.git'], proj, false, false), normalizeFilePath(root))
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true })
+      }
+    })
+
+    it('should resolve git project to ancestor .vim marker top-down', () => {
+      let root = path.join(os.tmpdir(), `vim-ancestor-${process.pid}`)
+      fs.rmSync(root, { recursive: true, force: true })
+      try {
+        let proj = path.join(root, 'proj')
+        fs.mkdirSync(path.join(proj, '.git'), { recursive: true })
+        fs.mkdirSync(path.join(root, '.vim'), { recursive: true })
+        fs.writeFileSync(path.join(root, '.vim', 'coc-settings.json'), '{}')
+        let file = path.join(proj, 'a.rb')
+        assert.strictEqual(resolveRoot(file, ['.vim/coc-settings.json', '.git'], file, false, false), normalizeFilePath(root))
+        assert.strictEqual(resolveRoot(file, ['.vim/coc-settings.json', '.git'], file, true, false), normalizeFilePath(proj))
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true })
+      }
     })
   })
 

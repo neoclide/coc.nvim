@@ -2466,7 +2466,7 @@ coc#util#root_patterns()				*coc#util#root_patterns()*
 
 	Result could be something like: >
 
-	{'global': ['.git', '.hg', '.projections.json'], 'buffer': [], 'server': v:null}
+	{'global': ['.vim/coc-settings.json', '.git', '.hg', '.projections.json'], 'buffer': [], 'server': v:null}
 <
 coc#util#get_config({key})				*coc#util#get_config()*
 
