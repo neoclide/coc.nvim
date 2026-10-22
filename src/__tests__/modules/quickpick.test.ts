@@ -207,6 +207,40 @@ describe('InputBox', () => {
     await shared.wait(50)
     assert.ok(!fs.existsSync(file))
   })
+
+  it('should ignore <up> when history is empty', async t => {
+    fs.rmSync(historyFile(), { force: true })
+    let input = await window.createInputBox('title', 'typed', {})
+    disposables.push(input)
+    await nvim.input('<up>')
+    await shared.wait(30)
+    assert.strictEqual(input.value, 'typed')
+  })
+
+  it('should ignore <down> before navigating back', async t => {
+    fs.writeFileSync(historyFile(), 'newest\nolder\n')
+    let input = await window.createInputBox('title', 'typed', {})
+    disposables.push(input)
+    await nvim.input('<down>')
+    await shared.wait(30)
+    assert.strictEqual(input.value, 'typed')
+  })
+
+  it('should swallow history save failures', async t => {
+    shared.updateConfiguration('coc.preferences.promptInput', true)
+    let file = historyFile()
+    // block writes: the history file path is a directory
+    fs.rmSync(file, { force: true })
+    fs.mkdirSync(file)
+    t.after(() => fs.rmSync(file, { force: true, recursive: true }))
+    let p = window.requestInput('Name')
+    await shared.waitFloat()
+    await nvim.input('bar<enter>')
+    let res = await p
+    assert.strictEqual(res, 'bar')
+    await shared.wait(50)
+    assert.ok(fs.statSync(file).isDirectory())
+  })
 })
 
 describe('QuickPick', () => {
