@@ -2,6 +2,11 @@
 
 Notable changes of coc.nvim:
 
+## 2026-10-19
+
+- Keep repeated `$0` snippet tabstops synchronized using multiple cursors after
+  exiting snippet mode, matching VS Code (#5774).
+
 ## 2026-10-14
 
 - Add persistent input history to input dialogs: `<up>`/`<down>` recall

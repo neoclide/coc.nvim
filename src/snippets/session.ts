@@ -365,8 +365,13 @@ export class SnippetSession {
     if (current && current.index === 0) {
       const { snippet } = current
       if (snippet === this.snippet.tmSnippet) {
+        // VS Code leaves multiple selections active after exiting at $0.
+        const ranges = snippet.placeholders
+          .filter(p => p.index === 0 && !p.transform)
+          .map(p => this.snippet.getPlaceholderByMarker(p).range)
         logger.info('Jump to final placeholder, cancelling snippet session')
         this.deactivate()
+        if (ranges.length > 1) window.cursors.createSession(this.document).addRanges(ranges)
       } else {
         let marker = snippet.parent
         this.snippet.deactivateSnippet(snippet)

@@ -18,6 +18,7 @@ before(async () => {
 
 afterEach(async () => {
   disposeAll(disposables)
+  window.cursors.reset()
 })
 
 async function createSession(enableHighlight = false, preferComplete = false, nextOnDelete = false): Promise<SnippetSession> {
@@ -54,6 +55,35 @@ describe('SnippetSession', () => {
   }
 
   describe('start()', () => {
+    it('should mirror repeated final tabstops after ending the snippet (#5774)', async () => {
+      let session = await createSession()
+      await nvim.input('i')
+      await session.start('printf("$0 = %s", $0);', defaultRange)
+      assert.strictEqual(session.isActive, false)
+      await nvim.input('test')
+      await shared.waitValue(() => nvim.line, 'printf("test = %s", test);')
+      window.cursors.cancel(session.bufnr)
+      await nvim.input('x')
+      await shared.waitValue(() => nvim.line, 'printf("testx = %s", test);')
+    })
+
+    it('should mirror final tabstops on different lines (#5774)', async () => {
+      let session = await createSession()
+      await nvim.input('i')
+      await session.start('$0\n$0', defaultRange)
+      await nvim.input('test')
+      await shared.waitValue(async () => (await nvim.buffer).lines, ['test', 'test'])
+    })
+
+    it('should replace mirrored final placeholder defaults (#5774)', async () => {
+      let session = await createSession()
+      await nvim.input('i')
+      await session.start('${0:old} + $0', defaultRange)
+      await nvim.input('new')
+      await shared.waitValue(() => nvim.line, 'new + new')
+      assert.strictEqual(session.isActive, false)
+    })
+
     it('should not activate when insert empty snippet', async t => {
       let res = await start('', defaultRange)
       assert.strictEqual(res, false)
@@ -789,6 +819,8 @@ describe('SnippetSession', () => {
       await session.nextPlaceholder()
       map = await nvim.call('maparg', ['<C-j>', 'i']) as string
       assert.strictEqual(map, '')
+      await nvim.input('test')
+      await shared.waitValue(() => nvim.line, 'testxabtest')
     })
   })
 
