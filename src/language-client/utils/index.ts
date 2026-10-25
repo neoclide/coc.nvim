@@ -193,12 +193,14 @@ export function createClientPipeTransport(pipeName: string, encoding: MessageBuf
     server.on('error', reject)
     server.listen(pipeName, () => {
       server.removeListener('error', reject)
+      const dispose = () => {
+        server.close()
+        connectReject(new Error('Transport disposed before connection established.'))
+      }
       resolve({
         onConnected: () => { return connected },
-        dispose: () => {
-          server.close()
-          connectReject(new Error('Transport disposed before connection established.'))
-        }
+        dispose,
+        close: dispose
       })
     })
   })
@@ -224,12 +226,15 @@ export function createClientSocketTransport(port: number, encoding: MessageBuffe
     server.on('error', reject)
     server.listen(port, '127.0.0.1', () => {
       server.removeListener('error', reject)
+      const dispose = () => {
+        server.close()
+        connectReject(new Error('Transport disposed before connection established.'))
+      }
       resolve({
+        port: () => port,
         onConnected: () => { return connected },
-        dispose: () => {
-          server.close()
-          connectReject(new Error('Transport disposed before connection established.'))
-        }
+        dispose,
+        close: dispose
       })
     })
   })
