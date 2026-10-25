@@ -1,6 +1,9 @@
 import workspace from '../../workspace'
 import * as shared from '../sharedUtil'
 import { Neovim } from '@chemzqm/neovim'
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events from '../../events'
 import QuickPick from '../../model/quickpick'
@@ -16,6 +19,10 @@ before(async () => {
   nvim = workspace.nvim
   ns = await nvim.createNamespace('coc-input-box')
 })
+
+function historyFile(): string {
+  return path.join(process.env.COC_DATA_HOME ?? os.tmpdir(), 'input_history')
+}
 
 afterEach(async () => {
   disposeAll(disposables)
@@ -132,6 +139,107 @@ describe('InputBox', () => {
       let markers = await buf.getExtMarks(ns, 0, -1, { details: true })
       return markers.length
     }, 0)
+  })
+
+  it('should navigate persisted input history by <up> and <down>', async t => {
+    fs.writeFileSync(historyFile(), 'newest\nolder\n')
+    let input = await window.createInputBox('title', undefined, {})
+    disposables.push(input)
+    await nvim.input('<up>')
+    await shared.waitValue(() => input.value, 'newest')
+    await nvim.input('<up>')
+    await shared.waitValue(() => input.value, 'older')
+    // clamped at the oldest entry
+    await nvim.input('<up>')
+    await shared.wait(30)
+    assert.strictEqual(input.value, 'older')
+    await nvim.input('<down>')
+    await shared.waitValue(() => input.value, 'newest')
+    // moving past the newest entry restores the text typed before navigation
+    await nvim.input('<down>')
+    await shared.waitValue(() => input.value, '')
+  })
+
+  it('should keep quickpick navigation for <up> and <down> in list mode', async t => {
+    fs.writeFileSync(historyFile(), 'newest\nolder\n')
+    let quickpick = await window.createQuickPick()
+    quickpick.items = [{ label: 'one' }, { label: 'two' }]
+    disposables.push(quickpick)
+    await quickpick.show()
+    await nvim.input('<down>')
+    await shared.waitValue(() => quickpick.currIndex, 1)
+    await nvim.input('<up>')
+    await shared.waitValue(() => quickpick.currIndex, 0)
+    // the input value is unchanged by list navigation
+    assert.strictEqual(quickpick.inputBox.value, '')
+    await nvim.input('<esc>')
+  })
+
+  it('should persist confirmed input to history', async t => {
+    // re-enable the float input: an earlier test switched it to vim's input()
+    shared.updateConfiguration('coc.preferences.promptInput', true)
+    let file = historyFile()
+    fs.rmSync(file, { force: true })
+    let p = window.requestInput('Name')
+    await shared.waitFloat()
+    await nvim.input('bar<enter>')
+    let res = await p
+    assert.strictEqual(res, 'bar')
+    await shared.waitValue(() => {
+      return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : undefined
+    }, 'bar\n')
+  })
+
+  it('should not persist cancelled or too short input', async t => {
+    shared.updateConfiguration('coc.preferences.promptInput', true)
+    let file = historyFile()
+    fs.rmSync(file, { force: true })
+    let p = window.requestInput('Name')
+    await shared.waitFloat()
+    await nvim.input('cancelled<esc>')
+    let res = await p
+    assert.strictEqual(res, null)
+    p = window.requestInput('Name')
+    await shared.waitFloat()
+    await nvim.input('a<enter>')
+    res = await p
+    assert.strictEqual(res, 'a')
+    await shared.wait(50)
+    assert.ok(!fs.existsSync(file))
+  })
+
+  it('should ignore <up> when history is empty', async t => {
+    fs.rmSync(historyFile(), { force: true })
+    let input = await window.createInputBox('title', 'typed', {})
+    disposables.push(input)
+    await nvim.input('<up>')
+    await shared.wait(30)
+    assert.strictEqual(input.value, 'typed')
+  })
+
+  it('should ignore <down> before navigating back', async t => {
+    fs.writeFileSync(historyFile(), 'newest\nolder\n')
+    let input = await window.createInputBox('title', 'typed', {})
+    disposables.push(input)
+    await nvim.input('<down>')
+    await shared.wait(30)
+    assert.strictEqual(input.value, 'typed')
+  })
+
+  it('should swallow history save failures', async t => {
+    shared.updateConfiguration('coc.preferences.promptInput', true)
+    let file = historyFile()
+    // block writes: the history file path is a directory
+    fs.rmSync(file, { force: true })
+    fs.mkdirSync(file)
+    t.after(() => fs.rmSync(file, { force: true, recursive: true }))
+    let p = window.requestInput('Name')
+    await shared.waitFloat()
+    await nvim.input('bar<enter>')
+    let res = await p
+    assert.strictEqual(res, 'bar')
+    await shared.wait(50)
+    assert.ok(fs.statSync(file).isDirectory())
   })
 })
 
