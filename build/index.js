@@ -62760,7 +62760,7 @@ var init_main = __esm({
       ColorPresentation3.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.objectLiteral(candidate) && Is.string(candidate.label) && (Is.undefined(candidate.textEdit) || TextEdit.is(candidate)) && (Is.undefined(candidate.additionalTextEdits) || Is.typedArray(candidate.additionalTextEdits, TextEdit.is));
+        return Is.objectLiteral(candidate) && Is.string(candidate.label) && (Is.undefined(candidate.textEdit) || TextEdit.is(candidate.textEdit)) && (Is.undefined(candidate.additionalTextEdits) || Is.typedArray(candidate.additionalTextEdits, TextEdit.is));
       }
       ColorPresentation3.is = is;
     })(ColorPresentation || (ColorPresentation = {}));
@@ -62792,7 +62792,7 @@ var init_main = __esm({
       FoldingRange3.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.objectLiteral(candidate) && Is.uinteger(candidate.startLine) && Is.uinteger(candidate.startLine) && (Is.undefined(candidate.startCharacter) || Is.uinteger(candidate.startCharacter)) && (Is.undefined(candidate.endCharacter) || Is.uinteger(candidate.endCharacter)) && (Is.undefined(candidate.kind) || Is.string(candidate.kind));
+        return Is.objectLiteral(candidate) && Is.uinteger(candidate.startLine) && Is.uinteger(candidate.endLine) && (Is.undefined(candidate.startCharacter) || Is.uinteger(candidate.startCharacter)) && (Is.undefined(candidate.endCharacter) || Is.uinteger(candidate.endCharacter)) && (Is.undefined(candidate.kind) || Is.string(candidate.kind));
       }
       FoldingRange3.is = is;
     })(FoldingRange || (FoldingRange = {}));
@@ -66538,10 +66538,11 @@ var require_connection2 = __commonJS({
           } finally {
             if (result instanceof Promise) {
               result.then(() => {
-                inFlight--;
-                triggerMessageQueue();
               }).catch((error) => {
                 logger75.error(`Processing message queue failed: ${error.toString()}`);
+              }).finally(() => {
+                inFlight--;
+                triggerMessageQueue();
               });
             } else {
               inFlight--;
@@ -66854,7 +66855,8 @@ ${JSON.stringify(message, null, 4)}`);
               }
             }
           }
-          tracer.log(`Sending response '${method} - (${message.id})'. Processing request took ${Date.now() - startTime}ms`, data);
+          const error = message.error ? ` Request failed: ${message.error.message} (${message.error.code}).` : "";
+          tracer.log(`Sending response '${method} - (${message.id})'. Processing request took ${Date.now() - startTime}ms.${error}`, data);
         } else {
           logLSPMessage("send-response", message);
         }
@@ -67194,7 +67196,6 @@ ${JSON.stringify(message, null, 4)}`);
               responsePromises.delete(id2);
               responsePromise.reject(new messages_1.ResponseError(messages_1.ErrorCodes.MessageWriteError, error.message ? error.message : "Unknown reason"));
               logger75.error(`Sending request failed.`);
-              throw error;
             }
           });
         },
@@ -67534,6 +67535,7 @@ var require_ril = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var util_1 = require("util");
+    var crypto_1 = require("crypto");
     var api_1 = require_api2();
     var MessageBuffer = class _MessageBuffer extends api_1.AbstractMessageBuffer {
       static emptyBuffer = Buffer.allocUnsafe(0);
@@ -67557,7 +67559,7 @@ var require_ril = __commonJS({
         if (length === void 0) {
           return buffer instanceof Buffer ? buffer : Buffer.from(buffer);
         } else {
-          return buffer instanceof Buffer ? buffer.slice(0, length) : Buffer.from(buffer, 0, length);
+          return buffer instanceof Buffer ? buffer.slice(0, length) : Buffer.from(buffer.subarray(0, length));
         }
       }
       allocNative(length) {
@@ -67624,6 +67626,9 @@ var require_ril = __commonJS({
       }
     };
     var _ril = Object.freeze({
+      crypto: Object.freeze({
+        randomUUID: () => (0, crypto_1.randomUUID)()
+      }),
       messageBuffer: Object.freeze({
         create: (encoding2) => new MessageBuffer(encoding2)
       }),
@@ -67774,7 +67779,7 @@ var require_main = __commonJS({
         this.errorCount = 0;
         const eventEmitter = this.process;
         eventEmitter.on("error", (error) => this.fireError(error));
-        eventEmitter.on("close", () => this.fireClose);
+        eventEmitter.on("close", () => this.fireClose());
       }
       write(msg) {
         try {
@@ -67807,7 +67812,7 @@ var require_main = __commonJS({
       constructor(port) {
         super();
         this.onData = new api_1.Emitter();
-        port.on("close", () => this.fireClose);
+        port.on("close", () => this.fireClose());
         port.on("error", (error) => this.fireError(error));
         port.on("message", (message) => {
           this.onData.fire(message);
@@ -67916,6 +67921,9 @@ var require_main = __commonJS({
           resolve({
             onConnected: () => {
               return connected;
+            },
+            close: () => {
+              server.close();
             }
           });
         });
@@ -67944,9 +67952,19 @@ var require_main = __commonJS({
         server.on("error", reject);
         server.listen(port, "127.0.0.1", () => {
           server.removeListener("error", reject);
+          const address = server.address();
+          if (address === null || typeof address === "string") {
+            reject(new Error(`Unexpected server address: ${address}`));
+            return;
+          }
+          const boundPort = address.port;
           resolve({
+            port: () => boundPort,
             onConnected: () => {
               return connected;
+            },
+            close: () => {
+              server.close();
             }
           });
         });
@@ -72449,6 +72467,9 @@ function renameSync(oldPath, newPath) {
     try {
       fs.cpSync(newPath, oldPath, {
         ...options3,
+        // Partial removal leaves directories in place. Merge into them while
+        // the filter protects surviving files and symbolic links.
+        errorOnExist: false,
         filter: (_source, destination) => {
           let stat = fs.lstatSync(destination, { throwIfNoEntry: false });
           return !stat || stat.isDirectory();
@@ -87241,6 +87262,13 @@ var init_main3 = __esm({
             const startOffset = this.offsetAt(range2.start);
             const endOffset = this.offsetAt(range2.end);
             this._content = this._content.substring(0, startOffset) + change.text + this._content.substring(endOffset, this._content.length);
+            const insertedEndOffset = startOffset + change.text.length;
+            const crlfAtStart = this._content.charCodeAt(startOffset - 1) === 13 && this._content.charCodeAt(startOffset) === 10;
+            const crlfAtEnd = this._content.charCodeAt(insertedEndOffset - 1) === 13 && this._content.charCodeAt(insertedEndOffset) === 10;
+            if (crlfAtStart || crlfAtEnd) {
+              this._lineOffsets = void 0;
+              continue;
+            }
             const startLine = Math.max(range2.start.line, 0);
             const endLine = Math.max(range2.end.line, 0);
             let lineOffsets = this._lineOffsets;
@@ -125545,14 +125573,16 @@ function createClientPipeTransport(pipeName, encoding2 = "utf-8") {
     server.on("error", reject);
     server.listen(pipeName, () => {
       server.removeListener("error", reject);
+      const dispose = () => {
+        server.close();
+        connectReject(new Error("Transport disposed before connection established."));
+      };
       resolve({
         onConnected: () => {
           return connected;
         },
-        dispose: () => {
-          server.close();
-          connectReject(new Error("Transport disposed before connection established."));
-        }
+        dispose,
+        close: dispose
       });
     });
   });
@@ -125577,14 +125607,17 @@ function createClientSocketTransport(port, encoding2 = "utf-8") {
     server.on("error", reject);
     server.listen(port, "127.0.0.1", () => {
       server.removeListener("error", reject);
+      const dispose = () => {
+        server.close();
+        connectReject(new Error("Transport disposed before connection established."));
+      };
       resolve({
+        port: () => port,
         onConnected: () => {
           return connected;
         },
-        dispose: () => {
-          server.close();
-          connectReject(new Error("Transport disposed before connection established."));
-        }
+        dispose,
+        close: dispose
       });
     });
   });
@@ -145613,7 +145646,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-f39f711 2026-10-21 07:01:53 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-3ff54fe 2026-10-26 09:28:06 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
