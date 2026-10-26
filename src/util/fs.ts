@@ -308,7 +308,7 @@ export function inDirectory(dir: string, subs: ReadonlyArray<string>): boolean {
       let is_wildcard = (pattern.includes('*'))
       let res = is_wildcard ?
         (minimatch.match(files, pattern, { nobrace: true, noext: true, nocomment: true, nonegate: true, dot: true }).length !== 0) :
-        (files.includes(pattern))
+        (pattern.includes('/') ? fs.existsSync(path.join(dir, pattern)) : files.includes(pattern))
       if (res) return true
     }
   } catch (e) {
