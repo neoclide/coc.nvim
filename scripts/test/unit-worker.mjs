@@ -58,9 +58,7 @@ async function main() {
   const fileDurations = new Map()
   const fileLeafStats = new Map()
   const failedFiles = new Set()
-  let suiteFailures = 0
   let currentFile
-  const captured = []
 
   for await (const event of stream) {
     const data = event.data
@@ -82,15 +80,15 @@ async function main() {
         break
       case 'test:fail': {
         if (file) failedFiles.add(file)
-        if (isLeaf) {
+        if (isLeaf || !['subtestsFailed', 'cancelledByParent'].includes(data.details?.error?.failureType)) {
           const serialized = serializeData(data)
           stats.failed++
           stats.failures.push(serialized)
-          addDuration(data)
-          bumpLeaf(data, false)
+          if (isLeaf) {
+            addDuration(data)
+            bumpLeaf(data, false)
+          }
           parentPort.postMessage({type: 'failure', data: serialized})
-        } else {
-          suiteFailures++
         }
         break
       }
@@ -108,7 +106,6 @@ async function main() {
       case 'test:stderr':
       case 'test:stdout':
         if (typeof data.message === 'string') {
-          captured.push(data.message)
           parentPort.postMessage({
             type: 'output',
             stream: event.type === 'test:stderr' ? 'stderr' : 'stdout',
@@ -119,15 +116,6 @@ async function main() {
     }
   }
   clearTimeout(timeoutTimer)
-
-  if (stats.failed === 0 && suiteFailures > 0) {
-    stats.failed = suiteFailures
-    stats.failures.push({
-      name: 'suite failure',
-      file: failedFiles.values().next().value ?? currentFile ?? files[0],
-      details: {error: {message: captured.join('').trim() || 'a test suite failed to load or threw before any test ran'}},
-    })
-  }
 
   const timings = {}
   const leafStats = {}
