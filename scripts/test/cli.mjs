@@ -251,8 +251,10 @@ if (editorResult.value) {
       result: {passed, failed: laneFailed, skipped: 0},
       files: runnableByLane[lane].length,
     })
-    failed += laneFailed
   }
+  // Hook and suite failures can occur without a failed leaf test (for
+  // example, in after()). They must still make the command fail.
+  failed += result.stats.failed
   for (const message of result.stats.diagnostics) {
     reporter.error(`[test] ${message}`)
   }

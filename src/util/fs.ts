@@ -169,6 +169,9 @@ export function renameSync(oldPath: string, newPath: string): void {
     try {
       fs.cpSync(newPath, oldPath, {
         ...options,
+        // Partial removal leaves directories in place. Merge into them while
+        // the filter protects surviving files and symbolic links.
+        errorOnExist: false,
         filter: (_source, destination) => {
           let stat = fs.lstatSync(destination, { throwIfNoEntry: false })
           return !stat || stat.isDirectory()

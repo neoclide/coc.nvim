@@ -227,6 +227,9 @@ describe('fs', () => {
       fs.writeFileSync(path.join(source, 'first'), 'first')
       fs.writeFileSync(path.join(source, 'second'), 'second')
       fs.writeFileSync(path.join(source, 'readonly'), 'readonly', { mode: 0o400 })
+      fs.mkdirSync(path.join(source, 'nested'))
+      fs.writeFileSync(path.join(source, 'nested', 'removed'), 'removed')
+      fs.writeFileSync(path.join(source, 'nested', 'kept'), 'kept')
       let link = path.join(source, 'dangling-link')
       let hasLink = true
       try {
@@ -244,15 +247,19 @@ describe('fs', () => {
       let remove = t.mock.method(fs, 'rmSync', (filepath, options) => {
         if (filepath === source) {
           originalRmSync(path.join(source, 'first'))
+          originalRmSync(path.join(source, 'nested', 'removed'))
+          fs.writeFileSync(path.join(source, 'nested', 'kept'), 'surviving content')
           throw Object.assign(new Error('remove failed'), { code: 'EIO' })
         }
         originalRmSync(filepath, options)
       })
       try {
-        assert.throws(() => renameSync(source, target), { code: 'EIO' })
+        assert.throws(() => renameSync(source, target), { code: 'EIO', message: 'remove failed' })
         assert.strictEqual(fs.readFileSync(path.join(source, 'first'), 'utf8'), 'first')
         assert.strictEqual(fs.readFileSync(path.join(source, 'second'), 'utf8'), 'second')
         assert.strictEqual(fs.readFileSync(path.join(source, 'readonly'), 'utf8'), 'readonly')
+        assert.strictEqual(fs.readFileSync(path.join(source, 'nested', 'removed'), 'utf8'), 'removed')
+        assert.strictEqual(fs.readFileSync(path.join(source, 'nested', 'kept'), 'utf8'), 'surviving content')
         if (process.platform !== 'win32') assert.strictEqual(fs.statSync(path.join(source, 'readonly')).mode & 0o777, 0o400)
         if (hasLink) {
           assert.strictEqual(fs.lstatSync(link).isSymbolicLink(), true)

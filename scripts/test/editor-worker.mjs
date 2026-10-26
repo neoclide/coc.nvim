@@ -26,8 +26,6 @@ async function main(options) {
   timeoutTimer.unref?.()
   const stats = {passed: 0, failed: 0, skipped: 0, todo: 0, failures: [], diagnostics: []}
   const leafStats = {[file]: {passed: 0, failed: 0}}
-  const captured = []
-  let suiteFailures = 0
   let durationMs = 0
   const session = createEditorSession(abort.signal)
   process.send?.({type: 'progress', file, state: {status: 'running', durationMs: 0}})
@@ -59,15 +57,18 @@ async function main(options) {
           }
           break
         case 'test:fail':
-          if (isLeaf) {
+          // Parent suites normally only summarize child failures. Hook and
+          // suite errors carry the cause of cancelled children and must be
+          // reported even when those children have already failed.
+          if (isLeaf || !['subtestsFailed', 'cancelledByParent'].includes(data.details?.error?.failureType)) {
             const serialized = serializeData(data)
             stats.failed++
-            leafStats[file].failed++
-            durationMs += data.details?.duration_ms ?? 0
+            if (isLeaf) {
+              leafStats[file].failed++
+              durationMs += data.details?.duration_ms ?? 0
+            }
             stats.failures.push(serialized)
             process.send?.({type: 'failure', data: serialized})
-          } else {
-            suiteFailures++
           }
           break
         case 'test:skip':
@@ -84,7 +85,6 @@ async function main(options) {
         case 'test:stderr':
         case 'test:stdout':
           if (typeof data.message === 'string') {
-            captured.push(data.message)
             process.send?.({
               type: 'output',
               stream: event.type === 'test:stderr' ? 'stderr' : 'stdout',
@@ -99,14 +99,6 @@ async function main(options) {
     delete globalThis.editorReset
     delete globalThis.editorStop
     await session.stop()
-  }
-  if (stats.failed === 0 && suiteFailures > 0) {
-    stats.failed = suiteFailures
-    stats.failures.push({
-      name: 'suite failure',
-      file,
-      details: {error: {message: captured.join('').trim() || 'a test suite failed to load or threw before any test ran'}},
-    })
   }
   const roundedDuration = Math.round(durationMs)
   process.send?.({

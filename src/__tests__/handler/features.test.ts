@@ -830,19 +830,15 @@ describe('LinkedEditing', () => {
   })
 
   it('should cancel when insert line break in range', async t => {
+    // Enable explicitly below, without cursor events re-enabling linked
+    // editing on the remaining word after the newline cancels the session.
+    shared.updateConfiguration('coc.preferences.enableLinkedEditing', false, disposables)
     let doc = await workspace.document
     await registerLinkedEditingProvider('foo foo bar', Position.create(0, 0))
     await shared.waitValue(() => {
       return matches()
     }, 2)
-    // Mock the text change event: feed the handler the same change a real
-    // `\n  ` insert at (0, 1) would produce. Going through nvim moves the
-    // cursor and can re-trigger linked editing before the assertion, which
-    // made this test flaky under load.
-    await linkedEditingHandler.onChange({
-      bufnr: doc.bufnr,
-      contentChanges: [{ range: Range.create(0, 1, 0, 1), text: '\n  ', rangeLength: 0 }],
-    } as any)
+    await doc.applyEdits([TextEdit.insert(Position.create(0, 1), '\n  ')])
     await shared.waitValue(() => {
       return matches()
     }, 0)
