@@ -372,7 +372,7 @@ function! coc#float#nvim_right_pad(config, winid, shadow, related) abort
         \ 'width': 1,
         \ 'height': a:config['height'],
         \ 'row': a:config['row'],
-        \ 'col': a:config['col'] + a:config['width'],
+        \ 'col': a:config['col'] + a:config['width'] + 1,
         \ 'focusable': v:false,
         \ 'style': 'minimal',
         \ }
