@@ -2838,6 +2838,7 @@
     "workspace.rootPatterns": {
       "type": "array",
       "default": [
+        ".vim/coc-settings.json",
         ".git",
         ".hg",
         ".projections.json"

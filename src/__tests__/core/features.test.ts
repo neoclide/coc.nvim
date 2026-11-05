@@ -593,7 +593,7 @@ describe('WorkspaceFolderController', () => {
     }
 
     it('should resolve to cwd for file in cwd', async t => {
-      updateConfiguration('workspace.rootPatterns', [], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.rootPatterns', [], ['.vim/coc-settings.json', '.git', '.hg', '.projections.json'])
       let file = path.join(os.tmpdir(), 'foo')
       let doc = await shared.createDocument(file)
       let res = workspaceFolder.resolveRoot(doc, os.tmpdir(), false, expand)
@@ -601,7 +601,7 @@ describe('WorkspaceFolderController', () => {
     })
 
     it('should ignore cwd by ignore pattern', async t => {
-      updateConfiguration('workspace.rootPatterns', [], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.rootPatterns', [], ['.vim/coc-settings.json', '.git', '.hg', '.projections.json'])
       updateConfiguration('workspace.ignoredFolders', ['**/*'], ['$HOME'])
       let file = path.join(os.tmpdir(), 'foo')
       let doc = await shared.createDocument(file)
@@ -610,7 +610,7 @@ describe('WorkspaceFolderController', () => {
     })
 
     it('should not fallback to cwd as workspace folder', async t => {
-      updateConfiguration('workspace.rootPatterns', [], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.rootPatterns', [], ['.vim/coc-settings.json', '.git', '.hg', '.projections.json'])
       updateConfiguration('workspace.workspaceFolderFallbackCwd', false, true)
       let file = path.join(os.tmpdir(), 'foo')
       await nvim.command(`edit ${file}`)
@@ -667,7 +667,7 @@ describe('WorkspaceFolderController', () => {
     })
 
     it('should respect specific filetype for bottomUpFileTypes', async t => {
-      updateConfiguration('workspace.rootPatterns', ['.vim'], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.rootPatterns', ['.vim'], ['.vim/coc-settings.json', '.git', '.hg', '.projections.json'])
       updateConfiguration('workspace.bottomUpFiletypes', ['vim'], [])
       let root = path.join(os.tmpdir(), 'a')
       let dir = path.join(root, '.vim')
@@ -681,7 +681,7 @@ describe('WorkspaceFolderController', () => {
     })
 
     it('should respect wildcard', async t => {
-      updateConfiguration('workspace.rootPatterns', ['.vim'], ['.git', '.hg', '.projections.json'])
+      updateConfiguration('workspace.rootPatterns', ['.vim'], ['.vim/coc-settings.json', '.git', '.hg', '.projections.json'])
       updateConfiguration('workspace.bottomUpFiletypes', ['*'], [])
       let root = path.join(os.tmpdir(), 'a')
       let dir = path.join(root, '.vim')
@@ -691,6 +691,51 @@ describe('WorkspaceFolderController', () => {
       let doc = await workspace.document
       let res = workspaceFolder.resolveRoot(doc, file, true, expand)
       assert.strictEqual(res, root)
+    })
+
+    it('should resolve standalone project by default .vim/coc-settings.json pattern', async t => {
+      updateConfiguration('workspace.bottomUpFiletypes', [], [])
+      updateConfiguration('workspace.ignoredFolders', ['$HOME', os.tmpdir()], [])
+      updateConfiguration('workspace.workspaceFolderFallbackCwd', false, true)
+      let root = path.join(os.tmpdir(), `vim-default-${process.pid}`)
+      fs.rmSync(root, { recursive: true, force: true })
+      try {
+        // an empty .vim folder (no coc-settings.json) is not a root marker
+        let empty = path.join(root, 'empty')
+        fs.mkdirSync(path.join(empty, '.vim'), { recursive: true })
+        let doc = await shared.createDocument(path.join(empty, 't.vim'))
+        let res = workspaceFolder.resolveRoot(doc, empty, false, expand)
+        assert.strictEqual(res, null)
+        // .vim/coc-settings.json marks the project as workspace root
+        let proj = path.join(root, 'proj')
+        fs.mkdirSync(path.join(proj, '.vim'), { recursive: true })
+        fs.writeFileSync(path.join(proj, '.vim', 'coc-settings.json'), '{}')
+        doc = await shared.createDocument(path.join(proj, 't.vim'))
+        res = workspaceFolder.resolveRoot(doc, proj, false, expand)
+        assert.strictEqual(res, proj)
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true })
+      }
+    })
+
+    it('should resolve git project to ancestor .vim/coc-settings.json by default patterns', async t => {
+      updateConfiguration('workspace.bottomUpFiletypes', [], [])
+      updateConfiguration('workspace.ignoredFolders', ['$HOME', os.tmpdir()], [])
+      updateConfiguration('workspace.workspaceFolderFallbackCwd', false, true)
+      let root = path.join(os.tmpdir(), `vim-ancestor-default-${process.pid}`)
+      fs.rmSync(root, { recursive: true, force: true })
+      try {
+        fs.mkdirSync(path.join(root, 'proj', '.git'), { recursive: true })
+        fs.mkdirSync(path.join(root, '.vim'), { recursive: true })
+        fs.writeFileSync(path.join(root, '.vim', 'coc-settings.json'), '{}')
+        let file = path.join(root, 'proj', 'main.rb')
+        let doc = await shared.createDocument(file)
+        // anchor cwd at root so the top-down scan terminates there
+        let res = workspaceFolder.resolveRoot(doc, root, false, expand)
+        assert.strictEqual(res, root)
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true })
+      }
     })
   })
 
