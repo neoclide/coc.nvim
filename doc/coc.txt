@@ -4553,6 +4553,11 @@ Supported key-mappings:
 <C-e>               - Move the cursor to the last column.
 <esc>               - Cancel the input; null is received by the callback.
 <cr>                - Accept the current input selection of the current item.
+<up>                - Recall the previous accepted input from the persisted
+                      input history (`input_history` under coc data home).
+<down>              - Recall the next more recent input; restores the text
+                      typed before navigation when moving past the newest
+                      entry.
 
 QuickPick related (available when created by |coc-dialog-quickpick|).
 
@@ -4562,6 +4567,9 @@ QuickPick related (available when created by |coc-dialog-quickpick|).
 <C-k> <C-p> <up>    - Move to the previous item in the quickpick list.
 <C-t> <C-space>     - Toggle selection of the current item in the quickpick
                       list when `canSelectMany` is supported.
+
+Note: in QuickPick mode `<up>`/`<down>` navigate the list instead of the
+input history; the input history is only recalled in plain input dialogs.
 
 Note: on Neovim, other insert mode key-mappings can work.
 

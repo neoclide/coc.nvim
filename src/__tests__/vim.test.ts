@@ -1459,6 +1459,51 @@ describe('Popup', () => {
     assert.strictEqual(changed, 'foo')
     input.dispose()
   })
+
+  it('recalls input history by <up>', { skip: process.platform === 'win32' }, async t => {
+    let file = path.join(process.env.COC_DATA_HOME ?? os.tmpdir(), 'input_history')
+    fs.writeFileSync(file, 'entry-one\nentry-two\n')
+    let input = await getCurrentPlugin().window.createInputBox('title', 'old')
+    disposables.push(input)
+    // wait until the prompt terminal is ready (default value echoed)
+    await shared.waitValue(async () => {
+      let line = await nvim.call('term_getline', [input.bufnr, 1]) as string
+      return line.includes('old')
+    }, true)
+    await nvim.input('<up>')
+    await shared.waitValue(() => input.value, 'entry-one')
+    await shared.waitValue(async () => {
+      let line = await nvim.call('term_getline', [input.bufnr, 1]) as string
+      return line.trim()
+    }, 'entry-one')
+    await nvim.input('<up>')
+    await shared.waitValue(() => input.value, 'entry-two')
+    // <down> past the newest entry restores the text typed before navigation
+    await nvim.input('<down>')
+    await shared.waitValue(() => input.value, 'entry-one')
+    await nvim.input('<down>')
+    await shared.waitValue(() => input.value, 'old')
+    input.dispose()
+  })
+
+  it('confirms recalled history with placeholder active', { skip: process.platform === 'win32' }, async t => {
+    let file = path.join(process.env.COC_DATA_HOME ?? os.tmpdir(), 'input_history')
+    fs.writeFileSync(file, 'entry-one\n')
+    let input = await getCurrentPlugin().window.createInputBox('title', '', { placeHolder: 'ph' })
+    disposables.push(input)
+    let p = new Promise<string | null>(resolve => {
+      input.onDidFinish(resolve)
+    })
+    // wait until the prompt terminal is ready (placeholder rendered)
+    await shared.waitValue(async () => {
+      let line = await nvim.call('term_getline', [input.bufnr, 1]) as string
+      return line.includes('ph')
+    }, true)
+    await nvim.input('<up>')
+    await shared.waitValue(() => input.value, 'entry-one')
+    await nvim.input('<cr>')
+    assert.strictEqual(await p, 'entry-one')
+  })
 })
 
 describe('Tabpage API', () => {
