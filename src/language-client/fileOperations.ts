@@ -112,7 +112,7 @@ abstract class FileOperationFeature<I, E extends EventWithFiles<I>>
         filter.pattern.glob,
         FileOperationFeature.asMinimatchOptions(filter.pattern.options)
       )
-      if (!matcher.makeRe()) {
+      if (matcher.set.length === 0) {
         throw new Error(`Invalid pattern ${filter.pattern.glob}!`)
       }
       return { scheme: filter.scheme, matcher, kind: filter.pattern.matches }

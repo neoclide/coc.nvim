@@ -32,7 +32,7 @@ export class FileRenameFeature implements StaticFeature {
           dot: true,
           nocase: filter.pattern.options?.ignoreCase === true
         })
-        if (!matcher.makeRe()) throw new Error(`Invalid pattern ${filter.pattern.glob}!`)
+        if (matcher.set.length === 0) throw new Error(`Invalid pattern ${filter.pattern.glob}!`)
         return { scheme: filter.scheme, matcher, kind: filter.pattern.matches }
       })
     } catch (error) {
