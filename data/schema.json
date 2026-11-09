@@ -220,7 +220,7 @@
     "languageserver.disabledFeatures": {
       "type": "array",
       "default": [],
-      "description": "Features disabled for this language server.",
+      "description": "Features disabled for this language server.\n- `\"configuration\"` corresponds to `workspace/didChangeConfiguration`\n- `\"pullConfiguration\"` corresponds to `workspace/configuration`",
       "uniqueItems": true,
       "items": {
         "type": "string",

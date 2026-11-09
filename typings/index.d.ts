@@ -14255,6 +14255,15 @@ declare module 'coc.nvim' {
     (value: Uri): string
   }
 
+  type LanguageClientFeature = "completion" | "configuration" | "workspaceFolders" | "diagnostics" | "willSave"
+    | "willSaveUntil" | "didSaveTextDocument" | "fileSystemWatcher" | "hover" | "signatureHelp" | "definition"
+    | "references" | "documentHighlight" | "documentSymbol" | "workspaceSymbol" | "codeAction" | "codeLens"
+    | "formatting" | "documentFormatting" | "documentRangeFormatting" | "documentOnTypeFormatting" | "rename"
+    | "documentLink" | "executeCommand" | "pullConfiguration" | "typeDefinition" | "implementation" | "declaration"
+    | "color" | "foldingRange" | "selectionRange" | "progress" | "callHierarchy" | "linkedEditing" | "inlayHint"
+    | "inlineValue" | "typeHierarchy" | "pullDiagnostic" | "fileEvents" | "semanticTokens"
+    | (string & {})
+
   export interface LanguageClientOptions {
     /**
      * Root paths that are ignored by the language client.
@@ -14270,8 +14279,10 @@ declare module 'coc.nvim' {
     disableDynamicRegister?: boolean
     /**
      * Features disabled for the client.
+     * - `"configuration"` corresponds to `workspace/didChangeConfiguration`
+     * - `"pullConfiguration"` corresponds to `workspace/configuration`
      */
-    disabledFeatures?: string[]
+    disabledFeatures?: LanguageClientFeature[]
     /**
      * Priority of the formatter service.
      */

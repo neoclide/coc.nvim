@@ -689,8 +689,13 @@ LANGUAGESERVER
 	  "executeCommand", "pullConfiguration", "typeDefinition",
 	  "implementation", "declaration", "color", "foldingRange",
 	  "selectionRange", "progress", "callHierarchy", "linkedEditing",
+	  "inlayHint", "inlineValue", "typeHierarchy", "pullDiagnostic",
 	  "fileEvents", "semanticTokens"]
 <
+	  Note:
+	  `"configuration"` corresponds to `workspace/didChangeConfiguration`
+	  `"pullConfiguration"` corresponds to `workspace/configuration`
+
 	- "languageIdMap": Map of filename to languageId used when the
 	  document is opened for this language server, which allows sending
 	  a languageId different from the filetype to a specific server,
