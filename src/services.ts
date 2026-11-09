@@ -180,7 +180,7 @@ class ServiceManager implements Disposable {
     return undefined
   }
 
-  public getService(id: string): IServiceProvider {
+  public getService(id: string): IServiceProvider | undefined {
     let service = this.registered.get(id)
     if (!service) service = this.registered.get(`languageserver.${id}`)
     return service

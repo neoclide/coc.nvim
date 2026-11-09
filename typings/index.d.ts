@@ -8955,7 +8955,7 @@ declare module 'coc.nvim' {
     /**
      * Get service by id.
      */
-    export function getService(id: string): IServiceProvider
+    export function getService(id: string): IServiceProvider | undefined
     /**
      * Stop service by id.
      */
