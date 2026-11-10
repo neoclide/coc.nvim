@@ -683,14 +683,13 @@ LANGUAGESERVER
 	  "willSave", "willSaveUntil", "didSaveTextDocument",
 	  "fileSystemWatcher", "hover", "signatureHelp", "definition",
 	  "references", "documentHighlight", "documentSymbol",
-	  "workspaceSymbol", "codeAction", "codeLens", "formatting",
-	  "documentFormatting", "documentRangeFormatting",
-	  "documentOnTypeFormatting", "rename", "documentLink",
-	  "executeCommand", "pullConfiguration", "typeDefinition",
-	  "implementation", "declaration", "color", "foldingRange",
-	  "selectionRange", "progress", "callHierarchy", "linkedEditing",
-	  "inlayHint", "inlineValue", "typeHierarchy", "pullDiagnostic",
-	  "fileEvents", "semanticTokens"]
+	  "workspaceSymbol", "codeAction", "codeLens", "documentFormatting",
+	  "documentRangeFormatting", "documentOnTypeFormatting", "rename",
+	  "documentLink", "executeCommand", "pullConfiguration",
+	  "typeDefinition", "implementation", "declaration", "color",
+	  "foldingRange", "selectionRange", "progress", "callHierarchy",
+	  "linkedEditing", "inlayHint", "inlineValue", "typeHierarchy",
+	  "pullDiagnostic", "fileEvents", "semanticTokens"]
 <
 	  Note:
 	  `"configuration"` corresponds to `workspace/didChangeConfiguration`

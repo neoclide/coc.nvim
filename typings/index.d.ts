@@ -14258,10 +14258,10 @@ declare module 'coc.nvim' {
   type LanguageClientFeature = "completion" | "configuration" | "workspaceFolders" | "diagnostics" | "willSave"
     | "willSaveUntil" | "didSaveTextDocument" | "fileSystemWatcher" | "hover" | "signatureHelp" | "definition"
     | "references" | "documentHighlight" | "documentSymbol" | "workspaceSymbol" | "codeAction" | "codeLens"
-    | "formatting" | "documentFormatting" | "documentRangeFormatting" | "documentOnTypeFormatting" | "rename"
-    | "documentLink" | "executeCommand" | "pullConfiguration" | "typeDefinition" | "implementation" | "declaration"
-    | "color" | "foldingRange" | "selectionRange" | "progress" | "callHierarchy" | "linkedEditing" | "inlayHint"
-    | "inlineValue" | "typeHierarchy" | "pullDiagnostic" | "fileEvents" | "semanticTokens"
+    | "documentFormatting" | "documentRangeFormatting" | "documentOnTypeFormatting" | "rename" | "documentLink"
+    | "executeCommand" | "pullConfiguration" | "typeDefinition" | "implementation" | "declaration" | "color"
+    | "foldingRange" | "selectionRange" | "progress" | "callHierarchy" | "linkedEditing" | "inlayHint" | "inlineValue"
+    | "typeHierarchy" | "pullDiagnostic" | "fileEvents" | "semanticTokens"
     | (string & {})
 
   export interface LanguageClientOptions {
