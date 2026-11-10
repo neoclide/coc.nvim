@@ -683,14 +683,18 @@ LANGUAGESERVER
 	  "willSave", "willSaveUntil", "didSaveTextDocument",
 	  "fileSystemWatcher", "hover", "signatureHelp", "definition",
 	  "references", "documentHighlight", "documentSymbol",
-	  "workspaceSymbol", "codeAction", "codeLens", "formatting",
-	  "documentFormatting", "documentRangeFormatting",
-	  "documentOnTypeFormatting", "rename", "documentLink",
-	  "executeCommand", "pullConfiguration", "typeDefinition",
-	  "implementation", "declaration", "color", "foldingRange",
-	  "selectionRange", "progress", "callHierarchy", "linkedEditing",
-	  "fileEvents", "semanticTokens"]
+	  "workspaceSymbol", "codeAction", "codeLens", "documentFormatting",
+	  "documentRangeFormatting", "documentOnTypeFormatting", "rename",
+	  "documentLink", "executeCommand", "pullConfiguration",
+	  "typeDefinition", "implementation", "declaration", "color",
+	  "foldingRange", "selectionRange", "progress", "callHierarchy",
+	  "linkedEditing", "inlayHint", "inlineValue", "typeHierarchy",
+	  "pullDiagnostic", "fileEvents", "semanticTokens"]
 <
+	  Note:
+	  `"configuration"` corresponds to `workspace/didChangeConfiguration`
+	  `"pullConfiguration"` corresponds to `workspace/configuration`
+
 	- "languageIdMap": Map of filename to languageId used when the
 	  document is opened for this language server, which allows sending
 	  a languageId different from the filetype to a specific server,

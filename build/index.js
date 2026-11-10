@@ -85088,7 +85088,7 @@ var init_schema = __esm({
         "languageserver.disabledFeatures": {
           type: "array",
           default: [],
-          description: "Features disabled for this language server.",
+          description: 'Features disabled for this language server.\n- `"configuration"` corresponds to `workspace/didChangeConfiguration`\n- `"pullConfiguration"` corresponds to `workspace/configuration`',
           uniqueItems: true,
           items: {
             type: "string",
@@ -85110,7 +85110,6 @@ var init_schema = __esm({
               "workspaceSymbol",
               "codeAction",
               "codeLens",
-              "formatting",
               "documentFormatting",
               "documentRangeFormatting",
               "documentOnTypeFormatting",
@@ -146809,7 +146808,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-b9b51a6 2026-11-05 12:10:37 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-0e15fad 2026-11-10 13:17:14 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
