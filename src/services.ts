@@ -594,6 +594,8 @@ export function convertState(state: State): ServiceStat {
       return ServiceStat.Starting
     case State.Stopped:
       return ServiceStat.Stopped
+    case State.StartFailed:
+      return ServiceStat.StartFailed
     default:
       return undefined
   }
