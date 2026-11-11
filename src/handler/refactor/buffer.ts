@@ -284,8 +284,11 @@ export default class RefactorBuffer {
     if (edits.length) {
       this.adjustLnums(edits)
       this.changing = true
-      await this.document.applyEdits(edits)
-      this.changing = false
+      try {
+        await this.document.applyEdits(edits)
+      } finally {
+        this.changing = false
+      }
     }
     this.nvim.pauseNotification()
     this.highlightLineNr()
@@ -491,8 +494,11 @@ export default class RefactorBuffer {
       changeMap[uri] = edits
     }
     this.changing = true
-    await workspace.applyEdit({ changes: changeMap })
-    this.changing = false
+    try {
+      await workspace.applyEdit({ changes: changeMap })
+    } finally {
+      this.changing = false
+    }
     for (let item of this.fileItems) {
       let uri = URI.file(this.getAbsolutePath(item.filepath)).toString()
       let edits = changeMap[uri]

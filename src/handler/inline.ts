@@ -264,8 +264,11 @@ export default class InlineCompletion {
     if (delay) await waitWithToken(delay, token)
     if (option.autoTrigger !== true && document.hasChanged) {
       this._applying = true
-      await document.synchronize()
-      this._applying = false
+      try {
+        await document.synchronize()
+      } finally {
+        this._applying = false
+      }
     }
     if (token.isCancellationRequested) return false
     let [mode, nr, pos, disable] = await this.nvim.eval('[mode(),bufnr("%"),coc#cursor#position(),get(b:,"coc_inline_disable",0)]') as [string, number, [number, number], number]
