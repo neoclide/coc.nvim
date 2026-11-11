@@ -37,6 +37,10 @@ describe('services', () => {
   describe('functions', () => {
     it('should convertState', async t => {
       assert.strictEqual(convertState(null as any), undefined)
+      assert.strictEqual(convertState(State.Running), ServiceStat.Running)
+      assert.strictEqual(convertState(State.Starting), ServiceStat.Starting)
+      assert.strictEqual(convertState(State.Stopped), ServiceStat.Stopped)
+      assert.strictEqual(convertState(State.StartFailed), ServiceStat.StartFailed)
     })
 
     it('should check valid server config', async t => {
