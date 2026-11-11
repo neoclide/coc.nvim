@@ -488,6 +488,22 @@ describe('SnippetSession', () => {
   })
 
   describe('synchronize()', () => {
+    it('should synchronize after applyEdits failed', async () => {
+      let session = await createSession()
+      await nvim.input('i')
+      await session.start('${1:foo} $1', defaultRange)
+      let doc = await workspace.document
+      let applyEdits = doc.applyEdits
+      doc.applyEdits = () => Promise.reject(new Error('Overlapping edit'))
+      try {
+        await assert.rejects(session['applyEdits']([]), /Overlapping edit/)
+      } finally {
+        doc.applyEdits = applyEdits
+      }
+      await nvim.input('x')
+      await shared.waitValue(() => nvim.line, 'x x')
+    })
+
     it('should cancel when before and body changed', async t => {
       let session = await createSession()
       await nvim.setLine('x')

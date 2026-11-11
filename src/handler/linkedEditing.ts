@@ -101,8 +101,11 @@ export default class LinkedEditingHandler {
     let edits = ranges.filter(r => r !== textRange).map(o => o.textEdit)
     // logger.debug('edits:', JSON.stringify(edits, null, 2))
     this.changing = true
-    await doc.applyEdits(edits, true, true)
-    this.changing = false
+    try {
+      await doc.applyEdits(edits, true, true)
+    } finally {
+      this.changing = false
+    }
     if (delta != 0) {
       for (let r of ranges) {
         let n = getBeforeCount(r, this.ranges, textRange)

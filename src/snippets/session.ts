@@ -292,8 +292,11 @@ export class SnippetSession {
   private async applyEdits(edits: TextEdit[], joinundo = false): Promise<void> {
     let { document } = this
     this._applying = true
-    await document.applyEdits(edits, joinundo)
-    this._applying = false
+    try {
+      await document.applyEdits(edits, joinundo)
+    } finally {
+      this._applying = false
+    }
     this.textDocument = document.textDocument
   }
 
