@@ -6,6 +6,7 @@ interface Item<K, V> {
   value: V
 }
 
+// oxlint-disable-next-line no-redeclare
 export namespace Touch {
   export const None = 0
   export const First = 1
