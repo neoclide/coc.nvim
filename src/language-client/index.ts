@@ -42,6 +42,7 @@ export interface DisposableTransport {
   dispose(): void
 }
 
+// oxlint-disable-next-line no-redeclare
 namespace Transport {
   export function isSocket(value: Transport): value is SocketTransport {
     let candidate = value as SocketTransport
