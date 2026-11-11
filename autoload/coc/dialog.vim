@@ -157,6 +157,12 @@ function! coc#dialog#_create_prompt_nvim(title, default, opts) abort
       let escaped = key ==# '<C-space>' ? '\<C-@\>' : substitute(key, '\(<\|>\)', '\\\1', 'g')
       exe 'inoremap <nowait><buffer> '.key.' <Cmd>call coc#rpc#notify("PromptKeyPress", ['.bufnr.', "'.escaped.'"])<CR>'
     endfor
+  else
+    " navigate the persisted input history
+    for key in ['<up>', '<down>']
+      let escaped = substitute(key, '\(<\|>\)', '\\\1', 'g')
+      exe 'inoremap <nowait><buffer> '.key.' <Cmd>call coc#rpc#notify("PromptKeyPress", ['.bufnr.', "'.escaped.'"])<CR>'
+    endfor
   endif
   let mode = mode()
   if mode ==# 'n'
