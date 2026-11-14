@@ -2,7 +2,7 @@ import type { ChildProcess, ExecFileOptions } from 'child_process'
 import { once } from 'events'
 import { CancellationError } from '../../util/errors'
 import { child_process, promisify } from '../../util/node'
-import { execWithTimeout } from '../../util/processes'
+import { execWithTimeout, needsShell, quoteShellArg } from '../../util/processes'
 import { CancellationToken, CancellationTokenSource } from '../../util/protocol'
 
 describe('execWithTimeout', () => {
@@ -69,5 +69,46 @@ describe('execWithTimeout', () => {
     assert.strictEqual(dispose.mock.callCount(), 1)
     await assert.rejects(execWithTimeout(process.execPath, ['-e', 'process.exit(1)'], {}, token))
     assert.strictEqual(dispose.mock.callCount(), 2)
+  })
+})
+
+describe('windows shell spawn', () => {
+  let setPlatform = (value: string) => Object.defineProperty(process, 'platform', { value, configurable: true })
+  let platform = process.platform
+  afterEach(() => setPlatform(platform))
+
+  it('uses cmd.exe only for commands that are not executables', () => {
+    setPlatform('win32')
+    assert.strictEqual(needsShell('C:/Program Files/server/bin/server.exe'), false)
+    assert.strictEqual(needsShell('server.COM'), false)
+    assert.strictEqual(needsShell('typescript-language-server'), true)
+    assert.strictEqual(needsShell('C:/tools/server.cmd'), true)
+    setPlatform('linux')
+    assert.strictEqual(needsShell('typescript-language-server'), false)
+  })
+
+  it('quotes arguments with whitespace once', () => {
+    assert.strictEqual(quoteShellArg('--stdio'), '--stdio')
+    assert.strictEqual(quoteShellArg('C:/Users/A B/server.cmd'), '"C:/Users/A B/server.cmd"')
+    assert.strictEqual(quoteShellArg('"C:/Users/A B/server.cmd"'), '"C:/Users/A B/server.cmd"')
+  })
+
+  it('runs a script from a path with spaces through cmd.exe', { skip: process.platform !== 'win32' }, async () => {
+    let fs = await import('fs')
+    let os = await import('os')
+    let path = await import('path')
+    let dir = fs.mkdtempSync(path.join(os.tmpdir(), 'coc shell '))
+    let script = path.join(dir, 'echo args.cmd')
+    fs.writeFileSync(script, '@echo %~1^|%~2\r\n')
+    try {
+      let line = [script, '--stdio', 'a b'].map(quoteShellArg).join(' ')
+      let proc = child_process.spawn(line, [], { shell: true, windowsHide: true })
+      let out = ''
+      proc.stdout.on('data', data => out += data)
+      await once(proc, 'exit')
+      assert.strictEqual(out.trim(), '--stdio|a b')
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
   })
 })

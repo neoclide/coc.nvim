@@ -8,7 +8,7 @@ import { OutputChannel } from '../types'
 import { disposeAll, getConditionValue } from '../util'
 import * as Is from '../util/is'
 import { child_process, fs, path, readline } from '../util/node'
-import { terminate } from '../util/processes'
+import { needsShell, quoteShellArg, terminate } from '../util/processes'
 import { Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from '../util/protocol'
 import workspace from '../workspace'
 import { BaseLanguageClient, LanguageClientOptions, MessageTransports, ShutdownMode } from './client'
@@ -450,7 +450,13 @@ export class LanguageClient extends BaseLanguageClient {
         } else if (transport === TransportKind.ipc) {
           throw new Error(`Transport kind ipc is not supported for command executable`)
         }
-        let options = Object.assign({ shell: process.platform === 'win32' }, command.options) as SpawnOptions
+        let cmd = workspace.expand(json.command)
+        let options = Object.assign({}, command.options) as SpawnOptions
+        options.shell ??= needsShell(cmd)
+        if (options.shell && process.platform === 'win32') {
+          cmd = [cmd, ...args].map(quoteShellArg).join(' ')
+          args = []
+        }
         options.env = getEnvironment(options.env, false)
         options.cwd = options.cwd ?? serverWorkingDir
         options.windowsHide = true
@@ -461,7 +467,6 @@ export class LanguageClient extends BaseLanguageClient {
           if (pipiStdout) pipeStdoutToLogOutputChannel(serverProcess.stdout, this.outputChannel)
           pipeStderrToLogOutputChannel(serverProcess.stderr, this.outputChannel)
         }
-        let cmd = workspace.expand(json.command)
         if (transport === undefined || transport === TransportKind.stdio) {
           const serverProcess = child_process.spawn(cmd, args, options)
           if (!serverProcess || !serverProcess.pid) {
