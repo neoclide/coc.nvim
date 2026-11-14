@@ -18,6 +18,21 @@ export function isRunning(pid: number): boolean {
   }
 }
 
+/**
+ * Windows needs cmd.exe only to resolve commands on PATH and .cmd/.bat scripts,
+ * executables run directly so their arguments are quoted by node.
+ */
+export function needsShell(command: string): boolean {
+  return process.platform === 'win32' && !/\.(exe|com)$/i.test(command)
+}
+
+/**
+ * cmd.exe receives one command line, quote the parts that contain whitespace.
+ */
+export function quoteShellArg(arg: string): string {
+  return /\s/.test(arg) && !/^".*"$/.test(arg) ? `"${arg}"` : arg
+}
+
 export function executable(command: string): boolean {
   try {
     which.sync(command)
