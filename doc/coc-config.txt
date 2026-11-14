@@ -183,6 +183,15 @@ EXTENSIONS
 
 	Scope: `application`, default: `false`
 
+"extensions.allowInstallScripts" 			*coc-config-extensions-allowInstallScripts*
+
+	Run lifecycle scripts of all packages when installing an extension.
+	By default, packages are installed with `--ignore-scripts`, and for
+	extensions from a GitHub URL only the extension's own `prepare` script
+	runs.
+
+	Scope: `application`, default: `false`
+
 "extensions.recommendations" 				*coc-config-extensions-recommendations*
 
 	List of extensions recommended for installation in the current project.

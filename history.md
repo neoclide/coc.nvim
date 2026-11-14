@@ -2,6 +2,13 @@
 
 Notable changes of coc.nvim:
 
+## 2026-11-14
+
+- Breaking change: extensions installed from GitHub URLs are installed with
+  `--ignore-scripts`, then only the extension's own `prepare` script runs,
+  also when it has no runtime dependencies. Use `extensions.allowInstallScripts`
+  to run lifecycle scripts of all packages, for GitHub and registry installs.
+
 ## 2026-10-19
 
 - Keep repeated `$0` snippet tabstops synchronized using multiple cursors after

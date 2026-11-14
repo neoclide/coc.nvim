@@ -1636,6 +1636,12 @@
       "default": false,
       "description": "Display the extension update UI in a new Vim tab."
     },
+    "extensions.allowInstallScripts": {
+      "type": "boolean",
+      "scope": "application",
+      "default": false,
+      "description": "Run lifecycle scripts of all packages when installing an extension. By default, packages are installed with --ignore-scripts, and for extensions from a GitHub URL only the extension's own prepare script runs."
+    },
     "inlayHint.enable": {
       "type": "boolean",
       "default": true,
