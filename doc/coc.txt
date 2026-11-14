@@ -3879,6 +3879,11 @@ modifier+type combinations, for example:
 	" Add highlights for declaration modifier
 	hi link CocSemTypeModClassDeclaration ClassDeclaration
 <
+For multiple modifiers, use a combination of names, for example:
+>
+	" Add highlights for declaration+mutable modifier
+	hi link CocSemTypeModVariableDeclarationMutable CocUnderline
+<
 The modifier highlight groups have higher priority.
 
 Others ~
