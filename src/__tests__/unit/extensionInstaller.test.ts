@@ -139,10 +139,14 @@ describe('Installer', () => {
   describe('getInfo()', () => {
     it('should get install arguments', async t => {
       let installer = new Installer(import.meta.dirname, 'npm', 'https://github.com/')
-      assert.deepStrictEqual(installer.getInstallArguments('pnpm', 'https://github.com/'), { env: 'development', args: ['install'] })
+      assert.deepStrictEqual(installer.getInstallArguments('pnpm', 'https://github.com/'), { env: 'development', args: ['install', '--ignore-scripts'] })
+      assert.deepStrictEqual(installer.getInstallArguments('npm', 'https://github.com/'), { env: 'development', args: ['install', '--ignore-scripts'] })
+      let allowScripts = new Installer(import.meta.dirname, 'npm', 'https://github.com/', true)
+      assert.deepStrictEqual(allowScripts.getInstallArguments('npm', 'https://github.com/'), { env: 'development', args: ['install'] })
       assert.deepStrictEqual(installer.getInstallArguments('npm', ''), { env: 'production', args: ['install', '--ignore-scripts', '--no-package-lock', '--omit=dev', '--legacy-peer-deps', '--no-global'] })
       assert.deepStrictEqual(installer.getInstallArguments('yarn', ''), { env: 'production', args: ['install', '--ignore-scripts', '--no-lockfile', '--production', '--ignore-engines'] })
       assert.deepStrictEqual(installer.getInstallArguments('pnpm', ''), { env: 'production', args: ['install', '--ignore-scripts', '--no-lockfile', '--production', '--config.strict-peer-dependencies=false'] })
+      assert.deepStrictEqual(allowScripts.getInstallArguments('npm', ''), { env: 'production', args: ['install', '--no-package-lock', '--omit=dev', '--legacy-peer-deps', '--no-global'] })
     })
 
     it('should getInfo from url', async t => {
@@ -619,6 +623,76 @@ describe('Installer', () => {
       await installer.installDependencies(tmpfolder, ['a', 'b'])
       assert.strictEqual(spawnedEnv?.NODE_ENV, 'production')
       assert.strictEqual(process.env.NODE_ENV, envBefore)
+    })
+
+    function mockSpawn(t: any, code = 0): { cmd: string, args: string[], env: string }[] {
+      let calls: { cmd: string, args: string[], env: string }[] = []
+      t.mock.method(child_process, 'spawn', (cmd: string, args: string[], opts: any) => {
+        calls.push({ cmd, args, env: opts.env.NODE_ENV })
+        let child: any = {
+          stdout: new PassThrough(),
+          stderr: new PassThrough(),
+          on(event: string, cb: (...args: any[]) => void) {
+            if (event === 'exit') setTimeout(() => cb(code), 0)
+            return child
+          }
+        }
+        return child
+      })
+      return calls
+    }
+
+    it('should build github extension without dependencies', async t => {
+      let calls = mockSpawn(t)
+      let installer = new Installer(os.tmpdir(), 'npm', 'https://github.com/owner/repo')
+      await installer.installDependencies(os.tmpdir(), [], { prepare: 'node esbuild.mjs' })
+      assert.deepStrictEqual(calls, [
+        { cmd: 'npm', args: ['install', '--ignore-scripts'], env: 'development' },
+        { cmd: 'npm', args: ['run', 'prepare'], env: 'development' }
+      ])
+    })
+
+    it('should not build github extension without prepare script', async t => {
+      let calls = mockSpawn(t)
+      let installer = new Installer(os.tmpdir(), 'npm', 'https://github.com/owner/repo')
+      await installer.installDependencies(os.tmpdir(), [], { test: 'node test.mjs' })
+      assert.deepStrictEqual(calls, [])
+      await installer.installDependencies(os.tmpdir(), ['a'])
+      assert.deepStrictEqual(calls, [{ cmd: 'npm', args: ['install', '--ignore-scripts'], env: 'development' }])
+    })
+
+    it('should run lifecycle scripts when allowInstallScripts enabled', async t => {
+      let calls = mockSpawn(t)
+      let installer = new Installer(os.tmpdir(), 'npm', 'https://github.com/owner/repo', true)
+      await installer.installDependencies(os.tmpdir(), [], { prepare: 'node esbuild.mjs' })
+      assert.deepStrictEqual(calls, [{ cmd: 'npm', args: ['install'], env: 'development' }])
+    })
+
+    it('should not build or install registry extension without dependencies', async t => {
+      let calls = mockSpawn(t)
+      let installer = new Installer(os.tmpdir(), 'npm', 'coc-omni')
+      await installer.installDependencies(os.tmpdir(), [], { prepare: 'node esbuild.mjs' })
+      assert.deepStrictEqual(calls, [])
+    })
+
+    it('should reject when prepare script fails', async t => {
+      mockSpawn(t, 1)
+      let installer = new Installer(os.tmpdir(), 'npm', 'https://github.com/owner/repo')
+      await assert.rejects(installer.installDependencies(os.tmpdir(), [], { prepare: 'exit 1' }), /npm install exited with 1/)
+    })
+
+    it('should build github extension on doInstall', async t => {
+      let calls = mockSpawn(t)
+      tmpfolder = path.join(os.tmpdir(), crypto.randomUUID())
+      let installer = new Installer(tmpfolder, 'npm', 'https://github.com/owner/repo')
+      t.mock.method(installer, 'download', async (_url, option) => {
+        fs.mkdirSync(option.dest, { recursive: true })
+        let pkg = { name: 'coc-foo', version: '1.0.0', devDependencies: { esbuild: '*' }, scripts: { prepare: 'node esbuild.mjs' } }
+        fs.writeFileSync(path.join(option.dest, 'package.json'), JSON.stringify(pkg), 'utf8')
+      })
+      let res = await installer.doInstall({ name: 'coc-foo', version: '1.0.0', 'dist.tarball': 'https://codeload.github.com/owner/repo/tar.gz/main' })
+      assert.strictEqual(res, true)
+      assert.deepStrictEqual(calls.map(o => o.args), [['install', '--ignore-scripts'], ['run', 'prepare']])
     })
 
     it('should reject on install error', async t => {
