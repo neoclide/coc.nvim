@@ -157,6 +157,10 @@ function isPnpm(exePath: string) {
   return name === 'pnpm' || name === 'pnpm.CMD'
 }
 
+function isGithubUrl(url: string | undefined): boolean {
+  return url != null && url.startsWith('https://github.com')
+}
+
 function isSymbolicLink(folder: string): boolean {
   if (fs.existsSync(folder)) {
     let stat = fs.lstatSync(folder)
@@ -181,7 +185,9 @@ export class Installer extends EventEmitter implements IInstaller {
     private root: string,
     private npm: string,
     // could be url or name@version or name
-    private def: string
+    private def: string,
+    // run lifecycle scripts of all packages on github url installs
+    private allowInstallScripts = false
   ) {
     super()
     if (/^https?:/.test(def)) {
@@ -324,9 +330,8 @@ export class Installer extends EventEmitter implements IInstaller {
 
   public getInstallArguments(exePath: string, url: string | undefined): { env: string, args: string[] } {
     let env = 'production'
-    let args = ['install', '--ignore-scripts']
-    if (url && url.startsWith('https://github.com')) {
-      args = ['install']
+    let args = this.allowInstallScripts ? ['install'] : ['install', '--ignore-scripts']
+    if (isGithubUrl(url)) {
       env = 'development'
     } else {
       if (isNpmCommand(exePath)) {
@@ -358,11 +363,21 @@ export class Installer extends EventEmitter implements IInstaller {
     })
   }
 
-  public installDependencies(folder: string, dependencies: string[]): Promise<void> {
-    if (dependencies.length == 0) return Promise.resolve()
+  public async installDependencies(folder: string, dependencies: string[], scripts: Record<string, string> = {}): Promise<void> {
+    // github sources are not built, the prepare script should run even without dependencies
+    let prepare = isGithubUrl(this.url) && typeof scripts.prepare === 'string'
+    if (dependencies.length == 0 && !prepare) return
+    let { env, args } = this.getInstallArguments(this.npm, this.url)
+    this.log(`Installing dependencies by: ${this.npm} ${args.join(' ')}.`)
+    await this.spawnNpm(folder, args, env)
+    if (prepare && !this.allowInstallScripts) {
+      this.log(`Building extension by: ${this.npm} run prepare.`)
+      await this.spawnNpm(folder, ['run', 'prepare'], env)
+    }
+  }
+
+  private spawnNpm(folder: string, args: string[], env: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      let { env, args } = this.getInstallArguments(this.npm, this.url)
-      this.log(`Installing dependencies by: ${this.npm} ${args.join(' ')}.`)
       const cmd = process.platform === 'win32' && this.npm.includes(' ') ? `"${this.npm}"` : this.npm
       const child = child_process.spawn(cmd, args, {
         cwd: folder,
@@ -376,7 +391,7 @@ export class Installer extends EventEmitter implements IInstaller {
       child.on('error', reject)
       child.on('exit', code => {
         if (code) {
-          reject(new Error(`${this.npm} install exited with ${code}`))
+          reject(new Error(`${this.npm} ${args[0]} exited with ${code}`))
           return
         }
         resolve()
@@ -397,7 +412,7 @@ export class Installer extends EventEmitter implements IInstaller {
     let url = info['dist.tarball']
     this.log(`Downloading from ${url}`)
     let etagAlgorithm = url.startsWith('https://registry.npmjs.org') ? 'md5' : undefined
-    let obj: { dependencies?: Record<string, string>, extensionDependencies?: string[] }
+    let obj: { dependencies?: Record<string, string>, scripts?: Record<string, string>, extensionDependencies?: string[] }
     try {
       await this.download(url, {
         dest: downloadFolder,
@@ -407,7 +422,7 @@ export class Installer extends EventEmitter implements IInstaller {
       })
       this.log(`Extension download at ${downloadFolder}`)
       obj = loadJson(path.join(downloadFolder, 'package.json'))
-      await this.installDependencies(downloadFolder, getDependencies(obj))
+      await this.installDependencies(downloadFolder, getDependencies(obj), obj.scripts)
       // Install extension dependencies before moving the main extension into
       // place, so a dependency failure cleans up the download and never
       // leaves the main extension half-installed on disk.
@@ -415,7 +430,7 @@ export class Installer extends EventEmitter implements IInstaller {
       if (extensionDependencies.length > 0) {
         this.log(`Installing extension dependencies: ${extensionDependencies.join(', ')}`)
         for (const dependency of extensionDependencies) {
-          const installer = new Installer(this.root, this.npm, dependency)
+          const installer = new Installer(this.root, this.npm, dependency, this.allowInstallScripts)
           installer.on('message', (msg, isProgress) => {
             this.log(msg, isProgress)
           })

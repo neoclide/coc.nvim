@@ -265,7 +265,8 @@ export class Extensions {
    */
 
   public createInstaller(npm: string, def: string): IInstaller {
-    return new Installer(this.modulesFolder, npm, def)
+    let allowInstallScripts = workspace.initialConfiguration.get<boolean>('extensions.allowInstallScripts', false)
+    return new Installer(this.modulesFolder, npm, def, allowInstallScripts)
   }
 
   /**
