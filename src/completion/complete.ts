@@ -142,7 +142,7 @@ export default class Complete {
     this.option.synname = res[0]
     let variables = res[1]
     if (variables.disable) {
-      logger.warn('suggest cancelled by b:coc_suggest_disable')
+      logger.warn('suggest cancelled by b:coc_suggest_disable || macro recording')
       return true
     }
     if (!isFalsyOrEmpty(variables.disabled_sources)) {

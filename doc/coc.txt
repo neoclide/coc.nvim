@@ -636,6 +636,10 @@ Use <PageDown> and <PageUp> to scroll: >
 <
 Note: <CR> and <Tab> are not remapped by coc.nvim.
 
+Popup completion is disabled while recording a macro, including manually
+triggered completion. Type the full text when recording. Completion resumes
+after recording ends.
+
 							*coc-completion-variables*
 Related variables: ~
 
