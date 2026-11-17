@@ -85,6 +85,8 @@ jobs:
         id: setup-vim
         if: steps.vim-cache.outputs.cache-hit != 'true'
         uses: rhysd/action-setup-vim@v1
+        env:
+          CFLAGS: ${{ runner.os == 'Linux' && matrix.versions.vim == 'v9.0.0438' && '-g -O2 -std=gnu17' || '-g -O2' }}
         with:
           version: ${{ matrix.versions.vim }}
 
