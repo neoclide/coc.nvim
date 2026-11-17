@@ -110573,7 +110573,7 @@ var init_complete = __esm({
         this.option.synname = res[0];
         let variables = res[1];
         if (variables.disable) {
-          logger30.warn("suggest cancelled by b:coc_suggest_disable");
+          logger30.warn("suggest cancelled by b:coc_suggest_disable || macro recording");
           return true;
         }
         if (!isFalsyOrEmpty(variables.disabled_sources)) {
@@ -145634,13 +145634,15 @@ var init_buffer6 = __esm({
           tokenModifiers
         });
         if (tokenModifiers.length) {
-          const modifier = tokenModifiers[0];
-          combine2 = combinedModifiers.includes(modifier);
+          for (const modifier of tokenModifiers) {
+            combine2 ||= combinedModifiers.includes(modifier);
+          }
+          let modsName = tokenModifiers.map(toHighlightPart).join("");
           highlights.push({
             range: range2,
             tokenType,
             combine: combine2,
-            hlGroup: HLGROUP_PREFIX + "TypeMod" + toHighlightPart(tokenType) + toHighlightPart(modifier),
+            hlGroup: HLGROUP_PREFIX + "TypeMod" + toHighlightPart(tokenType) + modsName,
             tokenModifiers
           });
         }
@@ -147655,7 +147657,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-4f6715b 2026-11-11 12:13:15 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-1edb03c 2026-11-17 18:17:11 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);

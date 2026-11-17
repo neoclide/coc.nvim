@@ -176,7 +176,7 @@ endfunction
 
 function! coc#_suggest_variables() abort
   return {
-      \ 'disable': get(b:, 'coc_suggest_disable', 0),
+      \ 'disable': get(b:, 'coc_suggest_disable', 0) || !empty(reg_recording()),
       \ 'disabled_sources': get(b:, 'coc_disabled_sources', []),
       \ 'blacklist': get(b:, 'coc_suggest_blacklist', []),
       \ }

@@ -636,6 +636,10 @@ Use <PageDown> and <PageUp> to scroll: >
 <
 Note: <CR> and <Tab> are not remapped by coc.nvim.
 
+Popup completion is disabled while recording a macro, including manually
+triggered completion. Type the full text when recording. Completion resumes
+after recording ends.
+
 							*coc-completion-variables*
 Related variables: ~
 
@@ -3878,6 +3882,11 @@ modifier+type combinations, for example:
 >
 	" Add highlights for declaration modifier
 	hi link CocSemTypeModClassDeclaration ClassDeclaration
+<
+For multiple modifiers, use a combination of names, for example:
+>
+	" Add highlights for declaration+mutable modifier
+	hi link CocSemTypeModVariableDeclarationMutable CocUnderline
 <
 The modifier highlight groups have higher priority.
 
