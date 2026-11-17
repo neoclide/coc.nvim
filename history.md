@@ -4,6 +4,7 @@ Notable changes of coc.nvim:
 
 ## 2026-11-17
 
+- Change multiple semantic modifiers highlight to use concatenated name (#5794).
 - Disable popup completion while recording macros so recorded keys do not depend
   on the completion menu being visible (#5783).
 
