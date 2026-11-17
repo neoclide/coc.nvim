@@ -30,6 +30,8 @@ jobs:
       - name: Setup vim
         uses: rhysd/action-setup-vim@v1
         id: vim
+        env:
+          CFLAGS: "-g -O2 -std=gnu17"
         with:
           version: v9.0.0815
 
