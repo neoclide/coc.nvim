@@ -135,6 +135,8 @@ export default class LanguageSource implements ISource<CompletionItem> {
       if (isSnippet) {
         let pos = await getLineAndPosition(workspace.nvim)
         move = Position.create(pos.line, pos.character)
+      } else {
+        await snippetManager.getSession(opt.bufnr)?.synchronize()
       }
       await doc.applyEdits(item.additionalTextEdits, doc.version != version, move)
       if (isSnippet) await snippetManager.selectCurrentPlaceholder()
