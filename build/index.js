@@ -110273,6 +110273,8 @@ var init_source_language = __esm({
           if (isSnippet) {
             let pos = await getLineAndPosition(workspace_default.nvim);
             move = Position.create(pos.line, pos.character);
+          } else {
+            await manager_default2.getSession(opt.bufnr)?.synchronize();
           }
           await doc.applyEdits(item.additionalTextEdits, doc.version != version2, move);
           if (isSnippet) await manager_default2.selectCurrentPlaceholder();
@@ -147657,7 +147659,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-1edb03c 2026-11-17 18:17:11 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-388c04a 2026-11-18 11:02:36 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
