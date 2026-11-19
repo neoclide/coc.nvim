@@ -120,7 +120,11 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
   let lines = get(a:config, 'lines', v:null)
   let bufnr = a:bufnr
   try
-    let bufnr = coc#float#create_buf(a:bufnr, lines, get(a:config, 'bufhidden', 'hide'))
+    if !s:is_vim || !coc#float#valid(a:winid)
+      " Edit from inside the Vim popup to notify buffer listeners without
+      " reusing fold state from another buffer (#5779).
+      let bufnr = coc#float#create_buf(a:bufnr, s:is_vim ? v:null : lines, get(a:config, 'bufhidden', 'hide'))
+    endif
   catch /E523:/
     " happens when using getchar() #3921
     return []
@@ -192,6 +196,7 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       if !s:empty_border(get(a:config, 'border', []))
         let opts['border'] = a:config['border']
       endif
+      call win_execute(a:winid, 'call coc#float#create_buf(bufnr(), lines)')
       call popup_setoptions(a:winid, opts)
       call win_execute(a:winid, 'exe '.lnum)
       call coc#float#vim_buttons(a:winid, a:config)
@@ -247,8 +252,22 @@ function! coc#float#create_float_win(winid, bufnr, config) abort
       let opts['filter'] = get(a:config, 'filter', v:null)
     endif
     noa let winid = popup_create(bufnr, opts)
-    call s:set_float_defaults(winid, a:config)
-    call win_execute(winid, 'exe '.lnum)
+    let initialized = 0
+    try
+      call s:set_float_defaults(winid, a:config)
+      call win_execute(winid, ['call coc#float#create_buf(bufnr(), lines)', 'exe '.lnum])
+      let initialized = 1
+    finally
+      if !initialized
+        let bufhidden = getbufvar(bufnr, '&bufhidden')
+        " A failed open must release its own buffer and preserve a caller's.
+        call setbufvar(bufnr, '&bufhidden', bufnr == a:bufnr ? 'hide' : 'wipe')
+        noa call popup_close(winid)
+        if bufexists(bufnr)
+          call setbufvar(bufnr, '&bufhidden', bufhidden)
+        endif
+      endif
+    endtry
     call coc#float#vim_buttons(winid, a:config)
   else
     let config = s:convert_config_nvim(a:config, 1)
