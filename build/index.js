@@ -3435,11 +3435,11 @@ var require_index_min = __commonJS({
         platform;
         mmopts;
         slashRoot;
-        constructor(t2, { nobrace: e2, nocase: s2, noext: i2, noglobstar: n2, normalize: o2, platform: h2 = ur, root: a2, windowsPathsNoEscape: l2, allowWindowsEscape: c2 }, u2) {
-          this.relative = [], this.absolute = [], this.relativeChildren = [], this.absoluteChildren = [], this.platform = h2, l2 = !!l2 || c2 === false, this.mmopts = { dot: true, nobrace: e2, nocase: s2, noext: i2, noglobstar: n2, normalize: o2, optimizationLevel: 2, platform: h2, nocomment: true, nonegate: true, windowsPathsNoEscape: l2 };
-          let f2 = u2?.resolve(a2 ?? "/").fullpath() ?? "/";
-          this.slashRoot = (0, es.escape)(f2.replace(/\\/g, "/").replace(/\/$/, ""), { windowsPathsNoEscape: l2 });
-          for (let p2 of t2) this.add(p2);
+        constructor(t2, { nobrace: e2, nocase: s2, noext: i2, noglobstar: n2, normalize: o2, platform: h2 = ur, root: a2, windowsPathsNoEscape: l2, allowWindowsEscape: c2, braceExpandMax: u2 = 1e4 }, f2) {
+          this.relative = [], this.absolute = [], this.relativeChildren = [], this.absoluteChildren = [], this.platform = h2, l2 = !!l2 || c2 === false, this.mmopts = { braceExpandMax: u2, dot: true, nobrace: e2, nocase: s2, noext: i2, noglobstar: n2, normalize: o2, optimizationLevel: 2, platform: h2, nocomment: true, nonegate: true, windowsPathsNoEscape: l2 };
+          let p2 = f2?.resolve(a2 ?? "/").fullpath() ?? "/";
+          this.slashRoot = (0, es.escape)(p2.replace(/\\/g, "/").replace(/\/$/, ""), { magicalBraces: true, windowsPathsNoEscape: l2 });
+          for (let g2 of t2) this.add(g2);
         }
         add(t2) {
           let e2 = new es.Minimatch(t2, this.mmopts);
@@ -5150,10 +5150,15 @@ var require_escape = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.escape = void 0;
     var escape3 = (s2, { windowsPathsNoEscape = false, magicalBraces = false } = {}) => {
-      if (magicalBraces) {
-        return windowsPathsNoEscape ? s2.replace(/[?*()[\]{}]/g, "[$&]") : s2.replace(/[?*()[\]\\{}]/g, "\\$&");
+      const e2 = magicalBraces ? windowsPathsNoEscape ? s2.replace(/[?*()[\]{}]/g, "[$&]") : s2.replace(/[?*()[\]\\{}]/g, "\\$&") : windowsPathsNoEscape ? s2.replace(/[?*()[\]]/g, "[$&]") : s2.replace(/[?*()[\]\\]/g, "\\$&");
+      const c2 = e2.charAt(0);
+      if (c2 === "#") {
+        return (windowsPathsNoEscape ? "[#]" : "\\#") + e2.slice(1);
       }
-      return windowsPathsNoEscape ? s2.replace(/[?*()[\]]/g, "[$&]") : s2.replace(/[?*()[\]\\]/g, "\\$&");
+      if (c2 === "!") {
+        return (windowsPathsNoEscape ? "@(!)" : "\\!") + e2.slice(1);
+      }
+      return e2;
     };
     exports2.escape = escape3;
   }
@@ -5166,6 +5171,9 @@ var require_unescape = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.unescape = void 0;
     var unescape4 = (s2, { windowsPathsNoEscape = false, magicalBraces = true } = {}) => {
+      if (windowsPathsNoEscape && s2.startsWith("@(!)")) {
+        return "!" + (0, exports2.unescape)(s2.slice(4), { windowsPathsNoEscape, magicalBraces });
+      }
       if (magicalBraces) {
         return windowsPathsNoEscape ? s2.replace(/\[([^/\\])\]/g, "$1") : s2.replace(/((?!\\).|^)\[([^/\\])\]/g, "$1$2").replace(/\\([^/])/g, "$1");
       }
@@ -5200,7 +5208,19 @@ var require_commonjs4 = __commonJS({
     var cache2 = /* @__PURE__ */ new Map();
     var oldCache2 = /* @__PURE__ */ new Map();
     var cacheSize2 = 0;
+    var cacheTotalWeight2 = 0;
     var cacheMax2 = 256;
+    var cacheMaxWeight2 = 1 << 15;
+    var cacheMaxEntryWeight2 = 1 << 12;
+    var cacheWeight2 = (mm) => {
+      let w2 = mm.pattern.length;
+      for (const s2 of mm.globSet) {
+        w2 += s2.length + 1;
+        if (w2 > cacheMaxEntryWeight2)
+          break;
+      }
+      return w2;
+    };
     var tri2 = (v2) => v2 === void 0 ? 0 : v2 ? 2 : 1;
     var booleanWeights2 = new Map(Object.keys({
       nobrace: 0,
@@ -5285,16 +5305,21 @@ var require_commonjs4 = __commonJS({
       if (mm)
         return mm;
       mm = oldCache2.get(key)?.get(pattern) ?? new Minimatch2(pattern, copyOptions2(options3));
-      if (cacheSize2 >= cacheMax2) {
+      const weight = cacheWeight2(mm);
+      if (weight > cacheMaxEntryWeight2)
+        return mm;
+      if (cacheSize2 >= cacheMax2 || cacheTotalWeight2 + weight > cacheMaxWeight2) {
         oldCache2 = cache2;
         cache2 = /* @__PURE__ */ new Map();
         cacheSize2 = 0;
+        cacheTotalWeight2 = 0;
       }
       let byPattern = cache2.get(key);
       if (!byPattern)
         cache2.set(key, byPattern = /* @__PURE__ */ new Map());
       byPattern.set(pattern, mm);
       cacheSize2++;
+      cacheTotalWeight2 += weight;
       return mm;
     };
     var defaultPlatform2 = typeof process === "object" && process ? process.env?.__MINIMATCH_TESTING_PLATFORM__ || process.platform : "posix";
@@ -5345,12 +5370,34 @@ var require_commonjs4 = __commonJS({
       if (options3.nobrace || !/\{(?:(?!\{).)*\}/.test(pattern)) {
         return [pattern];
       }
-      return (0, brace_expansion_1.expand)(pattern, { max: options3.braceExpandMax });
+      let p2 = pattern.replace(/\\\\/g, "\\\\\\\\");
+      if (options3.windowsPathsNoEscape || options3[AWE_KEY2] === false) {
+        p2 = p2.replace(/\[([{}])\]/g, "[\\$1]");
+      }
+      return (0, brace_expansion_1.expand)(p2, { max: options3.braceExpandMax });
     };
     exports2.braceExpand = braceExpand2;
     exports2.minimatch.braceExpand = exports2.braceExpand;
     var RANGE_MIN2 = 100;
     var rangeRe2 = /(?<![\\$])\{(-?\d+)\.\.(-?\d+)\}/g;
+    var inRepeatOrNegExt2 = (portion, mark) => {
+      const stack = [];
+      for (let i2 = 0; i2 < portion.length; i2++) {
+        const c2 = portion.charAt(i2);
+        if (c2 === "\\") {
+          i2++;
+        } else if (c2 === mark) {
+          if (stack.some((t2) => t2 !== "@" && t2 !== "?"))
+            return true;
+        } else if (portion.charAt(i2 + 1) === "(" && "!?+*@".includes(c2)) {
+          stack.push(c2);
+          i2++;
+        } else if (c2 === ")") {
+          stack.pop();
+        }
+      }
+      return false;
+    };
     var match2 = (list2, pattern, options3 = {}) => {
       const mm = new Minimatch2(pattern, options3);
       list2 = list2.filter((f2) => mm.match(f2));
@@ -5408,6 +5455,25 @@ var require_commonjs4 = __commonJS({
         }
       }
       return lit2;
+    };
+    var MAX_EXTGLOBS2 = 256;
+    var extglobCount2 = (pattern) => {
+      let n2 = 0;
+      for (let i2 = 0; i2 < pattern.length - 1; i2++) {
+        const c2 = pattern.charAt(i2);
+        if (c2 === "\\") {
+          i2++;
+        } else if ("+@!?*".includes(c2) && pattern.charAt(i2 + 1) === "(") {
+          n2++;
+          i2++;
+        }
+      }
+      return n2;
+    };
+    var assertValidExtglobs2 = (pattern) => {
+      if (extglobCount2(pattern) > MAX_EXTGLOBS2) {
+        throw new TypeError("pattern has too many extglobs");
+      }
     };
     var extSafe2 = (pattern) => {
       if (/^[?*+@]\(\)$/.test(pattern) || pattern.includes("[:"))
@@ -5698,6 +5764,8 @@ var require_commonjs4 = __commonJS({
               const [first, ...rest] = g2;
               const alts = g2.map((i2) => this.globParts[i2][k]);
               const glob2 = `@(${alts.join("|")})`;
+              if (extglobCount2(glob2) > MAX_EXTGLOBS2)
+                continue;
               this.globParts[first][k] = glob2;
               this.set[first][k] = this.parse(glob2);
               for (const i2 of rest)
@@ -6417,6 +6485,9 @@ var require_commonjs4 = __commonJS({
             if (c2 !== -1 && c2 < portion.lastIndexOf(mark)) {
               return this.braceExpand();
             }
+            if (!this.options.noext && inRepeatOrNegExt2(portion, mark)) {
+              return this.braceExpand();
+            }
           }
         }
         this.#rangeMark = mark;
@@ -6439,6 +6510,8 @@ var require_commonjs4 = __commonJS({
           return PENDING2;
         let m2 = this.#matchers.get(pattern);
         if (!m2) {
+          if (!noext)
+            assertValidExtglobs2(pattern);
           m2 = new nonrecursive_glob_match_1.Matcher(pattern, {
             nocase,
             noext,
@@ -64200,7 +64273,7 @@ var init_main = __esm({
       DiagnosticRelatedInformation2.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.defined(candidate) && Location.is(candidate.location) && Is.string(candidate.message);
+        return Is.objectLiteral(candidate) && Location.is(candidate.location) && Is.string(candidate.message);
       }
       DiagnosticRelatedInformation2.is = is;
     })(DiagnosticRelatedInformation || (DiagnosticRelatedInformation = {}));
@@ -64242,7 +64315,7 @@ var init_main = __esm({
       function is(value) {
         var _a;
         const candidate = value;
-        return Is.defined(candidate) && Range.is(candidate.range) && (Is.string(candidate.message) || MarkupContent.is(candidate.message)) && (Is.number(candidate.severity) || Is.undefined(candidate.severity)) && (Is.integer(candidate.code) || Is.string(candidate.code) || Is.undefined(candidate.code)) && (Is.undefined(candidate.codeDescription) || Is.string((_a = candidate.codeDescription) === null || _a === void 0 ? void 0 : _a.href)) && (Is.string(candidate.source) || Is.undefined(candidate.source)) && (Is.undefined(candidate.relatedInformation) || Is.typedArray(candidate.relatedInformation, DiagnosticRelatedInformation.is));
+        return Is.objectLiteral(candidate) && Range.is(candidate.range) && (Is.string(candidate.message) || MarkupContent.is(candidate.message)) && (Is.number(candidate.severity) || Is.undefined(candidate.severity)) && (Is.integer(candidate.code) || Is.string(candidate.code) || Is.undefined(candidate.code)) && (Is.undefined(candidate.codeDescription) || Is.string((_a = candidate.codeDescription) === null || _a === void 0 ? void 0 : _a.href)) && (Is.string(candidate.source) || Is.undefined(candidate.source)) && (Is.undefined(candidate.relatedInformation) || Is.typedArray(candidate.relatedInformation, DiagnosticRelatedInformation.is));
       }
       Diagnostic9.is = is;
       function is3_17(value) {
@@ -64271,7 +64344,7 @@ var init_main = __esm({
       Command3.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.defined(candidate) && Is.string(candidate.title) && (candidate.tooltip === void 0 || Is.string(candidate.tooltip)) && Is.string(candidate.command);
+        return Is.objectLiteral(candidate) && Is.string(candidate.title) && (candidate.tooltip === void 0 || Is.string(candidate.tooltip)) && Is.string(candidate.command);
       }
       Command3.is = is;
     })(Command || (Command = {}));
@@ -64345,7 +64418,7 @@ var init_main = __esm({
       TextDocumentEdit2.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.defined(candidate) && OptionalVersionedTextDocumentIdentifier.is(candidate.textDocument) && Array.isArray(candidate.edits);
+        return Is.objectLiteral(candidate) && OptionalVersionedTextDocumentIdentifier.is(candidate.textDocument) && Array.isArray(candidate.edits);
       }
       TextDocumentEdit2.is = is;
     })(TextDocumentEdit || (TextDocumentEdit = {}));
@@ -64511,7 +64584,7 @@ var init_main = __esm({
       constructor(annotations) {
         this._annotations = annotations === void 0 ? /* @__PURE__ */ Object.create(null) : annotations;
         this._counter = 0;
-        this._size = 0;
+        this._size = Object.keys(this._annotations).length;
       }
       all() {
         return this._annotations;
@@ -64538,8 +64611,12 @@ var init_main = __esm({
         return id2;
       }
       nextId() {
-        this._counter++;
-        return this._counter.toString();
+        let id2;
+        do {
+          this._counter++;
+          id2 = this._counter.toString();
+        } while (this._annotations[id2] !== void 0);
+        return id2;
       }
     };
     WorkspaceChange = class {
@@ -64707,7 +64784,7 @@ var init_main = __esm({
       TextDocumentIdentifier3.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.defined(candidate) && Is.string(candidate.uri);
+        return Is.objectLiteral(candidate) && Is.string(candidate.uri);
       }
       TextDocumentIdentifier3.is = is;
     })(TextDocumentIdentifier || (TextDocumentIdentifier = {}));
@@ -64718,7 +64795,7 @@ var init_main = __esm({
       VersionedTextDocumentIdentifier2.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.defined(candidate) && Is.string(candidate.uri) && Is.integer(candidate.version);
+        return Is.objectLiteral(candidate) && Is.string(candidate.uri) && Is.integer(candidate.version);
       }
       VersionedTextDocumentIdentifier2.is = is;
     })(VersionedTextDocumentIdentifier || (VersionedTextDocumentIdentifier = {}));
@@ -64729,7 +64806,7 @@ var init_main = __esm({
       OptionalVersionedTextDocumentIdentifier2.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.defined(candidate) && Is.string(candidate.uri) && (candidate.version === null || Is.integer(candidate.version));
+        return Is.objectLiteral(candidate) && Is.string(candidate.uri) && (candidate.version === null || Is.integer(candidate.version));
       }
       OptionalVersionedTextDocumentIdentifier2.is = is;
     })(OptionalVersionedTextDocumentIdentifier || (OptionalVersionedTextDocumentIdentifier = {}));
@@ -64804,7 +64881,7 @@ var init_main = __esm({
       TextDocumentItem2.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.defined(candidate) && Is.string(candidate.uri) && Is.string(candidate.languageId) && Is.integer(candidate.version) && Is.string(candidate.text);
+        return Is.objectLiteral(candidate) && Is.string(candidate.uri) && Is.string(candidate.languageId) && Is.integer(candidate.version) && Is.string(candidate.text);
       }
       TextDocumentItem2.is = is;
     })(TextDocumentItem || (TextDocumentItem = {}));
@@ -65053,7 +65130,7 @@ var init_main = __esm({
       CodeActionContext6.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.defined(candidate) && Is.typedArray(candidate.diagnostics, Diagnostic.is) && (candidate.only === void 0 || Is.typedArray(candidate.only, Is.string)) && (candidate.triggerKind === void 0 || candidate.triggerKind === CodeActionTriggerKind.Invoked || candidate.triggerKind === CodeActionTriggerKind.Automatic);
+        return Is.objectLiteral(candidate) && Is.typedArray(candidate.diagnostics, Diagnostic.is) && (candidate.only === void 0 || Is.typedArray(candidate.only, Is.string)) && (candidate.triggerKind === void 0 || candidate.triggerKind === CodeActionTriggerKind.Invoked || candidate.triggerKind === CodeActionTriggerKind.Automatic);
       }
       CodeActionContext6.is = is;
     })(CodeActionContext || (CodeActionContext = {}));
@@ -65099,7 +65176,7 @@ var init_main = __esm({
       CodeLens3.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.defined(candidate) && Range.is(candidate.range) && (Is.undefined(candidate.command) || Command.is(candidate.command));
+        return Is.objectLiteral(candidate) && Range.is(candidate.range) && (Is.undefined(candidate.command) || Command.is(candidate.command));
       }
       CodeLens3.is = is;
     })(CodeLens || (CodeLens = {}));
@@ -65110,7 +65187,7 @@ var init_main = __esm({
       FormattingOptions7.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.defined(candidate) && Is.uinteger(candidate.tabSize) && Is.boolean(candidate.insertSpaces);
+        return Is.objectLiteral(candidate) && Is.uinteger(candidate.tabSize) && Is.boolean(candidate.insertSpaces);
       }
       FormattingOptions7.is = is;
     })(FormattingOptions || (FormattingOptions = {}));
@@ -65121,7 +65198,7 @@ var init_main = __esm({
       DocumentLink3.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.defined(candidate) && Range.is(candidate.range) && (Is.undefined(candidate.target) || Is.string(candidate.target));
+        return Is.objectLiteral(candidate) && Range.is(candidate.range) && (Is.undefined(candidate.target) || Is.string(candidate.target));
       }
       DocumentLink3.is = is;
     })(DocumentLink || (DocumentLink = {}));
@@ -65221,7 +65298,7 @@ var init_main = __esm({
       InlineValueContext3.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.defined(candidate) && Range.is(value.stoppedLocation);
+        return Is.objectLiteral(candidate) && Range.is(value.stoppedLocation);
       }
       InlineValueContext3.is = is;
     })(InlineValueContext || (InlineValueContext = {}));
@@ -65313,7 +65390,7 @@ var init_main = __esm({
       TextDocument3.create = create2;
       function is(value) {
         const candidate = value;
-        return Is.defined(candidate) && Is.string(candidate.uri) && (Is.undefined(candidate.languageId) || Is.string(candidate.languageId)) && Is.uinteger(candidate.lineCount) && Is.func(candidate.getText) && Is.func(candidate.positionAt) && Is.func(candidate.offsetAt) ? true : false;
+        return Is.objectLiteral(candidate) && Is.string(candidate.uri) && (Is.undefined(candidate.languageId) || Is.string(candidate.languageId)) && Is.uinteger(candidate.lineCount) && Is.func(candidate.getText) && Is.func(candidate.positionAt) && Is.func(candidate.offsetAt) ? true : false;
       }
       TextDocument3.is = is;
       function applyEdits3(document2, edits) {
@@ -66242,7 +66319,9 @@ var require_linkedMap = __commonJS({
         return this;
       }
       delete(key) {
-        return !!this.remove(key);
+        const existed = this._map.has(key);
+        this.remove(key);
+        return existed;
       }
       remove(key) {
         const item = this._map.get(key);
@@ -70604,7 +70683,7 @@ var require_protocol = __commonJS({
     (function(TextDocumentFilter3) {
       function is(value) {
         const candidate = value;
-        return Is2.string(candidate) || (Is2.string(candidate.language) || Is2.string(candidate.scheme) || GlobPattern.is(candidate.pattern));
+        return Is2.string(candidate) || Is2.objectLiteral(candidate) && (Is2.string(candidate.language) || Is2.string(candidate.scheme) || GlobPattern.is(candidate.pattern));
       }
       TextDocumentFilter3.is = is;
     })(TextDocumentFilter2 || (exports2.TextDocumentFilter = TextDocumentFilter2 = {}));
@@ -70612,7 +70691,7 @@ var require_protocol = __commonJS({
     (function(NotebookDocumentFilter2) {
       function is(value) {
         const candidate = value;
-        return Is2.objectLiteral(candidate) && (Is2.string(candidate.notebookType) || Is2.string(candidate.scheme) || Is2.string(candidate.pattern));
+        return Is2.objectLiteral(candidate) && (Is2.string(candidate.notebookType) || Is2.string(candidate.scheme) || GlobPattern.is(candidate.pattern));
       }
       NotebookDocumentFilter2.is = is;
     })(NotebookDocumentFilter || (exports2.NotebookDocumentFilter = NotebookDocumentFilter = {}));
@@ -70686,7 +70765,7 @@ var require_protocol = __commonJS({
     (function(TextDocumentRegistrationOptions4) {
       function is(value) {
         const candidate = value;
-        return candidate && (candidate.documentSelector === null || DocumentSelector3.is(candidate.documentSelector));
+        return Is2.objectLiteral(candidate) && (candidate.documentSelector === null || DocumentSelector3.is(candidate.documentSelector));
       }
       TextDocumentRegistrationOptions4.is = is;
     })(TextDocumentRegistrationOptions3 || (exports2.TextDocumentRegistrationOptions = TextDocumentRegistrationOptions3 = {}));
@@ -98428,10 +98507,15 @@ var escape2;
 var init_escape = __esm({
   "node_modules/minimatch/dist/esm/escape.js"() {
     escape2 = (s2, { windowsPathsNoEscape = false, magicalBraces = false } = {}) => {
-      if (magicalBraces) {
-        return windowsPathsNoEscape ? s2.replace(/[?*()[\]{}]/g, "[$&]") : s2.replace(/[?*()[\]\\{}]/g, "\\$&");
+      const e2 = magicalBraces ? windowsPathsNoEscape ? s2.replace(/[?*()[\]{}]/g, "[$&]") : s2.replace(/[?*()[\]\\{}]/g, "\\$&") : windowsPathsNoEscape ? s2.replace(/[?*()[\]]/g, "[$&]") : s2.replace(/[?*()[\]\\]/g, "\\$&");
+      const c2 = e2.charAt(0);
+      if (c2 === "#") {
+        return (windowsPathsNoEscape ? "[#]" : "\\#") + e2.slice(1);
       }
-      return windowsPathsNoEscape ? s2.replace(/[?*()[\]]/g, "[$&]") : s2.replace(/[?*()[\]\\]/g, "\\$&");
+      if (c2 === "!") {
+        return (windowsPathsNoEscape ? "@(!)" : "\\!") + e2.slice(1);
+      }
+      return e2;
     };
   }
 });
@@ -98441,6 +98525,9 @@ var unescape3;
 var init_unescape = __esm({
   "node_modules/minimatch/dist/esm/unescape.js"() {
     unescape3 = (s2, { windowsPathsNoEscape = false, magicalBraces = true } = {}) => {
+      if (windowsPathsNoEscape && s2.startsWith("@(!)")) {
+        return "!" + unescape3(s2.slice(4), { windowsPathsNoEscape, magicalBraces });
+      }
       if (magicalBraces) {
         return windowsPathsNoEscape ? s2.replace(/\[([^/\\])\]/g, "$1") : s2.replace(/((?!\\).|^)\[([^/\\])\]/g, "$1$2").replace(/\\([^/])/g, "$1");
       }
@@ -98450,7 +98537,7 @@ var init_unescape = __esm({
 });
 
 // node_modules/minimatch/dist/esm/index.js
-var DEFAULT_BRACE_EXPAND_MAX, DEFAULT_GLOB_STAR_RECURSION_MAX, AWE_KEY, minimatch2, cache, oldCache, cacheSize, cacheMax, tri, booleanWeights, optionsKey, copyOptions, cachedMinimatch, defaultPlatform, path2, sep, GLOBSTAR, filter, ext, defaults, braceExpand, RANGE_MIN, rangeRe, match, globMagic, classEnd, literal, extSafe, lastSplit, lastChecked, portionMatch, endIndex, isDots, isDrive, isLongUNC, uncHost, walkable, dotPortion, isSep, nextSep, lastSep, PENDING, Minimatch;
+var DEFAULT_BRACE_EXPAND_MAX, DEFAULT_GLOB_STAR_RECURSION_MAX, AWE_KEY, minimatch2, cache, oldCache, cacheSize, cacheTotalWeight, cacheMax, cacheMaxWeight, cacheMaxEntryWeight, cacheWeight, tri, booleanWeights, optionsKey, copyOptions, cachedMinimatch, defaultPlatform, path2, sep, GLOBSTAR, filter, ext, defaults, braceExpand, RANGE_MIN, rangeRe, inRepeatOrNegExt, match, globMagic, classEnd, literal, MAX_EXTGLOBS, extglobCount, assertValidExtglobs, extSafe, lastSplit, lastChecked, portionMatch, endIndex, isDots, isDrive, isLongUNC, uncHost, walkable, dotPortion, isSep, nextSep, lastSep, PENDING, Minimatch;
 var init_esm5 = __esm({
   "node_modules/minimatch/dist/esm/index.js"() {
     init_esm3();
@@ -98473,7 +98560,19 @@ var init_esm5 = __esm({
     cache = /* @__PURE__ */ new Map();
     oldCache = /* @__PURE__ */ new Map();
     cacheSize = 0;
+    cacheTotalWeight = 0;
     cacheMax = 256;
+    cacheMaxWeight = 1 << 15;
+    cacheMaxEntryWeight = 1 << 12;
+    cacheWeight = (mm) => {
+      let w2 = mm.pattern.length;
+      for (const s2 of mm.globSet) {
+        w2 += s2.length + 1;
+        if (w2 > cacheMaxEntryWeight)
+          break;
+      }
+      return w2;
+    };
     tri = (v2) => v2 === void 0 ? 0 : v2 ? 2 : 1;
     booleanWeights = new Map(Object.keys({
       nobrace: 0,
@@ -98558,16 +98657,21 @@ var init_esm5 = __esm({
       if (mm)
         return mm;
       mm = oldCache.get(key)?.get(pattern) ?? new Minimatch(pattern, copyOptions(options3));
-      if (cacheSize >= cacheMax) {
+      const weight = cacheWeight(mm);
+      if (weight > cacheMaxEntryWeight)
+        return mm;
+      if (cacheSize >= cacheMax || cacheTotalWeight + weight > cacheMaxWeight) {
         oldCache = cache;
         cache = /* @__PURE__ */ new Map();
         cacheSize = 0;
+        cacheTotalWeight = 0;
       }
       let byPattern = cache.get(key);
       if (!byPattern)
         cache.set(key, byPattern = /* @__PURE__ */ new Map());
       byPattern.set(pattern, mm);
       cacheSize++;
+      cacheTotalWeight += weight;
       return mm;
     };
     defaultPlatform = typeof process === "object" && process ? process.env?.__MINIMATCH_TESTING_PLATFORM__ || process.platform : "posix";
@@ -98616,11 +98720,33 @@ var init_esm5 = __esm({
       if (options3.nobrace || !/\{(?:(?!\{).)*\}/.test(pattern)) {
         return [pattern];
       }
-      return expand2(pattern, { max: options3.braceExpandMax });
+      let p2 = pattern.replace(/\\\\/g, "\\\\\\\\");
+      if (options3.windowsPathsNoEscape || options3[AWE_KEY] === false) {
+        p2 = p2.replace(/\[([{}])\]/g, "[\\$1]");
+      }
+      return expand2(p2, { max: options3.braceExpandMax });
     };
     minimatch2.braceExpand = braceExpand;
     RANGE_MIN = 100;
     rangeRe = /(?<![\\$])\{(-?\d+)\.\.(-?\d+)\}/g;
+    inRepeatOrNegExt = (portion, mark) => {
+      const stack = [];
+      for (let i2 = 0; i2 < portion.length; i2++) {
+        const c2 = portion.charAt(i2);
+        if (c2 === "\\") {
+          i2++;
+        } else if (c2 === mark) {
+          if (stack.some((t2) => t2 !== "@" && t2 !== "?"))
+            return true;
+        } else if (portion.charAt(i2 + 1) === "(" && "!?+*@".includes(c2)) {
+          stack.push(c2);
+          i2++;
+        } else if (c2 === ")") {
+          stack.pop();
+        }
+      }
+      return false;
+    };
     match = (list2, pattern, options3 = {}) => {
       const mm = new Minimatch(pattern, options3);
       list2 = list2.filter((f2) => mm.match(f2));
@@ -98677,6 +98803,25 @@ var init_esm5 = __esm({
         }
       }
       return lit2;
+    };
+    MAX_EXTGLOBS = 256;
+    extglobCount = (pattern) => {
+      let n2 = 0;
+      for (let i2 = 0; i2 < pattern.length - 1; i2++) {
+        const c2 = pattern.charAt(i2);
+        if (c2 === "\\") {
+          i2++;
+        } else if ("+@!?*".includes(c2) && pattern.charAt(i2 + 1) === "(") {
+          n2++;
+          i2++;
+        }
+      }
+      return n2;
+    };
+    assertValidExtglobs = (pattern) => {
+      if (extglobCount(pattern) > MAX_EXTGLOBS) {
+        throw new TypeError("pattern has too many extglobs");
+      }
     };
     extSafe = (pattern) => {
       if (/^[?*+@]\(\)$/.test(pattern) || pattern.includes("[:"))
@@ -98965,6 +99110,8 @@ var init_esm5 = __esm({
               const [first, ...rest] = g2;
               const alts = g2.map((i2) => this.globParts[i2][k]);
               const glob2 = `@(${alts.join("|")})`;
+              if (extglobCount(glob2) > MAX_EXTGLOBS)
+                continue;
               this.globParts[first][k] = glob2;
               this.set[first][k] = this.parse(glob2);
               for (const i2 of rest)
@@ -99684,6 +99831,9 @@ var init_esm5 = __esm({
             if (c2 !== -1 && c2 < portion.lastIndexOf(mark)) {
               return this.braceExpand();
             }
+            if (!this.options.noext && inRepeatOrNegExt(portion, mark)) {
+              return this.braceExpand();
+            }
           }
         }
         this.#rangeMark = mark;
@@ -99706,6 +99856,8 @@ var init_esm5 = __esm({
           return PENDING;
         let m2 = this.#matchers.get(pattern);
         if (!m2) {
+          if (!noext)
+            assertValidExtglobs(pattern);
           m2 = new Matcher(pattern, {
             nocase,
             noext,
@@ -114758,100 +114910,181 @@ function create(filename, options3) {
   const parameters = createParameters(filename, options3?.fallback);
   return format4({ type, parameters }, { extended: false });
 }
+function isTokenValid(str) {
+  const len = str.length;
+  if (len === 0)
+    return false;
+  for (let index = 0; index < len; index++) {
+    if ((CHAR_MAP[str.charCodeAt(index)] & TOKEN_FLAG) === 0)
+      return false;
+  }
+  return true;
+}
 function parse3(header, options3) {
   const len = header.length;
   const multipart = options3?.multipart === true;
   const extended = options3?.extended !== false;
-  let index = skipOWS(header, 0, header.length);
+  let index = 0;
+  while ((CHAR_MAP[header.charCodeAt(index)] & OWS) !== 0) {
+    index++;
+  }
   const typeStart = index;
-  index = parseToken(header, index, len);
-  const typeEnd = trailingOWS(header, typeStart, index);
-  const type = header.slice(typeStart, typeEnd).toLowerCase();
+  let typeFlags = 0;
+  let whitespace = -1;
+  while (index < len) {
+    const code = header.charCodeAt(index);
+    const flags = CHAR_MAP[code];
+    if ((flags & SEMI_FLAG) !== 0)
+      break;
+    if ((flags & OWS) !== 0) {
+      if (whitespace === -1)
+        whitespace = index;
+    } else {
+      whitespace = -1;
+    }
+    typeFlags |= code & NON_ASCII | flags;
+    index++;
+  }
+  const typeEnd = whitespace === -1 ? index : whitespace;
+  const typeValue = header.slice(typeStart, typeEnd);
+  const type = (typeFlags & CASE_FLAGS) === 0 ? typeValue : typeValue.toLowerCase();
   const parameters = new NullObject();
+  const seenKeys = new NullObject();
   parameter: while (index < len) {
-    index = skipOWS(header, index + 1, len);
+    index++;
+    while ((CHAR_MAP[header.charCodeAt(index)] & OWS) !== 0) {
+      index++;
+    }
     const keyStart = index;
+    let keyFlags = 0;
+    let keyWhitespace = -1;
     while (index < len) {
-      const char = header.charCodeAt(index);
-      if (char === SEMI)
+      const code = header.charCodeAt(index);
+      const flags = CHAR_MAP[code];
+      if ((flags & SEMI_FLAG) !== 0)
         continue parameter;
-      if (char === EQ) {
-        const keyEnd = trailingOWS(header, keyStart, index);
-        const key = header.slice(keyStart, keyEnd).toLowerCase();
-        index = skipOWS(header, index + 1, len);
-        if (index < len && header.charCodeAt(index) === DQUOTE) {
+      if (code === EQ) {
+        const keyEnd = keyWhitespace === -1 ? index : keyWhitespace;
+        const keyValue = header.slice(keyStart, keyEnd);
+        const key = (keyFlags & CASE_FLAGS) === 0 ? keyValue : keyValue.toLowerCase();
+        index++;
+        while ((CHAR_MAP[header.charCodeAt(index)] & OWS) !== 0) {
           index++;
-          let value2 = "";
-          if (multipart) {
-            while (index < len) {
-              const code = header.charCodeAt(index++);
-              if (code === DQUOTE) {
-                index = parseToken(header, index, len);
-                if (parameters[key] === void 0)
-                  parameters[key] = value2;
-                break;
+        }
+        if (index < len && header.charCodeAt(index) === DQUOTE) {
+          const quotedStart = ++index;
+          let encoded = false;
+          while (index < len) {
+            const code2 = header.charCodeAt(index);
+            if (code2 === DQUOTE) {
+              if (parameters[key] === void 0 && !seenKeys[key]) {
+                parameters[key] = encoded ? multipart ? decodeMultipartEscapes(header, quotedStart, index) : unescapeQuotedPairs(header, quotedStart, index) : header.slice(quotedStart, index);
               }
-              if (code === /* % */
-              37 && index + 1 < len) {
-                const code2 = header.charCodeAt(index);
-                const code3 = header.charCodeAt(index + 1);
-                if (code2 === 50 && code3 === 50) {
-                  value2 += '"';
-                  index += 2;
+              index++;
+              while (index < len) {
+                if ((CHAR_MAP[header.charCodeAt(index)] & SEMI_FLAG) !== 0) {
+                  break;
+                }
+                index++;
+              }
+              seenKeys[key] = true;
+              continue parameter;
+            }
+            if (multipart) {
+              if (code2 === /* % */
+              37) {
+                const decodedCode = multipartEscapeCode(header, index, len);
+                if (decodedCode !== 0) {
+                  encoded = true;
+                  index += 3;
                   continue;
                 }
-                if (code2 === 48) {
-                  if (code3 === 100 || code3 === 68) {
-                    value2 += "\r";
-                    index += 2;
-                    continue;
-                  }
-                  if (code3 === 97 || code3 === 65) {
-                    value2 += "\n";
-                    index += 2;
-                    continue;
-                  }
-                }
               }
-              value2 += String.fromCharCode(code);
+            } else if (code2 === BSLASH && index + 1 < len) {
+              encoded = true;
+              index += 2;
+              continue;
             }
-          } else {
-            while (index < len) {
-              const code = header.charCodeAt(index++);
-              if (code === DQUOTE) {
-                index = parseToken(header, index, len);
-                if (parameters[key] === void 0)
-                  parameters[key] = value2;
-                break;
-              }
-              if (code === BSLASH && index < len) {
-                value2 += header[index++];
-                continue;
-              }
-              value2 += String.fromCharCode(code);
-            }
+            index++;
           }
+          seenKeys[key] = true;
           continue parameter;
         }
         const valueStart = index;
-        index = parseToken(header, index, len);
-        const valueEnd = trailingOWS(header, valueStart, index);
+        const delimiter = header.indexOf(";", index);
+        index = delimiter === -1 ? len : delimiter;
+        if (seenKeys[key])
+          continue parameter;
+        seenKeys[key] = true;
+        let valueEnd = index;
+        while (valueEnd > valueStart && (CHAR_MAP[header.charCodeAt(valueEnd - 1)] & OWS) !== 0) {
+          valueEnd--;
+        }
         const value = header.slice(valueStart, valueEnd);
-        if (parameters[key] === void 0) {
-          parameters[key] = value;
-          if (extended && key.charCodeAt(key.length - 1) === ASTERISK) {
-            const normalizedKey = key.slice(0, -1);
-            const decoded = decodeExtended(value);
-            if (decoded !== void 0)
-              parameters[normalizedKey] = decoded;
+        if (extended && key.charCodeAt(key.length - 1) === ASTERISK) {
+          const normalizedKey = key.slice(0, -1);
+          const decoded = decodeExtended(value);
+          if (decoded !== void 0) {
+            parameters[normalizedKey] = decoded;
+            continue parameter;
           }
         }
+        if (parameters[key] === void 0)
+          parameters[key] = value;
         continue parameter;
       }
+      if ((flags & OWS) !== 0) {
+        if (keyWhitespace === -1)
+          keyWhitespace = index;
+      } else {
+        keyWhitespace = -1;
+      }
+      keyFlags |= code & NON_ASCII | flags;
       index++;
     }
   }
   return { type, parameters };
+}
+function multipartEscapeCode(str, index, len) {
+  if (index + 2 >= len)
+    return 0;
+  const code2 = str.charCodeAt(index + 1);
+  const code3 = str.charCodeAt(index + 2);
+  if (code2 === 50 && code3 === 50)
+    return DQUOTE;
+  if (code2 !== 48)
+    return 0;
+  if (code3 === 100 || code3 === 68)
+    return 13;
+  if (code3 === 97 || code3 === 65)
+    return 10;
+  return 0;
+}
+function unescapeQuotedPairs(str, start, end) {
+  let result = "";
+  for (let index = start; index < end; index++) {
+    if (str.charCodeAt(index) === BSLASH) {
+      result += str.slice(start, index);
+      start = ++index;
+    }
+  }
+  return result + str.slice(start, end);
+}
+function decodeMultipartEscapes(str, start, end) {
+  let result = "";
+  for (let index = start; index < end; index++) {
+    if (str.charCodeAt(index) !== /* % */
+    37)
+      continue;
+    const decodedCode = multipartEscapeCode(str, index, end);
+    if (decodedCode === 0)
+      continue;
+    result += str.slice(start, index);
+    result += String.fromCharCode(decodedCode);
+    index += 2;
+    start = index + 1;
+  }
+  return result + str.slice(start, end);
 }
 function createParameters(filename, fallback = true) {
   if (filename === void 0)
@@ -114904,57 +115137,27 @@ function tryDecodeURIComponent(str) {
     return void 0;
   }
 }
-function parseToken(str, index, len) {
-  while (index < len) {
-    const char = str.charCodeAt(index);
-    if (char === SEMI)
-      break;
-    index++;
-  }
-  return index;
-}
-function skipOWS(str, index, len) {
-  while (index < len) {
-    const char = str.charCodeAt(index);
-    if (char !== SP && char !== HTAB)
-      break;
-    index++;
-  }
-  return index;
-}
-function trailingOWS(str, start, end) {
-  while (end > start) {
-    const char = str.charCodeAt(end - 1);
-    if (char !== SP && char !== HTAB)
-      break;
-    end--;
-  }
-  return end;
-}
 function format4(obj, options3) {
   const { type, parameters } = obj;
   const multipart = options3?.multipart === true;
   const extended = options3?.extended !== false;
-  if (!type || !TOKEN_REGEXP.test(type)) {
+  if (!type || !isTokenValid(type)) {
     throw new TypeError("Invalid type: " + type);
   }
   let result = type;
   if (parameters) {
     for (const param of Object.keys(parameters)) {
       const value = parameters[param];
-      if (!TOKEN_REGEXP.test(param)) {
+      if (!isTokenValid(param)) {
         throw new TypeError("Invalid parameter name: " + param);
       }
       if (multipart) {
         result += "; " + param + "=" + qmultipart(value);
         continue;
       }
-      if (TOKEN_REGEXP.test(value)) {
-        result += "; " + param + "=" + value;
-        continue;
-      }
-      if (TEXT_REGEXP.test(value)) {
-        result += "; " + param + "=" + qstring(value);
+      const formatted = parameterValue(value);
+      if (formatted !== void 0) {
+        result += "; " + param + "=" + formatted;
         continue;
       }
       if (!extended) {
@@ -114962,9 +115165,6 @@ function format4(obj, options3) {
       }
       if (param.charCodeAt(param.length - 1) === ASTERISK) {
         throw new TypeError("Invalid extended parameter value: " + value);
-      }
-      if (parameters[param + "*"] !== void 0) {
-        continue;
       }
       result += "; " + param + "*=" + encodeExtended(value);
     }
@@ -114977,48 +115177,66 @@ function getAscii(val) {
 function pencode(char) {
   return "%" + char.charCodeAt(0).toString(16).toUpperCase();
 }
-function qstring(str) {
-  return '"' + str.replace(QUOTE_REGEXP, "\\$&") + '"';
+function parameterValue(str) {
+  const len = str.length;
+  if (len === 0)
+    return '""';
+  let index = 0;
+  while (index < len && (CHAR_MAP[str.charCodeAt(index)] & TOKEN_FLAG) !== 0) {
+    index++;
+  }
+  if (index === len)
+    return str;
+  let result = '"';
+  let start = 0;
+  for (; index < len; index++) {
+    const code = str.charCodeAt(index);
+    if (code < SP || code === 127 || code > 255)
+      return void 0;
+    if (code === DQUOTE || code === BSLASH) {
+      result += str.slice(start, index) + "\\";
+      start = index;
+    }
+  }
+  return result + str.slice(start) + '"';
 }
 function qmultipart(str) {
-  return '"' + str.replace(/[\n\r"]/g, multipartEscape) + '"';
-}
-function multipartEscape(char) {
-  if (char === "\n")
-    return "%0A";
-  if (char === "\r")
-    return "%0D";
-  return "%22";
+  if (!/[\n\r"]/.test(str))
+    return '"' + str + '"';
+  let result = '"';
+  let start = 0;
+  for (let index = 0; index < str.length; index++) {
+    const code = str.charCodeAt(index);
+    if (code === DQUOTE || code === 10 || code === 13) {
+      result += str.slice(start, index);
+      result += code === DQUOTE ? "%22" : code === 10 ? "%0A" : "%0D";
+      start = index + 1;
+    }
+  }
+  return result + str.slice(start) + '"';
 }
 function encodeExtended(str) {
   const encoded = encodeURIComponent(str).replace(ENCODE_URL_ATTR_CHAR_REGEXP, pencode);
   return "UTF-8''" + encoded;
 }
-function isHexDigit(char) {
-  const code = char.charCodeAt(0);
-  return code >= 48 && code <= 57 || // 0-9
-  code >= 65 && code <= 70 || // A-F
-  code >= 97 && code <= 102;
-}
 function decodeHexEscapes(str) {
-  const firstEscape = str.indexOf("%");
-  if (firstEscape === -1)
+  let index = str.indexOf("%");
+  if (index === -1)
     return str;
-  let result = str.slice(0, firstEscape);
-  for (let idx = firstEscape; idx < str.length; idx++) {
-    if (str[idx] === "%") {
-      if (idx + 2 >= str.length || !isHexDigit(str[idx + 2]) || !isHexDigit(str[idx + 1])) {
-        return;
-      }
-      result += String.fromCharCode(Number.parseInt(str[idx + 1] + str[idx + 2], 16));
-      idx += 2;
-    } else {
-      result += str[idx];
-    }
-  }
-  return result;
+  let start = 0;
+  let result = "";
+  do {
+    const high = HEX_VALUES[str.charCodeAt(index + 1)];
+    const low = HEX_VALUES[str.charCodeAt(index + 2)];
+    if (!high || !low)
+      return void 0;
+    result += str.slice(start, index) + String.fromCharCode(high - 1 << 4 | low - 1);
+    start = index + 3;
+    index = str.indexOf("%", start);
+  } while (index !== -1);
+  return result + str.slice(start);
 }
-var NullObject, SP, HTAB, SEMI, EQ, DQUOTE, BSLASH, ASTERISK, ENCODE_URL_ATTR_CHAR_REGEXP, NON_ASCII_REGEXP, QUOTE_REGEXP, INVALID_FILENAME_REGEXP, TEXT_REGEXP, ASCII_TEXT_REGEXP, TOKEN_REGEXP;
+var NullObject, SP, HTAB, SEMI, EQ, DQUOTE, BSLASH, ASTERISK, LOWER_CASE, OWS, SEMI_FLAG, TOKEN_FLAG, NON_ASCII, CASE_FLAGS, CHAR_MAP, ENCODE_URL_ATTR_CHAR_REGEXP, NON_ASCII_REGEXP, INVALID_FILENAME_REGEXP, ASCII_TEXT_REGEXP, HEX_VALUES;
 var init_dist6 = __esm({
   "node_modules/content-disposition/dist/index.js"() {
     NullObject = /* @__PURE__ */ (() => {
@@ -115034,13 +115252,36 @@ var init_dist6 = __esm({
     DQUOTE = 34;
     BSLASH = 92;
     ASTERISK = 42;
+    LOWER_CASE = 1;
+    OWS = 2;
+    SEMI_FLAG = 4;
+    TOKEN_FLAG = 8;
+    NON_ASCII = 65280;
+    CASE_FLAGS = LOWER_CASE | NON_ASCII;
+    CHAR_MAP = new Uint8Array(256);
+    for (let code = 65; code <= 90; code++) {
+      CHAR_MAP[code] |= LOWER_CASE | TOKEN_FLAG;
+    }
+    CHAR_MAP[HTAB] |= OWS;
+    CHAR_MAP[SP] |= OWS;
+    CHAR_MAP[SEMI] |= SEMI_FLAG;
+    for (let code = 128; code <= 255; code++) {
+      CHAR_MAP[code] |= LOWER_CASE;
+    }
+    for (const char of "!#$%&'*+-.^_`|~0123456789abcdefghijklmnopqrstuvwxyz") {
+      CHAR_MAP[char.charCodeAt(0)] |= TOKEN_FLAG;
+    }
     ENCODE_URL_ATTR_CHAR_REGEXP = /[\x00-\x20"'()*,/:;<=>?@[\\\]{}\x7f]/g;
     NON_ASCII_REGEXP = /[^\x20-\x7e]/g;
-    QUOTE_REGEXP = /[\\"]/g;
     INVALID_FILENAME_REGEXP = /%[0-9A-Fa-f]{2}/;
-    TEXT_REGEXP = /^[\x20-\x7e\x80-\xff]*$/;
     ASCII_TEXT_REGEXP = /^[\x20-\x7e]*$/;
-    TOKEN_REGEXP = /^[!#$%&'*+.0-9A-Z^_`a-z|~-]+$/;
+    HEX_VALUES = new Uint8Array(128);
+    for (let code = 48; code <= 57; code++)
+      HEX_VALUES[code] = code - 47;
+    for (let code = 65; code <= 70; code++)
+      HEX_VALUES[code] = code - 54;
+    for (let code = 97; code <= 102; code++)
+      HEX_VALUES[code] = code - 86;
   }
 });
 
@@ -147659,7 +147900,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-4c0c4c2 2026-11-19 14:00:47 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-a9f7137 2026-11-23 11:14:16 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
