@@ -106,6 +106,16 @@ describe('diagnostic manager', () => {
   })
 
   describe('events', () => {
+    it('should refresh native diagnostics after restoring the buffer cursor', async () => {
+      let doc = await shared.createDocument()
+      await nvim.command("call setline(1, repeat(['line'], 100)) | normal! 100G")
+      await doc.buffer.setVar('coc_diagnostic_map', [])
+      await nvim.command('enew')
+      await nvim.command(`autocmd DiagnosticChanged <buffer=${doc.bufnr}> ++once let b:diagnostic_line = line('.')`)
+      await nvim.command(`buffer ${doc.bufnr}`)
+      await shared.waitFor('eval', ['get(b:, "diagnostic_line", 0)'], 100)
+    })
+
     it('should delay refresh when buffer visible', async t => {
       let doc = await shared.createDocument()
       await nvim.command('edit tmp')
