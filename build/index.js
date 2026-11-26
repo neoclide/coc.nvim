@@ -145877,9 +145877,7 @@ var init_buffer6 = __esm({
           tokenModifiers
         });
         if (tokenModifiers.length) {
-          for (const modifier of tokenModifiers) {
-            combine2 ||= combinedModifiers.includes(modifier);
-          }
+          combine2 = tokenModifiers.some((mod) => combinedModifiers.includes(mod));
           let modsName = tokenModifiers.map(toHighlightPart).join("");
           highlights.push({
             range: range2,
@@ -147900,7 +147898,7 @@ var init_workspace3 = __esm({
       }
       async showInfo() {
         let lines = [];
-        let version2 = workspace_default.version + (true ? "-93292b0 2026-11-25 18:36:28 +0800" : "");
+        let version2 = workspace_default.version + (true ? "-bf98f1f 2026-11-26 16:23:07 +0800" : "");
         lines.push("## versions");
         lines.push("");
         let out = await this.nvim.call("execute", ["version"]);
