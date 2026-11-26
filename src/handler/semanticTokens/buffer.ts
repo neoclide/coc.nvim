@@ -274,9 +274,7 @@ export default class SemanticTokensBuffer implements SyncItem {
     })
 
     if (tokenModifiers.length) {
-      for (const modifier of tokenModifiers) {
-        combine ||= combinedModifiers.includes(modifier)
-      }
+      combine = tokenModifiers.some(mod => combinedModifiers.includes(mod))
       // only use all modifiers combined to avoid highlight flicking
       let modsName = tokenModifiers.map(toHighlightPart).join("")
       highlights.push({
