@@ -1,11 +1,21 @@
 'use strict'
 import { Neovim } from '@chemzqm/neovim'
 import events from '../events'
+import { createLogger } from '../logger'
 import { disposeAll } from '../util'
 import { isVim } from '../util/constants'
 import { omitUndefined } from '../util/object'
 import { Disposable, Emitter, Event } from '../util/protocol'
 import { toText } from '../util/string'
+import Mru from './mru'
+
+const logger = createLogger('input')
+
+let mru: Mru | undefined
+
+function getMru(): Mru {
+  return mru ?? (mru = new Mru('input_history', undefined, 100))
+}
 
 export interface InputPreference {
   placeHolder?: string
@@ -49,6 +59,10 @@ export default class InputBox implements Disposable {
   private readonly _onDidFinish = new Emitter<string>()
   private readonly _onDidChange = new Emitter<string>()
   private clear = false
+  private listMode = false
+  private entries: string[] = []
+  private cursor = -1
+  private typed = ''
   public readonly onDidFinish: Event<string | null> = this._onDidFinish.event
   public readonly onDidChange: Event<string> = this._onDidChange.event
   constructor(private nvim: Neovim, defaultValue: string) {
@@ -108,8 +122,12 @@ export default class InputBox implements Disposable {
       if (bufnr == this._bufnr) {
         this._input = value
         this.accepted = true
+        this.saveHistory(value)
         this.dispose()
       }
+    }, null, this.disposables)
+    events.on('PromptKeyPress', (bufnr, key) => {
+      if (bufnr == this._bufnr) this.onKeyPress(key)
     }, null, this.disposables)
     events.on('PromptExit', bufnr => {
       if (bufnr == this._bufnr) {
@@ -133,6 +151,39 @@ export default class InputBox implements Disposable {
     }
   }
 
+  private onKeyPress(key: string): void {
+    if (this.listMode || this._disposed) return
+    if (key == '<up>') this.navigate(false)
+    else if (key == '<down>') this.navigate(true)
+  }
+
+  private navigate(next: boolean): void {
+    let { entries, cursor } = this
+    if (entries.length == 0) return
+    if (!next) {
+      if (cursor === -1) this.typed = this._input
+      if (cursor < entries.length - 1) this.cursor = cursor + 1
+      else return
+    } else {
+      if (cursor === -1) return
+      this.cursor = cursor - 1
+    }
+    this.value = this.cursor === -1 ? this.typed : entries[this.cursor]
+  }
+
+  private saveHistory(text: string): void {
+    if (this.listMode || !text || text.length < 2) return
+    void (async () => {
+      try {
+        let m = getMru()
+        await m.remove(text)
+        await m.add(text)
+      } catch (e) {
+        logger.error('Failed to save input history:', e)
+      }
+    })()
+  }
+
   public get dimension(): Dimension | undefined {
     let { _dimension } = this
     return { width: _dimension[0], height: _dimension[1], row: _dimension[2], col: _dimension[3] }
@@ -150,6 +201,10 @@ export default class InputBox implements Disposable {
     this.title = title
     this.borderhighlight = preferences.borderhighlight ?? 'CocFloatBorder'
     this.loading = false
+    this.listMode = preferences.list === true
+    this.cursor = -1
+    this.typed = ''
+    if (!this.listMode) this.entries = await getMru().load()
     if (preferences.placeHolder && !this._input && !isVim) {
       this.clear = true
     }
