@@ -484,6 +484,26 @@ export class ExtensionManager {
     let ext: ExtensionExport
     let subscriptions: Disposable[] = []
     const timing = createTiming(`activate ${id}`, 5000)
+    const cleanupAbandonedActivation = (): void => {
+      activationAbandoned = false
+      try {
+        let items = Array.from(new Set(subscriptions))
+        subscriptions.length = 0
+        disposeAll(items)
+        if (ext && typeof ext.deactivate === 'function') {
+          // Unloading already returned; a pending hook must not retain the activation result.
+          void Promise.resolve(extensionContext.run(id, () => ext.deactivate())).catch(cleanupError => {
+            logger.error(`Error on ${id} abandoned activation cleanup: `, cleanupError)
+          })
+        }
+      } catch (cleanupError) {
+        logger.error(`Error on ${id} abandoned activation cleanup: `, cleanupError)
+      } finally {
+        ext = undefined
+        result = undefined
+        timing.stop()
+      }
+    }
     let extension: Extension<API> = {
       activate: (): Promise<API> => {
         if (result) return result
@@ -506,15 +526,7 @@ export class ExtensionManager {
             let res = await extensionContext.run(id, () => ext.activate(context))
             isActivating = false
             if (activationAbandoned) {
-              let items = Array.from(new Set(subscriptions))
-              subscriptions.length = 0
-              disposeAll(items)
-              if (ext && typeof ext.deactivate === 'function') {
-                await Promise.resolve(extensionContext.run(id, () => ext.deactivate()))
-              }
-              ext = undefined
-              result = undefined
-              timing.stop()
+              cleanupAbandonedActivation()
               resolve(res)
               return
             }
@@ -525,6 +537,9 @@ export class ExtensionManager {
             resolve(res)
           } catch (e) {
             isActivating = false
+            if (activationAbandoned) {
+              cleanupAbandonedActivation()
+            }
             logger.error(`Error on active extension ${id}:`, e)
             reject(e as Error)
           }
